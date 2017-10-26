@@ -1,0 +1,112 @@
+SAFI_NFe_Destinatario (SP):
+Chave Acesso NFe
+Data Emissão(Nota Fiscal Eletronica)
+Número CNPJ Emitente(Nota Fiscal Eletronica)
+Nome Razão Social Emitente(Nota Fiscal Eletronica)
+Número Inscrição Estadual Completa Emitente
+Número CNPJ Destinatário(Nota Fiscal Eletronica)
+Código Estado Destinatário
+Nome ou Razão Social Destinatário(Nota Fiscal Eletronica)
+Valor Total Base Cálculo ICMS(Nota Fiscal Eletronica)
+Valor Total ICMS(Nota Fiscal Eletronica)
+Valor Total Base Cálculo ICMS Substituição Tributária(Nota Fiscal Eletronica)
+Valor Total ICMS Substituição Tributária(Nota Fiscal Eletronica)
+Valor Total Nota Fiscal nfe(Nota Fiscal Eletronica)
+Código Estado Emitente(Nota Fiscal Eletronica)
+Número Documento Fiscal(Nota Fiscal Eletronica)
+Código Série Documento Fiscal(Nota Fiscal Eletronica)
+Código Modelo(Nota Fiscal Eletronica)
+
+SAFI_NFe_Destinatario (Outras):
+Chave Acesso NFe (char)
+Número CNPJ Destinatário(Nota Fiscal Eletronica UFs)
+Nome ou Razão Social Destinatário(Nota Fiscal Eletronica UFs)
+Data Emissão(Nota Fiscal Eletronica UFs)
+Número CNPJ Emitente(Nota Fiscal Eletronica UFs)
+Nome Razão Social Emitente(Nota Fiscal Eletronica UFs)
+Código Estado Emitente(Nota Fiscal Eletronica UFs)
+Valor Total Base Cálculo ICMS(Nota Fiscal Eletronica UFs)
+Valor Total ICMS(Nota Fiscal Eletronica UFs)
+Valor Total Base Cálculo ICMS Substituição Tributária(Nota Fiscal Eletronica UFs)
+Valor Total ICMS Substituição Tributária(Nota Fiscal Eletronica UFs)
+Valor Total Nota Fiscal nfe(Nota Fiscal Eletronica UFs)
+Código Modelo(Nota Fiscal Eletronica UFs)
+Código Série Documento Fiscal(Nota Fiscal Eletronica UFs)
+Número Documento Fiscal(Nota Fiscal Eletronica UFs)
+
+
+SAFI_NFe_Emitente:
+Chave Acesso NFe
+Data Emissão
+Número CNPJ Emitente
+Nome Razão Social Emitente
+Número Inscrição Estadual Completa Emitente
+Número CNPJ Destinatário
+Código Estado Destinatário
+Nome ou Razão Social Destinatário
+Valor Total Base Cálculo ICMS
+Valor Total ICMS
+Valor Total Base Cálculo ICMS Substituição Tributária
+Valor Total ICMS Substituição Tributária
+Valor Total Nota Fiscal nfe
+Descrição Tipo Documento Fiscal
+Número Documento Fiscal
+Código Série Documento Fiscal
+Código Modelo
+
+SAFI_NFe_Emitente_Itens:
+Número Versão Leiaute
+Número CNPJ Emitente
+Número Inscrição Estadual Completa Emitente
+Número CNPJ Destinatário
+Código Modelo
+Código Série Documento Fiscal
+Número Documento Fiscal
+Data Emissão
+Código CFOP (04 Posições)
+Número Item
+Código Produto ou Serviço
+Descrição Produto
+Quantidade Comercial
+Unidade Comercial
+Valor Produto ou Serviço
+Valor Desconto
+Valor Outras Despesas Acessórias
+Valor Base Cálculo ICMS
+Percentual Alíquota ICMS
+Valor ICMS
+Valor Base Cálculo ICMS Substituição Tributária
+Valor IPI
+Chave Acesso NFe
+
+SAFI_CTe_CNPJ:
+Chave Acesso CT-e
+Código Série
+Número do CT-e
+Num. CNPJ Emitente
+Data Emissão
+Razão Social Emitente
+Sigla UF Emitente
+Num. CNPJ Tomador
+Razão Social Tomador
+Sigla UF Tomador
+Num. CNPJ Remetente
+Razão Social Remetente
+Sigla UF Remetente
+Núm. CNPJ Destinatário
+Razão Social Destinatário
+Sigla UF Destinatário
+Num. CNPJ Expedidor
+Sigla UF Expedidor
+Num. CNPJ Recebedor
+Sigla UF Recebedor
+Tipo CT-e
+Chave Acesso CT-e (char)
+Valor Total Prest. Serviço
+Valor A Receber
+Quantidade CT-e
+Código CFOP
+Nome Município Inicial
+Sigla UF Inicial
+Nome Município Fim
+Sigla UF Fim
