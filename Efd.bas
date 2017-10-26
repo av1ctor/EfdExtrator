@@ -1265,6 +1265,7 @@ private sub adicionarColunasComuns(sheet as ExcelWorksheet ptr, ehEntrada as Boo
 	sheet->AddCellType(CT_INTNUMBER, "Serie")
 	sheet->AddCellType(CT_INTNUMBER, "Numero")
 	sheet->AddCellType(CT_DATE, "Data Emissao")
+	sheet->AddCellType(CT_DATE, "Data " + iif(ehEntrada, "Entrada", "Saida"))
 	sheet->AddCellType(CT_STRING, "Chave")
 	sheet->AddCellType(CT_STRING, "Situacao")
 
@@ -1424,6 +1425,7 @@ function Efd.processar(mostrarProgresso as sub(porCompleto as double)) as Boolea
 						row->addCell(doc->serie)
 						row->addCell(doc->numero)
 						row->addCell(STR2DATA(doc->dataEmi))
+						row->addCell(STR2DATA(doc->dataEntSaida))
 						row->addCell(doc->chave)
 						row->addCell(situacao2String(doc->situacao))
 						row->addCell(reg->itemNFe.bcICMS)
@@ -1484,6 +1486,7 @@ function Efd.processar(mostrarProgresso as sub(porCompleto as double)) as Boolea
 							row->addCell(reg->nfe.serie)
 							row->addCell(reg->nfe.numero)
 							row->addCell(STR2DATA(reg->nfe.dataEmi))
+							row->addCell(STR2DATA(reg->nfe.dataEntSaida))
 							row->addCell(reg->nfe.chave)
 							row->addCell(situacao2String(reg->nfe.situacao))
 
@@ -1551,6 +1554,7 @@ function Efd.processar(mostrarProgresso as sub(porCompleto as double)) as Boolea
 					var dataEmi = iif( len(reg->nfe.chave) = 44, "01" + mid(reg->nfe.chave,5,2) + "20" + mid(reg->nfe.chave,3,2), regListHead->mestre.dataIni )
 					adicionarEfdDfe(reg->nfe.chave, reg->nfe.operacao, dataEmi)
 					row->addCell(STR2DATA(dataEmi))
+					row->addCell("")
 					row->addCell(reg->nfe.chave)
 					row->addCell(situacao2String(reg->nfe.situacao))
 					row->addCell("")
@@ -1622,6 +1626,7 @@ function Efd.processar(mostrarProgresso as sub(porCompleto as double)) as Boolea
 						row->addCell(reg->cte.serie)
 						row->addCell(reg->cte.numero)
 						row->addCell(STR2DATA(reg->cte.dataEmi))
+						row->addCell(STR2DATA(reg->cte.dataAquPrest))
 						row->addCell(reg->cte.chave)
 						row->addCell(situacao2String(reg->cte.situacao))
 						
@@ -1725,6 +1730,7 @@ function Efd.processar(mostrarProgresso as sub(porCompleto as double)) as Boolea
 					row->addCell(reg->docSint.serie)
 					row->addCell(reg->docSint.numero)
 					row->addCell(STRSINT2DATA(reg->docSint.dataEmi))
+					row->addCell("")
 					row->addCell("")
 					row->addCell(situacao2String(reg->docSint.situacao))
 					row->addCell(reg->docSint.bcICMS)
@@ -1833,21 +1839,26 @@ sub Efd.analisar(mostrarProgresso as sub(porCompleto as double))
 	
 	var i = 0
 	var dfe = dfeListHead
-	do while dfe <> null
-		if hashLookup(@efdDFeDict, dfe->chave) = null then
-			var row = naoEscrituradas->AddRow()
-			row->addCell(dfe->chave)
-			row->addCell(STRDFE2DATA(dfe->dataEmi))
-			row->addCell(dfe->modelo)
-			row->addCell(dfe->operacao)
-		end if
+	if dfeListHead = null then
+		var row = naoEscrituradas->AddRow()
+		row->addCell("Nao foi possivel verificar falta de escrituracao porque os relatorios do SAFI nao foram fornecidos")
+	else
+		do while dfe <> null
+			if hashLookup(@efdDFeDict, dfe->chave) = null then
+				var row = naoEscrituradas->AddRow()
+				row->addCell(dfe->chave)
+				row->addCell(STRDFE2DATA(dfe->dataEmi))
+				row->addCell(dfe->modelo)
+				row->addCell(dfe->operacao)
+			end if
 
-		i += 1
-		if mostrarProgresso <> NULL then
-			'mostrarProgresso(i / nroDFe)
-		end if 
-		
-		dfe = dfe->next_
-	loop
+			i += 1
+			if mostrarProgresso <> NULL then
+				'mostrarProgresso(i / nroDFe)
+			end if 
+			
+			dfe = dfe->next_
+		loop
+	end if
 
 end sub
