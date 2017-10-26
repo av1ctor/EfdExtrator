@@ -3,6 +3,7 @@
 #include once "bfile.bi"
 #include once "hash.bi"
 #include once "ExcelWriter.bi"
+#include once "vbcompat.bi"
 
 dim shared as string codUF2Sigla(11 to 53)
 dim shared as string situacao2String(0 to __TipoSituacao__LEN__-1)
@@ -63,6 +64,9 @@ constructor Efd()
 	hashInit(@efdDFeDict, 2^20)
 	efdDfeListHead = null
 	efdDfeListTail = null
+	
+	''
+	baseTemplatesDir = ExePath + "\templates\"
 end constructor
 
 destructor Efd()
@@ -1332,6 +1336,9 @@ end sub
 #define STR2DATA(s) (mid(s,5) + "-" + mid(s,3,2) + "-" + mid(s,1,2) + "T00:00:00.000")
 
 ''''''''
+#define STR2DATABR(s) (mid(s,1,2) + "/" + mid(s,3,2) + "/" + mid(s,5))
+
+''''''''
 #define STRSINT2DATA(s) (mid(s,1,4) + "-" + mid(s,5,2) + "-" + mid(s,7,2) + "T00:00:00.000")
 
 ''''''''
@@ -1394,7 +1401,7 @@ sub Efd.criarPlanilhas()
 end sub
 
 ''''''''
-function Efd.processar(mostrarProgresso as sub(porCompleto as double)) as Boolean
+function Efd.processar(mostrarProgresso as sub(porCompleto as double), gerarRelatorios as boolean) as Boolean
    
 	if entradas = null then
 		criarPlanilhas
@@ -1687,6 +1694,56 @@ function Efd.processar(mostrarProgresso as sub(porCompleto as double)) as Boolea
 						
 					loop while item <> null
 					
+				
+				case CANCELADO, CANCELADO_EXT, DENEGADO, INUTILIZADO
+					dim as ExcelRow ptr row 
+					if reg->cte.operacao = SAIDA then
+						row = saidas->AddRow()
+					else
+						row = entradas->AddRow()
+					end if
+
+					row->addCell("")
+					row->addCell("")
+					row->addCell("")
+					row->addCell("")
+					row->addCell(reg->cte.modelo)
+					row->addCell(reg->cte.serie)
+					row->addCell(reg->cte.numero)
+					'' NOTA: cancelados e inutilizados não vêm com a data preenchida, então retiramos a data da chave ou do registro mestre
+					var dataEmi = iif( len(reg->cte.chave) = 44, "01" + mid(reg->cte.chave,5,2) + "20" + mid(reg->cte.chave,3,2), regListHead->mestre.dataIni )
+					adicionarEfdDfe(reg->cte.chave, reg->cte.operacao, dataEmi)
+					row->addCell(STR2DATA(dataEmi))
+					row->addCell("")
+					row->addCell(reg->cte.chave)
+					row->addCell(situacao2String(reg->cte.situacao))
+					row->addCell("")
+					if reg->nfe.operacao = ENTRADA or cint(itemNFeSafiFornecido) then
+						row->addCell("")
+					end if
+					row->addCell("")
+					row->addCell("")
+					if reg->nfe.operacao = ENTRADA or cint(itemNFeSafiFornecido) then
+						row->addCell("")
+					end if
+					row->addCell("")
+					row->addCell("")
+					row->addCell("")
+					if reg->nfe.operacao = ENTRADA or cint(itemNFeSafiFornecido) then
+						row->addCell("")
+						row->addCell("")
+						row->addCell("")
+						row->addCell("")
+						row->addCell("")
+					end if
+					
+					'' difal
+					if reg->nfe.operacao = SAIDA then
+						row->addCell("")
+						row->addCell("")
+						row->addCell("")
+					end if
+				
 				end select
 			end if
 			
@@ -1709,6 +1766,10 @@ function Efd.processar(mostrarProgresso as sub(porCompleto as double)) as Boolea
 			row->addCell(reg->apuIcms.icmsRecolher)
 			row->addCell(reg->apuIcms.saldoCredTransportar)
 			row->addCell(reg->apuIcms.debExtraApuracao)
+			
+			if gerarRelatorios then
+				gerarRelatorioApuracaoICMS(reg)
+			end if
 
 		'documento do sintegra?
 		case SINTEGRA_DOCUMENTO
@@ -1860,5 +1921,104 @@ sub Efd.analisar(mostrarProgresso as sub(porCompleto as double))
 			dfe = dfe->next_
 		loop
 	end if
+
+end sub
+
+function carregarTemplate(nomeArquivo as string) as string
+	var bf = new bfile()
+	bf->abrir(nomeArquivo)
+	function = bf->ler()
+	bf->fechar()
+end function
+
+sub salvarPDF(nomeArquivo as string, template as string)
+	var tempFile = "__temp__" + nomeArquivo + ".html"
+	
+	var bf = new bfile()
+	bf->criar(tempFile)
+	bf->escrever(template)
+	bf->fechar
+	
+	var f = freefile
+	open pipe """" + ExePath + "\wkhtmltox\wkhtmltopdf.exe"" -q .\" + tempFile + " .\" + nomeArquivo + ".pdf 2> nul" For binary access read write As #f
+	close #f
+	
+	'exec(ExePath + "\wkhtmltox\wkhtmltopdf.exe", "-q " + tempFile + " " + nomeArquivo + ".pdf")
+	
+	kill tempFile
+end sub
+
+
+function strReplace _
+	( _
+		byref text as string, _
+		byref a as string, _
+		byref b as string _
+	) as string
+
+	var result = text
+
+	var alen = len(a)
+	var blen = len(b)
+
+	var i = 0
+	do
+		i = instr(i + 1, result, a)
+		if i = 0 then
+			exit do
+		end if
+
+		var keep = right(result, len(result) - ((i - 1) + alen))
+		result = left(result, i - 1)
+		result += b
+		result += keep
+
+		i += blen - 1
+	loop
+
+	function = result
+end function
+
+''''''''
+function STR2IE(ie as string) as string
+	var ie2 = right(string(12,"0") + ie, 12)
+	function = left(ie2,3) + "." + mid(ie2,4,3) + "." + mid(ie2,4+3,3) + "." + right(ie2,3)
+end function
+
+''''''''
+#define STR2CNPJ(s) (left(s,2) + "." + mid(s,3,3) + "." + mid(s,3+3,3) + "/" + mid(s,3+3+3,4) + "-" + right(s,2))
+
+#define DBL2MONEYBR(d) (format(d,"#,#,#.00"))
+
+''''''''
+sub Efd.gerarRelatorioApuracaoICMS(reg as TRegistro ptr)
+
+	var template = carregarTemplate(baseTemplatesDir + "apuracao_icms.html")
+	
+	template = strReplace(template, "{$CONTRIBUINTE_NOME}", regListHead->mestre.nome)
+	template = strReplace(template, "{$CONTRIBUINTE_CNPJ}", STR2CNPJ(regListHead->mestre.cnpj))
+	template = strReplace(template, "{$CONTRIBUINTE_IE}", STR2IE(regListHead->mestre.ie))
+	template = strReplace(template, "{$PERIODO_ESCRITURACAO}", STR2DATABR(regListHead->mestre.dataIni) + " a " + STR2DATABR(regListHead->mestre.dataFim))
+	template = strReplace(template, "{$PERIODO_APURACAO}", STR2DATABR(reg->apuIcms.dataIni) + " a " + STR2DATABR(reg->apuIcms.dataFim))
+	
+	template = strReplace(template, "{$SAIDAS_DEBITO}", DBL2MONEYBR(reg->apuIcms.totalDebitos))
+	template = strReplace(template, "{$VALOR_TOTAL_AJUSTES_DEBITO}", DBL2MONEYBR(reg->apuIcms.ajustesDebitos))
+	template = strReplace(template, "{$VALOR_TOTAL_AJUSTES_DEBITO_IMPOSTO}", DBL2MONEYBR(reg->apuIcms.totalAjusteDeb))
+	template = strReplace(template, "{$VALOR_TOTAL_ESTORNO_CREDITOS}", DBL2MONEYBR(reg->apuIcms.estornosCredito))
+	template = strReplace(template, "{$VALOR_TOTAL_CREDITOS_ENTRADAS}", DBL2MONEYBR(reg->apuIcms.totalCreditos))
+	template = strReplace(template, "{$VALOR_TOTAL_AJUSTES_CREDITO}", DBL2MONEYBR(reg->apuIcms.ajustesCreditos))
+	template = strReplace(template, "{$VALOR_TOTAL_AJUSTES_CREDITO_IMPOSTO}", DBL2MONEYBR(reg->apuIcms.totalAjusteCred))
+	template = strReplace(template, "{$VALOR_TOTAL_ESTORNO_DEBITO}", DBL2MONEYBR(reg->apuIcms.estornoDebitos))
+	template = strReplace(template, "{$VALOR_TOTAL_SALDO_CREDOR_PERIODO_ANTERIOR}", DBL2MONEYBR(reg->apuIcms.saldoCredAnterior))
+	template = strReplace(template, "{$VALOR_SALDO_DEVEDOR}", DBL2MONEYBR(reg->apuIcms.saldoDevedorApurado))
+	template = strReplace(template, "{$VALOR_TOTAL_DEDUCOES}", DBL2MONEYBR(reg->apuIcms.totalDeducoes))
+	template = strReplace(template, "{$VALOR_TOTAL_ICMS_RECOLHER}", DBL2MONEYBR(reg->apuIcms.icmsRecolher))
+	template = strReplace(template, "{$VALOR_TOTAL_SALDO_CREDOR_TRANSPORTAR}", DBL2MONEYBR(reg->apuIcms.saldoCredTransportar))
+	template = strReplace(template, "{$VALOR_RECOLHIDO_EXTRA_APURACAO}", DBL2MONEYBR(reg->apuIcms.debExtraApuracao))
+	template = strReplace(template, "{$NOME_ASSINANTE_ARQUIVO}", "Ninguem")
+	template = strReplace(template, "{$CPF_ASSINANTE_ARQUIVO}", "12345678909")
+	template = strReplace(template, "{$HASHCODE_ARQUIVO}", "1234")
+	
+	salvarPDF("apuracao_icms_" + reg->apuIcms.dataIni + "_" + reg->apuIcms.dataFim, template)
 
 end sub

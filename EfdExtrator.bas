@@ -1,14 +1,13 @@
 '' para compilar: fbc.exe EfdExtrator.bas Efd.bas bfile.bas ExcelWriter.bas list.bas hash.bas
 
 #include once "EFD.bi"
-#define null 0
 
 declare sub main()
 
 '''''''''''
 sub mostrarUso()
 	print wstr("Modo de usar:")
-	print wstr("EfdExtrator.exe arquivo.txt [arquivo.csv]")
+	print wstr("EfdExtrator.exe [-gerarPDF] arquivo.txt [arquivo.csv]")
 	print wstr("Notas:")
 	print wstr(!"\t1. No lugar do nome dos arquivos, podem ser usadas máscaras,")
 	print wstr(!"\t   como por exemplo: *.txt e *.csv")
@@ -18,6 +17,8 @@ sub mostrarUso()
 	print wstr(!"\t   como por exemplo: \"2017 SAFI_NFe_Emitente_Itens parte 1.csv\"")
 	print wstr(!"\t4. No final da extração será gerado um arquivo .xml que deve ser")
 	print wstr(!"\t   aberto no Excel 2003 ou superior")
+	print wstr(!"\t5. A opção -gerarPDF ir gerar os relatórios no formato do EFD-ICMS-IPI")
+	print 
 end sub
 
 '''''''''''   
@@ -38,6 +39,8 @@ end sub
 
 '''''''''''
 sub main()
+	var gerarPDF = false
+	
 	mostrarCopyright()
    
 	if len(command(1)) = 0 then
@@ -46,15 +49,39 @@ sub main()
 	end if
    
 	dim e as Efd
-   
-	var arquivoSaida = iif( len(command(2)) > 0, "__efd__", command(1))
+	
+	'' verificar opções
+	var nroOpcoes = 0
+	var i = 1
+	do 
+		var arg = command(i)
+		if len(arg) = 0 then
+			exit do
+		end if
+		
+		if arg[0] = asc("-") then
+			if arg = "-gerarPDF" then
+				gerarPDF = true
+				nroOpcoes += 1
+			else
+				mostrarUso()
+				exit sub
+			end if
+		end if
+		
+		i += 1
+	loop
+	
+	'' 
+	var arquivoSaida = iif( len(command(nroOpcoes+2)) > 0, "__efd__", command(nroOpcoes+1))
    
 	e.iniciarExtracao(arquivoSaida + ".xml")
    
-	if len(command(2)) > 0 then
-	   '' carregar .csv primeiro com dados de NF-e e CT-e 
-	   var i = 1
-	   var arquivoEntrada = command(1)
+	'' mais de um arquivo informado?
+	if len(command(nroOpcoes+2)) > 0 then
+	   '' carregar arquivos .csv primeiro com dados de NF-e e CT-e 
+	   var i = nroOpcoes+1
+	   var arquivoEntrada = command(i)
 	   do while len(arquivoEntrada) > 0
 			if lcase(right(arquivoEntrada,3)) = "csv" then
 				print "Carregando arquivo " + arquivoEntrada;
@@ -71,8 +98,9 @@ sub main()
 			arquivoEntrada = command(i)
 	   loop
    
-	   i = 1
-	   arquivoEntrada = command(1)
+	   '' carregar arquivos .txt com EFD ou Sintegra
+	   i = nroOpcoes+1
+	   arquivoEntrada = command(i)
 	   do while len(arquivoEntrada) > 0
 			if lcase(right(arquivoEntrada,3)) = "txt" then
 				print "Carregando arquivo " + arquivoEntrada;
@@ -86,7 +114,7 @@ sub main()
 				
 				print "Processando";
 				ultPorCompleto = 0
-				if not e.processar( @mostrarProgresso ) then
+				if not e.processar( @mostrarProgresso, gerarPDF ) then
 					print !"\r\nErro ao extrair arquivo: "; arquivoEntrada
 					end -1
 				end if
@@ -97,10 +125,11 @@ sub main()
 			arquivoEntrada = command(i)
 	   loop
 	   
+	'' só um arquivo .txt informado..
 	else
 		print "Carregando arquivo";
 		ultPorCompleto = 0
-		var arquivoEntrada = command(1)
+		var arquivoEntrada = command(nroOpcoes+1)
 		if not e.carregarTxt( arquivoEntrada, @mostrarProgresso ) then
 			print !"\r\nErro ao carregar arquivo: "; arquivoEntrada
 			end -1
@@ -109,23 +138,25 @@ sub main()
 	
 		print "Processando";
 		ultPorCompleto = 0
-		if not e.processar( @mostrarProgresso ) then
+		if not e.processar( @mostrarProgresso, gerarPDF ) then
 			print !"\r\nErro ao extrair arquivo: "; arquivoEntrada
 			end -1
 		end if
 		print "OK!"
 	end if
 	
+	''
 	print wstr("Realizando cruzamentos e análises");
 	ultPorCompleto = 0
 	e.analisar(@mostrarProgresso)
 	print "OK!"
    
+	''
 	print wstr("Gravando arquivo de saída: "); arquivoSaida + ".xml";
 	ultPorCompleto = 0
 	e.finalizarExtracao( @mostrarProgresso )
 	print "OK!"
-   
+	
 end sub
    
 

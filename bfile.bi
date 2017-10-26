@@ -7,9 +7,12 @@ type bfile
 public:
    declare constructor ()
    declare function abrir(arquivo as string) as Boolean
+   declare function criar(arquivo as string) as Boolean
    declare sub fechar()
    declare function tamanho() as longint
    declare function posicao() as longint
+   declare function ler() as string
+   declare sub escrever(texto as string) 
    declare function temProximo() as Boolean
    declare property peek1() as Byte
    declare property char1() as Byte

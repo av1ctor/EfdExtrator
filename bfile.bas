@@ -19,18 +19,53 @@ function bfile.abrir(arquivo as string) as Boolean
 end function
 
 ''''''''
+function bfile.criar(arquivo as string) as Boolean
+	fnum = 0
+	fpos = 0
+	blen = 0
+	bptr = NULL
+	fnum = FreeFile
+   
+	function = open(arquivo for binary access write as #fnum) = 0
+   
+end function
+
+''''''''
 sub bfile.fechar()
 	close #fnum
 	fnum = 0
 	blen = 0
 end sub
 
+''''''''
 function bfile.tamanho() as longint
    
 	function = lof(fnum)
 
 end function
 
+''''''''
+function bfile.ler( ) as string
+
+	seek #fnum, 1
+	var res = string( tamanho(), asc(" "))
+	get #fnum, , res 
+
+	blen = 0
+	bptr = null
+	
+	function = res
+
+end function
+
+''''''''
+sub bfile.escrever(texto as string) 
+
+	put #fnum, , texto
+
+end sub
+
+''''''''
 function bfile.posicao() as longint
 
 	function = seek(fnum) - blen

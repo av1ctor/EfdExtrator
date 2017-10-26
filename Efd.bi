@@ -459,7 +459,7 @@ public:
 	declare sub finalizarExtracao(mostrarProgresso as sub(porCompleto as double))
 	declare function carregarTxt(nomeArquivo as String, mostrarProgresso as sub(porCompleto as double)) as Boolean
 	declare function carregarCsv(nomeArquivo as String, mostrarProgresso as sub(porCompleto as double)) as Boolean
-	declare function processar(mostrarProgresso as sub(porCompleto as double)) as Boolean
+	declare function processar(mostrarProgresso as sub(porCompleto as double), gerarRelatorios as boolean) as Boolean
 	declare sub analisar(mostrarProgresso as sub(porCompleto as double))
    
 private:
@@ -497,6 +497,9 @@ private:
 	nfeEmitSafiFornecido 	as boolean
 	itemNFeSafiFornecido 	as boolean
 	cteSafiFornecido		as boolean
+	
+	'' geração de relatórios em formato PDF com o layout do programa EFD-ICMS-IPI da RFB
+	baseTemplatesDir		as string
 
 	declare function lerRegistro(bf as bfile, reg as TRegistro ptr) as Boolean
 	declare function lerRegistroSintegra(bf as bfile, reg as TRegistro ptr) as Boolean
@@ -508,5 +511,6 @@ private:
 	declare sub adicionarDFe(dfe as TDFe ptr)
 	declare sub adicionarEfdDfe(chave as zstring ptr, operacao as TipoOperacao, dataEmi as zstring ptr)
 	declare sub criarPlanilhas()
+	declare sub gerarRelatorioApuracaoICMS(reg as TRegistro ptr)
 end type
 
