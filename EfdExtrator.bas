@@ -7,33 +7,33 @@ declare sub main()
 
 '''''''''''
 sub mostrarUso()
-   print wstr("Modo de usar:")
-   print wstr("EfdExtrator.exe arquivo.txt [arquivo.csv]")
-   print wstr("Notas:")
-   print wstr(!"\t1. No lugar do nome dos arquivos, podem ser usadas máscaras,")
-   print wstr(!"\t   como por exemplo: *.txt e *.csv")
-   print wstr(!"\t2. O(s) arquivo(s) .txt pode(m) ser em formato Sintegra ou EFD")
-   print wstr(!"\t3. Os arquivos .csv do SAFI devem manter o padrão de nome dado pelo")
-   print wstr(!"\t   Infoview BO, mas podem ser usados prefixos e sufixos no nome,")
-   print wstr(!"\t   como por exemplo: \"2017 SAFI_NFe_Emitente_Itens parte 1.csv\"")
-   print wstr(!"\t4. No final da extração será gerado um arquivo .xml que deve ser")
-   print wstr(!"\t   aberto no Excel 2003 ou superior")
+	print wstr("Modo de usar:")
+	print wstr("EfdExtrator.exe arquivo.txt [arquivo.csv]")
+	print wstr("Notas:")
+	print wstr(!"\t1. No lugar do nome dos arquivos, podem ser usadas máscaras,")
+	print wstr(!"\t   como por exemplo: *.txt e *.csv")
+	print wstr(!"\t2. O(s) arquivo(s) .txt pode(m) ser em formato Sintegra ou EFD")
+	print wstr(!"\t3. Os arquivos .csv do SAFI devem manter o padrão de nome dado pelo")
+	print wstr(!"\t   Infoview BO, mas podem ser usados prefixos e sufixos no nome,")
+	print wstr(!"\t   como por exemplo: \"2017 SAFI_NFe_Emitente_Itens parte 1.csv\"")
+	print wstr(!"\t4. No final da extração será gerado um arquivo .xml que deve ser")
+	print wstr(!"\t   aberto no Excel 2003 ou superior")
 end sub
 
 '''''''''''   
 sub mostrarCopyright()
-   print "Extrator de EFD/Sintegra para Excel"
-   print wstr("Copyleft 2017 by André Vicentini (avtvicentini)")
-   print
+	print "Extrator de EFD/Sintegra para Excel"
+	print wstr("Copyleft 2017 by André Vicentini (avtvicentini)")
+	print
 end sub
 
-   dim shared ultPorCompleto as double = 0
+	dim shared ultPorCompleto as double = 0
 
 sub mostrarProgresso(porCompleto as double)
-   do while porCompleto >= ultPorCompleto + 0.05
-      print ".";
-      ultPorCompleto += 0.05
-   loop
+	do while porCompleto >= ultPorCompleto + 0.05
+		print ".";
+		ultPorCompleto += 0.05
+	loop
 end sub
 
 '''''''''''

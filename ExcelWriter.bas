@@ -36,35 +36,35 @@ end function
 
 ''
 function ExcelWriter.Create(fileName as string) as boolean
-   fnum = FreeFile
-   
-   var res = open(fileName for output as #fnum) = 0
-   
+	fnum = FreeFile
+
+	var res = open(fileName for output as #fnum) = 0
+
 	' header
 	if res then 
-      print #fnum, !"<?xml version=\"1.0\" encoding=\"iso-8859-1\"?>"
-      print #fnum, !"<?mso-application progid=\"Excel.Sheet\"?>"
-      print #fnum, !"<Workbook xmlns=\"urn:schemas-microsoft-com:office:spreadsheet\" xmlns:x=\"urn:schemas-microsoft-com:office:excel\" xmlns:ss=\"urn:schemas-microsoft-com:office:spreadsheet\" xmlns:html=\"http://www.w3.org/TR/REC-html40\">"
-   else
-      fnum = 0
-   end if
-   
-   function = res
+		print #fnum, !"<?xml version=\"1.0\" encoding=\"iso-8859-1\"?>"
+		print #fnum, !"<?mso-application progid=\"Excel.Sheet\"?>"
+		print #fnum, !"<Workbook xmlns=\"urn:schemas-microsoft-com:office:spreadsheet\" xmlns:x=\"urn:schemas-microsoft-com:office:excel\" xmlns:ss=\"urn:schemas-microsoft-com:office:spreadsheet\" xmlns:html=\"http://www.w3.org/TR/REC-html40\">"
+	else
+		fnum = 0
+	end if
+
+	function = res
 
 end function
 
 ''
 function ExcelWriter.Flush(showProgress as sub(perComplete as double)) as boolean
 
-   var sheet = workbook->worksheetListHead
-   var p = 1
+	var sheet = workbook->worksheetListHead
+	var p = 1
 
-   print #fnum, !"<Styles>"
+	print #fnum, !"<Styles>"
 
-   var totalRows = 0
+	var totalRows = 0
    
-   '' para cada planilha..
-   do while sheet <> null
+	'' para cada planilha..
+	do while sheet <> null
    
 		totalRows += sheet->nRows
 	
@@ -88,11 +88,11 @@ function ExcelWriter.Flush(showProgress as sub(perComplete as double)) as boolea
 			loop
 		end if
       
-      sheet = sheet->next_
-      p += 1
-   loop
+		sheet = sheet->next_
+		p += 1
+	loop
 
-   print #fnum, !"</Styles>"
+	print #fnum, !"</Styles>"
       
 	' para cada planilha..
 	sheet = workbook->worksheetListHead
@@ -100,18 +100,18 @@ function ExcelWriter.Flush(showProgress as sub(perComplete as double)) as boolea
 	var curRow = 0
 	do while sheet <> null
 	
-      print #fnum, !"<Worksheet ss:Name=\"" + sheet->name + !"\">"
-	  print #fnum, !"<Table>"
-      
-      if sheet->cellTypeListHead <> null then
-		var ct = sheet->cellTypeListHead
-		var i = 1
-		 do while ct <> null
-            print #fnum, !"<Column ss:Index=\"" & i & !"\" ss:StyleID=\"colStyle_" & p & "_" & i & !"\" ss:AutoFitWidth=\"1\" />"
-            ct = ct->next_
-            i += 1
-         loop
-      end if
+		print #fnum, !"<Worksheet ss:Name=\"" + sheet->name + !"\">"
+		print #fnum, !"<Table>"
+
+		if sheet->cellTypeListHead <> null then
+			var ct = sheet->cellTypeListHead
+			var i = 1
+			 do while ct <> null
+				print #fnum, !"<Column ss:Index=\"" & i & !"\" ss:StyleID=\"colStyle_" & p & "_" & i & !"\" ss:AutoFitWidth=\"1\" />"
+				ct = ct->next_
+				i += 1
+			 loop
+		end if
 		
 		'' para cada cell type..
 		if sheet->cellTypeListHead <> null then
@@ -129,10 +129,10 @@ function ExcelWriter.Flush(showProgress as sub(perComplete as double)) as boolea
 			var row = sheet->rowListHead
 			do while row <> null
 				
-			  curRow += 1
-			  if showProgress <> null then
-				showProgress(curRow / totalRows)
-			  end if
+				curRow += 1
+				if showProgress <> null then
+					showProgress(curRow / totalRows)
+				end if
 				
 				print #fnum, !"<Row>"
 				'' para cada célula da linha..
@@ -155,20 +155,20 @@ function ExcelWriter.Flush(showProgress as sub(perComplete as double)) as boolea
 		print #fnum, !"</Worksheet>"
 		
 		sheet = sheet->next_
-      p += 1
+		p += 1
 	loop
 	
-   function = true
+	function = true
 	
 end function
 
 ''
 sub ExcelWriter.close
 	if fnum <> 0 then
-      '' footer
-      print #fnum, !"</Workbook>"
-      
-      ..close #fnum 
+		'' footer
+		print #fnum, !"</Workbook>"
+
+		..close #fnum 
 		fnum = 0
 	end if
 end sub
@@ -194,13 +194,13 @@ destructor ExcelWorksheet()
 
 	do while cellTypeListHead <> null
 		var next_ = cellTypeListHead->next_
-      delete cellTypeListHead
-      cellTypeListHead = next_
+		delete cellTypeListHead
+		cellTypeListHead = next_
 	loop
 
 	do while rowListHead <> null
 		var next_ = rowListHead->next_
-      delete rowListHead
+		delete rowListHead
 		rowListHead = next_
 	loop
 	
@@ -246,9 +246,9 @@ end function
 
 ''
 destructor ExcelWorkbook
-   do while worksheetListHead <> null
+	do while worksheetListHead <> null
 		var next_ = worksheetListHead->next_
-      delete worksheetListHead
+		delete worksheetListHead
 		worksheetListHead = next_
 	loop
 end destructor
@@ -313,9 +313,9 @@ end function
 ''
 destructor ExcelRow()
 
-   do while cellListHead <> null
+	do while cellListHead <> null
 		var next_ = cellListHead->next_
-      delete cellListHead
+		delete cellListHead
 		cellListHead = next_
 	loop
 

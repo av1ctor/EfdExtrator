@@ -55,6 +55,7 @@ constructor Efd()
 	nfeDestSafiFornecido = false
 	nfeEmitSafiFornecido = false
 	itemNFeSafiFornecido = false
+	cteSafiFornecido = false
 	dfeListHead = null
 	dfeListTail = null
 	
@@ -132,216 +133,362 @@ end function
 ''''''''
 private function lerTipo(bf as bfile) as TipoRegistro
 
-   bf.char1 ' pular |
-   
-   var tipo = bf.char4
-   
-   select case tipo
-   case "0000"
-		function = MESTRE
-   case "0150"
-		function = PARTICIPANTE
-   case "C100"
-		function = DOC_NFE
-   case "C170"
-		function = DOC_NFE_ITEM
-   case "0200"
-		function = ITEM_ID
-   case "E100"
-		function = APURACAO_ICMS_PERIODO
-   case "E110"
-		function = APURACAO_ICMS_PROPRIO
-   case "9999"
-		function = EOF_
-   case else
-		function = DESCONHECIDO
-   end select
+	bf.char1 ' pular |
+	
+	var tipo = bf.char4
+
+	function = DESCONHECIDO
+	
+	select case as const tipo[0]
+	case asc("0")
+		select case tipo
+		case "0150"
+			function = PARTICIPANTE
+		case "0200"
+			function = ITEM_ID
+		case "0000"
+			function = MESTRE
+		end select
+	case asc("C")
+		select case tipo
+		case "C100"
+			function = DOC_NFE
+		case "C170"
+			function = DOC_NFE_ITEM
+		case "C101"
+			function = DOC_NFE_DIFAL
+		end select
+	case asc("D")
+		select case tipo
+		case "D100"
+			function = DOC_CTE
+		case "D190"
+			function = DOC_CTE_ITEM
+		case "D101"
+			function = DOC_CTE_DIFAL
+		end select
+	case asc("E")	
+		select case tipo
+		case "E100"
+			function = APURACAO_ICMS_PERIODO
+		case "E110"
+			function = APURACAO_ICMS_PROPRIO
+		end select
+	case asc("9")
+		select case tipo
+		case "9999"
+			function = EOF_
+		end select
+	end select
 
 end function
 
 ''''''''
 private function lerRegMestre(bf as bfile, reg as TRegistro ptr) as Boolean
    
-   bf.char1		'pular |
+	bf.char1		'pular |
 
-   reg->mestre.versaoLayout	= bf.varint
-   reg->mestre.original 	= (bf.int1 = 0)
-   bf.char1		'pular |
-   reg->mestre.dataIni		= bf.varchar
-   reg->mestre.dataFim		= bf.varchar
-   reg->mestre.nome	   		= bf.varchar
-   reg->mestre.cnpj	   		= bf.varchar
-   reg->mestre.cpf	   		= bf.varint
-   reg->mestre.uf			= bf.varchar
-   reg->mestre.ie			= bf.varchar
-   reg->mestre.municip		= bf.varint
-   reg->mestre.im  			= bf.varchar
-   reg->mestre.suframa  	= bf.varchar
-   reg->mestre.perfil  		= bf.char1
-   bf.char1		'pular |
-   reg->mestre.atividade	= bf.int1
-   bf.char1		'pular |
-   
-   'pular \r\n
-   bf.char1
-   bf.char1
-   
-   function = true
+	reg->mestre.versaoLayout= bf.varint
+	reg->mestre.original 	= (bf.int1 = 0)
+	bf.char1		'pular |
+	reg->mestre.dataIni		= bf.varchar
+	reg->mestre.dataFim		= bf.varchar
+	reg->mestre.nome	   	= bf.varchar
+	reg->mestre.cnpj	   	= bf.varchar
+	reg->mestre.cpf	   		= bf.varint
+	reg->mestre.uf			= bf.varchar
+	reg->mestre.ie			= bf.varchar
+	reg->mestre.municip		= bf.varint
+	reg->mestre.im  		= bf.varchar
+	reg->mestre.suframa  	= bf.varchar
+	reg->mestre.perfil  	= bf.char1
+	bf.char1		'pular |
+	reg->mestre.atividade	= bf.int1
+	bf.char1		'pular |
+
+	'pular \r\n
+	bf.char1
+	bf.char1
+
+	function = true
 
 end function
 
 ''''''''
 private function lerRegParticipante(bf as bfile, reg as TRegistro ptr) as Boolean
    
-   bf.char1		'pular |
+	bf.char1		'pular |
 
-   reg->part.id			= bf.varchar
-   reg->part.nome	   = bf.varchar
-   reg->part.pais	   = bf.varint
-   reg->part.cnpj	   = bf.varchar
-   reg->part.cpf	   = bf.varint
-   reg->part.ie			= bf.varchar
-   reg->part.municip	= bf.varint
-   reg->part.suframa  = bf.varchar
-   reg->part.ender	   = bf.varchar
-   reg->part.num		= bf.varchar
-   reg->part.compl	   = bf.varchar
-   reg->part.bairro	= bf.varchar
+	reg->part.id		= bf.varchar
+	reg->part.nome		= bf.varchar
+	reg->part.pais	   	= bf.varint
+	reg->part.cnpj	   	= bf.varchar
+	reg->part.cpf	   	= bf.varint
+	reg->part.ie		= bf.varchar
+	reg->part.municip	= bf.varint
+	reg->part.suframa  	= bf.varchar
+	reg->part.ender	   	= bf.varchar
+	reg->part.num		= bf.varchar
+	reg->part.compl	   	= bf.varchar
+	reg->part.bairro	= bf.varchar
    
-   'pular \r\n
-   bf.char1
-   bf.char1
-   
-   function = true
+	'pular \r\n
+	bf.char1
+	bf.char1
+
+	function = true
 
 end function
 
 ''''''''
 private function lerRegDocNFe(bf as bfile, reg as TRegistro ptr) as Boolean
 
-   bf.char1		'pular |
-   
-   reg->nfe.operacao		= bf.int1
-   bf.char1		'pular |
-   reg->nfe.emitente		= bf.int1
-   bf.char1		'pular |
-   reg->nfe.idParticipante	= bf.varchar
-   reg->nfe.modelo			= bf.int2
-   bf.char1		'pular |
-   reg->nfe.situacao		= bf.int2
-   bf.char1		'pular |
-   reg->nfe.serie			= bf.varint
-   reg->nfe.numero			= bf.varint
-   reg->nfe.chave			= bf.varchar
-   reg->nfe.dataEmi			= bf.varchar
-   reg->nfe.dataEntSaida		= bf.varchar
-   reg->nfe.valorTotal		= bf.vardbl
-   reg->nfe.pagamento		= bf.int1
-   bf.char1		'pular |
-   reg->nfe.valorDesconto	= bf.vardbl
-   reg->nfe.valorAbatimento	= bf.vardbl
-   reg->nfe.valorMerc		= bf.vardbl
-   reg->nfe.frete			= bf.int1
-   bf.char1		'pular |
-   reg->nfe.valorFrete		= bf.vardbl
-   reg->nfe.valorSeguro		= bf.vardbl
-   reg->nfe.valorAcessorias	= bf.vardbl
-   reg->nfe.bcICMS			= bf.vardbl
-   reg->nfe.ICMS				= bf.vardbl
-   reg->nfe.bcICMSST			= bf.vardbl
-   reg->nfe.ICMSST			= bf.vardbl
-   reg->nfe.IPI				= bf.vardbl
-   reg->nfe.PIS				= bf.vardbl
-   reg->nfe.COFINS			= bf.vardbl
-   reg->nfe.PISST			= bf.vardbl
-   reg->nfe.COFINSST			= bf.vardbl
+	bf.char1		'pular |
 
-   'pular \r\n
-   bf.char1
-   bf.char1
+	reg->nfe.operacao		= bf.int1
+	bf.char1		'pular |
+	reg->nfe.emitente		= bf.int1
+	bf.char1		'pular |
+	reg->nfe.idParticipante	= bf.varchar
+	reg->nfe.modelo			= bf.int2
+	bf.char1		'pular |
+	reg->nfe.situacao		= bf.int2
+	bf.char1		'pular |
+	reg->nfe.serie			= bf.varint
+	reg->nfe.numero			= bf.varint
+	reg->nfe.chave			= bf.varchar
+	reg->nfe.dataEmi		= bf.varchar
+	reg->nfe.dataEntSaida	= bf.varchar
+	reg->nfe.valorTotal		= bf.vardbl
+	reg->nfe.pagamento		= bf.int1
+	bf.char1		'pular |
+	reg->nfe.valorDesconto	= bf.vardbl
+	reg->nfe.valorAbatimento= bf.vardbl
+	reg->nfe.valorMerc		= bf.vardbl
+	reg->nfe.frete			= bf.int1
+	bf.char1		'pular |
+	reg->nfe.valorFrete		= bf.vardbl
+	reg->nfe.valorSeguro	= bf.vardbl
+	reg->nfe.valorAcessorias= bf.vardbl
+	reg->nfe.bcICMS			= bf.vardbl
+	reg->nfe.ICMS			= bf.vardbl
+	reg->nfe.bcICMSST		= bf.vardbl
+	reg->nfe.ICMSST			= bf.vardbl
+	reg->nfe.IPI			= bf.vardbl
+	reg->nfe.PIS			= bf.vardbl
+	reg->nfe.COFINS			= bf.vardbl
+	reg->nfe.PISST			= bf.vardbl
+	reg->nfe.COFINSST		= bf.vardbl
+	reg->nfe.nroItens		= 0
 
-   function = true
+	'pular \r\n
+	bf.char1
+	bf.char1
+
+	function = true
 
 end function
 
 ''''''''
 private function lerRegDocNFeItem(bf as bfile, reg as TRegistro ptr, documentoPai as TDocNFe ptr) as Boolean
 
-   bf.char1		'pular |
-   
-   reg->itemNFe.documentoPai	= documentoPai
-   
-   reg->itemNFe.numItem		= bf.varint
-   reg->itemNFe.itemId			= bf.varchar
-   reg->itemNFe.descricao		= bf.varchar
-   reg->itemNFe.qtd			= bf.vardbl
-   reg->itemNFe.unidade		= bf.varchar
-   reg->itemNFe.valor			= bf.vardbl
-   reg->itemNFe.desconto		= bf.vardbl
-   reg->itemNFe.indMovFisica	= bf.varint
-   reg->itemNFe.cstICMS		= bf.varint
-   reg->itemNFe.cfop			= bf.varint
-   reg->itemNFe.codNatureza	= bf.varchar
-   reg->itemNFe.bcICMS			= bf.vardbl
-   reg->itemNFe.aliqICMS		= bf.vardbl
-   reg->itemNFe.ICMS			= bf.vardbl
-   reg->itemNFe.bcICMSST		= bf.vardbl
-   reg->itemNFe.aliqICMSST		= bf.vardbl
-   reg->itemNFe.ICMSST			= bf.vardbl
-   reg->itemNFe.indApuracao	= bf.varint
-   reg->itemNFe.cstIPI			= bf.varint
-   reg->itemNFe.codEnqIPI		= bf.varchar
-   reg->itemNFe.bcIPI			= bf.vardbl
-   reg->itemNFe.aliqIPI		= bf.vardbl
-   reg->itemNFe.IPI			= bf.vardbl
-   reg->itemNFe.cstPIS			= bf.varint
-   reg->itemNFe.bcPIS			= bf.vardbl
-   reg->itemNFe.aliqPISPerc	= bf.vardbl
-   reg->itemNFe.qtdBcPIS		= bf.vardbl
-   reg->itemNFe.aliqPISMoed	= bf.vardbl
-   reg->itemNFe.PIS			= bf.vardbl
-   reg->itemNFe.cstCOFINS		= bf.varint
-   reg->itemNFe.bcCOFINS		= bf.vardbl
-   reg->itemNFe.aliqCOFINSPerc = bf.vardbl
-   reg->itemNFe.qtdBcCOFINS	= bf.vardbl
-   reg->itemNFe.aliqCOFINSMoed = bf.vardbl
-   reg->itemNFe.COFINS			= bf.vardbl
-   reg->itemNFe.codConta		= bf.varchar
+	bf.char1		'pular |
 
-   'pular \r\n
-   bf.char1
-   bf.char1
+	reg->itemNFe.documentoPai	= documentoPai
+   
+	reg->itemNFe.numItem		= bf.varint
+	reg->itemNFe.itemId			= bf.varchar
+	reg->itemNFe.descricao		= bf.varchar
+	reg->itemNFe.qtd			= bf.vardbl
+	reg->itemNFe.unidade		= bf.varchar
+	reg->itemNFe.valor			= bf.vardbl
+	reg->itemNFe.desconto		= bf.vardbl
+	reg->itemNFe.indMovFisica	= bf.varint
+	reg->itemNFe.cstICMS		= bf.varint
+	reg->itemNFe.cfop			= bf.varint
+	reg->itemNFe.codNatureza	= bf.varchar
+	reg->itemNFe.bcICMS			= bf.vardbl
+	reg->itemNFe.aliqICMS		= bf.vardbl
+	reg->itemNFe.ICMS			= bf.vardbl
+	reg->itemNFe.bcICMSST		= bf.vardbl
+	reg->itemNFe.aliqICMSST		= bf.vardbl
+	reg->itemNFe.ICMSST			= bf.vardbl
+	reg->itemNFe.indApuracao	= bf.varint
+	reg->itemNFe.cstIPI			= bf.varint
+	reg->itemNFe.codEnqIPI		= bf.varchar
+	reg->itemNFe.bcIPI			= bf.vardbl
+	reg->itemNFe.aliqIPI		= bf.vardbl
+	reg->itemNFe.IPI			= bf.vardbl
+	reg->itemNFe.cstPIS			= bf.varint
+	reg->itemNFe.bcPIS			= bf.vardbl
+	reg->itemNFe.aliqPISPerc	= bf.vardbl
+	reg->itemNFe.qtdBcPIS		= bf.vardbl
+	reg->itemNFe.aliqPISMoed	= bf.vardbl
+	reg->itemNFe.PIS			= bf.vardbl
+	reg->itemNFe.cstCOFINS		= bf.varint
+	reg->itemNFe.bcCOFINS		= bf.vardbl
+	reg->itemNFe.aliqCOFINSPerc = bf.vardbl
+	reg->itemNFe.qtdBcCOFINS	= bf.vardbl
+	reg->itemNFe.aliqCOFINSMoed = bf.vardbl
+	reg->itemNFe.COFINS			= bf.vardbl
+	bf.varchar					'' pular código da conta
 
-   function = true
+	documentoPai->nroItens 		+= 1
+
+	'pular \r\n
+	bf.char1
+	bf.char1
+
+	function = true
+
+end function
+
+''''''''
+private function lerRegDocNFeDifal(bf as bfile, reg as TRegistro ptr, documentoPai as TDocNFe ptr) as Boolean
+
+	bf.char1		'pular |
+
+	documentoPai->difal.fcp			= bf.vardbl
+	documentoPai->difal.icmsDest	= bf.vardbl
+	documentoPai->difal.icmsOrigem	= bf.vardbl
+
+	'pular \r\n
+	bf.char1
+	bf.char1
+
+	function = true
+
+end function
+
+''''''''
+private function lerRegDocCTe(bf as bfile, reg as TRegistro ptr) as Boolean
+
+	bf.char1		'pular |
+
+	reg->cte.operacao		= bf.int1
+	bf.char1		'pular |
+	reg->cte.emitente		= bf.int1
+	bf.char1		'pular |
+	reg->cte.idParticipante	= bf.varchar
+	reg->cte.modelo			= bf.int2
+	bf.char1		'pular |
+	reg->cte.situacao		= bf.int2
+	bf.char1		'pular |
+	reg->cte.serie			= bf.varint
+	bf.varchar		'pular sub-série
+	reg->cte.numero			= bf.varint
+	reg->cte.chave			= bf.varchar
+	reg->cte.dataEmi		= bf.varchar
+	reg->cte.dataAquPrest	= bf.varchar
+	reg->cte.tipoCTe		= bf.int1
+	bf.char1		'pular |
+	reg->cte.chaveRef		= bf.varchar
+	reg->cte.valorTotal		= bf.vardbl
+	reg->cte.valorDesconto	= bf.vardbl
+	reg->cte.frete			= bf.int1
+	bf.char1		'pular |
+	reg->cte.valorServico	= bf.vardbl
+	reg->cte.bcICMS			= bf.vardbl
+	reg->cte.ICMS			= bf.vardbl
+	reg->cte.valorNaoTributado = bf.vardbl
+	reg->cte.codInfComplementar	= bf.varchar
+	bf.varchar		'pular código Conta Analitica
+	
+	'' códigos dos municípios de origem e de destino não aparecem em layouts antigos
+	if bf.peek1 <> 13 then 
+		reg->cte.municipioOrigem 	= bf.varint
+		reg->cte.municipioDestino	= bf.varint
+	end if
+	
+	reg->cte.nroItens		= 0
+	reg->cte.itemListHead	= null
+	reg->cte.itemListTail	= null
+
+	'pular \r\n
+	bf.char1
+	bf.char1
+
+	function = true
+
+end function
+
+''''''''
+private function lerRegDocCTeItem(bf as bfile, reg as TRegistro ptr, docPai as TDocCTe ptr) as Boolean
+
+	bf.char1		'pular |
+
+	reg->itemCTe.documentoPai	= docPai
+
+	reg->itemCTe.cstICMS		= bf.varint
+	reg->itemCTe.cfop			= bf.varint
+	reg->itemCTe.aliqICMS		= bf.vardbl
+	reg->itemCTe.valorOperacao	= bf.vardbl
+	reg->itemCTe.bcICMS			= bf.vardbl
+	reg->itemCTe.ICMS			= bf.vardbl
+	reg->itemCTe.reducaoBcICMS	= bf.vardbl
+	reg->itemCTe.codObs			= bf.varchar
+	
+	docPai->nroItens		   += 1
+	if docPai->itemListHead = null then
+		docPai->itemListHead = @reg->itemCTe
+	else
+		docPai->itemListTail->next_ = @reg->itemCTe
+	end if
+	docPai->itemListTail 		= @reg->itemCTe
+	reg->itemCTe.next_ 			= null
+	
+
+	'pular \r\n
+	bf.char1
+	bf.char1
+
+	function = true
+
+end function
+
+''''''''
+private function lerRegDocCTeDifal(bf as bfile, reg as TRegistro ptr, docPai as TDocCTe ptr) as Boolean
+
+	bf.char1		'pular |
+
+	docPai->difal.fcp		= bf.vardbl
+	docPai->difal.icmsDest	= bf.vardbl
+	docPai->difal.icmsOrigem= bf.vardbl
+
+	'pular \r\n
+	bf.char1
+	bf.char1
+
+	function = true
 
 end function
 
 ''''''''
 private function lerRegItemId(bf as bfile, reg as TRegistro ptr) as Boolean
 
-   bf.char1		'pular |
+	bf.char1		'pular |
 
-   reg->itemId.id			  = bf.varchar
-   reg->itemId.descricao	  = bf.varchar
-   reg->itemId.codBarra		  = bf.varchar
-   reg->itemId.codAnterior	  = bf.varchar
-   reg->itemId.unidInventario = bf.varchar
-   reg->itemId.tipoItem		  = bf.varint
-   reg->itemId.ncm			  = bf.varint
-   reg->itemId.exIPI		  = bf.varchar
-   reg->itemId.codGenero	  = bf.varint
-   reg->itemId.codServico	  = bf.varchar
-   reg->itemId.aliqICMSInt	  = bf.vardbl
-   'CEST só é obrigatório a partir de 2017
-   if bf.peek1 <> 13 then 
-	  reg->itemId.CEST		  = bf.varint
-   end if
+	reg->itemId.id			  	= bf.varchar
+	reg->itemId.descricao	  	= bf.varchar
+	reg->itemId.codBarra		= bf.varchar
+	reg->itemId.codAnterior	  	= bf.varchar
+	reg->itemId.unidInventario 	= bf.varchar
+	reg->itemId.tipoItem		= bf.varint
+	reg->itemId.ncm			  	= bf.varint
+	reg->itemId.exIPI		  	= bf.varchar
+	reg->itemId.codGenero	  	= bf.varint
+	reg->itemId.codServico	  	= bf.varchar
+	reg->itemId.aliqICMSInt	  	= bf.vardbl
+	'CEST só é obrigatório a partir de 2017
+	if bf.peek1 <> 13 then 
+	  reg->itemId.CEST		  	= bf.varint
+	end if
 
-   'pular \r\n
-   bf.char1
-   bf.char1
+	'pular \r\n
+	bf.char1
+	bf.char1
 
-   function = true
+	function = true
 
 end function
 
@@ -380,7 +527,6 @@ private function lerRegApuIcmsProprio(bf as bfile, reg as TRegistro ptr) as Bool
 	reg->apuIcms.icmsRecolher			= bf.vardbl
 	reg->apuIcms.saldoCredTransportar	= bf.vardbl
 	reg->apuIcms.debExtraApuracao		= bf.vardbl
-	print reg->apuIcms.dataIni; " "; reg->apuIcms.dataFim; reg->apuIcms.totalDebitos; reg->apuIcms.totalCreditos; reg->apuIcms.icmsRecolher; reg->apuIcms.saldoCredTransportar
 
 	'pular \r\n
 	bf.char1
@@ -396,48 +542,69 @@ private function Efd.lerRegistro(bf as bfile, reg as TRegistro ptr) as Boolean
 	reg->tipo = lerTipo(bf)
 
 	select case reg->tipo
-	case MESTRE
-	  if not lerRegMestre(bf, reg) then
-		 return false
-	  end if
-
-	case PARTICIPANTE
-	  if not lerRegParticipante(bf, reg) then
-		 return false
-	  end if
-
-	  'adicionar ao dicionário
-	  if hashLookup(@participanteDict, reg->part.id) = null then
-		 hashAdd(@participanteDict, reg->part.id, @reg->part)
-	  end if
-
 	case DOC_NFE
-	  if not lerRegDocNFe(bf, reg) then
-		 return false
-	  end if
-	  
-	  ultimoDocNFe = @reg->nfe
+		if not lerRegDocNFe(bf, reg) then
+			return false
+		end if
+
+		ultimoDocNFe = @reg->nfe
 
 	case DOC_NFE_ITEM
-	  if not lerRegDocNFeItem(bf, reg, ultimoDocNFe) then
-		 return false
-	  end if
-	  
+		if not lerRegDocNFeItem(bf, reg, ultimoDocNFe) then
+			return false
+		end if
+
+	case DOC_NFE_DIFAL
+		if not lerRegDocNFeDifal(bf, reg, ultimoDocNFe) then
+			return false
+		end if
+		
+		reg->tipo = DESCONHECIDO			'' deletar registro, já que vamos reusar o registro pai
+
+	case DOC_CTE
+		if not lerRegDocCTe(bf, reg) then
+			return false
+		end if
+
+		ultimoDocCTe = @reg->cte
+
+	case DOC_CTE_ITEM
+		if not lerRegDocCTeItem(bf, reg, ultimoDocCTe) then
+			return false
+		end if
+		
+	case DOC_CTE_DIFAL
+		if not lerRegDocCTeDifal(bf, reg, ultimoDocCTe) then
+			return false
+		end if
+		
+		reg->tipo = DESCONHECIDO			'' deletar registro, já que vamos reusar o registro pai
+
 	case ITEM_ID
-	  if not lerRegItemId(bf, reg) then
-		 return false
-	  end if
-	  
-	  'adicionar ao dicionário
-	  if hashLookup(@itemIdDict, reg->itemId.id) = null then
-		 hashAdd(@itemIdDict, reg->itemId.id, @reg->itemId)
-	  end if
+		if not lerRegItemId(bf, reg) then
+			return false
+		end if
+
+		'adicionar ao dicionário
+		if hashLookup(@itemIdDict, reg->itemId.id) = null then
+			hashAdd(@itemIdDict, reg->itemId.id, @reg->itemId)
+		end if
+
+	case PARTICIPANTE
+		if not lerRegParticipante(bf, reg) then
+			return false
+		end if
+
+		'adicionar ao dicionário
+		if hashLookup(@participanteDict, reg->part.id) = null then
+			hashAdd(@participanteDict, reg->part.id, @reg->part)
+		end if
 
 	case APURACAO_ICMS_PERIODO
 		if not lerRegApuIcmsPeriodo(bf, reg) then
 			return false
 		end if
-		
+
 		ultimoApuIcmsPeriodo = reg
 		
 	case APURACAO_ICMS_PROPRIO
@@ -445,8 +612,12 @@ private function Efd.lerRegistro(bf as bfile, reg as TRegistro ptr) as Boolean
 			return false
 		end if
 		
-		'' deletar registro, já que vamos reusar o registro pai
-		reg->tipo = DESCONHECIDO
+		reg->tipo = DESCONHECIDO			'' deletar registro, já que vamos reusar o registro pai
+
+	case MESTRE
+		if not lerRegMestre(bf, reg) then
+			return false
+		end if
 
 	case else
 		pularLinha(bf)
@@ -480,99 +651,99 @@ end function
 ''''''''
 private function lerRegSintegraDocumento(bf as bfile, reg as TRegistro ptr) as Boolean
 
-   reg->docSint.cnpj = bf.nchar(14)
-   reg->docSint.ie = bf.nchar(14)
-   reg->docSint.dataEmi = bf.char8
-   reg->docSint.uf = bf.char2
-   reg->docSint.modelo = bf.int2
-   reg->docSint.serie = valint(bf.nchar(3))
-   '' formato de numero estendido do SAFI?
-   if bf.peek1 = asc("¨") then
+	reg->docSint.cnpj 		= bf.nchar(14)
+	reg->docSint.ie 		= bf.nchar(14)
+	reg->docSint.dataEmi 	= bf.char8
+	reg->docSint.uf 		= bf.char2
+	reg->docSint.modelo 	= bf.int2
+	reg->docSint.serie 		= valint(bf.nchar(3))
+	'' formato de numero estendido do SAFI?
+	if bf.peek1 = asc("¨") then
 		bf.char1
 		reg->docSint.numero = bf.int9
-   else
+	else
 		reg->docSint.numero = bf.int6
-   end if
-   reg->docSint.cfop = bf.int4
-   reg->docSint.operacao = iif( bf.char1 = asc("T"), ENTRADA, SAIDA )
-   reg->docSint.valorTotal = bf.dbl13_2
-   reg->docSint.bcICMS = bf.dbl13_2
-   reg->docSint.ICMS = bf.dbl13_2
-   reg->docSint.valorIsento = bf.dbl13_2
-   reg->docSint.valorOutras = bf.dbl13_2
-   reg->docSint.aliqICMS = bf.dbl4_2
-   reg->docSint.situacao = situacaoSintegra2SituacaoEfd( bf.char1 )
-   
-   '' ler chave NF-e no final da linha, se for um sintegra convertido pelo SAFI
-   if bf.peek1 <> 13 then
-		reg->docSint.chave = bf.nchar(44)
-   end if
+	end if
+	reg->docSint.cfop 		= bf.int4
+	reg->docSint.operacao 	= iif( bf.char1 = asc("T"), ENTRADA, SAIDA )
+	reg->docSint.valorTotal = bf.dbl13_2
+	reg->docSint.bcICMS 	= bf.dbl13_2
+	reg->docSint.ICMS 		= bf.dbl13_2
+	reg->docSint.valorIsento= bf.dbl13_2
+	reg->docSint.valorOutras= bf.dbl13_2
+	reg->docSint.aliqICMS 	= bf.dbl4_2
+	reg->docSint.situacao 	=	situacaoSintegra2SituacaoEfd( bf.char1 )
 
-   'pular \r\n
-   bf.char1
-   bf.char1
+	'' ler chave NF-e no final da linha, se for um sintegra convertido pelo SAFI
+	if bf.peek1 <> 13 then
+		reg->docSint.chave 	= bf.nchar(44)
+	end if
 
-   function = true
+	'pular \r\n
+	bf.char1
+	bf.char1
+
+	function = true
 end function
 
 ''''''''
 private function lerRegSintegraDocumentoST(bf as bfile, reg as TRegistro ptr) as Boolean
 
-   reg->docSint.cnpj = bf.nchar(14)
-   reg->docSint.ie = bf.nchar(14)
-   reg->docSint.dataEmi = bf.char8
-   reg->docSint.uf = bf.char2
-   reg->docSint.modelo = bf.int2
-   reg->docSint.serie = valint(bf.nchar(3))
-   '' formato de numero estendido do SAFI?
-   if bf.peek1 = asc("¨") then
+	reg->docSint.cnpj 		= bf.nchar(14)
+	reg->docSint.ie 		= bf.nchar(14)
+	reg->docSint.dataEmi	= bf.char8
+	reg->docSint.uf 		= bf.char2
+	reg->docSint.modelo 	= bf.int2
+	reg->docSint.serie 		= valint(bf.nchar(3))
+	'' formato de numero estendido do SAFI?
+	if bf.peek1 = asc("¨") then
 		bf.char1
 		reg->docSint.numero = bf.int9
-   else
+	else
 		reg->docSint.numero = bf.int6
-   end if
-   reg->docSint.cfop = bf.int4
-   reg->docSint.operacao = iif( bf.char1 = asc("T"), ENTRADA, SAIDA )
-   reg->docSint.bcICMSST = bf.dbl13_2
-   reg->docSint.ICMSST = bf.dbl13_2
-   reg->docSint.despesasAcess = bf.dbl13_2
-   reg->docSint.situacao = situacaoSintegra2SituacaoEfd( bf.char1 )
-   bf.nchar(30)
+	end if
+	reg->docSint.cfop 		= bf.int4
+	reg->docSint.operacao 	= iif( bf.char1 = asc("T"), ENTRADA, SAIDA )
+	reg->docSint.bcICMSST 	= bf.dbl13_2
+	reg->docSint.ICMSST 	= bf.dbl13_2
+	reg->docSint.despesasAcess = bf.dbl13_2
+	reg->docSint.situacao 	= situacaoSintegra2SituacaoEfd( bf.char1 )
+	bf.nchar(30)
 
-   'pular \r\n
-   bf.char1
-   bf.char1
+	'pular \r\n
+	bf.char1
+	bf.char1
 
-   function = true
+	function = true
 end function
 
 ''''''''
 private function lerRegSintegraDocumentoIPI(bf as bfile, reg as TRegistro ptr) as Boolean
 
-   reg->docSint.cnpj = bf.nchar(14)
-   reg->docSint.ie = bf.nchar(14)
-   reg->docSint.dataEmi = bf.char8
-   reg->docSint.uf = bf.char2
-   reg->docSint.serie = valint(bf.nchar(3))
-   '' formato de numero estendido do SAFI?
-   if bf.peek1 = asc("¨") then
+	reg->docSint.cnpj 		= bf.nchar(14)
+	reg->docSint.ie 		= bf.nchar(14)
+	reg->docSint.dataEmi 	= bf.char8
+	reg->docSint.uf 		= bf.char2
+	reg->docSint.serie 		= valint(bf.nchar(3))
+	'' formato de numero estendido do SAFI?
+	if bf.peek1 = asc("¨") then
 		bf.char1
 		reg->docSint.numero = bf.int9
-   else
+	else
 		reg->docSint.numero = bf.int6
-   end if
-   reg->docSint.cfop = bf.int4
-   reg->docSint.valorTotal = bf.dbl13_2
-   reg->docSint.valorIPI = bf.dbl13_2
-   reg->docSint.valorIsentoIPI = bf.dbl13_2
-   reg->docSint.valorOutrasIPI = bf.dbl13_2
-   bf.nchar(1+20)
+	end if
+	reg->docSint.cfop 		= bf.int4
+	reg->docSint.valorTotal = bf.dbl13_2
+	reg->docSint.valorIPI 	= bf.dbl13_2
+	reg->docSint.valorIsentoIPI = bf.dbl13_2
+	reg->docSint.valorOutrasIPI = bf.dbl13_2
+	bf.nchar(1+20)
 
-   'pular \r\n
-   bf.char1
-   bf.char1
+	'pular \r\n
+	bf.char1
+	bf.char1
 
-   function = true
+	function = true
 end function
 
 #define GENSINTEGRAKEY(r) (r->docSint.cnpj + r->docSint.ie + r->docSint.dataEmi + r->docSint.uf + str(r->docSint.serie) + str(r->docSint.numero))
@@ -580,73 +751,73 @@ end function
 ''''''''
 private function Efd.lerRegistroSintegra(bf as bfile, reg as TRegistro ptr) as Boolean
 
-   var tipo = bf.int2
-   
-   select case tipo
-   case SINTEGRA_DOCUMENTO
-	  reg->tipo = SINTEGRA_DOCUMENTO
-	  if not lerRegSintegraDocumento(bf, reg) then
-		 return false
-	  end if
+	var tipo = bf.int2
+
+	select case tipo
+	case SINTEGRA_DOCUMENTO
+		reg->tipo = SINTEGRA_DOCUMENTO
+		if not lerRegSintegraDocumento(bf, reg) then
+			return false
+		end if
+
+		'adicionar ao dicionário
+		reg->docSint.chaveHash = GENSINTEGRAKEY(reg)
+		var antReg = cast(TRegistro ptr, hashLookup(@sintegraDict, reg->docSint.chaveHash))
+		if antReg = null then
+			hashAdd(@sintegraDict, reg->docSint.chaveHash, reg)
+		else
+			'' para cada alíquota diferente há um novo registro 50, mas nós só queremos os valores totais
+			antReg->docSint.valorTotal	+= reg->docSint.valorTotal
+			antReg->docSint.bcICMS		+= reg->docSint.bcICMS
+			antReg->docSint.ICMS		+= reg->docSint.ICMS
+			antReg->docSint.valorIsento += reg->docSint.valorIsento
+			antReg->docSint.valorOutras += reg->docSint.valorOutras
+
+			reg->tipo = DESCONHECIDO 
+		end if
+
+	case SINTEGRA_DOCUMENTO_ST
+		reg->tipo = SINTEGRA_DOCUMENTO
+		if not lerRegSintegraDocumentoST(bf, reg) then
+			return false
+		end if
+
+		reg->docSint.chaveHash = GENSINTEGRAKEY(reg)
+		var antReg = cast(TRegistro ptr, hashLookup(@sintegraDict, reg->docSint.chaveHash))
+		'' NOTA: pode existir registro 53 sem o correspondente 50, para quando só há ICMS ST, sem destaque ICMS próprio
+		if antReg = null then
+			hashAdd(@sintegraDict, reg->docSint.chaveHash, reg)
+		else
+			antReg->docSint.bcICMSST		+= reg->docSint.bcICMSST
+			antReg->docSint.ICMSST			+= reg->docSint.ICMSST
+			antReg->docSint.despesasAcess	+= reg->docSint.despesasAcess
+			reg->tipo = DESCONHECIDO
+		end if
 	  
-	  'adicionar ao dicionário
-	  reg->docSint.chaveHash = GENSINTEGRAKEY(reg)
-	  var antReg = cast(TRegistro ptr, hashLookup(@sintegraDict, reg->docSint.chaveHash))
-	  if antReg = null then
-		hashAdd(@sintegraDict, reg->docSint.chaveHash, reg)
-	  else
-		'' para cada alíquota diferente há um novo registro 50, mas nós só queremos os valores totais
-		antReg->docSint.valorTotal	+= reg->docSint.valorTotal
-		antReg->docSint.bcICMS		+= reg->docSint.bcICMS
-		antReg->docSint.ICMS		+= reg->docSint.ICMS
-		antReg->docSint.valorIsento += reg->docSint.valorIsento
-		antReg->docSint.valorOutras += reg->docSint.valorOutras
-		
+	case SINTEGRA_DOCUMENTO_IPI
+		reg->tipo = SINTEGRA_DOCUMENTO
+		if not lerRegSintegraDocumentoIPI(bf, reg) then
+			return false
+		end if
+
+		reg->docSint.chaveHash = GENSINTEGRAKEY(reg)
+		var antReg = cast(TRegistro ptr, hashLookup(@sintegraDict, reg->docSint.chaveHash))
+		if antReg = null then
+			print "ERRO: Sintegra 53 sem 50: "; reg->docSint.chaveHash
+		else
+			antReg->docSint.valorIPI		= reg->docSint.valorIPI
+			antReg->docSint.valorIsentoIPI	= reg->docSint.valorIsentoIPI
+			antReg->docSint.valorOutrasIPI	= reg->docSint.valorOutrasIPI
+		end if
+
 		reg->tipo = DESCONHECIDO 
-	  end if
 
-   case SINTEGRA_DOCUMENTO_ST
-	  reg->tipo = SINTEGRA_DOCUMENTO
-	  if not lerRegSintegraDocumentoST(bf, reg) then
-		 return false
-	  end if
-	  
-	  reg->docSint.chaveHash = GENSINTEGRAKEY(reg)
-	  var antReg = cast(TRegistro ptr, hashLookup(@sintegraDict, reg->docSint.chaveHash))
-	  '' NOTA: pode existir registro 53 sem o correspondente 50, para quando só há ICMS ST, sem destaque ICMS próprio
-	  if antReg = null then
-		 hashAdd(@sintegraDict, reg->docSint.chaveHash, reg)
-	  else
-		antReg->docSint.bcICMSST		+= reg->docSint.bcICMSST
-		antReg->docSint.ICMSST			+= reg->docSint.ICMSST
-		antReg->docSint.despesasAcess	+= reg->docSint.despesasAcess
-		reg->tipo = DESCONHECIDO
-	  end if
-	  
-   case SINTEGRA_DOCUMENTO_IPI
-	  reg->tipo = SINTEGRA_DOCUMENTO
-	  if not lerRegSintegraDocumentoIPI(bf, reg) then
-		 return false
-	  end if
-
-	  reg->docSint.chaveHash = GENSINTEGRAKEY(reg)
-	  var antReg = cast(TRegistro ptr, hashLookup(@sintegraDict, reg->docSint.chaveHash))
-	  if antReg = null then
-		 print "ERRO: Sintegra 53 sem 50: "; reg->docSint.chaveHash
-	  else
-		antReg->docSint.valorIPI		= reg->docSint.valorIPI
-		antReg->docSint.valorIsentoIPI	= reg->docSint.valorIsentoIPI
-		antReg->docSint.valorOutrasIPI	= reg->docSint.valorOutrasIPI
-	  end if
-	  
-	  reg->tipo = DESCONHECIDO 
-
-   case else
+	case else
 		pularLinha(bf)
 		reg->tipo = DESCONHECIDO
-   end select
-   
-   function = true
+	end select
+
+	function = true
 
 end function
 
@@ -689,66 +860,66 @@ end function
 ''''''''
 function Efd.carregarTxt(nomeArquivo as String, mostrarProgresso as sub(porCompleto as double)) as Boolean
 
-   dim bf as bfile
+	dim bf as bfile
    
-   if not bf.abrir( nomeArquivo ) then
-	  return false
-   end if
-   
-   hashInit(@participanteDict, 2^20)
-   hashInit(@itemIdDict, 2^20)	 
-   hashInit(@sintegraDict, 2^20)
-   
-   regListHead = null
-   regListTail = null
-   nroRegs = 0
-   
-   if bf.peek1 <> asc("|") then
+	if not bf.abrir( nomeArquivo ) then
+		return false
+	end if
+
+	hashInit(@participanteDict, 2^20)
+	hashInit(@itemIdDict, 2^20)	 
+	hashInit(@sintegraDict, 2^20)
+
+	regListHead = null
+	regListTail = null
+	nroRegs = 0
+
+	if bf.peek1 <> asc("|") then
 		function = carregarSintegra(bf, mostrarProgresso)
-   else
-	   var fsize = bf.tamanho - 6500 			'' descontar certificado digital no final do arquivo
-   
-	   do while bf.temProximo()		 
-		  var reg = new TRegistro
-		  
-		 if mostrarProgresso <> NULL then
-			mostrarProgresso(bf.posicao / fsize)
-		 end if 
+	else
+		var fsize = bf.tamanho - 6500 			'' descontar certificado digital no final do arquivo
+
+		do while bf.temProximo()		 
+			var reg = new TRegistro
+
+			if mostrarProgresso <> NULL then
+				mostrarProgresso(bf.posicao / fsize)
+			end if 
 				
-		  if lerRegistro( bf, reg ) then 
-			 if reg->tipo <> DESCONHECIDO then
+			if lerRegistro( bf, reg ) then 
+				if reg->tipo <> DESCONHECIDO then
 				'' fim de arquivo?
 				if reg->tipo = EOF_ then
 					delete reg
-					 if mostrarProgresso <> NULL then
+					if mostrarProgresso <> NULL then
 						mostrarProgresso(1)
-					 end if					
+					end if					
 					exit do
 				end if
-				
+
 				if regListHead = null then
-				   regListHead = reg
-				   regListTail = reg
+					regListHead = reg
+					regListTail = reg
 				else
-				   regListTail->next_ = reg
-				   regListTail = reg
+					regListTail->next_ = reg
+					regListTail = reg
 				end if
-				
+
 				nroRegs += 1
 			 else
 				delete reg
 			 end if
 			 
-		  else
-			 exit do
-		  end if
-	   loop
-	   
-	   function = true
+			else
+				exit do
+			end if
+		loop
+
+		function = true
 	  
-   end if
-   
-   bf.fechar()
+	end if
+
+	bf.fechar()
    
 end function
 
@@ -987,6 +1158,7 @@ function Efd.carregarCsv(nomeArquivo as String, mostrarProgresso as sub(porCompl
 		tipoArquivo = SAFI_CTe
 		cteListHead = null
 		cteListTail = null
+		cteSafiFornecido = true
 	else
 		print "Erro: impossível resolver tipo de arquivo pelo nome"
 		return false
@@ -1097,43 +1269,49 @@ private sub adicionarColunasComuns(sheet as ExcelWorksheet ptr, ehEntrada as Boo
 	sheet->AddCellType(CT_STRING, "Situacao")
 
 	if ehEntrada or itemNFeSafiFornecido then 
-	  sheet->AddCellType(CT_MONEY, "BC ICMS")
-	  sheet->AddCellType(CT_NUMBER, "Aliq ICMS")
-	  sheet->AddCellType(CT_MONEY, "Valor ICMS")
-	  sheet->AddCellType(CT_MONEY, "BC ICMS ST")
-	  sheet->AddCellType(CT_NUMBER, "Aliq ICMS ST")
-	  sheet->AddCellType(CT_MONEY, "Valor ICMS ST")
-	  sheet->AddCellType(CT_MONEY, "Valor IPI")
-	  sheet->AddCellType(CT_MONEY, "Valor Item")
-	  sheet->AddCellType(CT_INTNUMBER, "Nro Item")
-	  sheet->AddCellType(CT_NUMBER, "Qtd")
-	  sheet->AddCellType(CT_STRING, "Unidade")
-	  sheet->AddCellType(CT_INTNUMBER, "CFOP")
-	  sheet->AddCellType(CT_INTNUMBER, "CST")
-	  sheet->AddCellType(CT_INTNUMBER, "NCM")
-	  sheet->AddCellType(CT_STRING, "Codigo Item")
-	  sheet->AddCellType(CT_STRING, "Descricao Item")
-   else
-	  if not itemNFeSafiFornecido then
-		  sheet->AddCellType(CT_MONEY, "BC ICMS")
-		  sheet->AddCellType(CT_MONEY, "Valor ICMS")
-		  sheet->AddCellType(CT_MONEY, "BC ICMS ST")
-		  sheet->AddCellType(CT_MONEY, "Valor ICMS ST")
-		  sheet->AddCellType(CT_MONEY, "Valor IPI")
-		  sheet->AddCellType(CT_MONEY, "Valor Total")
-	  end if
-   end if
+		sheet->AddCellType(CT_MONEY, "BC ICMS")
+		sheet->AddCellType(CT_NUMBER, "Aliq ICMS")
+		sheet->AddCellType(CT_MONEY, "Valor ICMS")
+		sheet->AddCellType(CT_MONEY, "BC ICMS ST")
+		sheet->AddCellType(CT_NUMBER, "Aliq ICMS ST")
+		sheet->AddCellType(CT_MONEY, "Valor ICMS ST")
+		sheet->AddCellType(CT_MONEY, "Valor IPI")
+		sheet->AddCellType(CT_MONEY, "Valor Item")
+		sheet->AddCellType(CT_INTNUMBER, "Nro Item")
+		sheet->AddCellType(CT_NUMBER, "Qtd")
+		sheet->AddCellType(CT_STRING, "Unidade")
+		sheet->AddCellType(CT_INTNUMBER, "CFOP")
+		sheet->AddCellType(CT_INTNUMBER, "CST")
+		sheet->AddCellType(CT_INTNUMBER, "NCM")
+		sheet->AddCellType(CT_STRING, "Codigo Item")
+		sheet->AddCellType(CT_STRING, "Descricao Item")
+	else
+		if not itemNFeSafiFornecido then
+			sheet->AddCellType(CT_MONEY, "BC ICMS")
+			sheet->AddCellType(CT_MONEY, "Valor ICMS")
+			sheet->AddCellType(CT_MONEY, "BC ICMS ST")
+			sheet->AddCellType(CT_MONEY, "Valor ICMS ST")
+			sheet->AddCellType(CT_MONEY, "Valor IPI")
+			sheet->AddCellType(CT_MONEY, "Valor Total")
+		end if
+	end if
+   
+	if not ehEntrada then
+		sheet->AddCellType(CT_MONEY, "DifAl FCP")
+		sheet->AddCellType(CT_MONEY, "DifAl ICMS Orig")
+		sheet->AddCellType(CT_MONEY, "DifAl ICMS Dest")
+	end if
 end sub
    
 ''''''''
 sub Efd.iniciarExtracao(nomeArquivo as String)
 	
-   ew = new ExcelWriter
-   ew->create(nomeArquivo)
-	
-   entradas = null
-   saidas = null
-   naoEscrituradas = null
+	ew = new ExcelWriter
+	ew->create(nomeArquivo)
+
+	entradas = null
+	saidas = null
+	naoEscrituradas = null
 
 end sub
 
@@ -1217,186 +1395,299 @@ end sub
 ''''''''
 function Efd.processar(mostrarProgresso as sub(porCompleto as double)) as Boolean
    
-   if entradas = null then
+	if entradas = null then
 		criarPlanilhas
-   end if
-   
-   var reg = regListHead
-   var i = 0
-   do while reg <> null
-	  'para cada registro..
-	  select case reg->tipo
-	  'item? incluir na planilha se for NF-e ou CT-e
-	  case DOC_NFE_ITEM
-		 var doc = reg->itemNFe.documentoPai
-		 if doc->modelo = 55 then 
-			select case as const doc->situacao
-			case REGULAR, EXTEMPORANEO
-			   'só existe item para entradas
-			   if doc->operacao = ENTRADA then
-				  adicionarEfdDfe(doc->chave, doc->operacao, doc->dataEmi)
-				  
-				  var part = cast( TParticipante ptr, hashLookup(@participanteDict, doc->idParticipante) )
-				  var row = entradas->AddRow()
-				  row->addCell(part->cnpj)
-				  row->addCell(part->ie)
-				  row->addCell(MUNICIPIO2SIGLA(part->municip))
-				  row->addCell(part->nome)
-				  row->addCell(doc->modelo)
-				  row->addCell(doc->serie)
-				  row->addCell(doc->numero)
-				  row->addCell(STR2DATA(doc->dataEmi))
-				  row->addCell(doc->chave)
-				  row->addCell(situacao2String(doc->situacao))
-				  row->addCell(reg->itemNFe.bcICMS)
-				  row->addCell(reg->itemNFe.aliqICMS)
-				  row->addCell(reg->itemNFe.ICMS)
-				  row->addCell(reg->itemNFe.bcICMSST)
-				  row->addCell(reg->itemNFe.aliqICMSST)
-				  row->addCell(reg->itemNFe.ICMSST)
-				  row->addCell(reg->itemNFe.IPI)
-				  row->addCell(reg->itemNFe.valor)
-				  row->addCell(reg->itemNFe.numItem)
-				  row->addCell(reg->itemNFe.qtd)
-				  row->addCell(reg->itemNFe.unidade)
-				  row->addCell(reg->itemNFe.cfop)
-				  row->addCell(reg->itemNFe.cstICMS)
-				  var itemId = cast( TItemId ptr, hashLookup(@itemIdDict, reg->itemNFe.itemId) )
-				  if itemId <> null then 
-					 row->addCell(itemId->ncm)
-					 row->addCell(itemId->id)
-					 row->addCell(itemId->descricao)
-				  else
-					 row->addCell("")
-					 row->addCell("")
-					 row->addCell("")
-				  end if
-			   end if
-			end select
-		 end if
-	  
-	  'NF-e?
-	  case DOC_NFE
-		 if reg->nfe.modelo = 55 then 
-			
-			select case as const reg->nfe.situacao
-			case REGULAR, EXTEMPORANEO
-			   adicionarEfdDfe(reg->nfe.chave, reg->nfe.operacao, reg->nfe.dataEmi)
+	end if
+
+	var reg = regListHead
+	var i = 0
+	do while reg <> null
+		'para cada registro..
+		select case reg->tipo
+		'item de NF-e?
+		case DOC_NFE_ITEM
+			var doc = reg->itemNFe.documentoPai
+			if doc->modelo = 55 then 
+				select case as const doc->situacao
+				case REGULAR, EXTEMPORANEO
+					'só existe item para entradas
+					if doc->operacao = ENTRADA then
+						adicionarEfdDfe(doc->chave, doc->operacao, doc->dataEmi)
+
+						var part = cast( TParticipante ptr, hashLookup(@participanteDict, doc->idParticipante) )
+						var row = entradas->AddRow()
+						row->addCell(part->cnpj)
+						row->addCell(part->ie)
+						row->addCell(MUNICIPIO2SIGLA(part->municip))
+						row->addCell(part->nome)
+						row->addCell(doc->modelo)
+						row->addCell(doc->serie)
+						row->addCell(doc->numero)
+						row->addCell(STR2DATA(doc->dataEmi))
+						row->addCell(doc->chave)
+						row->addCell(situacao2String(doc->situacao))
+						row->addCell(reg->itemNFe.bcICMS)
+						row->addCell(reg->itemNFe.aliqICMS)
+						row->addCell(reg->itemNFe.ICMS)
+						row->addCell(reg->itemNFe.bcICMSST)
+						row->addCell(reg->itemNFe.aliqICMSST)
+						row->addCell(reg->itemNFe.ICMSST)
+						row->addCell(reg->itemNFe.IPI)
+						row->addCell(reg->itemNFe.valor)
+						row->addCell(reg->itemNFe.numItem)
+						row->addCell(reg->itemNFe.qtd)
+						row->addCell(reg->itemNFe.unidade)
+						row->addCell(reg->itemNFe.cfop)
+						row->addCell(reg->itemNFe.cstICMS)
+						var itemId = cast( TItemId ptr, hashLookup(@itemIdDict, reg->itemNFe.itemId) )
+						if itemId <> null then 
+							row->addCell(itemId->ncm)
+							row->addCell(itemId->id)
+							row->addCell(itemId->descricao)
+						else
+							row->addCell("")
+							row->addCell("")
+							row->addCell("")
+						end if
+					end if
+				end select
+			end if
+
+		'NF-e?
+		case DOC_NFE
+			if reg->nfe.modelo = 55 then 
+
+				select case as const reg->nfe.situacao
+				case REGULAR, EXTEMPORANEO
+					adicionarEfdDfe(reg->nfe.chave, reg->nfe.operacao, reg->nfe.dataEmi)
+
+					'' NOTA: não existe itemDoc para saídas, só temos informação básica do DF-e, 
+					'' 	    há não ser que sejam carregas os relatórios .csv do SAFI vindos do infoview
+					if reg->nfe.operacao = SAIDA then
+						var part = cast( TParticipante ptr, hashLookup(@participanteDict, reg->nfe.idParticipante) )
+
+						dim as TDFe_NFeItem ptr item = null
+						if itemNFeSafiFornecido then
+							var dfe = cast( TDFe ptr, hashLookup(@chaveDFeDict, reg->nfe.chave) )
+							if dfe <> null then
+								item = dfe->nfe.itemListHead
+							end if
+						end if
+
+						do
+							var row = saidas->AddRow()
+							row->addCell(part->cnpj)
+							row->addCell(part->ie)
+							row->addCell(MUNICIPIO2SIGLA(part->municip))
+							row->addCell(part->nome)
+							row->addCell(reg->nfe.modelo)
+							row->addCell(reg->nfe.serie)
+							row->addCell(reg->nfe.numero)
+							row->addCell(STR2DATA(reg->nfe.dataEmi))
+							row->addCell(reg->nfe.chave)
+							row->addCell(situacao2String(reg->nfe.situacao))
+
+							if itemNFeSafiFornecido then
+								if item <> null then
+									row->addCell(item->bcICMS)
+									row->addCell(item->aliqICMS)
+									row->addCell(item->ICMS)
+									row->addCell(item->bcICMSST)
+									row->addCell("")
+									row->addCell("")
+									row->addCell(item->IPI)
+									row->addCell(item->valorProduto)
+									row->addCell(item->nroItem)
+									row->addCell(item->qtd)
+									row->addCell(item->unidade)
+									row->addCell(item->cfop)
+									row->addCell("")
+									row->addCell("")
+									row->addCell(item->codProduto)
+									row->addCell(item->descricao)
+								else
+									for cell as integer = 1 to 13
+										row->addCell("")
+									next
+								end if
+
+							else
+								row->addCell(reg->nfe.bcICMS)
+								row->addCell(reg->nfe.ICMS)
+								row->addCell(reg->nfe.bcICMSST)
+								row->addCell(reg->nfe.ICMSST)
+								row->addCell(reg->nfe.IPI)
+								row->addCell(reg->nfe.valorTotal)
+							end if
+
+							row->addCell(reg->nfe.difal.fcp)
+							row->addCell(reg->nfe.difal.icmsOrigem)
+							row->addCell(reg->nfe.difal.icmsDest)
+							
+							if item = null then
+								exit do
+							end if
+
+							item = item->next_
+						loop while item <> null
+					end if
 			   
-			   '' NOTA: não existe itemDoc para saídas, só temos informação básica do DF-e, 
-			   '' 	    há não ser que sejam carregas os relatórios .csv do SAFI vindos do infoview
-			   if reg->nfe.operacao = SAIDA then
-				  var part = cast( TParticipante ptr, hashLookup(@participanteDict, reg->nfe.idParticipante) )
-				  
-				  dim as TDFe_NFeItem ptr item = null
-				  if itemNFeSafiFornecido then
-					  var dfe = cast( TDFe ptr, hashLookup(@chaveDFeDict, reg->nfe.chave) )
-					  if dfe <> null then
-						item = dfe->nfe.itemListHead
-					  end if
-				  end if
-				  
-				  do
-					  var row = saidas->AddRow()
-					  row->addCell(part->cnpj)
-					  row->addCell(part->ie)
-					  row->addCell(MUNICIPIO2SIGLA(part->municip))
-					  row->addCell(part->nome)
-					  row->addCell(reg->nfe.modelo)
-					  row->addCell(reg->nfe.serie)
-					  row->addCell(reg->nfe.numero)
-					  row->addCell(STR2DATA(reg->nfe.dataEmi))
-					  row->addCell(reg->nfe.chave)
-					  row->addCell(situacao2String(reg->nfe.situacao))
-					  
-					  if itemNFeSafiFornecido then
-						  if item <> null then
+				case CANCELADO, CANCELADO_EXT, DENEGADO, INUTILIZADO
+					dim as ExcelRow ptr row 
+					if reg->nfe.operacao = SAIDA then
+						row = saidas->AddRow()
+					else
+						row = entradas->AddRow()
+					end if
+
+					row->addCell("")
+					row->addCell("")
+					row->addCell("")
+					row->addCell("")
+					row->addCell(reg->nfe.modelo)
+					row->addCell(reg->nfe.serie)
+					row->addCell(reg->nfe.numero)
+					'' NOTA: cancelados e inutilizados não vêm com a data preenchida, então retiramos a data da chave ou do registro mestre
+					var dataEmi = iif( len(reg->nfe.chave) = 44, "01" + mid(reg->nfe.chave,5,2) + "20" + mid(reg->nfe.chave,3,2), regListHead->mestre.dataIni )
+					adicionarEfdDfe(reg->nfe.chave, reg->nfe.operacao, dataEmi)
+					row->addCell(STR2DATA(dataEmi))
+					row->addCell(reg->nfe.chave)
+					row->addCell(situacao2String(reg->nfe.situacao))
+					row->addCell("")
+					if reg->nfe.operacao = ENTRADA or cint(itemNFeSafiFornecido) then
+						row->addCell("")
+					end if
+					row->addCell("")
+					row->addCell("")
+					if reg->nfe.operacao = ENTRADA or cint(itemNFeSafiFornecido) then
+						row->addCell("")
+					end if
+					row->addCell("")
+					row->addCell("")
+					row->addCell("")
+					if reg->nfe.operacao = ENTRADA or cint(itemNFeSafiFornecido) then
+						row->addCell("")
+						row->addCell("")
+						row->addCell("")
+						row->addCell("")
+						row->addCell("")
+					end if
+					
+					'' difal
+					if reg->nfe.operacao = SAIDA then
+						row->addCell("")
+						row->addCell("")
+						row->addCell("")
+					end if
+
+				end select
+			end if
+
+		'CT-e?
+		case DOC_CTE
+			if reg->cte.modelo = 57 then
+				select case as const reg->cte.situacao
+				case REGULAR, EXTEMPORANEO
+					adicionarEfdDfe(reg->cte.chave, reg->cte.operacao, reg->cte.dataEmi)
+					
+					var part = cast( TParticipante ptr, hashLookup(@participanteDict, reg->cte.idParticipante) )
+
+					dim as TDFe_CTe ptr cte = null
+					if cteSafiFornecido then
+						var dfe = cast( TDFe ptr, hashLookup(@chaveDFeDict, reg->cte.chave) )
+						if dfe <> null then
+							cte = @dfe->cte
+						end if
+					end if
+					
+					dim as TDocCTeItem ptr item = null
+					if reg->cte.operacao = ENTRADA or cint(itemNFeSafiFornecido) then
+						item = reg->cte.itemListHead
+					end if
+					
+					var itemCnt = 1
+					do
+						dim as ExcelRow ptr row 
+						if reg->cte.operacao = SAIDA then
+							row = saidas->AddRow()
+						else
+							row = entradas->AddRow()
+						end if
+						
+						row->addCell(part->cnpj)
+						row->addCell(part->ie)
+						row->addCell(MUNICIPIO2SIGLA(part->municip))
+						row->addCell(part->nome)
+						row->addCell(reg->cte.modelo)
+						row->addCell(reg->cte.serie)
+						row->addCell(reg->cte.numero)
+						row->addCell(STR2DATA(reg->cte.dataEmi))
+						row->addCell(reg->cte.chave)
+						row->addCell(situacao2String(reg->cte.situacao))
+						
+						if item <> null then
 							row->addCell(item->bcICMS)
 							row->addCell(item->aliqICMS)
 							row->addCell(item->ICMS)
-							row->addCell(item->bcICMSST)
 							row->addCell("")
 							row->addCell("")
-							row->addCell(item->IPI)
-							row->addCell(item->valorProduto)
-							row->addCell(item->nroItem)
-							row->addCell(item->qtd)
-							row->addCell(item->unidade)
+							row->addCell("")
+							row->addCell("")
+							row->addCell(item->valorOperacao)
+							row->addCell(itemCnt)
+							row->addCell("")
+							row->addCell("")
 							row->addCell(item->cfop)
+							row->addCell(item->cstICMS)
 							row->addCell("")
 							row->addCell("")
-							row->addCell(item->codProduto)
-							row->addCell(item->descricao)
-						  else
-							for cell as integer = 1 to 13
+							row->addCell("")
+							
+							item = item->next_
+							itemCnt += 1
+						else
+							if reg->cte.operacao = ENTRADA or cint(itemNFeSafiFornecido) then
+								row->addCell(reg->cte.bcICMS)
 								row->addCell("")
-							next
-						  end if
-					  
-					  else
-						row->addCell(reg->nfe.bcICMS)
-						row->addCell(reg->nfe.ICMS)
-						row->addCell(reg->nfe.bcICMSST)
-						row->addCell(reg->nfe.ICMSST)
-						row->addCell(reg->nfe.IPI)
-						row->addCell(reg->nfe.valorTotal)
-					  end if
-				  
-					  if item = null then
-						exit do
-					  end if
-					  
-					  item = item->next_
-				  loop while item <> null
-			   end if
-			   
-			case CANCELADO, CANCELADO_EXT, DENEGADO, INUTILIZADO
-			   dim as ExcelRow ptr row 
-			   if reg->nfe.operacao = SAIDA then
-				  row = saidas->AddRow()
-			   else
-				  row = entradas->AddRow()
-			   end if
-			   
-			   row->addCell("")
-			   row->addCell("")
-			   row->addCell("")
-			   row->addCell("")
-			   row->addCell(reg->nfe.modelo)
-			   row->addCell(reg->nfe.serie)
-			   row->addCell(reg->nfe.numero)
-			   '' NOTA: cancelados e inutilizados não vêm com a data preenchida, então retiramos a data da chave ou do registro mestre
-			   var dataEmi = iif( len(reg->nfe.chave) = 44, "01" + mid(reg->nfe.chave,5,2) + "20" + mid(reg->nfe.chave,3,2), regListHead->mestre.dataIni )
-			   adicionarEfdDfe(reg->nfe.chave, reg->nfe.operacao, dataEmi)
-			   row->addCell(STR2DATA(dataEmi))
-			   row->addCell(reg->nfe.chave)
-			   row->addCell(situacao2String(reg->nfe.situacao))
-			   row->addCell("")
-			  if reg->nfe.operacao = ENTRADA or cint(itemNFeSafiFornecido) then
-				row->addCell("")
-			  end if
-			  row->addCell("")
-			  row->addCell("")
-			  if reg->nfe.operacao = ENTRADA or cint(itemNFeSafiFornecido) then
-				row->addCell("")
-			  end if
-			  row->addCell("")
-			  row->addCell("")
-			  row->addCell("")
-			  if reg->nfe.operacao = ENTRADA or cint(itemNFeSafiFornecido) then
-				row->addCell("")
-				row->addCell("")
-				row->addCell("")
-				row->addCell("")
-				row->addCell("")
-			  end if
+								row->addCell(reg->cte.ICMS)
+								row->addCell("")
+								row->addCell("")
+								row->addCell("")
+								row->addCell("")
+								row->addCell(reg->cte.valorServico)
+								row->addCell(1)
+								row->addCell("")
+								row->addCell("")
+								row->addCell("")
+								row->addCell("")
+								row->addCell("")
+								row->addCell("")
+								row->addCell("")
+							else
+								row->addCell(reg->cte.bcICMS)
+								row->addCell(reg->cte.ICMS)
+								row->addCell("")
+								row->addCell("")
+								row->addCell("")
+								row->addCell(reg->cte.valorServico)
+							end if
+							
+						end if
+
+						if reg->cte.operacao = SAIDA then
+							row->addCell(reg->cte.difal.fcp)
+							row->addCell(reg->cte.difal.icmsOrigem)
+							row->addCell(reg->cte.difal.icmsDest)
+						end if
+						
+					loop while item <> null
+					
+				end select
+			end if
 			
-			end select
-		 end if
-	  
 		case APURACAO_ICMS_PERIODO
 			var row = apuracaoIcms->AddRow()
-  
+
 			row->addCell(STR2DATA(reg->apuIcms.dataIni))
 			row->addCell(STR2DATA(reg->apuIcms.dataFim))
 			row->addCell(reg->apuIcms.totalDebitos)
@@ -1413,84 +1704,90 @@ function Efd.processar(mostrarProgresso as sub(porCompleto as double)) as Boolea
 			row->addCell(reg->apuIcms.icmsRecolher)
 			row->addCell(reg->apuIcms.saldoCredTransportar)
 			row->addCell(reg->apuIcms.debExtraApuracao)
-	  
-	  'documento do sintegra?
-	  case SINTEGRA_DOCUMENTO
-		 if reg->docSint.modelo = 55 then 
-		 
-			select case as const reg->docSint.situacao
-			case REGULAR, EXTEMPORANEO
-			   dim as ExcelRow ptr row 
-			   if reg->docSint.operacao = SAIDA then
-				  row = saidas->AddRow()
-			   else
-				  row = entradas->AddRow()
-			   end if
-				  
-			  row->addCell(reg->docSint.cnpj)
-			  row->addCell(reg->docSint.ie)
-			  row->addCell(reg->docSint.uf)
-			  row->addCell("")
-			  row->addCell(reg->docSint.modelo)
-			  row->addCell(reg->docSint.serie)
-			  row->addCell(reg->docSint.numero)
-			  row->addCell(STRSINT2DATA(reg->docSint.dataEmi))
-			  row->addCell("")
-			  row->addCell(situacao2String(reg->docSint.situacao))
-			  row->addCell(reg->docSint.bcICMS)
-			  if reg->docSint.operacao = ENTRADA or cint(itemNFeSafiFornecido) then
-				row->addCell(reg->docSint.aliqICMS)
-			  end if
-			  row->addCell(reg->docSint.ICMS)
-			  row->addCell(reg->docSint.bcICMSST)
-			  if reg->docSint.operacao = ENTRADA or cint(itemNFeSafiFornecido) then
-				row->addCell("")
-			  end if
-			  row->addCell(reg->docSint.ICMSST)
-			  row->addCell(reg->docSint.valorIPI)
-			  row->addCell(reg->docSint.valorTotal)
-			  if reg->docSint.operacao = ENTRADA or cint(itemNFeSafiFornecido) then
-				row->addCell("")
-				row->addCell("")
-				row->addCell("")
-				row->addCell(reg->docSint.cfop)
-				row->addCell("")
-			end if
-			   
-			case CANCELADO, CANCELADO_EXT, DENEGADO, INUTILIZADO
-			   /'var row = canceladas->AddRow()
-			   row->addCell(reg->docSint.modelo)
-			   row->addCell(reg->docSint.serie)
-			   row->addCell(reg->docSint.numero)
-			   row->addCell("")'/
-			
-			end select
-		 end if
-	  
-	  end select
 
-	  i += 1
-	  if mostrarProgresso <> NULL then
-		 mostrarProgresso(i / nroRegs)
-	  end if 
-	  
-	  reg = reg->next_
+		'documento do sintegra?
+		case SINTEGRA_DOCUMENTO
+			if reg->docSint.modelo = 55 then 
+				select case as const reg->docSint.situacao
+				case REGULAR, EXTEMPORANEO
+					dim as ExcelRow ptr row 
+					if reg->docSint.operacao = SAIDA then
+						row = saidas->AddRow()
+					else
+						row = entradas->AddRow()
+					end if
+					  
+					row->addCell(reg->docSint.cnpj)
+					row->addCell(reg->docSint.ie)
+					row->addCell(reg->docSint.uf)
+					row->addCell("")
+					row->addCell(reg->docSint.modelo)
+					row->addCell(reg->docSint.serie)
+					row->addCell(reg->docSint.numero)
+					row->addCell(STRSINT2DATA(reg->docSint.dataEmi))
+					row->addCell("")
+					row->addCell(situacao2String(reg->docSint.situacao))
+					row->addCell(reg->docSint.bcICMS)
+					if reg->docSint.operacao = ENTRADA or cint(itemNFeSafiFornecido) then
+						row->addCell(reg->docSint.aliqICMS)
+					end if
+					row->addCell(reg->docSint.ICMS)
+					row->addCell(reg->docSint.bcICMSST)
+					if reg->docSint.operacao = ENTRADA or cint(itemNFeSafiFornecido) then
+						row->addCell("")
+					end if
+					row->addCell(reg->docSint.ICMSST)
+					row->addCell(reg->docSint.valorIPI)
+					row->addCell(reg->docSint.valorTotal)
+					if reg->docSint.operacao = ENTRADA or cint(itemNFeSafiFornecido) then
+						row->addCell("")
+						row->addCell("")
+						row->addCell("")
+						row->addCell(reg->docSint.cfop)
+						row->addCell("")
+					end if
+					
+					'' difal
+					if reg->docSint.operacao = SAIDA then
+						row->addCell("")
+						row->addCell("")
+						row->addCell("")
+					end if
+				   
+				case CANCELADO, CANCELADO_EXT, DENEGADO, INUTILIZADO
+					/'var row = canceladas->AddRow()
+					row->addCell(reg->docSint.modelo)
+					row->addCell(reg->docSint.serie)
+					row->addCell(reg->docSint.numero)
+					row->addCell("")'/
+
+				end select
+			end if
+
+		end select
+
+		i += 1
+		if mostrarProgresso <> NULL then
+			mostrarProgresso(i / nroRegs)
+		end if 
+
+		reg = reg->next_
 	loop
-   
+
 	do while regListHead <> null
 		var next_ = regListHead->next_
 		delete regListHead
 		regListHead = next_
 	loop
-	
+
 	regListHead = null
 	regListTail = null
-   
-   hashEnd(@sintegraDict)
-   hashEnd(@itemIdDict)
-   hashEnd(@participanteDict)
 
-   function = true
+	hashEnd(@sintegraDict)
+	hashEnd(@itemIdDict)
+	hashEnd(@participanteDict)
+
+	function = true
 end function
 
 ''''''''
