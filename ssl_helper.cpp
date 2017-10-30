@@ -72,17 +72,16 @@ void __cdecl *SSL_Helper::Load_P7K(char const *fileName)
 	BIO_read_filename(in, fileName);
 	PKCS7 *p7 = d2i_PKCS7_bio(in, NULL);
 	
-	//BIO_free(in);
+	BIO_free(in);
 	
 	return (void *)p7;
 }
 
 void __cdecl *SSL_Helper::Load_P7K(unsigned char *buffer, int len)
 {
-	BIO *in = BIO_new_mem_buf(buffer, len);
-	PKCS7 *p7 = d2i_PKCS7_bio(in, NULL);
-	
-	//BIO_free(in);
+	PKCS7 *p7 = NULL;
+	const unsigned char *p = buffer;
+	d2i_PKCS7(&p7, &p, len);
 	
 	return (void *)p7;
 }
