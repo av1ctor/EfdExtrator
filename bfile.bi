@@ -11,8 +11,10 @@ public:
    declare sub fechar()
    declare function tamanho() as longint
    declare function posicao() as longint
-   declare function ler() as string
-   declare sub escrever(texto as string) 
+   declare function lerTudo() as string
+   declare sub ler(destino() as byte, lgt as integer)
+   declare sub escrever(texto as string)
+   declare sub escrever(src() as byte) 
    declare function temProximo() as Boolean
    declare property peek1() as Byte
    declare property char1() as Byte

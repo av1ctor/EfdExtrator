@@ -500,9 +500,13 @@ private:
 	
 	'' geração de relatórios em formato PDF com o layout do programa EFD-ICMS-IPI da RFB
 	baseTemplatesDir		as string
+	
+	''
+	assinaturaP7K_DER(any)	as byte
 
 	declare function lerRegistro(bf as bfile, reg as TRegistro ptr) as Boolean
 	declare function lerRegistroSintegra(bf as bfile, reg as TRegistro ptr) as Boolean
+	declare sub lerCertificado(bf as bfile)
 	declare function carregarSintegra(bf as bfile, mostrarProgresso as sub(porCompleto as double)) as Boolean
 	declare function carregarCsvNFeDest(bf as bfile, emModoOutrasUFs as boolean) as TDFe ptr
 	declare function carregarCsvNFeEmit(bf as bfile) as TDFe ptr

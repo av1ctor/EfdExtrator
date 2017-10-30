@@ -45,7 +45,7 @@ function bfile.tamanho() as longint
 end function
 
 ''''''''
-function bfile.ler( ) as string
+function bfile.lerTudo( ) as string
 
 	seek #fnum, 1
 	var res = string( tamanho(), asc(" "))
@@ -59,10 +59,26 @@ function bfile.ler( ) as string
 end function
 
 ''''''''
+sub bfile.ler(destino() as byte, lgt as integer)
+	var i = 0
+	do while temProximo() and cbool(i < lgt)
+		destino(i) = char1
+		i += 1
+	loop
+end sub
+
+''''''''
 sub bfile.escrever(texto as string) 
 
 	put #fnum, , texto
 
+end sub
+
+''''''''
+sub bfile.escrever(src() as byte) 
+	
+	put #fnum, , src()
+	
 end sub
 
 ''''''''
