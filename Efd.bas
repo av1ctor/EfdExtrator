@@ -4,9 +4,12 @@
 #include once "hash.bi"
 #include once "ExcelWriter.bi"
 #include once "vbcompat.bi"
+#include once "ssl_helper.bi"
 
 dim shared as string codUF2Sigla(11 to 53)
 dim shared as string situacao2String(0 to __TipoSituacao__LEN__-1)
+
+const ASSINATURA_P7K_HEADER = "SBRCAAEPDR"
 
 private sub tablesCtor constructor
 	codUF2Sigla(11)="RO"
@@ -541,6 +544,23 @@ private function lerRegApuIcmsProprio(bf as bfile, reg as TRegistro ptr) as Bool
 end function
 
 ''''''''
+private sub Efd.lerCertificado(bf as bfile)
+
+	'' verificar header
+	var header = bf.nchar(len(ASSINATURA_P7K_HEADER))
+	if header <> ASSINATURA_P7K_HEADER then
+		print "Erro: header da assinatura P7K não reconhecido"
+	end if
+	
+	var lgt = (bf.tamanho - bf.posicao) + 1
+	
+	redim this.assinaturaP7K_DER(0 to lgt-1)
+	
+	bf.ler(assinaturaP7K_DER(), lgt)
+
+end sub
+
+''''''''
 private function Efd.lerRegistro(bf as bfile, reg as TRegistro ptr) as Boolean
 
 	reg->tipo = lerTipo(bf)
@@ -623,6 +643,11 @@ private function Efd.lerRegistro(bf as bfile, reg as TRegistro ptr) as Boolean
 			return false
 		end if
 
+	case EOF_
+		pularLinha(bf)
+		
+		lerCertificado(bf)
+	
 	case else
 		pularLinha(bf)
 	end select
@@ -1927,7 +1952,7 @@ end sub
 function carregarTemplate(nomeArquivo as string) as string
 	var bf = new bfile()
 	bf->abrir(nomeArquivo)
-	function = bf->ler()
+	function = bf->lerTudo()
 	bf->fechar()
 end function
 
@@ -1948,6 +1973,14 @@ sub salvarPDF(nomeArquivo as string, template as string)
 	kill tempFile
 end sub
 
+sub salvarCert(nomeArquivo as string, cert() as byte)
+	var tempFile = "__temp__" + nomeArquivo + ".cer"
+	
+	var bf = new bfile()
+	bf->criar(tempFile)
+	bf->escrever(cert())
+	bf->fechar
+end sub
 
 function strReplace _
 	( _
@@ -1988,12 +2021,51 @@ end function
 ''''''''
 #define STR2CNPJ(s) (left(s,2) + "." + mid(s,3,3) + "." + mid(s,3+3,3) + "/" + mid(s,3+3+3,4) + "-" + right(s,2))
 
+#define STR2CPF(s) (left(s,3) + "." + mid(s,4,3) + "." + mid(s,4+3,3) + "-" + right(s,2))
+
 #define DBL2MONEYBR(d) (format(d,"#,#,#.00"))
+
+type InfoAssinatura
+	assinante	as string
+	cpf			as string
+end type
+
+''''''''
+function lerInfoAssinatura(assinaturaP7K_DER() as byte) as InfoAssinatura ptr
+	
+	var res = new InfoAssinatura
+	
+	var sh = new SSL_Helper
+	var p7k = sh->Load_P7K(@assinaturaP7K_DER(0), ubound(assinaturaP7K_DER)+1)
+	
+	''
+	var s = sh->Get_CommonName(p7k)
+	if s <> null then
+		res->assinante = *s
+		deallocate s
+	end if
+	
+	''
+	s = sh->Get_AttributeFromAltName(p7k, AN_ATT_CPF)
+	if s <> null then
+		res->cpf = *s
+		deallocate s
+	end if
+	
+	''
+	sh->Free(p7k)
+	delete sh
+	
+	function = res
+	
+end function
 
 ''''''''
 sub Efd.gerarRelatorioApuracaoICMS(reg as TRegistro ptr)
 
 	var template = carregarTemplate(baseTemplatesDir + "apuracao_icms.html")
+	
+	var infAssinatura = lerInfoAssinatura(assinaturaP7K_DER())
 	
 	template = strReplace(template, "{$CONTRIBUINTE_NOME}", regListHead->mestre.nome)
 	template = strReplace(template, "{$CONTRIBUINTE_CNPJ}", STR2CNPJ(regListHead->mestre.cnpj))
@@ -2015,10 +2087,12 @@ sub Efd.gerarRelatorioApuracaoICMS(reg as TRegistro ptr)
 	template = strReplace(template, "{$VALOR_TOTAL_ICMS_RECOLHER}", DBL2MONEYBR(reg->apuIcms.icmsRecolher))
 	template = strReplace(template, "{$VALOR_TOTAL_SALDO_CREDOR_TRANSPORTAR}", DBL2MONEYBR(reg->apuIcms.saldoCredTransportar))
 	template = strReplace(template, "{$VALOR_RECOLHIDO_EXTRA_APURACAO}", DBL2MONEYBR(reg->apuIcms.debExtraApuracao))
-	template = strReplace(template, "{$NOME_ASSINANTE_ARQUIVO}", "Ninguem")
-	template = strReplace(template, "{$CPF_ASSINANTE_ARQUIVO}", "12345678909")
+	template = strReplace(template, "{$NOME_ASSINANTE_ARQUIVO}", infAssinatura->assinante)
+	template = strReplace(template, "{$CPF_ASSINANTE_ARQUIVO}", STR2CPF(infAssinatura->cpf))
 	template = strReplace(template, "{$HASHCODE_ARQUIVO}", "1234")
 	
+	delete infAssinatura
+	
 	salvarPDF("apuracao_icms_" + reg->apuIcms.dataIni + "_" + reg->apuIcms.dataFim, template)
-
+	
 end sub
