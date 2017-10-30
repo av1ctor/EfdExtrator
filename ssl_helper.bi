@@ -10,9 +10,9 @@
 extern "C++"
 
 enum ALTNAME_ATTRIBUTES
-	AN_ATT_CPF
-	AN_ATT_CNPJ
-	AN_ATT_EMAIL
+	AN_ATT_CPF		= 0
+	AN_ATT_CNPJ		= 1
+	AN_ATT_EMAIL	= 2
 end enum
 
 type PKCS7 as any

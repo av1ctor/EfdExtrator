@@ -9,89 +9,95 @@
 
 enum ALTNAME_ATTRIBUTES
 {
-	AN_ATT_CPF,
-	AN_ATT_CNPJ,
-	AN_ATT_EMAIL
+	AN_ATT_CPF 		= 0,
+	AN_ATT_CNPJ	 	= 1,
+	AN_ATT_EMAIL	= 2
 };
 
 class SSL_Helper
 {
 public:	
-	SSL_Helper();
+	__cdecl SSL_Helper();
 	
-	~SSL_Helper();
+	__cdecl ~SSL_Helper();
 
-	void *Load_P7K(char const *fileName);
+	void __cdecl *Load_P7K(char const *fileName);
 
-	void *Load_P7K(unsigned char *buffer, int len);
+	void __cdecl *Load_P7K(unsigned char *buffer, int len);
 	
-	void Free(void *p7);
+	void __cdecl Free(void *p7);
 	
-	char *Get_CommonName(void *p7);
+	char __cdecl *Get_CommonName(void *p7);
 
-	char *Get_AttributeFromAltName(void *p7, ALTNAME_ATTRIBUTES attrib);
+	char __cdecl *Get_AttributeFromAltName(void *p7, ALTNAME_ATTRIBUTES attrib);
 	
 private:
-	int cpf_nid;
-	int cnpj_nid;
-	int cpf_resp_nid;
-
 	X509 *hGetTopCertFromP7K(PKCS7 *p7);
 
-	char *hGetCommonNameFromSujectName(X509_NAME *name);
+	char *hGetCommonNameFromSujectName(X509 *cert);
 	
 	char *hGetAttributeFromAltName(X509 *cert, ALTNAME_ATTRIBUTES attrib);
 
 };
 
-SSL_Helper::SSL_Helper()
-{
-	OpenSSL_add_all_algorithms();
+int cpf_nid = 0;
+int cnpj_nid = 0;
+int cpf_resp_nid = 0;
 
-	int cpf_nid = OBJ_create("2.16.76.1.3.1", "CPF", "usuarioCPF");
-	int cnpj_nid = OBJ_create("2.16.76.1.3.3", "CNPJ", "empresaCNPJ");
-	int cpf_resp_nid = OBJ_create("2.16.76.1.3.4", "CPFRESP", "responsavelCPF");
+void hInitializeOpenSSL()
+{
+	if( cpf_nid == 0 ) 
+	{
+		OpenSSL_add_all_algorithms();
+	
+		cpf_nid = OBJ_create("2.16.76.1.3.1", "CPF", "usuarioCPF");
+		cnpj_nid = OBJ_create("2.16.76.1.3.3", "CNPJ", "empresaCNPJ");
+		cpf_resp_nid = OBJ_create("2.16.76.1.3.4", "CPFRESP", "responsavelCPF");
+	}
+}
+
+__cdecl SSL_Helper::SSL_Helper()
+{
+	hInitializeOpenSSL();
 }
 	
-SSL_Helper::~SSL_Helper()
+__cdecl SSL_Helper::~SSL_Helper()
 {
 }
 
-void *SSL_Helper::Load_P7K(char const *fileName)
+void __cdecl *SSL_Helper::Load_P7K(char const *fileName)
 {
 	BIO *in = BIO_new(BIO_s_file());
 
 	BIO_read_filename(in, fileName);
 	PKCS7 *p7 = d2i_PKCS7_bio(in, NULL);
 	
-	BIO_free(in);
+	//BIO_free(in);
 	
 	return (void *)p7;
 }
 
-void *SSL_Helper::Load_P7K(unsigned char *buffer, int len)
+void __cdecl *SSL_Helper::Load_P7K(unsigned char *buffer, int len)
 {
-	BIO *in = BIO_new(BIO_s_mem());
-
-	BIO_read(in, buffer, len);
+	BIO *in = BIO_new_mem_buf(buffer, len);
 	PKCS7 *p7 = d2i_PKCS7_bio(in, NULL);
 	
-	BIO_free(in);
+	//BIO_free(in);
 	
 	return (void *)p7;
 }
 	
-void SSL_Helper::Free(void *p7)
+void __cdecl SSL_Helper::Free(void *p7)
 {
 	PKCS7_free((PKCS7 *)p7);
 }
 
-char *SSL_Helper::Get_CommonName(void *p7)
+char __cdecl *SSL_Helper::Get_CommonName(void *p7)
 {
-	return hGetCommonNameFromSujectName(X509_get_subject_name(hGetTopCertFromP7K((PKCS7 *)p7)));
+	return hGetCommonNameFromSujectName(hGetTopCertFromP7K((PKCS7 *)p7));
 }
 
-char *SSL_Helper::Get_AttributeFromAltName(void *p7, ALTNAME_ATTRIBUTES attrib)
+char __cdecl *SSL_Helper::Get_AttributeFromAltName(void *p7, ALTNAME_ATTRIBUTES attrib)
 {
 	return hGetAttributeFromAltName(hGetTopCertFromP7K((PKCS7 *)p7), attrib);
 }
@@ -109,64 +115,43 @@ X509 *SSL_Helper::hGetTopCertFromP7K(PKCS7 *p7)
 		certs = p7->d.signed_and_enveloped->cert;
 	}
 	
-	return sk_X509_value(certs, 0);
-}
-
-char *SSL_Helper::hGetCommonNameFromSujectName(X509_NAME *name)
-{
-	for (int i = 0; i < sk_X509_NAME_ENTRY_num(name->entries); i++) 
+	for(int i = 0; certs && i < sk_X509_num(certs); i++ )
 	{
-		const X509_NAME_ENTRY *ne = sk_X509_NAME_ENTRY_value(name->entries, i);
-		int nid = OBJ_obj2nid(ne->object);
-		if( nid == NID_commonName )
+		X509 *cert = sk_X509_value(certs, i);
+		X509_check_purpose(cert, -1, 0);
+		if( (cert->ex_kusage & X509v3_KU_DIGITAL_SIGNATURE) != 0 )
 		{
-			int type = ne->value->type;
-			int num = ne->value->length;
-			unsigned char *q = ne->value->data;
-			int gs_doit[4];
-			
-			if ((type == V_ASN1_GENERALSTRING) && ((num % 4) == 0)) 
-			{
-				gs_doit[0] = gs_doit[1] = gs_doit[2] = gs_doit[3] = 0;
-				for (int j = 0; j < num; j++)
-					if (q[j] != 0)
-						gs_doit[j & 3] = 1;
-
-				if (gs_doit[0] | gs_doit[1] | gs_doit[2])
-					gs_doit[0] = gs_doit[1] = gs_doit[2] = gs_doit[3] = 1;
-				else 
-				{
-					gs_doit[0] = gs_doit[1] = gs_doit[2] = 0;
-					gs_doit[3] = 1;
-				}
-			} 
-			else
-				gs_doit[0] = gs_doit[1] = gs_doit[2] = gs_doit[3] = 1;
-			
-			int len = 0;
-			for(int j = 0; j < num; j++) 
-			{
-				if (!gs_doit[j & 3])
-					continue;			
-				++len;
-			}
-			
-			char *res, *p;
-			res = p = (char *)malloc(len+1);
-			
-			for(int j = 0; j < num; j++) 
-			{
-				if (!gs_doit[j & 3])
-					continue;			
-				
-				*(p++) = q[j];
-			}
-			
-			*p = '\0';
-			
-			return res;
+			return cert;
 		}
 	}
+	
+	return NULL;
+}
+
+char *SSL_Helper::hGetCommonNameFromSujectName(X509 *cert)
+{
+	char *res = NULL;
+	
+	// common name
+	ASN1_OBJECT* obj = OBJ_txt2obj("2.5.4.3", 0);
+
+	X509_NAME* name = X509_get_subject_name(cert);
+	
+	int pos = -1;
+	if((pos = X509_NAME_get_index_by_OBJ(name, obj, pos)) != -1) 
+	{
+		X509_NAME_ENTRY* name_entry = X509_NAME_get_entry(name, pos);
+		char *entry = (char *)ASN1_STRING_data(X509_NAME_ENTRY_get_data(name_entry));
+
+		int length = strlen(entry);
+		res = (char *)malloc(length+1);
+		strncpy(res, (char *)entry, length);
+		res[length] = '\0';
+	}
+	
+	ASN1_OBJECT_free(obj);
+	
+	return res;
 }
 
 char *SSL_Helper::hGetAttributeFromAltName(X509 *cert, ALTNAME_ATTRIBUTES attrib)
@@ -185,14 +170,17 @@ char *SSL_Helper::hGetAttributeFromAltName(X509 *cert, ALTNAME_ATTRIBUTES attrib
 				{
 					ASN1_IA5STRING *asn1_str = gen->d.uniformResourceIdentifier;
 					char *s = (char*)ASN1_STRING_data(asn1_str);
-					res = (char *)malloc(strlen(s)+1);
-					strncpy(res, s, strlen(s)+1);
+					int len = strlen(s);
+					res = (char *)malloc(len+1);
+					strncpy(res, s, len);
+					res[len] = '\0';
 				}
 				break;
 			}
 			case GEN_OTHERNAME:
 			{
 				int nid = OBJ_obj2nid(gen->d.otherName->type_id);
+				
 				if( nid == cpf_nid )
 				{
 					if( attrib == AN_ATT_CPF )

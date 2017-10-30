@@ -2050,6 +2050,8 @@ function lerInfoAssinatura(assinaturaP7K_DER() as byte) as InfoAssinatura ptr
 	if s <> null then
 		res->cpf = *s
 		deallocate s
+	else
+		res->cpf = "00000000000"
 	end if
 	
 	''
@@ -2064,6 +2066,11 @@ end function
 sub Efd.gerarRelatorioApuracaoICMS(reg as TRegistro ptr)
 
 	var template = carregarTemplate(baseTemplatesDir + "apuracao_icms.html")
+	
+	/'var bf = new bfile()
+	bf->criar("assinatura.p7b")
+	bf->escrever(assinaturaP7K_DER())
+	bf->fechar'/
 	
 	var infAssinatura = lerInfoAssinatura(assinaturaP7K_DER())
 	
