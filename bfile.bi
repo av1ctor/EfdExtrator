@@ -12,7 +12,8 @@ public:
    declare function tamanho() as longint
    declare function posicao() as longint
    declare function lerTudo() as string
-   declare sub ler(destino() as byte, lgt as integer)
+   declare function ler(destino() as byte, lgt as integer) as integer
+   declare function ler(destino as byte ptr, lgt as integer) as integer
    declare sub escrever(texto as string)
    declare sub escrever(src() as byte) 
    declare function temProximo() as Boolean

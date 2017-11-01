@@ -435,6 +435,7 @@ type TDFe
 	operacao		as TipoOperacao					'' entrada ou saída
 	chave			as zstring * 44+1
 	dataEmi			as zstring * 10+1
+	valorOperacao	as double
 	
 	union
 		nfe			as TDFe_NFe
@@ -448,6 +449,7 @@ type TEfd_DFe
 	chave			as zstring * 44+1
 	dataEmi			as zstring * 8+1
 	operacao		as TipoOperacao
+	valorOperacao	as double
 	next_			as TEfd_DFe ptr
 end type
 
@@ -459,7 +461,7 @@ public:
 	declare sub finalizarExtracao(mostrarProgresso as sub(porCompleto as double))
 	declare function carregarTxt(nomeArquivo as String, mostrarProgresso as sub(porCompleto as double)) as Boolean
 	declare function carregarCsv(nomeArquivo as String, mostrarProgresso as sub(porCompleto as double)) as Boolean
-	declare function processar(mostrarProgresso as sub(porCompleto as double), gerarRelatorios as boolean) as Boolean
+	declare function processar(nomeArquivo as string, mostrarProgresso as sub(porCompleto as double), gerarRelatorios as boolean) as Boolean
 	declare sub analisar(mostrarProgresso as sub(porCompleto as double))
    
 private:
@@ -513,8 +515,8 @@ private:
 	declare function carregarCsvNFeEmitItens(bf as bfile, chave as string) as TDFe_NFeItem ptr
 	declare function carregarCsvCTe(bf as bfile, emModoOutrasUFs as boolean) as TDFe ptr
 	declare sub adicionarDFe(dfe as TDFe ptr)
-	declare sub adicionarEfdDfe(chave as zstring ptr, operacao as TipoOperacao, dataEmi as zstring ptr)
+	declare sub adicionarEfdDfe(chave as zstring ptr, operacao as TipoOperacao, dataEmi as zstring ptr, valorOperacao as double)
 	declare sub criarPlanilhas()
-	declare sub gerarRelatorioApuracaoICMS(reg as TRegistro ptr)
+	declare sub gerarRelatorioApuracaoICMS(nomeArquivo as string, reg as TRegistro ptr)
 end type
 

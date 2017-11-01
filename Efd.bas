@@ -996,6 +996,8 @@ function Efd.carregarCsvNFeDest(bf as bfile, emModoOutrasUFs as boolean) as TDFe
 		dfe->nfe.numero			= bf.intCsv
 	end if
 
+	dfe->valorOperacao			= dfe->nfe.valorNotaTotal
+	
 	'' pular \r\n
 	bf.char1
 	bf.char1
@@ -1121,6 +1123,8 @@ function Efd.carregarCsvCTe(bf as bfile, emModoOutrasUFs as boolean) as TDFe ptr
 	dfe->cte.nomeMunicFim	= bf.charCsv
 	dfe->cte.ufFim			= bf.charCsv
 	dfe->modelo				= 57
+	
+	dfe->valorOperacao 		= dfe->cte.valorPrestacao
 	
 	'' pular \r\n
 	bf.char1
@@ -1358,7 +1362,7 @@ sub Efd.finalizarExtracao(mostrarProgresso as sub(porCompleto as double))
 end sub
 
 ''''''''
-#define STR2DATA(s) (mid(s,5) + "-" + mid(s,3,2) + "-" + mid(s,1,2) + "T00:00:00.000")
+#define STR2DATA(s) (iif(len(s)<8, "1900-01-01T00:00:00.000", mid(s,5) + "-" + mid(s,3,2) + "-" + mid(s,1,2) + "T00:00:00.000"))
 
 ''''''''
 #define STR2DATABR(s) (mid(s,1,2) + "/" + mid(s,3,2) + "/" + mid(s,5))
@@ -1370,7 +1374,7 @@ end sub
 #define MUNICIPIO2SIGLA(m) (iif(m >= 1100000 and m <= 5399999, codUF2Sigla(m \ 100000), "EX"))
 
 ''''''''
-sub Efd.adicionarEfdDfe(chave as zstring ptr, operacao as TipoOperacao, dataEmi as zstring ptr)
+sub Efd.adicionarEfdDfe(chave as zstring ptr, operacao as TipoOperacao, dataEmi as zstring ptr, valorOperacao as double)
 	
 	if len(chave) = 0 then
 		return
@@ -1381,6 +1385,7 @@ sub Efd.adicionarEfdDfe(chave as zstring ptr, operacao as TipoOperacao, dataEmi 
 		ed->chave = *chave
 		ed->operacao = operacao
 		ed->dataEmi = *dataEmi
+		ed->valorOperacao = valorOperacao
 		if efdDfeListHead = null then
 			efdDfeListHead = ed
 		else
@@ -1426,7 +1431,7 @@ sub Efd.criarPlanilhas()
 end sub
 
 ''''''''
-function Efd.processar(mostrarProgresso as sub(porCompleto as double), gerarRelatorios as boolean) as Boolean
+function Efd.processar(nomeArquivo as string, mostrarProgresso as sub(porCompleto as double), gerarRelatorios as boolean) as Boolean
    
 	if entradas = null then
 		criarPlanilhas
@@ -1445,7 +1450,7 @@ function Efd.processar(mostrarProgresso as sub(porCompleto as double), gerarRela
 				case REGULAR, EXTEMPORANEO
 					'só existe item para entradas
 					if doc->operacao = ENTRADA then
-						adicionarEfdDfe(doc->chave, doc->operacao, doc->dataEmi)
+						adicionarEfdDfe(doc->chave, doc->operacao, doc->dataEmi, doc->valorTotal)
 
 						var part = cast( TParticipante ptr, hashLookup(@participanteDict, doc->idParticipante) )
 						var row = entradas->AddRow()
@@ -1493,7 +1498,7 @@ function Efd.processar(mostrarProgresso as sub(porCompleto as double), gerarRela
 
 				select case as const reg->nfe.situacao
 				case REGULAR, EXTEMPORANEO
-					adicionarEfdDfe(reg->nfe.chave, reg->nfe.operacao, reg->nfe.dataEmi)
+					adicionarEfdDfe(reg->nfe.chave, reg->nfe.operacao, reg->nfe.dataEmi, reg->nfe.valorTotal)
 
 					'' NOTA: não existe itemDoc para saídas, só temos informação básica do DF-e, 
 					'' 	    há não ser que sejam carregas os relatórios .csv do SAFI vindos do infoview
@@ -1584,7 +1589,7 @@ function Efd.processar(mostrarProgresso as sub(porCompleto as double), gerarRela
 					row->addCell(reg->nfe.numero)
 					'' NOTA: cancelados e inutilizados não vêm com a data preenchida, então retiramos a data da chave ou do registro mestre
 					var dataEmi = iif( len(reg->nfe.chave) = 44, "01" + mid(reg->nfe.chave,5,2) + "20" + mid(reg->nfe.chave,3,2), regListHead->mestre.dataIni )
-					adicionarEfdDfe(reg->nfe.chave, reg->nfe.operacao, dataEmi)
+					adicionarEfdDfe(reg->nfe.chave, reg->nfe.operacao, dataEmi, 0)
 					row->addCell(STR2DATA(dataEmi))
 					row->addCell("")
 					row->addCell(reg->nfe.chave)
@@ -1624,7 +1629,7 @@ function Efd.processar(mostrarProgresso as sub(porCompleto as double), gerarRela
 			if reg->cte.modelo = 57 then
 				select case as const reg->cte.situacao
 				case REGULAR, EXTEMPORANEO
-					adicionarEfdDfe(reg->cte.chave, reg->cte.operacao, reg->cte.dataEmi)
+					adicionarEfdDfe(reg->cte.chave, reg->cte.operacao, reg->cte.dataEmi, reg->cte.valorServico)
 					
 					var part = cast( TParticipante ptr, hashLookup(@participanteDict, reg->cte.idParticipante) )
 
@@ -1737,7 +1742,7 @@ function Efd.processar(mostrarProgresso as sub(porCompleto as double), gerarRela
 					row->addCell(reg->cte.numero)
 					'' NOTA: cancelados e inutilizados não vêm com a data preenchida, então retiramos a data da chave ou do registro mestre
 					var dataEmi = iif( len(reg->cte.chave) = 44, "01" + mid(reg->cte.chave,5,2) + "20" + mid(reg->cte.chave,3,2), regListHead->mestre.dataIni )
-					adicionarEfdDfe(reg->cte.chave, reg->cte.operacao, dataEmi)
+					adicionarEfdDfe(reg->cte.chave, reg->cte.operacao, dataEmi, 0)
 					row->addCell(STR2DATA(dataEmi))
 					row->addCell("")
 					row->addCell(reg->cte.chave)
@@ -1793,7 +1798,7 @@ function Efd.processar(mostrarProgresso as sub(porCompleto as double), gerarRela
 			row->addCell(reg->apuIcms.debExtraApuracao)
 			
 			if gerarRelatorios then
-				gerarRelatorioApuracaoICMS(reg)
+				gerarRelatorioApuracaoICMS(nomeArquivo, reg)
 			end if
 
 		'documento do sintegra?
@@ -1921,7 +1926,10 @@ sub Efd.analisar(mostrarProgresso as sub(porCompleto as double))
 	naoEscrituradas->AddCellType(CT_STRING, "Chave")
 	naoEscrituradas->AddCellType(CT_DATE, "Data")
 	naoEscrituradas->AddCellType(CT_INTNUMBER, "Modelo")
+	naoEscrituradas->AddCellType(CT_INTNUMBER, "Serie")
+	naoEscrituradas->AddCellType(CT_INTNUMBER, "Numero")
 	naoEscrituradas->AddCellType(CT_INTNUMBER, "Operacao")
+	naoEscrituradas->AddCellType(CT_MONEY, "Valor Operacao")
 	
 	var i = 0
 	var dfe = dfeListHead
@@ -1935,7 +1943,10 @@ sub Efd.analisar(mostrarProgresso as sub(porCompleto as double))
 				row->addCell(dfe->chave)
 				row->addCell(STRDFE2DATA(dfe->dataEmi))
 				row->addCell(dfe->modelo)
+				row->addCell(mid(dfe->chave, 23, 3))
+				row->addCell(mid(dfe->chave, 23+3, 9))
 				row->addCell(dfe->operacao)
+				row->addCell(dfe->valorOperacao)
 			end if
 
 			i += 1
@@ -2026,17 +2037,39 @@ end function
 #define DBL2MONEYBR(d) (format(d,"#,#,#.00"))
 
 type InfoAssinatura
-	assinante	as string
-	cpf			as string
+	assinante		as string
+	cpf				as string
+	hashDoArquivo	as string
 end type
 
+type HashCtx
+	bf				as bfile ptr
+	tamanhoSemSign	as longint
+	bytesLidosTotal	as longint
+end type
+
+private function hashReadCB cdecl(ctx_ as any ptr, buffer as ubyte ptr, maxLen as integer) as integer
+	var ctx = cast(HashCtx ptr, ctx_)
+	
+	if ctx->bytesLidosTotal + maxLen > ctx->tamanhoSemSign then
+		maxLen = ctx->tamanhoSemSign - ctx->bytesLidosTotal
+	end if
+	
+	var bytesLidos = ctx->bf->ler(buffer, maxLen)
+	ctx->bytesLidosTotal += bytesLidos
+	
+	function = bytesLidos
+	
+end function
+
 ''''''''
-function lerInfoAssinatura(assinaturaP7K_DER() as byte) as InfoAssinatura ptr
+function lerInfoAssinatura(nomeArquivo as string, assinaturaP7K_DER() as byte) as InfoAssinatura ptr
 	
 	var res = new InfoAssinatura
 	
 	var sh = new SSL_Helper
-	var p7k = sh->Load_P7K(@assinaturaP7K_DER(0), ubound(assinaturaP7K_DER)+1)
+	var tamanhoAssinatura = ubound(assinaturaP7K_DER)+1
+	var p7k = sh->Load_P7K(@assinaturaP7K_DER(0), tamanhoAssinatura)
 	
 	''
 	var s = sh->Get_CommonName(p7k)
@@ -2053,7 +2086,23 @@ function lerInfoAssinatura(assinaturaP7K_DER() as byte) as InfoAssinatura ptr
 	else
 		res->cpf = "00000000000"
 	end if
+
+	''
+	var bf = new bfile()
+	bf->abrir(nomeArquivo)
+	var ctx = new HashCtx
+	ctx->bf = bf
+	ctx->tamanhoSemSign = bf->tamanho() - (tamanhoAssinatura + len(ASSINATURA_P7K_HEADER))
+	ctx->bytesLidosTotal = 0
 	
+	s = sh->Compute_SHA1(@hashReadCB, ctx)
+	if s <> null then
+		res->hashDoArquivo = *s
+		deallocate s
+	end if
+	
+	bf->fechar()
+
 	''
 	sh->Free(p7k)
 	delete sh
@@ -2063,7 +2112,7 @@ function lerInfoAssinatura(assinaturaP7K_DER() as byte) as InfoAssinatura ptr
 end function
 
 ''''''''
-sub Efd.gerarRelatorioApuracaoICMS(reg as TRegistro ptr)
+sub Efd.gerarRelatorioApuracaoICMS(nomeArquivo as string, reg as TRegistro ptr)
 
 	var template = carregarTemplate(baseTemplatesDir + "apuracao_icms.html")
 	
@@ -2072,7 +2121,7 @@ sub Efd.gerarRelatorioApuracaoICMS(reg as TRegistro ptr)
 	bf->escrever(assinaturaP7K_DER())
 	bf->fechar'/
 	
-	var infAssinatura = lerInfoAssinatura(assinaturaP7K_DER())
+	var infAssinatura = lerInfoAssinatura(nomeArquivo, assinaturaP7K_DER())
 	
 	template = strReplace(template, "{$CONTRIBUINTE_NOME}", regListHead->mestre.nome)
 	template = strReplace(template, "{$CONTRIBUINTE_CNPJ}", STR2CNPJ(regListHead->mestre.cnpj))
@@ -2096,7 +2145,7 @@ sub Efd.gerarRelatorioApuracaoICMS(reg as TRegistro ptr)
 	template = strReplace(template, "{$VALOR_RECOLHIDO_EXTRA_APURACAO}", DBL2MONEYBR(reg->apuIcms.debExtraApuracao))
 	template = strReplace(template, "{$NOME_ASSINANTE_ARQUIVO}", infAssinatura->assinante)
 	template = strReplace(template, "{$CPF_ASSINANTE_ARQUIVO}", STR2CPF(infAssinatura->cpf))
-	template = strReplace(template, "{$HASHCODE_ARQUIVO}", "1234")
+	template = strReplace(template, "{$HASHCODE_ARQUIVO}", infAssinatura->hashDoArquivo)
 	
 	delete infAssinatura
 	

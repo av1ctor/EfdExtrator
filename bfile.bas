@@ -59,13 +59,27 @@ function bfile.lerTudo( ) as string
 end function
 
 ''''''''
-sub bfile.ler(destino() as byte, lgt as integer)
+function bfile.ler(destino() as byte, lgt as integer) as integer
 	var i = 0
 	do while temProximo() and cbool(i < lgt)
 		destino(i) = char1
 		i += 1
 	loop
-end sub
+	
+	function = i
+end function
+
+''''''''
+function bfile.ler(destino as byte ptr, lgt as integer) as integer
+	var i = 0
+	do while temProximo() and cbool(i < lgt)
+		*destino = char1
+		destino += 1
+		i += 1
+	loop
+	
+	function = i
+end function
 
 ''''''''
 sub bfile.escrever(texto as string) 

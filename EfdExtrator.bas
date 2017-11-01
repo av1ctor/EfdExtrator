@@ -114,7 +114,7 @@ sub main()
 				
 				print "Processando";
 				ultPorCompleto = 0
-				if not e.processar( @mostrarProgresso, gerarPDF ) then
+				if not e.processar( arquivoEntrada, @mostrarProgresso, gerarPDF ) then
 					print !"\r\nErro ao extrair arquivo: "; arquivoEntrada
 					end -1
 				end if
@@ -138,7 +138,7 @@ sub main()
 	
 		print "Processando";
 		ultPorCompleto = 0
-		if not e.processar( @mostrarProgresso, gerarPDF ) then
+		if not e.processar( arquivoEntrada, @mostrarProgresso, gerarPDF ) then
 			print !"\r\nErro ao extrair arquivo: "; arquivoEntrada
 			end -1
 		end if

@@ -31,6 +31,10 @@ public:
 
 	char __cdecl *Get_AttributeFromAltName(void *p7, ALTNAME_ATTRIBUTES attrib);
 	
+	char __cdecl *Compute_SHA1(unsigned char const *src, int len);
+	
+	char __cdecl *Compute_SHA1(int __cdecl(readCB(void *ctx, unsigned char *buffer, int maxLen)), void *ctx);
+	
 private:
 	X509 *hGetTopCertFromP7K(PKCS7 *p7);
 
@@ -99,6 +103,59 @@ char __cdecl *SSL_Helper::Get_CommonName(void *p7)
 char __cdecl *SSL_Helper::Get_AttributeFromAltName(void *p7, ALTNAME_ATTRIBUTES attrib)
 {
 	return hGetAttributeFromAltName(hGetTopCertFromP7K((PKCS7 *)p7), attrib);
+}
+
+void hString2Hex(unsigned char const *src, int len, char *dst)
+{
+	const char *hexLUT = "0123456789ABCDEF";
+	for(int i = 0; i < len; i++)
+	{
+        dst[i*2+0] = hexLUT[(src[i] >> 4) & 0xF];
+        dst[i*2+1] = hexLUT[src[i] & 0xF];
+    }
+	
+	dst[len*2] = '\0';
+}
+
+char __cdecl *SSL_Helper::Compute_SHA1(unsigned char const *src, int len)
+{
+	char *res = (char *)malloc(40+1);
+	
+	unsigned char hash[20];
+	SHA1(src, len, hash);
+	
+	hString2Hex(hash, 20, res);
+	
+	return res;
+}
+
+char __cdecl *SSL_Helper::Compute_SHA1(int (readCB(void *ctx, unsigned char *buffer, int len)), void *ctx)
+{
+	char *res = (char *)malloc(40+1);
+	
+	#define bufferSize 8192
+	unsigned char buffer[bufferSize];
+	
+	SHA_CTX sctx;
+	SHA1_Init(&sctx);
+	
+	do
+	{
+		int bytesRead = readCB(ctx, buffer, bufferSize);
+		if(bytesRead == 0)
+			break;
+			
+		SHA1_Update(&sctx, buffer, bytesRead);
+		if(bytesRead < bufferSize)
+			break;
+	} while(true);
+	
+	unsigned char hash[20];
+	SHA1_Final(hash, &sctx);
+	
+	hString2Hex(hash, 20, res);
+	
+	return res;
 }
 
 X509 *SSL_Helper::hGetTopCertFromP7K(PKCS7 *p7)
