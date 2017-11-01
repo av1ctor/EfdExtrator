@@ -180,6 +180,10 @@ private function lerTipo(bf as bfile) as TipoRegistro
 			function = APURACAO_ICMS_PERIODO
 		case "E110"
 			function = APURACAO_ICMS_PROPRIO
+		case "E200"
+			function = APURACAO_ICMS_ST_PERIODO
+		case "E210"
+			function = APURACAO_ICMS_ST
 		end select
 	case asc("9")
 		select case tipo
@@ -544,6 +548,51 @@ private function lerRegApuIcmsProprio(bf as bfile, reg as TRegistro ptr) as Bool
 end function
 
 ''''''''
+private function lerRegApuIcmsSTPeriodo(bf as bfile, reg as TRegistro ptr) as Boolean
+
+   bf.char1		'pular |
+
+   reg->apuIcmsST.UF		 	 = bf.varchar
+   reg->apuIcmsST.dataIni		 = bf.varchar
+   reg->apuIcmsST.dataFim		 = bf.varchar
+
+   'pular \r\n
+   bf.char1
+   bf.char1
+
+   function = true
+
+end function
+
+''''''''
+private function lerRegApuIcmsST(bf as bfile, reg as TRegistro ptr) as Boolean
+
+	bf.char1		'pular |
+
+	reg->apuIcmsST.mov						= bf.varint
+	reg->apuIcmsST.saldoCredAnterior		= bf.vardbl
+	reg->apuIcmsST.devolMercadorias			= bf.vardbl
+	reg->apuIcmsST.totalRessarciment		= bf.vardbl
+	reg->apuIcmsST.totalOutrosCred			= bf.vardbl
+	reg->apuIcmsST.ajusteCred				= bf.vardbl
+	reg->apuIcmsST.totalRetencao			= bf.vardbl
+	reg->apuIcmsST.totalOutrosDeb			= bf.vardbl
+	reg->apuIcmsST.ajusteDeb				= bf.vardbl
+	reg->apuIcmsST.saldoAntesDed			= bf.vardbl
+	reg->apuIcmsST.totalDeducoes			= bf.vardbl
+	reg->apuIcmsST.icmsRecolher				= bf.vardbl
+	reg->apuIcmsST.saldoCredTransportar		= bf.vardbl
+	reg->apuIcmsST.debExtraApuracao			= bf.vardbl
+
+	'pular \r\n
+	bf.char1
+	bf.char1
+
+	function = true
+
+end function
+
+''''''''
 private sub Efd.lerCertificado(bf as bfile)
 
 	'' verificar header
@@ -633,6 +682,20 @@ private function Efd.lerRegistro(bf as bfile, reg as TRegistro ptr) as Boolean
 		
 	case APURACAO_ICMS_PROPRIO
 		if not lerRegApuIcmsProprio(bf, ultimoApuIcmsPeriodo) then
+			return false
+		end if
+		
+		reg->tipo = DESCONHECIDO			'' deletar registro, já que vamos reusar o registro pai
+
+	case APURACAO_ICMS_ST_PERIODO
+		if not lerRegApuIcmsSTPeriodo(bf, reg) then
+			return false
+		end if
+
+		ultimoApuIcmsPeriodo = reg
+		
+	case APURACAO_ICMS_ST
+		if not lerRegApuIcmsST(bf, ultimoApuIcmsPeriodo) then
 			return false
 		end if
 		
@@ -1428,13 +1491,107 @@ sub Efd.criarPlanilhas()
 	apuracaoIcms->AddCellType(CT_MONEY, "Saldo Credor a Transportar")
 	apuracaoIcms->AddCellType(CT_MONEY, "Deb Extra Apuracao")
    
+	'' apuração do ICMS ST
+	apuracaoIcmsST = ew->AddWorksheet("Apuracao ICMS ST")
+	apuracaoIcmsST->AddCellType(CT_DATE, "Inicio")
+	apuracaoIcmsST->AddCellType(CT_DATE, "Fim")
+	apuracaoIcmsST->AddCellType(CT_STRING, "UF")
+	apuracaoIcmsST->AddCellType(CT_STRING, "Movimentacao")
+	apuracaoIcmsST->AddCellType(CT_MONEY, "Saldo Credor Anterior")
+	apuracaoIcmsST->AddCellType(CT_MONEY, "Total Devolucao Merc")
+	apuracaoIcmsST->AddCellType(CT_MONEY, "Total Ressarcimentos")
+	apuracaoIcmsST->AddCellType(CT_MONEY, "Total Ajustes Cred")
+	apuracaoIcmsST->AddCellType(CT_MONEY, "Total Ajustes Cred Docs")
+	apuracaoIcmsST->AddCellType(CT_MONEY, "Total Retencao")
+	apuracaoIcmsST->AddCellType(CT_MONEY, "Total Ajustes Deb")
+	apuracaoIcmsST->AddCellType(CT_MONEY, "Total Ajustes Deb Docs")
+	apuracaoIcmsST->AddCellType(CT_MONEY, "Saldo Devedor ant. Deducoes")
+	apuracaoIcmsST->AddCellType(CT_MONEY, "Total Deducoes")
+	apuracaoIcmsST->AddCellType(CT_MONEY, "ICMS a Recolher")
+	apuracaoIcmsST->AddCellType(CT_MONEY, "Saldo Credor a Transportar")
+	apuracaoIcmsST->AddCellType(CT_MONEY, "Deb Extra Apuracao")
+			
 end sub
+
+''''''''
+type HashCtx
+	bf				as bfile ptr
+	tamanhoSemSign	as longint
+	bytesLidosTotal	as longint
+end type
+
+private function hashReadCB cdecl(ctx_ as any ptr, buffer as ubyte ptr, maxLen as integer) as integer
+	var ctx = cast(HashCtx ptr, ctx_)
+	
+	if ctx->bytesLidosTotal + maxLen > ctx->tamanhoSemSign then
+		maxLen = ctx->tamanhoSemSign - ctx->bytesLidosTotal
+	end if
+	
+	var bytesLidos = ctx->bf->ler(buffer, maxLen)
+	ctx->bytesLidosTotal += bytesLidos
+	
+	function = bytesLidos
+	
+end function
+
+''''''''
+function lerInfoAssinatura(nomeArquivo as string, assinaturaP7K_DER() as byte) as InfoAssinatura ptr
+	
+	var res = new InfoAssinatura
+	
+	var sh = new SSL_Helper
+	var tamanhoAssinatura = ubound(assinaturaP7K_DER)+1
+	var p7k = sh->Load_P7K(@assinaturaP7K_DER(0), tamanhoAssinatura)
+	
+	''
+	var s = sh->Get_CommonName(p7k)
+	if s <> null then
+		res->assinante = *s
+		deallocate s
+	end if
+	
+	''
+	s = sh->Get_AttributeFromAltName(p7k, AN_ATT_CPF)
+	if s <> null then
+		res->cpf = *s
+		deallocate s
+	else
+		res->cpf = "00000000000"
+	end if
+
+	''
+	var bf = new bfile()
+	bf->abrir(nomeArquivo)
+	var ctx = new HashCtx
+	ctx->bf = bf
+	ctx->tamanhoSemSign = bf->tamanho() - (tamanhoAssinatura + len(ASSINATURA_P7K_HEADER))
+	ctx->bytesLidosTotal = 0
+	
+	s = sh->Compute_SHA1(@hashReadCB, ctx)
+	if s <> null then
+		res->hashDoArquivo = *s
+		deallocate s
+	end if
+	
+	bf->fechar()
+
+	''
+	sh->Free(p7k)
+	delete sh
+	
+	function = res
+	
+end function
 
 ''''''''
 function Efd.processar(nomeArquivo as string, mostrarProgresso as sub(porCompleto as double), gerarRelatorios as boolean) as Boolean
    
 	if entradas = null then
 		criarPlanilhas
+	end if
+	
+	if gerarRelatorios then
+		infAssinatura = lerInfoAssinatura(nomeArquivo, assinaturaP7K_DER())
 	end if
 
 	var reg = regListHead
@@ -1801,6 +1958,31 @@ function Efd.processar(nomeArquivo as string, mostrarProgresso as sub(porComplet
 				gerarRelatorioApuracaoICMS(nomeArquivo, reg)
 			end if
 
+		case APURACAO_ICMS_ST_PERIODO
+			var row = apuracaoIcmsST->AddRow()
+
+			row->addCell(STR2DATA(reg->apuIcmsST.dataIni))
+			row->addCell(STR2DATA(reg->apuIcmsST.dataFim))
+			row->addCell(reg->apuIcmsST.UF)
+			row->addCell(iif(reg->apuIcmsST.mov=0, "N", "S"))
+			row->addCell(reg->apuIcmsST.saldoCredAnterior)
+			row->addCell(reg->apuIcmsST.devolMercadorias)
+			row->addCell(reg->apuIcmsST.totalRessarciment)
+			row->addCell(reg->apuIcmsST.totalOutrosCred)
+			row->addCell(reg->apuIcmsST.ajusteCred)
+			row->addCell(reg->apuIcmsST.totalRetencao)
+			row->addCell(reg->apuIcmsST.totalOutrosDeb)
+			row->addCell(reg->apuIcmsST.ajusteDeb)
+			row->addCell(reg->apuIcmsST.saldoAntesDed)
+			row->addCell(reg->apuIcmsST.totalDeducoes)
+			row->addCell(reg->apuIcmsST.icmsRecolher)
+			row->addCell(reg->apuIcmsST.saldoCredTransportar)
+			row->addCell(reg->apuIcmsST.debExtraApuracao)
+
+			if gerarRelatorios then
+				gerarRelatorioApuracaoICMSST(nomeArquivo, reg)
+			end if
+			
 		'documento do sintegra?
 		case SINTEGRA_DOCUMENTO
 			if reg->docSint.modelo = 55 then 
@@ -1871,6 +2053,10 @@ function Efd.processar(nomeArquivo as string, mostrarProgresso as sub(porComplet
 		reg = reg->next_
 	loop
 
+	if gerarRelatorios then
+		delete infAssinatura
+	end if
+	
 	do while regListHead <> null
 		var next_ = regListHead->next_
 		delete regListHead
@@ -1984,15 +2170,6 @@ sub salvarPDF(nomeArquivo as string, template as string)
 	kill tempFile
 end sub
 
-sub salvarCert(nomeArquivo as string, cert() as byte)
-	var tempFile = "__temp__" + nomeArquivo + ".cer"
-	
-	var bf = new bfile()
-	bf->criar(tempFile)
-	bf->escrever(cert())
-	bf->fechar
-end sub
-
 function strReplace _
 	( _
 		byref text as string, _
@@ -2036,92 +2213,10 @@ end function
 
 #define DBL2MONEYBR(d) (format(d,"#,#,#.00"))
 
-type InfoAssinatura
-	assinante		as string
-	cpf				as string
-	hashDoArquivo	as string
-end type
-
-type HashCtx
-	bf				as bfile ptr
-	tamanhoSemSign	as longint
-	bytesLidosTotal	as longint
-end type
-
-private function hashReadCB cdecl(ctx_ as any ptr, buffer as ubyte ptr, maxLen as integer) as integer
-	var ctx = cast(HashCtx ptr, ctx_)
-	
-	if ctx->bytesLidosTotal + maxLen > ctx->tamanhoSemSign then
-		maxLen = ctx->tamanhoSemSign - ctx->bytesLidosTotal
-	end if
-	
-	var bytesLidos = ctx->bf->ler(buffer, maxLen)
-	ctx->bytesLidosTotal += bytesLidos
-	
-	function = bytesLidos
-	
-end function
-
-''''''''
-function lerInfoAssinatura(nomeArquivo as string, assinaturaP7K_DER() as byte) as InfoAssinatura ptr
-	
-	var res = new InfoAssinatura
-	
-	var sh = new SSL_Helper
-	var tamanhoAssinatura = ubound(assinaturaP7K_DER)+1
-	var p7k = sh->Load_P7K(@assinaturaP7K_DER(0), tamanhoAssinatura)
-	
-	''
-	var s = sh->Get_CommonName(p7k)
-	if s <> null then
-		res->assinante = *s
-		deallocate s
-	end if
-	
-	''
-	s = sh->Get_AttributeFromAltName(p7k, AN_ATT_CPF)
-	if s <> null then
-		res->cpf = *s
-		deallocate s
-	else
-		res->cpf = "00000000000"
-	end if
-
-	''
-	var bf = new bfile()
-	bf->abrir(nomeArquivo)
-	var ctx = new HashCtx
-	ctx->bf = bf
-	ctx->tamanhoSemSign = bf->tamanho() - (tamanhoAssinatura + len(ASSINATURA_P7K_HEADER))
-	ctx->bytesLidosTotal = 0
-	
-	s = sh->Compute_SHA1(@hashReadCB, ctx)
-	if s <> null then
-		res->hashDoArquivo = *s
-		deallocate s
-	end if
-	
-	bf->fechar()
-
-	''
-	sh->Free(p7k)
-	delete sh
-	
-	function = res
-	
-end function
-
 ''''''''
 sub Efd.gerarRelatorioApuracaoICMS(nomeArquivo as string, reg as TRegistro ptr)
 
 	var template = carregarTemplate(baseTemplatesDir + "apuracao_icms.html")
-	
-	/'var bf = new bfile()
-	bf->criar("assinatura.p7b")
-	bf->escrever(assinaturaP7K_DER())
-	bf->fechar'/
-	
-	var infAssinatura = lerInfoAssinatura(nomeArquivo, assinaturaP7K_DER())
 	
 	template = strReplace(template, "{$CONTRIBUINTE_NOME}", regListHead->mestre.nome)
 	template = strReplace(template, "{$CONTRIBUINTE_CNPJ}", STR2CNPJ(regListHead->mestre.cnpj))
@@ -2143,12 +2238,30 @@ sub Efd.gerarRelatorioApuracaoICMS(nomeArquivo as string, reg as TRegistro ptr)
 	template = strReplace(template, "{$VALOR_TOTAL_ICMS_RECOLHER}", DBL2MONEYBR(reg->apuIcms.icmsRecolher))
 	template = strReplace(template, "{$VALOR_TOTAL_SALDO_CREDOR_TRANSPORTAR}", DBL2MONEYBR(reg->apuIcms.saldoCredTransportar))
 	template = strReplace(template, "{$VALOR_RECOLHIDO_EXTRA_APURACAO}", DBL2MONEYBR(reg->apuIcms.debExtraApuracao))
+
 	template = strReplace(template, "{$NOME_ASSINANTE_ARQUIVO}", infAssinatura->assinante)
 	template = strReplace(template, "{$CPF_ASSINANTE_ARQUIVO}", STR2CPF(infAssinatura->cpf))
 	template = strReplace(template, "{$HASHCODE_ARQUIVO}", infAssinatura->hashDoArquivo)
 	
-	delete infAssinatura
-	
 	salvarPDF("apuracao_icms_" + reg->apuIcms.dataIni + "_" + reg->apuIcms.dataFim, template)
+	
+end sub
+
+''''''''
+sub Efd.gerarRelatorioApuracaoICMSST(nomeArquivo as string, reg as TRegistro ptr)
+
+	var template = carregarTemplate(baseTemplatesDir + "apuracao_icms_st.html")
+
+	template = strReplace(template, "{$CONTRIBUINTE_NOME}", regListHead->mestre.nome)
+	template = strReplace(template, "{$CONTRIBUINTE_CNPJ}", STR2CNPJ(regListHead->mestre.cnpj))
+	template = strReplace(template, "{$CONTRIBUINTE_IE}", STR2IE(regListHead->mestre.ie))
+	template = strReplace(template, "{$PERIODO_ESCRITURACAO}", STR2DATABR(regListHead->mestre.dataIni) + " a " + STR2DATABR(regListHead->mestre.dataFim))
+	template = strReplace(template, "{$PERIODO_APURACAO}", STR2DATABR(reg->apuIcmsST.dataIni) + " a " + STR2DATABR(reg->apuIcmsST.dataFim))
+
+	template = strReplace(template, "{$NOME_ASSINANTE_ARQUIVO}", infAssinatura->assinante)
+	template = strReplace(template, "{$CPF_ASSINANTE_ARQUIVO}", STR2CPF(infAssinatura->cpf))
+	template = strReplace(template, "{$HASHCODE_ARQUIVO}", infAssinatura->hashDoArquivo)
+	
+	salvarPDF("apuracao_icms_st_" + reg->apuIcmsST.UF + "_" + reg->apuIcmsST.dataIni + "_" + reg->apuIcmsST.dataFim, template)
 	
 end sub

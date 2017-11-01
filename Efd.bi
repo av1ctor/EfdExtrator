@@ -17,7 +17,9 @@ enum TipoRegistro
 	APURACAO_ICMS_PROPRIO		= &hE110
 	APURACAO_ICMS_AJUSTE		= &hE111
 	APURACAO_ICMS_PROPRIO_OBRIG	= &hE116
-	EOF_   						= &h9999		'' NOTA: anterior ao certificado digital que fica no final no arquivo
+	APURACAO_ICMS_ST_PERIODO	= &hE200
+	APURACAO_ICMS_ST			= &hE210
+	EOF_   						= &h9999		'' NOTA: anterior à assinatura digital que fica no final no arquivo
 	DESCONHECIDO   				= &h8888
 	SINTEGRA_DOCUMENTO 			= 50			'' NOTA: códigos do Sintegra não conflitam com outros tipos de registros na EFD
 	SINTEGRA_DOCUMENTO_IPI 		= 51
@@ -335,6 +337,26 @@ type TApuracaoIcmsPeriodo
 	debExtraApuracao		as double
 end type
 
+type TApuracaoIcmsSTPeriodo
+	dataIni					as zstring * 8+1
+	dataFim					as zstring * 8+1
+	UF						as zstring * 2+1
+	mov						as boolean
+	saldoCredAnterior		as double
+	devolMercadorias		as double
+	totalRessarciment		as double
+	totalOutrosCred			as double
+	ajusteCred				as double
+	totalRetencao			as double
+	totalOutrosDeb			as double
+	ajusteDeb				as double
+	saldoAntesDed			as double
+	totalDeducoes			as double
+	icmsRecolher			as double
+	saldoCredTransportar	as double
+	debExtraApuracao		as double
+end type
+
 type TRegistro
 	tipo           	as TipoRegistro
 	union
@@ -347,6 +369,7 @@ type TRegistro
 		docSint	  	as TDocumentoSintegra
 		itemId      as TItemId
 		apuIcms	  	as TApuracaoIcmsPeriodo
+		apuIcmsST  	as TApuracaoIcmsSTPeriodo
 	end union
 	next_          	as TRegistro ptr
 end type
@@ -453,6 +476,12 @@ type TEfd_DFe
 	next_			as TEfd_DFe ptr
 end type
 
+type InfoAssinatura
+	assinante		as string
+	cpf				as string
+	hashDoArquivo	as string
+end type
+
 type Efd
 public:
 	declare constructor ()
@@ -487,6 +516,7 @@ private:
 	saidas              	as ExcelWorksheet ptr
 	naoEscrituradas			as ExcelWorksheet ptr
 	apuracaoIcms			as ExcelWorksheet ptr
+	apuracaoIcmsST			as ExcelWorksheet ptr
 
 	'' registros das NF-e's e CT-e's retirados dos relatórios do Infoview (mantidos do início ao fim da extração)
 	chaveDFeDict			as THASH
@@ -505,6 +535,7 @@ private:
 	
 	''
 	assinaturaP7K_DER(any)	as byte
+	infAssinatura			as InfoAssinatura ptr
 
 	declare function lerRegistro(bf as bfile, reg as TRegistro ptr) as Boolean
 	declare function lerRegistroSintegra(bf as bfile, reg as TRegistro ptr) as Boolean
@@ -518,5 +549,6 @@ private:
 	declare sub adicionarEfdDfe(chave as zstring ptr, operacao as TipoOperacao, dataEmi as zstring ptr, valorOperacao as double)
 	declare sub criarPlanilhas()
 	declare sub gerarRelatorioApuracaoICMS(nomeArquivo as string, reg as TRegistro ptr)
+	declare sub gerarRelatorioApuracaoICMSST(nomeArquivo as string, reg as TRegistro ptr)
 end type
 
