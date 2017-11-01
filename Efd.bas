@@ -2257,6 +2257,8 @@ sub Efd.gerarRelatorioApuracaoICMSST(nomeArquivo as string, reg as TRegistro ptr
 	template = strReplace(template, "{$CONTRIBUINTE_IE}", STR2IE(regListHead->mestre.ie))
 	template = strReplace(template, "{$PERIODO_ESCRITURACAO}", STR2DATABR(regListHead->mestre.dataIni) + " a " + STR2DATABR(regListHead->mestre.dataFim))
 	template = strReplace(template, "{$PERIODO_APURACAO}", STR2DATABR(reg->apuIcmsST.dataIni) + " a " + STR2DATABR(reg->apuIcmsST.dataFim))
+	template = strReplace(template, "{$UF}", reg->apuIcmsST.UF)
+	template = strReplace(template, "{$MOV}", iif(reg->apuIcmsST.mov, "1 - COM", "0 - SEM"))
 
 	template = strReplace(template, "{$NOME_ASSINANTE_ARQUIVO}", infAssinatura->assinante)
 	template = strReplace(template, "{$CPF_ASSINANTE_ARQUIVO}", STR2CPF(infAssinatura->cpf))
