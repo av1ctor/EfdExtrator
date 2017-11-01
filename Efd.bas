@@ -593,7 +593,7 @@ private function lerRegApuIcmsST(bf as bfile, reg as TRegistro ptr) as Boolean
 end function
 
 ''''''''
-private sub Efd.lerCertificado(bf as bfile)
+private sub Efd.lerAssinatura(bf as bfile)
 
 	'' verificar header
 	var header = bf.nchar(len(ASSINATURA_P7K_HEADER))
@@ -709,7 +709,7 @@ private function Efd.lerRegistro(bf as bfile, reg as TRegistro ptr) as Boolean
 	case EOF_
 		pularLinha(bf)
 		
-		lerCertificado(bf)
+		lerAssinatura(bf)
 	
 	case else
 		pularLinha(bf)
@@ -967,8 +967,10 @@ function Efd.carregarTxt(nomeArquivo as String, mostrarProgresso as sub(porCompl
 	nroRegs = 0
 
 	if bf.peek1 <> asc("|") then
+		tipoArquivo = TIPO_ARQUIVO_SINTEGRA
 		function = carregarSintegra(bf, mostrarProgresso)
 	else
+		tipoArquivo = TIPO_ARQUIVO_EFD
 		var fsize = bf.tamanho - 6500 			'' descontar certificado digital no final do arquivo
 
 		do while bf.temProximo()		 
@@ -1591,7 +1593,9 @@ function Efd.processar(nomeArquivo as string, mostrarProgresso as sub(porComplet
 	end if
 	
 	if gerarRelatorios then
-		infAssinatura = lerInfoAssinatura(nomeArquivo, assinaturaP7K_DER())
+		if tipoArquivo = TIPO_ARQUIVO_EFD then
+			infAssinatura = lerInfoAssinatura(nomeArquivo, assinaturaP7K_DER())
+		end if
 	end if
 
 	var reg = regListHead
@@ -2054,7 +2058,9 @@ function Efd.processar(nomeArquivo as string, mostrarProgresso as sub(porComplet
 	loop
 
 	if gerarRelatorios then
-		delete infAssinatura
+		if infAssinatura <> NULL then
+			delete infAssinatura
+		end if
 	end if
 	
 	do while regListHead <> null
@@ -2250,20 +2256,37 @@ end sub
 ''''''''
 sub Efd.gerarRelatorioApuracaoICMSST(nomeArquivo as string, reg as TRegistro ptr)
 
-	var template = carregarTemplate(baseTemplatesDir + "apuracao_icms_st.html")
+	'' só extrair para SP
+	if reg->apuIcmsST.UF = "SP" then
+		var template = carregarTemplate(baseTemplatesDir + "apuracao_icms_st.html")
 
-	template = strReplace(template, "{$CONTRIBUINTE_NOME}", regListHead->mestre.nome)
-	template = strReplace(template, "{$CONTRIBUINTE_CNPJ}", STR2CNPJ(regListHead->mestre.cnpj))
-	template = strReplace(template, "{$CONTRIBUINTE_IE}", STR2IE(regListHead->mestre.ie))
-	template = strReplace(template, "{$PERIODO_ESCRITURACAO}", STR2DATABR(regListHead->mestre.dataIni) + " a " + STR2DATABR(regListHead->mestre.dataFim))
-	template = strReplace(template, "{$PERIODO_APURACAO}", STR2DATABR(reg->apuIcmsST.dataIni) + " a " + STR2DATABR(reg->apuIcmsST.dataFim))
-	template = strReplace(template, "{$UF}", reg->apuIcmsST.UF)
-	template = strReplace(template, "{$MOV}", iif(reg->apuIcmsST.mov, "1 - COM", "0 - SEM"))
+		template = strReplace(template, "{$CONTRIBUINTE_NOME}", regListHead->mestre.nome)
+		template = strReplace(template, "{$CONTRIBUINTE_CNPJ}", STR2CNPJ(regListHead->mestre.cnpj))
+		template = strReplace(template, "{$CONTRIBUINTE_IE}", STR2IE(regListHead->mestre.ie))
+		template = strReplace(template, "{$PERIODO_ESCRITURACAO}", STR2DATABR(regListHead->mestre.dataIni) + " a " + STR2DATABR(regListHead->mestre.dataFim))
+		template = strReplace(template, "{$PERIODO_APURACAO}", STR2DATABR(reg->apuIcmsST.dataIni) + " a " + STR2DATABR(reg->apuIcmsST.dataFim))
+		template = strReplace(template, "{$UF}", reg->apuIcmsST.UF)
+		template = strReplace(template, "{$MOV}", iif(reg->apuIcmsST.mov, "1 - COM", "0 - SEM"))
+		
+		template = strReplace(template, "{$VALOR DO SALDO CREDOR ST DE PERIODO ANTERIOR}", DBL2MONEYBR(reg->apuIcmsST.saldoCredAnterior))
+		template = strReplace(template, "{$VALOR DE ICMS REF DEVOLUCOES MERCADORIAS}", DBL2MONEYBR(reg->apuIcmsST.devolMercadorias))
+		template = strReplace(template, "{$VALOR DE ICMS ST RESSARCIMENTOS}", DBL2MONEYBR(reg->apuIcmsST.totalRessarciment))
+		template = strReplace(template, "{$VALOR DE OUTROS CREDITOS ST}", DBL2MONEYBR(reg->apuIcmsST.totalOutrosCred))
+		template = strReplace(template, "{$VALOR TOTAL DOS AJUSTES A CREDITO DE ICMS ST}", DBL2MONEYBR(reg->apuIcmsST.ajusteCred))
+		template = strReplace(template, "{$VALOR DO ICMS RETIDO POR ST}", DBL2MONEYBR(reg->apuIcmsST.totalRetencao))
+		template = strReplace(template, "{$VALOR DE OUTROS DEBITOS ST}", DBL2MONEYBR(reg->apuIcmsST.totalOutrosDeb))
+		template = strReplace(template, "{$VALOR TOTAL DOS AJUSTES A DEBITO DE ICMS ST}", DBL2MONEYBR(reg->apuIcmsST.ajusteDeb))
+		template = strReplace(template, "{$VALOR DE SALDO DEVEDOR ICMS ST ANTES DAS DEDUCOES}", DBL2MONEYBR(reg->apuIcmsST.saldoAntesDed))
+		template = strReplace(template, "{$VALOR DAS DEDUCOES ST}", DBL2MONEYBR(reg->apuIcmsST.totalDeducoes))
+		template = strReplace(template, "{$VALOR DO ICMS ST A RECOLHER}", DBL2MONEYBR(reg->apuIcmsST.icmsRecolher))
+		template = strReplace(template, "{$VALOR DO SALDO CREDOR A TRANSPORTAR}", DBL2MONEYBR(reg->apuIcmsST.saldoCredTransportar))
+		template = strReplace(template, "{$VALORES RECOLHIDOS OU A RECOLHER}", DBL2MONEYBR(reg->apuIcmsST.debExtraApuracao))
 
-	template = strReplace(template, "{$NOME_ASSINANTE_ARQUIVO}", infAssinatura->assinante)
-	template = strReplace(template, "{$CPF_ASSINANTE_ARQUIVO}", STR2CPF(infAssinatura->cpf))
-	template = strReplace(template, "{$HASHCODE_ARQUIVO}", infAssinatura->hashDoArquivo)
-	
-	salvarPDF("apuracao_icms_st_" + reg->apuIcmsST.UF + "_" + reg->apuIcmsST.dataIni + "_" + reg->apuIcmsST.dataFim, template)
+		template = strReplace(template, "{$NOME_ASSINANTE_ARQUIVO}", infAssinatura->assinante)
+		template = strReplace(template, "{$CPF_ASSINANTE_ARQUIVO}", STR2CPF(infAssinatura->cpf))
+		template = strReplace(template, "{$HASHCODE_ARQUIVO}", infAssinatura->hashDoArquivo)
+		
+		salvarPDF("apuracao_icms_st_" + reg->apuIcmsST.UF + "_" + reg->apuIcmsST.dataIni + "_" + reg->apuIcmsST.dataFim, template)
+	end if
 	
 end sub

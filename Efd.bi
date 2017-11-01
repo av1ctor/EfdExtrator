@@ -3,6 +3,11 @@
 #include once "bfile.bi"
 #include once "ExcelWriter.bi"
 
+enum TTipoArquivo
+	TIPO_ARQUIVO_EFD
+	TIPO_ARQUIVO_SINTEGRA
+end enum
+
 enum TipoRegistro
 	MESTRE         				= &h0000
 	PARTICIPANTE   				= &h0150
@@ -494,6 +499,8 @@ public:
 	declare sub analisar(mostrarProgresso as sub(porCompleto as double))
    
 private:
+	tipoArquivo				as TTipoArquivo
+	
 	'' registros das EFD's e do Sintegra (reiniciados a cada novo .txt carregado)
 	regListHead         	as TRegistro ptr = null
 	regListTail         	as TRegistro ptr = null
@@ -539,7 +546,7 @@ private:
 
 	declare function lerRegistro(bf as bfile, reg as TRegistro ptr) as Boolean
 	declare function lerRegistroSintegra(bf as bfile, reg as TRegistro ptr) as Boolean
-	declare sub lerCertificado(bf as bfile)
+	declare sub lerAssinatura(bf as bfile)
 	declare function carregarSintegra(bf as bfile, mostrarProgresso as sub(porCompleto as double)) as Boolean
 	declare function carregarCsvNFeDest(bf as bfile, emModoOutrasUFs as boolean) as TDFe ptr
 	declare function carregarCsvNFeEmit(bf as bfile) as TDFe ptr
