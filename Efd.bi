@@ -2,6 +2,7 @@
 #include once "hash.bi"
 #include once "bfile.bi"
 #include once "ExcelWriter.bi"
+#include once "DocxFactoryDyn.bi"
 
 enum TTipoArquivo
 	TIPO_ARQUIVO_EFD
@@ -539,6 +540,7 @@ private:
 	
 	'' geração de relatórios em formato PDF com o layout do programa EFD-ICMS-IPI da RFB
 	baseTemplatesDir		as string
+	dfwd					as DocxFactoryDyn ptr
 	
 	''
 	assinaturaP7K_DER(any)	as byte
@@ -557,5 +559,8 @@ private:
 	declare sub criarPlanilhas()
 	declare sub gerarRelatorioApuracaoICMS(nomeArquivo as string, reg as TRegistro ptr)
 	declare sub gerarRelatorioApuracaoICMSST(nomeArquivo as string, reg as TRegistro ptr)
+	declare sub iniciarRelatorioSaidas(nomeArquivo as string)
+	declare sub adicionarDocRelatorioSaidas(doc as TDocNFe ptr)
+	declare sub finalizarRelatorioSaidas(nomeArquivo as string)
 end type
 
