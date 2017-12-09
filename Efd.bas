@@ -167,6 +167,8 @@ private function lerTipo(bf as bfile) as TipoRegistro
 			function = DOC_NFE
 		case "C170"
 			function = DOC_NFE_ITEM
+		case "C190"
+			function = DOC_NFE_ANAL
 		case "C101"
 			function = DOC_NFE_DIFAL
 		end select
@@ -355,6 +357,33 @@ private function lerRegDocNFeItem(bf as bfile, reg as TRegistro ptr, documentoPa
 	bf.char1
 	bf.char1
 
+	function = true
+
+end function
+
+''''''''
+private function lerRegDocNFeItemAnal(bf as bfile, reg as TRegistro ptr, documentoPai as TRegistro ptr) as Boolean
+
+	bf.char1		'pular |
+
+	reg->itemAnal.documentoPai	= documentoPai
+   
+	reg->itemAnal.cst		= bf.varint
+	reg->itemAnal.cfop		= bf.varint
+	reg->itemAnal.aliq		= bf.vardbl
+	reg->itemAnal.valorOp	= bf.vardbl
+	reg->itemAnal.bc		= bf.vardbl
+	reg->itemAnal.ICMS		= bf.vardbl
+	reg->itemAnal.bcST		= bf.vardbl
+	reg->itemAnal.ICMSST	= bf.vardbl
+	reg->itemAnal.redBC		= bf.vardbl
+	reg->itemAnal.IPI		= bf.vardbl
+	bf.varchar					'' pular código de observação
+
+	'pular \r\n
+	bf.char1
+	bf.char1
+	
 	function = true
 
 end function
@@ -625,15 +654,29 @@ private function Efd.lerRegistro(bf as bfile, reg as TRegistro ptr) as Boolean
 			return false
 		end if
 
-		ultimoDocNFe = @reg->nfe
+		ultimoReg = reg
 
 	case DOC_NFE_ITEM
-		if not lerRegDocNFeItem(bf, reg, ultimoDocNFe) then
+		if not lerRegDocNFeItem(bf, reg, @ultimoReg->nfe) then
 			return false
 		end if
 
+	case DOC_NFE_ANAL
+		if not lerRegDocNFeItemAnal(bf, reg, ultimoReg) then
+			return false
+		end if
+		
+		if ultimoReg->nfe.itemAnalListHead = null then
+			ultimoReg->nfe.itemAnalListHead = @reg->itemAnal
+		else
+			ultimoReg->nfe.itemAnalListTail->next_ = @reg->itemAnal
+		end if
+		
+		ultimoReg->nfe.itemAnalListTail = @reg->itemAnal
+		reg->itemAnal.next_ = null
+		
 	case DOC_NFE_DIFAL
-		if not lerRegDocNFeDifal(bf, reg, ultimoDocNFe) then
+		if not lerRegDocNFeDifal(bf, reg, @ultimoReg->nfe) then
 			return false
 		end if
 		
@@ -644,15 +687,15 @@ private function Efd.lerRegistro(bf as bfile, reg as TRegistro ptr) as Boolean
 			return false
 		end if
 
-		ultimoDocCTe = @reg->cte
+		ultimoReg = reg
 
 	case DOC_CTE_ITEM
-		if not lerRegDocCTeItem(bf, reg, ultimoDocCTe) then
+		if not lerRegDocCTeItem(bf, reg, @reg->cte) then
 			return false
 		end if
 		
 	case DOC_CTE_DIFAL
-		if not lerRegDocCTeDifal(bf, reg, ultimoDocCTe) then
+		if not lerRegDocCTeDifal(bf, reg, @reg->cte) then
 			return false
 		end if
 		
@@ -683,10 +726,10 @@ private function Efd.lerRegistro(bf as bfile, reg as TRegistro ptr) as Boolean
 			return false
 		end if
 
-		ultimoApuIcmsPeriodo = reg
+		ultimoReg = reg
 		
 	case APURACAO_ICMS_PROPRIO
-		if not lerRegApuIcmsProprio(bf, ultimoApuIcmsPeriodo) then
+		if not lerRegApuIcmsProprio(bf, ultimoReg) then
 			return false
 		end if
 		
@@ -697,10 +740,10 @@ private function Efd.lerRegistro(bf as bfile, reg as TRegistro ptr) as Boolean
 			return false
 		end if
 
-		ultimoApuIcmsPeriodo = reg
+		ultimoReg = reg
 		
 	case APURACAO_ICMS_ST
-		if not lerRegApuIcmsST(bf, ultimoApuIcmsPeriodo) then
+		if not lerRegApuIcmsST(bf, ultimoReg) then
 			return false
 		end if
 		
@@ -1741,7 +1784,7 @@ function Efd.processar(nomeArquivo as string, mostrarProgresso as sub(porComplet
 							item = item->next_
 						loop while item <> null
 						
-						adicionarDocRelatorioSaidas(@reg->nfe)
+						adicionarDocRelatorioSaidas(@reg->nfe, part)
 					end if
 			   
 				case CANCELADO, CANCELADO_EXT, DENEGADO, INUTILIZADO
@@ -2312,14 +2355,49 @@ sub Efd.iniciarRelatorioSaidas(nomeArquivo as string)
 end sub
 
 ''''''''
-sub Efd.adicionarDocRelatorioSaidas(doc as TDocNFe ptr)
+sub Efd.adicionarDocRelatorioSaidas(doc as TDocNFe ptr, part as TParticipante ptr)
 
+	dfwd->setClipboardValueByStr("linha", "demi", STR2DATABR(doc->dataEmi))
+	dfwd->setClipboardValueByStr("linha", "dsaida", STR2DATABR(doc->dataEntSaida))
+	dfwd->setClipboardValueByStr("linha", "nrini", doc->numero)
+	dfwd->setClipboardValueByStr("linha", "md", doc->modelo)
+	dfwd->setClipboardValueByStr("linha", "sr", doc->serie)
+	dfwd->setClipboardValueByStr("linha", "sit", format(cdbl(doc->situacao), "00"))
+	dfwd->setClipboardValueByStr("linha", "cnpjdest", STR2CNPJ(part->cnpj))
+	dfwd->setClipboardValueByStr("linha", "iedest", STR2IE(part->ie))
+	dfwd->setClipboardValueByStr("linha", "uf", MUNICIPIO2SIGLA(part->municip))
+	dfwd->setClipboardValueByStr("linha", "mundest", part->municip)
+	dfwd->setClipboardValueByStr("linha", "razaodest", left(part->nome, 32))
+	
 	dfwd->paste("linha")
+	
+	var anal = doc->itemAnalListHead
+	do while anal <> null
+		dfwd->setClipboardValueByStr("linha_anal", "cst", format(anal->cst,"000"))
+		dfwd->setClipboardValueByStr("linha_anal", "cfop", anal->cfop)
+		dfwd->setClipboardValueByStr("linha_anal", "aliq", DBL2MONEYBR(anal->aliq))
+		dfwd->setClipboardValueByStr("linha_anal", "bc", DBL2MONEYBR(anal->bc))
+		dfwd->setClipboardValueByStr("linha_anal", "icms", DBL2MONEYBR(anal->ICMS))
+		dfwd->setClipboardValueByStr("linha_anal", "bcst", DBL2MONEYBR(anal->bcST))
+		dfwd->setClipboardValueByStr("linha_anal", "icmsst", DBL2MONEYBR(anal->ICMSST))
+		dfwd->setClipboardValueByStr("linha_anal", "ipi", DBL2MONEYBR(anal->IPI))
+		dfwd->setClipboardValueByStr("linha_anal", "valop", DBL2MONEYBR(anal->valorOp))
+		
+		dfwd->paste("linha_anal")
+		
+		anal = anal->next_
+	loop
+
+	
 	
 end sub
 
 ''''''''
 sub Efd.finalizarRelatorioSaidas(nomeArquivo as string)
+
+	dfwd->setClipboardValueByStr("_header", "nome_ass", infAssinatura->assinante)
+	dfwd->setClipboardValueByStr("_header", "cpf_ass", STR2CPF(infAssinatura->cpf))
+	dfwd->setClipboardValueByStr("_header", "hash_ass", infAssinatura->hashDoArquivo)
 
 	dfwd->save("saidas_" + regListHead->mestre.dataIni + "_" + regListHead->mestre.dataFim + ".docx")
 

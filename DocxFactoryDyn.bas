@@ -63,6 +63,22 @@ sub DocxFactoryDyn.setClipboardValueByStr(byval p_itemName as const zstring ptr,
 	setClipboardValueByStr_p(p_itemName, p_fieldName, p_value)
 end sub
 
+sub DocxFactoryDyn.setClipboardValueByStr(byval p_itemName as const zstring ptr, byval p_fieldName as const zstring ptr, byval p_value as integer)
+	if setClipboardValueByStr_p = null then
+		setClipboardValueByStr_p = GetProcAddress(libh, "dfw_setClipboardValueByStr")
+	end if
+	
+	setClipboardValueByStr_p(p_itemName, p_fieldName, str(p_value))
+end sub
+
+sub DocxFactoryDyn.setClipboardValueByStr(byval p_itemName as const zstring ptr, byval p_fieldName as const zstring ptr, byval p_value as double)
+	if setClipboardValueByStr_p = null then
+		setClipboardValueByStr_p = GetProcAddress(libh, "dfw_setClipboardValueByStr")
+	end if
+	
+	setClipboardValueByStr_p(p_itemName, p_fieldName, str(p_value))
+end sub
+
 sub DocxFactoryDyn.setClipboardValueByStrW(byval p_itemName as const wstring ptr, byval p_fieldName as const wstring ptr, byval p_value as const wstring ptr)
 	if setClipboardValueByStrW_p = null then
 		setClipboardValueByStrW_p = GetProcAddress(libh, "dfw_setClipboardValueByStrW")
