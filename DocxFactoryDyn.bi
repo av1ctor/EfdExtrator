@@ -9,6 +9,8 @@ type DocxFactoryDyn
 	declare sub merge(byval p_data as const zstring ptr)
 	declare sub mergeW(byval p_data as const wstring ptr)
 	declare sub setClipboardValueByStr(byval p_itemName as const zstring ptr, byval p_fieldName as const zstring ptr, byval p_value as const zstring ptr)
+	declare sub setClipboardValueByStr(byval p_itemName as const zstring ptr, byval p_fieldName as const zstring ptr, byval p_value as integer)
+	declare sub setClipboardValueByStr(byval p_itemName as const zstring ptr, byval p_fieldName as const zstring ptr, byval p_value as double)
 	declare sub setClipboardValueByStrW(byval p_itemName as const wstring ptr, byval p_fieldName as const wstring ptr, byval p_value as const wstring ptr)
 
 private:

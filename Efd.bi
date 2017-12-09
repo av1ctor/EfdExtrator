@@ -15,6 +15,7 @@ enum TipoRegistro
 	ITEM_ID        				= &h0200
 	DOC_NFE      				= &hC100		'' NF, NF-e, NFC-e
 	DOC_NFE_ITEM    			= &hC170		'' item de NF-e (só informado para entradas)
+	DOC_NFE_ANAL				= &hC190
 	DOC_NFE_DIFAL				= &hC101
 	DOC_CTE     				= &hD100		'' CT, CT-e, CT-e OS, BP-e
 	DOC_CTE_DIFAL				= &hD101
@@ -220,6 +221,23 @@ type TDocDifAliq
 	icmsOrigem		as double
 end type
 
+type TRegistro_ as TRegistro ptr
+
+type TDocItemAnal
+	documentoPai   	as TRegistro_
+	cst				as integer
+	cfop			as integer
+	aliq			as double
+	valorOp			as double
+	bc				as double
+	ICMS			as double
+	bcST			as double
+	ICMSST			as double
+	redBC			as double
+	IPI				as double
+	next_			as TDocItemAnal ptr
+end type
+
 type TDocNFe
 	operacao		as TipoOperacao
 	emitente		as TipoEmitente
@@ -251,6 +269,9 @@ type TDocNFe
 	COFINSST		as double
 	difal			as TDocDifAliq
 	nroItens		as integer
+	
+	itemAnalListHead as TDocItemAnal ptr
+	itemAnalListTail as TDocItemAnal ptr
 end type
 
 type TDocCTe_ as TDocCTe ptr
@@ -376,6 +397,7 @@ type TRegistro
 		itemId      as TItemId
 		apuIcms	  	as TApuracaoIcmsPeriodo
 		apuIcmsST  	as TApuracaoIcmsSTPeriodo
+		itemAnal	as TDocItemAnal
 	end union
 	next_          	as TRegistro ptr
 end type
@@ -509,9 +531,7 @@ private:
 	participanteDict    	as THASH
 	itemIdDict          	as THASH
 	sintegraDict			as THASH
-	ultimoDocNFe   			as TDocNFe ptr
-	ultimoDocCTe   			as TDocCTe ptr
-	ultimoApuIcmsPeriodo 	as TRegistro ptr
+	ultimoReg   			as TRegistro ptr
 
 	'' registros para cruzamento das EFD's com as NF-e/CT-e (mantidos do início ao fim da extração)
 	efdDFeDict				as THASH
@@ -560,7 +580,7 @@ private:
 	declare sub gerarRelatorioApuracaoICMS(nomeArquivo as string, reg as TRegistro ptr)
 	declare sub gerarRelatorioApuracaoICMSST(nomeArquivo as string, reg as TRegistro ptr)
 	declare sub iniciarRelatorioSaidas(nomeArquivo as string)
-	declare sub adicionarDocRelatorioSaidas(doc as TDocNFe ptr)
+	declare sub adicionarDocRelatorioSaidas(doc as TDocNFe ptr, part as TParticipante ptr)
 	declare sub finalizarRelatorioSaidas(nomeArquivo as string)
 end type
 
