@@ -19,7 +19,7 @@ enum TipoRegistro
 	DOC_NFE_DIFAL				= &hC101
 	DOC_CTE     				= &hD100		'' CT, CT-e, CT-e OS, BP-e
 	DOC_CTE_DIFAL				= &hD101
-	DOC_CTE_ITEM				= &hD190		'' item de CT-e  (só informado para entradas)
+	DOC_CTE_ANAL				= &hD190
 	APURACAO_ICMS_PERIODO		= &hE100
 	APURACAO_ICMS_PROPRIO		= &hE110
 	APURACAO_ICMS_AJUSTE		= &hE111
@@ -274,21 +274,6 @@ type TDocNFe
 	itemAnalListTail as TDocItemAnal ptr
 end type
 
-type TDocCTe_ as TDocCTe ptr
-
-type TDocCTeItem
-	documentoPai   	as TDocCTe_
-	cstICMS        	as integer
-	cfop           	as Integer
-	aliqICMS       	as double
-	valorOperacao	as double
-	bcICMS         	as double
-	ICMS           	as double
-	reducaoBcICMS	as double
-	codObs       	as zstring * 6+1
-	next_			as TDocCTeItem ptr
-end type
-
 type TDocCTe
 	operacao			as TipoOperacao
 	emitente			as TipoEmitente
@@ -313,9 +298,9 @@ type TDocCTe
 	municipioOrigem		as integer
 	municipioDestino	as integer
 	difal				as TDocDifAliq
-	nroItens			as integer
-	itemListHead		as TDocCTeItem ptr
-	itemListTail		as TDocCTeItem ptr
+	
+	itemAnalListHead as TDocItemAnal ptr
+	itemAnalListTail as TDocItemAnal ptr
 end type
 
 type TDocumentoSintegra
@@ -392,7 +377,6 @@ type TRegistro
 		nfe         as TDocNFe
 		itemNFe     as TDocNFeItem
 		cte         as TDocCTe
-		itemCTe     as TDocCTeItem
 		docSint	  	as TDocumentoSintegra
 		itemId      as TItemId
 		apuIcms	  	as TApuracaoIcmsPeriodo

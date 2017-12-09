@@ -177,7 +177,7 @@ private function lerTipo(bf as bfile) as TipoRegistro
 		case "D100"
 			function = DOC_CTE
 		case "D190"
-			function = DOC_CTE_ITEM
+			function = DOC_CTE_ANAL
 		case "D101"
 			function = DOC_CTE_DIFAL
 		end select
@@ -445,9 +445,8 @@ private function lerRegDocCTe(bf as bfile, reg as TRegistro ptr) as Boolean
 		reg->cte.municipioDestino	= bf.varint
 	end if
 	
-	reg->cte.nroItens		= 0
-	reg->cte.itemListHead	= null
-	reg->cte.itemListTail	= null
+	reg->cte.itemAnalListHead = null
+	reg->cte.itemAnalListTail = null
 
 	'pular \r\n
 	bf.char1
@@ -458,31 +457,21 @@ private function lerRegDocCTe(bf as bfile, reg as TRegistro ptr) as Boolean
 end function
 
 ''''''''
-private function lerRegDocCTeItem(bf as bfile, reg as TRegistro ptr, docPai as TDocCTe ptr) as Boolean
+private function lerRegDocCTeItemAnal(bf as bfile, reg as TRegistro ptr, docPai as TRegistro ptr) as Boolean
 
 	bf.char1		'pular |
 
-	reg->itemCTe.documentoPai	= docPai
+	reg->itemAnal.documentoPai	= docPai
 
-	reg->itemCTe.cstICMS		= bf.varint
-	reg->itemCTe.cfop			= bf.varint
-	reg->itemCTe.aliqICMS		= bf.vardbl
-	reg->itemCTe.valorOperacao	= bf.vardbl
-	reg->itemCTe.bcICMS			= bf.vardbl
-	reg->itemCTe.ICMS			= bf.vardbl
-	reg->itemCTe.reducaoBcICMS	= bf.vardbl
-	reg->itemCTe.codObs			= bf.varchar
+	reg->itemAnal.cst			= bf.varint
+	reg->itemAnal.cfop			= bf.varint
+	reg->itemAnal.aliq			= bf.vardbl
+	reg->itemAnal.valorOp		= bf.vardbl
+	reg->itemAnal.bc			= bf.vardbl
+	reg->itemAnal.ICMS			= bf.vardbl
+	reg->itemAnal.redBc			= bf.vardbl
+	bf.varchar					'' pular cod obs
 	
-	docPai->nroItens		   += 1
-	if docPai->itemListHead = null then
-		docPai->itemListHead = @reg->itemCTe
-	else
-		docPai->itemListTail->next_ = @reg->itemCTe
-	end if
-	docPai->itemListTail 		= @reg->itemCTe
-	reg->itemCTe.next_ 			= null
-	
-
 	'pular \r\n
 	bf.char1
 	bf.char1
@@ -689,10 +678,19 @@ private function Efd.lerRegistro(bf as bfile, reg as TRegistro ptr) as Boolean
 
 		ultimoReg = reg
 
-	case DOC_CTE_ITEM
-		if not lerRegDocCTeItem(bf, reg, @reg->cte) then
+	case DOC_CTE_ANAL
+		if not lerRegDocCTeItemAnal(bf, reg, ultimoReg) then
 			return false
 		end if
+
+		if ultimoReg->cte.itemAnalListHead = null then
+			ultimoReg->cte.itemAnalListHead = @reg->itemAnal
+		else
+			ultimoReg->cte.itemAnalListTail->next_ = @reg->itemAnal
+		end if
+		
+		ultimoReg->cte.itemAnalListTail = @reg->itemAnal
+		reg->itemAnal.next_ = null
 		
 	case DOC_CTE_DIFAL
 		if not lerRegDocCTeDifal(bf, reg, @reg->cte) then
@@ -1856,9 +1854,9 @@ function Efd.processar(nomeArquivo as string, mostrarProgresso as sub(porComplet
 						end if
 					end if
 					
-					dim as TDocCTeItem ptr item = null
+					dim as TDocItemAnal ptr item = null
 					if reg->cte.operacao = ENTRADA or cint(itemNFeSafiFornecido) then
-						item = reg->cte.itemListHead
+						item = reg->cte.itemAnalListHead
 					end if
 					
 					var itemCnt = 1
@@ -1883,19 +1881,19 @@ function Efd.processar(nomeArquivo as string, mostrarProgresso as sub(porComplet
 						row->addCell(situacao2String(reg->cte.situacao))
 						
 						if item <> null then
-							row->addCell(item->bcICMS)
-							row->addCell(item->aliqICMS)
+							row->addCell(item->bc)
+							row->addCell(item->aliq)
 							row->addCell(item->ICMS)
 							row->addCell("")
 							row->addCell("")
 							row->addCell("")
 							row->addCell("")
-							row->addCell(item->valorOperacao)
+							row->addCell(item->valorOp)
 							row->addCell(itemCnt)
 							row->addCell("")
 							row->addCell("")
 							row->addCell(item->cfop)
-							row->addCell(item->cstICMS)
+							row->addCell(item->cst)
 							row->addCell("")
 							row->addCell("")
 							row->addCell("")
@@ -2387,8 +2385,8 @@ sub Efd.adicionarDocRelatorioSaidas(doc as TDocNFe ptr, part as TParticipante pt
 		
 		anal = anal->next_
 	loop
-
 	
+	dfwd->paste("linha_sep")
 	
 end sub
 
