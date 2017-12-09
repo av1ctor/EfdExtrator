@@ -5,6 +5,8 @@
 #include once "ExcelWriter.bi"
 #include once "vbcompat.bi"
 #include once "ssl_helper.bi"
+#include once "DocxFactoryDyn.bi"
+
 
 dim shared as string codUF2Sigla(11 to 53)
 dim shared as string situacao2String(0 to __TipoSituacao__LEN__-1)
@@ -70,6 +72,9 @@ constructor Efd()
 	
 	''
 	baseTemplatesDir = ExePath + "\templates\"
+	
+	dfwd = new DocxFactoryDyn
+	
 end constructor
 
 destructor Efd()
@@ -1100,6 +1105,8 @@ function Efd.carregarCsvNFeEmit(bf as bfile) as TDFe ptr
 	dfe->nfe.serie			= bf.intCsv
 	dfe->modelo				= bf.intCsv
 	
+	dfe->valorOperacao		= dfe->nfe.valorNotaTotal
+	
 	dfe->nfe.itemListHead	= null
 	dfe->nfe.itemListTail	= null
 
@@ -1596,6 +1603,8 @@ function Efd.processar(nomeArquivo as string, mostrarProgresso as sub(porComplet
 		if tipoArquivo = TIPO_ARQUIVO_EFD then
 			infAssinatura = lerInfoAssinatura(nomeArquivo, assinaturaP7K_DER())
 		end if
+		
+		iniciarRelatorioSaidas(nomeArquivo)
 	end if
 
 	var reg = regListHead
@@ -1662,7 +1671,7 @@ function Efd.processar(nomeArquivo as string, mostrarProgresso as sub(porComplet
 					adicionarEfdDfe(reg->nfe.chave, reg->nfe.operacao, reg->nfe.dataEmi, reg->nfe.valorTotal)
 
 					'' NOTA: não existe itemDoc para saídas, só temos informação básica do DF-e, 
-					'' 	    há não ser que sejam carregas os relatórios .csv do SAFI vindos do infoview
+					'' 	     a não ser que sejam carregos os relatórios .csv do SAFI vindos do infoview
 					if reg->nfe.operacao = SAIDA then
 						var part = cast( TParticipante ptr, hashLookup(@participanteDict, reg->nfe.idParticipante) )
 
@@ -1731,6 +1740,8 @@ function Efd.processar(nomeArquivo as string, mostrarProgresso as sub(porComplet
 
 							item = item->next_
 						loop while item <> null
+						
+						adicionarDocRelatorioSaidas(@reg->nfe)
 					end if
 			   
 				case CANCELADO, CANCELADO_EXT, DENEGADO, INUTILIZADO
@@ -1959,7 +1970,7 @@ function Efd.processar(nomeArquivo as string, mostrarProgresso as sub(porComplet
 			row->addCell(reg->apuIcms.debExtraApuracao)
 			
 			if gerarRelatorios then
-				gerarRelatorioApuracaoICMS(nomeArquivo, reg)
+				'gerarRelatorioApuracaoICMS(nomeArquivo, reg)
 			end if
 
 		case APURACAO_ICMS_ST_PERIODO
@@ -1984,7 +1995,7 @@ function Efd.processar(nomeArquivo as string, mostrarProgresso as sub(porComplet
 			row->addCell(reg->apuIcmsST.debExtraApuracao)
 
 			if gerarRelatorios then
-				gerarRelatorioApuracaoICMSST(nomeArquivo, reg)
+				'gerarRelatorioApuracaoICMSST(nomeArquivo, reg)
 			end if
 			
 		'documento do sintegra?
@@ -2058,6 +2069,8 @@ function Efd.processar(nomeArquivo as string, mostrarProgresso as sub(porComplet
 	loop
 
 	if gerarRelatorios then
+		finalizarRelatorioSaidas(nomeArquivo)
+		
 		if infAssinatura <> NULL then
 			delete infAssinatura
 		end if
@@ -2120,7 +2133,7 @@ sub Efd.analisar(mostrarProgresso as sub(porCompleto as double))
 	naoEscrituradas->AddCellType(CT_INTNUMBER, "Modelo")
 	naoEscrituradas->AddCellType(CT_INTNUMBER, "Serie")
 	naoEscrituradas->AddCellType(CT_INTNUMBER, "Numero")
-	naoEscrituradas->AddCellType(CT_INTNUMBER, "Operacao")
+	naoEscrituradas->AddCellType(CT_STRING, "Operacao")
 	naoEscrituradas->AddCellType(CT_MONEY, "Valor Operacao")
 	
 	var i = 0
@@ -2137,7 +2150,7 @@ sub Efd.analisar(mostrarProgresso as sub(porCompleto as double))
 				row->addCell(dfe->modelo)
 				row->addCell(mid(dfe->chave, 23, 3))
 				row->addCell(mid(dfe->chave, 23+3, 9))
-				row->addCell(dfe->operacao)
+				row->addCell(iif(dfe->operacao < 2, iif(dfe->operacao = 0, "E", "S"), "-"))
 				row->addCell(dfe->valorOperacao)
 			end if
 
@@ -2289,4 +2302,25 @@ sub Efd.gerarRelatorioApuracaoICMSST(nomeArquivo as string, reg as TRegistro ptr
 		salvarPDF("apuracao_icms_st_" + reg->apuIcmsST.UF + "_" + reg->apuIcmsST.dataIni + "_" + reg->apuIcmsST.dataFim, template)
 	end if
 	
+end sub
+
+''''''''
+sub Efd.iniciarRelatorioSaidas(nomeArquivo as string)
+
+	dfwd->load(baseTemplatesDir + "saidas.dfw")
+	
+end sub
+
+''''''''
+sub Efd.adicionarDocRelatorioSaidas(doc as TDocNFe ptr)
+
+	dfwd->paste("linha")
+	
+end sub
+
+''''''''
+sub Efd.finalizarRelatorioSaidas(nomeArquivo as string)
+
+	dfwd->save("saidas_" + regListHead->mestre.dataIni + "_" + regListHead->mestre.dataFim + ".docx")
+
 end sub
