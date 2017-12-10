@@ -40,7 +40,8 @@ sub hashInit _
 	( _
 		byval hash as THASH ptr, _
 		byval nodes as integer, _
-		byval delstr as integer _
+		byval delstr as boolean, _
+		byval delvalue as boolean	_
 	)
 
 	lazyInit()
@@ -49,6 +50,7 @@ sub hashInit _
 	hash->list = callocate( nodes * len( HASHLIST ) )
 	hash->nodes = nodes
 	hash->delstr = delstr
+	hash->delval = delvalue
 
 end sub
 
@@ -61,38 +63,28 @@ sub hashEnd(byval hash as THASH ptr)
     '' for each item on each list, deallocate it and the name string
     list = hash->list
 
-	if( hash->delstr ) then
-    	for i = 0 to hash->nodes-1
-			item = list->head
-			do while( item <> NULL )
-				nxt = item->next
+	for i = 0 to hash->nodes-1
+		item = list->head
+		do while( item <> NULL )
+			nxt = item->next
 
+			if hash->delval then
+				if item->data <> null then
+					deallocate( item->data )
+					item->data = null
+				end if
+			end if
+			if( hash->delstr ) then
 				deallocate( item->name )
-				item->name = NULL
-				hashDelItem( list, item )
+			end if
+			item->name = NULL
+			hashDelItem( list, item )
 
-				item = nxt
-			loop
+			item = nxt
+		loop
 
-			list += 1
-		next
-
-	else
-    	for i = 0 to hash->nodes-1
-			item = list->head
-			do while( item <> NULL )
-				nxt = item->next
-
-				item->name = NULL
-				hashDelItem( list, item )
-
-				item = nxt
-			loop
-
-			list += 1
-		next
-
-	end if
+		list += 1
+	next
 
 	deallocate( hash->list )
 	hash->list = NULL

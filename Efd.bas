@@ -6,7 +6,7 @@
 #include once "vbcompat.bi"
 #include once "ssl_helper.bi"
 #include once "DocxFactoryDyn.bi"
-
+#include once "DB.bi"
 
 dim shared as string codUF2Sigla(11 to 53)
 dim shared as string situacao2String(0 to __TipoSituacao__LEN__-1)
@@ -75,9 +75,21 @@ constructor Efd()
 	
 	dfwd = new DocxFactoryDyn
 	
+	''
+	dbConfig = new TDb
+	dbConfig->open(ExePath + "\db\config.db")
+	
 end constructor
 
 destructor Efd()
+	
+	''
+	dbConfig->close()
+	delete dbConfig
+	
+	''
+	delete dfwd
+	
 	''
 	hashEnd(@efdDFeDict)
 
@@ -2399,6 +2411,22 @@ sub Efd.gerarRelatorioApuracaoICMSST(nomeArquivo as string, reg as TRegistro ptr
 	
 end sub
 
+private function codMunicip2Nome(dbConfig as TDb ptr, cod as integer) as string
+	var rs = dbConfig->exec("select Nome || ' - ' || uf nome from Municipio where Codigo = " & cod)
+	if rs = null then
+		return ""
+	end if
+	
+	if rs->hasNext then
+		var nome = (*rs->row)["nome"]
+		function = iif(nome <> null, *nome, "")
+	else
+		function = ""
+	end if
+	
+	delete rs
+end function
+
 ''''''''
 sub Efd.iniciarRelatorio(relatorio as TipoRelatorio, nomeRelatorio as string, sufixo as string)
 
@@ -2416,8 +2444,9 @@ sub Efd.iniciarRelatorio(relatorio as TipoRelatorio, nomeRelatorio as string, su
 	dfwd->setClipboardValueByStrW("_header", "nome", regListHead->mestre.nome)
 	dfwd->setClipboardValueByStr("_header", "cnpj", STR2CNPJ(regListHead->mestre.cnpj))
 	dfwd->setClipboardValueByStr("_header", "ie", STR2IE(regListHead->mestre.ie))
-	dfwd->setClipboardValueByStr("_header", "uf", STR2IE(regListHead->mestre.uf))
-	dfwd->setClipboardValueByStr("_header", "apur", STR2DATABR(regListHead->mestre.dataIni) + " a " + STR2DATABR(regListHead->mestre.dataFim))
+	dfwd->setClipboardValueByStr("_header", "uf", MUNICIPIO2SIGLA(regListHead->mestre.municip))
+	dfwd->setClipboardValueByStr("_header", "municipio", codMunicip2Nome(dbConfig, regListHead->mestre.municip))
+	dfwd->setClipboardValueByStr("_header", "apu", STR2DATABR(regListHead->mestre.dataIni) + " a " + STR2DATABR(regListHead->mestre.dataFim))
 	
 end sub
 

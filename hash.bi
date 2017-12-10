@@ -18,14 +18,16 @@ end type
 type THASH
 	list		as HASHLIST ptr
 	nodes		as integer
-	delstr		as integer
+	delstr		as boolean
+	delval		as boolean
 end type
 
 declare sub hashInit _
 	( _
 		byval hash as THASH ptr, _
 		byval nodes as integer, _
-		byval delstr as integer = FALSE _
+		byval delstr as boolean = FALSE, _
+		byval delvalue as boolean = FALSE _
 	)
 
 declare sub hashEnd(byval hash as THASH ptr)

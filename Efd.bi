@@ -3,6 +3,7 @@
 #include once "bfile.bi"
 #include once "ExcelWriter.bi"
 #include once "DocxFactoryDyn.bi"
+#include once "DB.bi"
 
 enum TTipoArquivo
 	TIPO_ARQUIVO_EFD
@@ -548,6 +549,9 @@ private:
 	nfeEmitSafiFornecido 	as boolean
 	itemNFeSafiFornecido 	as boolean
 	cteSafiFornecido		as boolean
+	
+	'' base de dados de configuração
+	dbConfig				as TDb ptr
 	
 	'' geração de relatórios em formato PDF com o layout do programa EFD-ICMS-IPI da RFB
 	baseTemplatesDir		as string
