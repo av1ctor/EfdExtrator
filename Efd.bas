@@ -2387,7 +2387,7 @@ sub Efd.gerarRelatorioApuracaoICMSST(nomeArquivo as string, reg as TRegistro ptr
 	dfwd->setClipboardValueByStr("grid", "icms_st", DBL2MONEYBR(reg->apuIcmsST.totalRetencao))
 	dfwd->setClipboardValueByStr("grid", "outros_deb", DBL2MONEYBR(reg->apuIcmsST.totalOutrosDeb))
 	dfwd->setClipboardValueByStr("grid", "ajuste_deb", DBL2MONEYBR(reg->apuIcmsST.ajusteDeb))
-	dfwd->setClipboardValueByStr("grid", "sald_deb", DBL2MONEYBR(reg->apuIcmsST.saldoAntesDed))
+	dfwd->setClipboardValueByStr("grid", "saldo_dev", DBL2MONEYBR(reg->apuIcmsST.saldoAntesDed))
 	dfwd->setClipboardValueByStr("grid", "deducoes", DBL2MONEYBR(reg->apuIcmsST.totalDeducoes))
 	dfwd->setClipboardValueByStr("grid", "a_recolher", DBL2MONEYBR(reg->apuIcmsST.icmsRecolher))
 	dfwd->setClipboardValueByStr("grid", "a_transportar", DBL2MONEYBR(reg->apuIcmsST.saldoCredTransportar))
@@ -2412,6 +2412,12 @@ sub Efd.iniciarRelatorio(relatorio as TipoRelatorio, nomeRelatorio as string, su
 	ultimoRelatorio = relatorio
 
 	dfwd->load(baseTemplatesDir + nomeRelatorio + ".dfw")
+
+	dfwd->setClipboardValueByStrW("_header", "nome", regListHead->mestre.nome)
+	dfwd->setClipboardValueByStr("_header", "cnpj", STR2CNPJ(regListHead->mestre.cnpj))
+	dfwd->setClipboardValueByStr("_header", "ie", STR2IE(regListHead->mestre.ie))
+	dfwd->setClipboardValueByStr("_header", "uf", STR2IE(regListHead->mestre.uf))
+	dfwd->setClipboardValueByStr("_header", "apur", STR2DATABR(regListHead->mestre.dataIni) + " a " + STR2DATABR(regListHead->mestre.dataFim))
 	
 end sub
 
