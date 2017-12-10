@@ -1634,22 +1634,46 @@ function lerInfoAssinatura(nomeArquivo as string, assinaturaP7K_DER() as byte) a
 end function
 
 ''''''''
-function Efd.processar(nomeArquivo as string, mostrarProgresso as sub(porCompleto as double), gerarRelatorios as boolean) as Boolean
+function Efd.processar(nomeArquivo as string, mostrarProgresso as sub(porCompleto as double), gerarPDF as boolean) as Boolean
    
-	if entradas = null then
-		criarPlanilhas
-	end if
+	gerarPlanilhas(nomeArquivo)
 	
-	if gerarRelatorios then
+	if gerarPDF then
 		if tipoArquivo = TIPO_ARQUIVO_EFD then
 			infAssinatura = lerInfoAssinatura(nomeArquivo, assinaturaP7K_DER())
 		end if
 		
-		iniciarRelatorioSaidas(nomeArquivo)
+		gerarRelatorios(nomeArquivo)
+		
+		if infAssinatura <> NULL then
+			delete infAssinatura
+		end if
 	end if
+	
+	do while regListHead <> null
+		var next_ = regListHead->next_
+		delete regListHead
+		regListHead = next_
+	loop
 
+	regListHead = null
+	regListTail = null
+
+	hashEnd(@sintegraDict)
+	hashEnd(@itemIdDict)
+	hashEnd(@participanteDict)
+
+	function = true
+end function
+
+''''''''
+sub Efd.gerarPlanilhas(nomeArquivo as string)
+	
+	if entradas = null then
+		criarPlanilhas
+	end if
+	
 	var reg = regListHead
-	var i = 0
 	do while reg <> null
 		'para cada registro..
 		select case reg->tipo
@@ -1781,8 +1805,6 @@ function Efd.processar(nomeArquivo as string, mostrarProgresso as sub(porComplet
 
 							item = item->next_
 						loop while item <> null
-						
-						adicionarDocRelatorioSaidas(@reg->nfe, part)
 					end if
 			   
 				case CANCELADO, CANCELADO_EXT, DENEGADO, INUTILIZADO
@@ -2010,10 +2032,6 @@ function Efd.processar(nomeArquivo as string, mostrarProgresso as sub(porComplet
 			row->addCell(reg->apuIcms.saldoCredTransportar)
 			row->addCell(reg->apuIcms.debExtraApuracao)
 			
-			if gerarRelatorios then
-				'gerarRelatorioApuracaoICMS(nomeArquivo, reg)
-			end if
-
 		case APURACAO_ICMS_ST_PERIODO
 			var row = apuracaoIcmsST->AddRow()
 
@@ -2035,10 +2053,6 @@ function Efd.processar(nomeArquivo as string, mostrarProgresso as sub(porComplet
 			row->addCell(reg->apuIcmsST.saldoCredTransportar)
 			row->addCell(reg->apuIcmsST.debExtraApuracao)
 
-			if gerarRelatorios then
-				'gerarRelatorioApuracaoICMSST(nomeArquivo, reg)
-			end if
-			
 		'documento do sintegra?
 		case SINTEGRA_DOCUMENTO
 			if reg->docSint.modelo = 55 then 
@@ -2101,37 +2115,82 @@ function Efd.processar(nomeArquivo as string, mostrarProgresso as sub(porComplet
 
 		end select
 
-		i += 1
-		if mostrarProgresso <> NULL then
-			mostrarProgresso(i / nroRegs)
-		end if 
+		reg = reg->next_
+	loop
+end sub
+
+''''''''
+sub Efd.gerarRelatorios(nomeArquivo as string)
+	
+	ultimoRelatorio = -1
+	
+	var reg = regListHead
+	do while reg <> null
+		'para cada registro..
+		select case reg->tipo
+		'item de NF-e?
+		case DOC_NFE_ITEM
+			var doc = reg->itemNFe.documentoPai
+			if doc->modelo = 55 then 
+				select case as const doc->situacao
+				case REGULAR, EXTEMPORANEO
+					'só existe item para entradas
+					if doc->operacao = ENTRADA then
+						var part = cast( TParticipante ptr, hashLookup(@participanteDict, doc->idParticipante) )
+					end if
+				end select
+			end if
+
+		'NF-e?
+		case DOC_NFE
+			if reg->nfe.modelo = 55 then 
+
+				select case as const reg->nfe.situacao
+				case REGULAR, EXTEMPORANEO
+					'' NOTA: não existe itemDoc para saídas, só temos informação básica do DF-e, 
+					'' 	     a não ser que sejam carregos os relatórios .csv do SAFI vindos do infoview
+					if reg->nfe.operacao = SAIDA then
+						var part = cast( TParticipante ptr, hashLookup(@participanteDict, reg->nfe.idParticipante) )
+						adicionarDocRelatorioSaidas(@reg->nfe, part)
+					end if
+			   
+				case CANCELADO, CANCELADO_EXT, DENEGADO, INUTILIZADO
+					dim as ExcelRow ptr row 
+					if reg->nfe.operacao = SAIDA then
+					else
+					end if
+				end select
+			end if
+
+		'CT-e?
+		case DOC_CTE
+			if reg->cte.modelo = 57 then
+				select case as const reg->cte.situacao
+				case REGULAR, EXTEMPORANEO
+					var part = cast( TParticipante ptr, hashLookup(@participanteDict, reg->cte.idParticipante) )
+
+				case CANCELADO, CANCELADO_EXT, DENEGADO, INUTILIZADO
+					dim as ExcelRow ptr row 
+					if reg->cte.operacao = SAIDA then
+					else
+					end if
+
+					var dataEmi = iif( len(reg->cte.chave) = 44, "01" + mid(reg->cte.chave,5,2) + "20" + mid(reg->cte.chave,3,2), regListHead->mestre.dataIni )
+				end select
+			end if
+			
+		case APURACAO_ICMS_PERIODO
+			gerarRelatorioApuracaoICMS(nomeArquivo, reg)
+
+		case APURACAO_ICMS_ST_PERIODO
+			'gerarRelatorioApuracaoICMSST(nomeArquivo, reg)
+			
+		end select
 
 		reg = reg->next_
 	loop
 
-	if gerarRelatorios then
-		finalizarRelatorioSaidas(nomeArquivo)
-		
-		if infAssinatura <> NULL then
-			delete infAssinatura
-		end if
-	end if
-	
-	do while regListHead <> null
-		var next_ = regListHead->next_
-		delete regListHead
-		regListHead = next_
-	loop
-
-	regListHead = null
-	regListTail = null
-
-	hashEnd(@sintegraDict)
-	hashEnd(@itemIdDict)
-	hashEnd(@participanteDict)
-
-	function = true
-end function
+end sub
 
 ''''''''
 function STRDFE2DATA(s as zstring ptr) as string 
@@ -2271,39 +2330,39 @@ end function
 
 #define STR2CPF(s) (left(s,3) + "." + mid(s,4,3) + "." + mid(s,4+3,3) + "-" + right(s,2))
 
+#define STR2YYYYMM(s) (mid(s,5) + "-" + mid(s,3,2))
+
 #define DBL2MONEYBR(d) (format(d,"#,#,#.00"))
 
 ''''''''
 sub Efd.gerarRelatorioApuracaoICMS(nomeArquivo as string, reg as TRegistro ptr)
 
-	var template = carregarTemplate(baseTemplatesDir + "apuracao_icms.html")
+	iniciarRelatorio(REL_RAICMS, "apuracao_icms", "RAICMS")
 	
-	template = strReplace(template, "{$CONTRIBUINTE_NOME}", regListHead->mestre.nome)
-	template = strReplace(template, "{$CONTRIBUINTE_CNPJ}", STR2CNPJ(regListHead->mestre.cnpj))
-	template = strReplace(template, "{$CONTRIBUINTE_IE}", STR2IE(regListHead->mestre.ie))
-	template = strReplace(template, "{$PERIODO_ESCRITURACAO}", STR2DATABR(regListHead->mestre.dataIni) + " a " + STR2DATABR(regListHead->mestre.dataFim))
-	template = strReplace(template, "{$PERIODO_APURACAO}", STR2DATABR(reg->apuIcms.dataIni) + " a " + STR2DATABR(reg->apuIcms.dataFim))
+	dfwd->setClipboardValueByStr("grid", "nome", regListHead->mestre.nome)
+	dfwd->setClipboardValueByStr("grid", "cnpj", STR2CNPJ(regListHead->mestre.cnpj))
+	dfwd->setClipboardValueByStr("grid", "ie", STR2IE(regListHead->mestre.ie))
+	dfwd->setClipboardValueByStr("grid", "escrit", STR2DATABR(regListHead->mestre.dataIni) + " a " + STR2DATABR(regListHead->mestre.dataFim))
+	dfwd->setClipboardValueByStr("grid", "apur", STR2DATABR(reg->apuIcms.dataIni) + " a " + STR2DATABR(reg->apuIcms.dataFim))
 	
-	template = strReplace(template, "{$SAIDAS_DEBITO}", DBL2MONEYBR(reg->apuIcms.totalDebitos))
-	template = strReplace(template, "{$VALOR_TOTAL_AJUSTES_DEBITO}", DBL2MONEYBR(reg->apuIcms.ajustesDebitos))
-	template = strReplace(template, "{$VALOR_TOTAL_AJUSTES_DEBITO_IMPOSTO}", DBL2MONEYBR(reg->apuIcms.totalAjusteDeb))
-	template = strReplace(template, "{$VALOR_TOTAL_ESTORNO_CREDITOS}", DBL2MONEYBR(reg->apuIcms.estornosCredito))
-	template = strReplace(template, "{$VALOR_TOTAL_CREDITOS_ENTRADAS}", DBL2MONEYBR(reg->apuIcms.totalCreditos))
-	template = strReplace(template, "{$VALOR_TOTAL_AJUSTES_CREDITO}", DBL2MONEYBR(reg->apuIcms.ajustesCreditos))
-	template = strReplace(template, "{$VALOR_TOTAL_AJUSTES_CREDITO_IMPOSTO}", DBL2MONEYBR(reg->apuIcms.totalAjusteCred))
-	template = strReplace(template, "{$VALOR_TOTAL_ESTORNO_DEBITO}", DBL2MONEYBR(reg->apuIcms.estornoDebitos))
-	template = strReplace(template, "{$VALOR_TOTAL_SALDO_CREDOR_PERIODO_ANTERIOR}", DBL2MONEYBR(reg->apuIcms.saldoCredAnterior))
-	template = strReplace(template, "{$VALOR_SALDO_DEVEDOR}", DBL2MONEYBR(reg->apuIcms.saldoDevedorApurado))
-	template = strReplace(template, "{$VALOR_TOTAL_DEDUCOES}", DBL2MONEYBR(reg->apuIcms.totalDeducoes))
-	template = strReplace(template, "{$VALOR_TOTAL_ICMS_RECOLHER}", DBL2MONEYBR(reg->apuIcms.icmsRecolher))
-	template = strReplace(template, "{$VALOR_TOTAL_SALDO_CREDOR_TRANSPORTAR}", DBL2MONEYBR(reg->apuIcms.saldoCredTransportar))
-	template = strReplace(template, "{$VALOR_RECOLHIDO_EXTRA_APURACAO}", DBL2MONEYBR(reg->apuIcms.debExtraApuracao))
+	dfwd->setClipboardValueByStr("grid", "saidas", DBL2MONEYBR(reg->apuIcms.totalDebitos))
+	dfwd->setClipboardValueByStr("grid", "ajuste_deb", DBL2MONEYBR(reg->apuIcms.ajustesDebitos))
+	dfwd->setClipboardValueByStr("grid", "ajuste_deb_imp", DBL2MONEYBR(reg->apuIcms.totalAjusteDeb))
+	dfwd->setClipboardValueByStr("grid", "estorno_cred", DBL2MONEYBR(reg->apuIcms.estornosCredito))
+	dfwd->setClipboardValueByStr("grid", "credito", DBL2MONEYBR(reg->apuIcms.totalCreditos))
+	dfwd->setClipboardValueByStr("grid", "ajuste_cred", DBL2MONEYBR(reg->apuIcms.ajustesCreditos))
+	dfwd->setClipboardValueByStr("grid", "ajuste_cred_imp", DBL2MONEYBR(reg->apuIcms.totalAjusteCred))
+	dfwd->setClipboardValueByStr("grid", "estorno_deb", DBL2MONEYBR(reg->apuIcms.estornoDebitos))
+	dfwd->setClipboardValueByStr("grid", "cred_anterior", DBL2MONEYBR(reg->apuIcms.saldoCredAnterior))
+	dfwd->setClipboardValueByStr("grid", "saldo_dev", DBL2MONEYBR(reg->apuIcms.saldoDevedorApurado))
+	dfwd->setClipboardValueByStr("grid", "deducoes", DBL2MONEYBR(reg->apuIcms.totalDeducoes))
+	dfwd->setClipboardValueByStr("grid", "a_recolher", DBL2MONEYBR(reg->apuIcms.icmsRecolher))
+	dfwd->setClipboardValueByStr("grid", "a_transportar", DBL2MONEYBR(reg->apuIcms.saldoCredTransportar))
+	dfwd->setClipboardValueByStr("grid", "extra_apu", DBL2MONEYBR(reg->apuIcms.debExtraApuracao))
+	
+	dfwd->paste("grid")
 
-	template = strReplace(template, "{$NOME_ASSINANTE_ARQUIVO}", infAssinatura->assinante)
-	template = strReplace(template, "{$CPF_ASSINANTE_ARQUIVO}", STR2CPF(infAssinatura->cpf))
-	template = strReplace(template, "{$HASHCODE_ARQUIVO}", infAssinatura->hashDoArquivo)
-	
-	salvarPDF("apuracao_icms_" + reg->apuIcms.dataIni + "_" + reg->apuIcms.dataFim, template)
+	finalizarRelatorio()
 	
 end sub
 
@@ -2346,15 +2405,26 @@ sub Efd.gerarRelatorioApuracaoICMSST(nomeArquivo as string, reg as TRegistro ptr
 end sub
 
 ''''''''
-sub Efd.iniciarRelatorioSaidas(nomeArquivo as string)
+sub Efd.iniciarRelatorio(relatorio as TipoRelatorio, nomeRelatorio as string, sufixo as string)
 
-	dfwd->load(baseTemplatesDir + "saidas.dfw")
+	if ultimoRelatorio = relatorio then
+		return
+	end if
+		
+	finalizarRelatorio()
+	
+	ultimoRelatorioSufixo = sufixo
+	ultimoRelatorio = relatorio
+
+	dfwd->load(baseTemplatesDir + nomeRelatorio + ".dfw")
 	
 end sub
 
 ''''''''
 sub Efd.adicionarDocRelatorioSaidas(doc as TDocNFe ptr, part as TParticipante ptr)
 
+	iniciarRelatorio(REL_LRS, "saidas", "LRS")
+	
 	dfwd->setClipboardValueByStr("linha", "demi", STR2DATABR(doc->dataEmi))
 	dfwd->setClipboardValueByStr("linha", "dsaida", STR2DATABR(doc->dataEntSaida))
 	dfwd->setClipboardValueByStr("linha", "nrini", doc->numero)
@@ -2391,12 +2461,30 @@ sub Efd.adicionarDocRelatorioSaidas(doc as TDocNFe ptr, part as TParticipante pt
 end sub
 
 ''''''''
-sub Efd.finalizarRelatorioSaidas(nomeArquivo as string)
+sub Efd.finalizarRelatorio()
 
-	dfwd->setClipboardValueByStr("_header", "nome_ass", infAssinatura->assinante)
-	dfwd->setClipboardValueByStr("_header", "cpf_ass", STR2CPF(infAssinatura->cpf))
-	dfwd->setClipboardValueByStr("_header", "hash_ass", infAssinatura->hashDoArquivo)
+	dim as string bookmark
+	select case ultimoRelatorio
+	case REL_LRE, REL_LRS
+		bookmark = "_header"
+	case else
+		bookmark = "ass"
+	end select
+	
+	dfwd->setClipboardValueByStr(bookmark, "nome_ass", infAssinatura->assinante)
+	dfwd->setClipboardValueByStr(bookmark, "cpf_ass", STR2CPF(infAssinatura->cpf))
+	dfwd->setClipboardValueByStr(bookmark, "hash_ass", infAssinatura->hashDoArquivo)
 
-	dfwd->save("saidas_" + regListHead->mestre.dataIni + "_" + regListHead->mestre.dataFim + ".docx")
+	select case ultimoRelatorio
+	case REL_LRE, REL_LRS
+	case else
+		dfwd->paste("ass")
+	end select
+	
+	dfwd->save(STR2YYYYMM(regListHead->mestre.dataIni) + "_" + ultimoRelatorioSufixo + ".docx")
+	
+	dfwd->close()
+	
+	ultimoRelatorio = -1
 
 end sub
