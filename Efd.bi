@@ -494,6 +494,13 @@ type InfoAssinatura
 	hashDoArquivo	as string
 end type
 
+enum TipoRelatorio
+	REL_LRE				= 1
+	REL_LRS				= 2
+	REL_RAICMS			= 3
+	REL_RAICMSST		= 4
+end enum
+
 type Efd
 public:
 	declare constructor ()
@@ -545,6 +552,8 @@ private:
 	'' geração de relatórios em formato PDF com o layout do programa EFD-ICMS-IPI da RFB
 	baseTemplatesDir		as string
 	dfwd					as DocxFactoryDyn ptr
+	ultimoRelatorio			as TipoRelatorio
+	ultimoRelatorioSufixo	as string
 	
 	''
 	assinaturaP7K_DER(any)	as byte
@@ -561,10 +570,12 @@ private:
 	declare sub adicionarDFe(dfe as TDFe ptr)
 	declare sub adicionarEfdDfe(chave as zstring ptr, operacao as TipoOperacao, dataEmi as zstring ptr, valorOperacao as double)
 	declare sub criarPlanilhas()
+	declare sub gerarPlanilhas(nomeArquivo as string)
+	declare sub gerarRelatorios(nomeArquivo as string)
 	declare sub gerarRelatorioApuracaoICMS(nomeArquivo as string, reg as TRegistro ptr)
 	declare sub gerarRelatorioApuracaoICMSST(nomeArquivo as string, reg as TRegistro ptr)
-	declare sub iniciarRelatorioSaidas(nomeArquivo as string)
+	declare sub iniciarRelatorio(relatorio as TipoRelatorio, nomeRelatorio as string, sufixo as string)
 	declare sub adicionarDocRelatorioSaidas(doc as TDocNFe ptr, part as TParticipante ptr)
-	declare sub finalizarRelatorioSaidas(nomeArquivo as string)
+	declare sub finalizarRelatorio()
 end type
 
