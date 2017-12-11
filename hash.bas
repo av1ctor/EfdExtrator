@@ -14,7 +14,7 @@ declare sub 		hashDelItem	( byval list as HASHLIST ptr, _
 
 dim shared as HASHITEMPOOL itempool
 
-
+''::::::
 private sub lazyInit()
 	itempool.refcount += 1
 	if (itempool.refcount > 1) then
@@ -27,6 +27,7 @@ private sub lazyInit()
 	listInit(@itempool.list, INITIAL_ITEMS, sizeof(HASHITEM), LIST_FLAGS_NOCLEAR)
 end sub
 
+''::::::
 private sub lazyEnd()
 	itempool.refcount -= 1
 	if (itempool.refcount > 0) then
@@ -36,12 +37,14 @@ private sub lazyEnd()
 	listEnd(@itempool.list)
 end sub
 
+''::::::
 sub hashInit _
 	( _
 		byval hash as THASH ptr, _
 		byval nodes as integer, _
-		byval delstr as boolean, _
-		byval delvalue as boolean	_
+		byval delKey as boolean, _
+		byval delVal as boolean, _
+		byval allocKey as boolean	_
 	)
 
 	lazyInit()
@@ -49,35 +52,32 @@ sub hashInit _
 	'' allocate a fixed list of internal linked-lists
 	hash->list = callocate( nodes * len( HASHLIST ) )
 	hash->nodes = nodes
-	hash->delstr = delstr
-	hash->delval = delvalue
+	hash->delKey = delKey or allocKey
+	hash->delVal = delVal
+	hash->allocKey = allocKey
 
 end sub
 
+''::::::
 sub hashEnd(byval hash as THASH ptr)
 
-    dim as integer i = any
-    dim as HASHITEM ptr item = any, nxt = any
-    dim as HASHLIST ptr list = any
+    var list = hash->list
 
-    '' for each item on each list, deallocate it and the name string
-    list = hash->list
-
-	for i = 0 to hash->nodes-1
-		item = list->head
+	for i as integer = 0 to hash->nodes-1
+		var item = list->head
 		do while( item <> NULL )
-			nxt = item->next
+			var nxt = item->next
 
-			if hash->delval then
-				if item->data <> null then
-					deallocate( item->data )
-					item->data = null
+			if hash->delVal then
+				if item->value <> null then
+					deallocate( item->value )
+					item->value = null
 				end if
 			end if
-			if( hash->delstr ) then
-				deallocate( item->name )
+			if( hash->delKey ) then
+				deallocate( item->key )
 			end if
-			item->name = NULL
+			item->key = NULL
 			hashDelItem( list, item )
 
 			item = nxt
@@ -93,12 +93,13 @@ sub hashEnd(byval hash as THASH ptr)
 
 end sub
 
-function hashHash(byval s as const zstring ptr) as uinteger
+''::::::
+function hashHash(byval key as const zstring ptr) as uinteger
 	dim as uinteger index = 0
-	while (s[0])
-		index = s[0] + (index shl 5) - index
-		s += 1
-	wend
+	do while (key[0])
+		index = key[0] + (index shl 5) - index
+		key += 1
+	loop
 	return index
 end function
 
@@ -106,31 +107,28 @@ end function
 function hashLookupEx _
 	( _
 		byval hash as THASH ptr, _
-		byval symbol as const zstring ptr, _
+		byval key as const zstring ptr, _
 		byval index as uinteger _
 	) as any ptr
-
-    dim as HASHITEM ptr item = any
-    dim as HASHLIST ptr list = any
-
-    function = NULL
 
     index mod= hash->nodes
 
 	'' get the start of list
-	list = @hash->list[index]
-	item = list->head
+	var list = @hash->list[index]
+	var item = list->head
 	if( item = NULL ) then
-		exit function
+		return NULL
 	end if
 
 	'' loop until end of list or if item was found
 	do while( item <> NULL )
-		if( *item->name = *symbol ) then
-			return item->data
+		if( *item->key = *key ) then
+			return item->value
 		end if
 		item = item->next
 	loop
+	
+	function = null
 
 end function
 
@@ -138,10 +136,10 @@ end function
 function hashLookup _
 	( _
 		byval hash as THASH ptr, _
-		byval symbol as zstring ptr _
+		byval key as zstring ptr _
 	) as any ptr
 
-    function = hashLookupEx( hash, symbol, hashHash( symbol ) )
+    function = hashLookupEx( hash, key, hashHash( key ) )
 
 end function
 
@@ -151,10 +149,8 @@ private function hashNewItem _
 		byval list as HASHLIST ptr _
 	) as HASHITEM ptr
 
-	dim as HASHITEM ptr item = any
-
 	'' add a new node
-	item = listNewNode( @itempool.list )
+	var item = cast(HASHITEM ptr, listNewNode( @itempool.list ))
 
 	'' add it to the internal linked-list
 	if( list->tail <> NULL ) then
@@ -179,16 +175,14 @@ private sub hashDelItem _
 		byval item as HASHITEM ptr _
 	)
 
-	dim as HASHITEM ptr prv = any, nxt = any
-
 	''
 	if( item = NULL ) Then
 		exit sub
 	end If
 
 	'' remove from internal linked-list
-	prv  = item->prev
-	nxt  = item->next
+	var prv  = item->prev
+	var nxt  = item->next
 	if( prv <> NULL ) then
 		prv->next = nxt
 	else
@@ -210,32 +204,35 @@ end sub
 function hashAdd _
 	( _
 		byval hash as THASH ptr, _
-		byval symbol as const zstring ptr, _
-		byval userdata as any ptr, _
+		byval key as const zstring ptr, _
+		byval value as any ptr, _
 		byval index as uinteger _
 	) as HASHITEM ptr
 
-    dim as HASHITEM ptr item = any
-
 	'' calc hash?
 	if( index = cuint( -1 ) ) then
-		index = hashHash( symbol )
+		index = hashHash( key )
 	end if
 
     index mod= hash->nodes
 
     '' allocate a new node
-    item = hashNewItem( @hash->list[index] )
+    var item = hashNewItem( @hash->list[index] )
 
-    function = item
     if( item = NULL ) then
-    	exit function
+    	return null
 	end if
 
     '' fill node
-    item->name = symbol
-    item->data = userdata
+    if hash->allocKey then
+		var key2 = cast(zstring ptr, allocate(len(*key)+1))
+		*key2 = *key
+		key = key2
+	end if
+	item->key = key
+    item->value = value
 
+    function = item
 end function
 
 ''::::::
@@ -246,8 +243,6 @@ sub hashDel _
 		byval index as uinteger _
 	)
 
-    dim as HASHLIST ptr list = any
-
 	if( item = NULL ) then
 		exit sub
 	end if
@@ -255,15 +250,18 @@ sub hashDel _
 	index mod= hash->nodes
 
 	'' get start of list
-	list = @hash->list[index]
+	var list = @hash->list[index]
 
 	''
-	if( hash->delstr ) then
-		deallocate( item->name )
+	if( hash->delKey ) then
+		deallocate( item->key )
 	end if
-	item->name = NULL
+	item->key = NULL
 
-	item->data = NULL
+	if( hash->delVal ) then
+		deallocate( item->value )
+	end if
+	item->value = NULL
 
 	hashDelItem( list, item )
 

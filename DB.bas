@@ -68,6 +68,29 @@ function TDb.exec(query as string) as TRSet ptr
 
 end function
 
+''''''''	
+function TDb.execScalar(query as string) as zstring ptr
+
+	var rs = new TRSet
+	
+	dim as zstring ptr errMsg_ = null
+	if sqlite3_exec( instance, query, @callback, rs, @errMsg_ ) <> SQLITE_OK then 
+		delete rs
+		errMsg = *errMsg_
+		return null
+	end if 
+	
+	if rs->hasNext then
+		function = (*rs->row)[0]
+	else
+		function = null
+	end if
+	
+	delete rs
+
+end function
+
+
 ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
 ''''''''
@@ -119,31 +142,47 @@ end function
 
 ''''''''
 constructor TRSetRow()
-	hashInit(@columns, 10, true, true)
+	hashInit(@columns, 16, true, true, true)
+	redim colList(0 to 15)
+	colCnt = 0
 end constructor	
 	
 ''''''''
 destructor TRSetRow()
+	colCnt = 0
 	hashEnd(@columns)
 end destructor
 
 ''''''''
 sub TRSetRow.newColumn(name_ as zstring ptr, value as zstring ptr)
 	if hashLookup( @columns, name_ ) = null then
-		var name2 = cast(zstring ptr, allocate(len(*name_)+1))
-		*name2 = *name_
-		
 		dim as zstring ptr value2 = null
 		if value <> null then
 			value2 = cast(zstring ptr, allocate(len(*value)+1))	
 			*value2 = *value
 		end if
 		
-		hashAdd( @columns, name2, value2 )
+		hashAdd( @columns, name_, value2 )
+		
+		colCnt += 1
+		if colCnt-1 > ubound(colList) then
+			redim preserve colList(0 to colCnt-1+8)
+		end if
+
+		colList(colCnt-1) = value2
 	end if
 end sub
 
 ''''''''
 operator TRSetRow.[](index as string) as zstring ptr
 	return hashLookup( @columns, index )
+end operator
+
+''''''''
+operator TRSetRow.[](index as integer) as zstring ptr
+	if index <= colCnt-1 then
+		return colList(index)
+	else
+		return null
+	end if
 end operator

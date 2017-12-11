@@ -2,7 +2,7 @@
 #include once "DocxFactoryDyn.bi"
 
 constructor DocxFactoryDyn
-	SetDllDirectory(ExePath + "\DocxFactory")
+	SetDllDirectory(ExePath + "\libs")
 	libh = LoadLibrary("DocxFactory.dll")
 end constructor
 	
