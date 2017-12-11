@@ -239,18 +239,26 @@ type TDocItemAnal
 	next_			as TDocItemAnal ptr
 end type
 
-type TDocNFe
+type TDocDFe
 	operacao		as TipoOperacao
 	emitente		as TipoEmitente
 	idParticipante	as zstring * 60+1
 	modelo			as TipoModelo
+	dataEmi			as zstring * 8+1		'DDMMAAAA
+	dataEntSaida	as zstring * 8+1		'DDMMAAAA
 	situacao		as TipoSituacao
 	serie			as integer
 	numero			as longint
 	chave			as zstring * 44+1
-	dataEmi			as zstring * 8+1		'DDMMAAAA
-	dataEntSaida	as zstring * 8+1		'DDMMAAAA
 	valorTotal		as double
+	bcICMS			as double
+	ICMS			as double
+	difal			as TDocDifAliq
+	itemAnalListHead as TDocItemAnal ptr
+	itemAnalListTail as TDocItemAnal ptr
+end type
+
+type TDocNFe extends TDocDFe
 	pagamento		as TipoPagamento
 	valorDesconto	as double
 	valorAbatimento as double
@@ -259,8 +267,6 @@ type TDocNFe
 	valorFrete		as double
 	valorSeguro		as double
 	valorAcessorias as double
-	bcICMS			as double
-	ICMS			as double
 	bcICMSST		as double
 	ICMSST			as double
 	IPI				as double
@@ -268,40 +274,19 @@ type TDocNFe
 	COFINS			as double
 	PISST			as double
 	COFINSST		as double
-	difal			as TDocDifAliq
 	nroItens		as integer
-	
-	itemAnalListHead as TDocItemAnal ptr
-	itemAnalListTail as TDocItemAnal ptr
 end type
 
-type TDocCTe
-	operacao			as TipoOperacao
-	emitente			as TipoEmitente
-	idParticipante		as zstring * 60+1
-	modelo				as TipoModelo
-	situacao			as TipoSituacao
-	serie				as integer
-	numero				as longint
-	chave				as zstring * 44+1
-	dataEmi				as zstring * 8+1		'DDMMAAAA
-	dataAquPrest		as zstring * 8+1		'DDMMAAAA
+type TDocCTe extends TDocDFe
 	tipoCTe				as integer
 	chaveRef			as zstring * 44+1		'' para CT-e do tipo complementar, substituto ou anulador
-	valorTotal			as double
 	valorDesconto		as double
 	frete				as TipoFrete
 	valorServico		as double
-	bcICMS				as double
-	ICMS				as double
 	valorNaoTributado	as double
 	codInfComplementar	as zstring * 6+1
 	municipioOrigem		as integer
 	municipioDestino	as integer
-	difal				as TDocDifAliq
-	
-	itemAnalListHead as TDocItemAnal ptr
-	itemAnalListTail as TDocItemAnal ptr
 end type
 
 type TDocumentoSintegra
@@ -594,8 +579,9 @@ private:
 	declare sub gerarRelatorioApuracaoICMS(nomeArquivo as string, reg as TRegistro ptr)
 	declare sub gerarRelatorioApuracaoICMSST(nomeArquivo as string, reg as TRegistro ptr)
 	declare sub iniciarRelatorio(relatorio as TipoRelatorio, nomeRelatorio as string, sufixo as string)
-	declare sub adicionarDocRelatorioEntradas(doc as TDocNFe ptr, part as TParticipante ptr)
-	declare sub adicionarDocRelatorioSaidas(doc as TDocNFe ptr, part as TParticipante ptr)
+	declare sub adicionarDocRelatorioEntradas(doc as TDocDFe ptr, part as TParticipante ptr)
+	declare sub adicionarDocRelatorioSaidas(doc as TDocDFe ptr, part as TParticipante ptr)
+	declare sub adicionarDocRelatorioItemAnal(sit as TipoSituacao, anal as TDocItemAnal ptr)
 	declare sub finalizarRelatorio()
 	declare sub relatorioSomarLR(sit as TipoSituacao, anal as TDocItemAnal ptr)
 end type

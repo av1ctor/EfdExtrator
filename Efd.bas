@@ -439,7 +439,7 @@ private function lerRegDocCTe(bf as bfile, reg as TRegistro ptr) as Boolean
 	reg->cte.numero			= bf.varint
 	reg->cte.chave			= bf.varchar
 	reg->cte.dataEmi		= bf.varchar
-	reg->cte.dataAquPrest	= bf.varchar
+	reg->cte.dataEntSaida	= bf.varchar
 	reg->cte.tipoCTe		= bf.int1
 	bf.char1		'pular |
 	reg->cte.chaveRef		= bf.varchar
@@ -1913,7 +1913,7 @@ sub Efd.gerarPlanilhas(nomeArquivo as string)
 						row->addCell(reg->cte.serie)
 						row->addCell(reg->cte.numero)
 						row->addCell(STR2DATA(reg->cte.dataEmi))
-						row->addCell(STR2DATA(reg->cte.dataAquPrest))
+						row->addCell(STR2DATA(reg->cte.dataEntSaida))
 						row->addCell(reg->cte.chave)
 						row->addCell(situacao2String(reg->cte.situacao))
 						
@@ -2143,45 +2143,45 @@ sub Efd.gerarRelatorios(nomeArquivo as string)
 	''		 precisar processar entradas primeiro, depois saídas e por últimos os registros 
 	''		 que são sequenciais (LRE e LRS vêm intercalados na EFD)
 	
+	'' LRE
+	iniciarRelatorio(REL_LRE, "entradas", "LRE")
+	
 	var reg = regListHead
 	do while reg <> null
 		'para cada registro..
 		select case reg->tipo
-		'item de NF-e?
-		case DOC_NFE_ITEM
-			var doc = reg->itemNFe.documentoPai
-			if doc->modelo = 55 then 
-				select case as const doc->situacao
-				case REGULAR, EXTEMPORANEO
-					'só existe item para entradas
-					if doc->operacao = ENTRADA then
-						var part = cast( TParticipante ptr, hashLookup(@participanteDict, doc->idParticipante) )
-						adicionarDocRelatorioEntradas(doc, part)
-					end if
-				end select
+		'NF-e?
+		case DOC_NFE
+			if reg->nfe.modelo = 55 then 
+				if reg->nfe.operacao = ENTRADA then
+					select case as const reg->nfe.situacao
+					case REGULAR, EXTEMPORANEO
+						var part = cast( TParticipante ptr, hashLookup(@participanteDict, reg->nfe.idParticipante) )
+						adicionarDocRelatorioEntradas(@reg->nfe, part)
+					end select
+				end if
 			end if
 		
 		'CT-e?
 		case DOC_CTE
 			if reg->cte.modelo = 57 then
-				select case as const reg->cte.situacao
-				case REGULAR, EXTEMPORANEO
-					var part = cast( TParticipante ptr, hashLookup(@participanteDict, reg->cte.idParticipante) )
-					if reg->cte.operacao = ENTRADA then
-					end if
-
-				case CANCELADO, CANCELADO_EXT, DENEGADO, INUTILIZADO
-					dim as ExcelRow ptr row 
-					if reg->cte.operacao = ENTRADA then
-					end if
-
-					var dataEmi = iif( len(reg->cte.chave) = 44, "01" + mid(reg->cte.chave,5,2) + "20" + mid(reg->cte.chave,3,2), regListHead->mestre.dataIni )
-				end select
+				if reg->cte.operacao = ENTRADA then
+					select case as const reg->cte.situacao
+					case REGULAR, EXTEMPORANEO
+						var part = cast( TParticipante ptr, hashLookup(@participanteDict, reg->cte.idParticipante) )
+						adicionarDocRelatorioEntradas(@reg->cte, part)
+					end select
+				end if
 			end if
 		end select
 		
 		reg = reg->next_
 	loop
+	
+	finalizarRelatorio()
+	
+	'' LRS
+	iniciarRelatorio(REL_LRS, "saidas", "LRS")
 	
 	reg = regListHead
 	do while reg <> null
@@ -2190,45 +2190,40 @@ sub Efd.gerarRelatorios(nomeArquivo as string)
 		'NF-e?
 		case DOC_NFE
 			if reg->nfe.modelo = 55 then 
-
-				select case as const reg->nfe.situacao
-				case REGULAR, EXTEMPORANEO
-					'' NOTA: não existe itemDoc para saídas, só temos informação básica do DF-e, 
-					'' 	     a não ser que sejam carregos os relatórios .csv do SAFI vindos do infoview
-					if reg->nfe.operacao = SAIDA then
+				if reg->nfe.operacao = SAIDA then
+					select case as const reg->nfe.situacao
+					case REGULAR, EXTEMPORANEO
 						var part = cast( TParticipante ptr, hashLookup(@participanteDict, reg->nfe.idParticipante) )
 						adicionarDocRelatorioSaidas(@reg->nfe, part)
-					end if
-			   
-				case CANCELADO, CANCELADO_EXT, DENEGADO, INUTILIZADO
-					dim as ExcelRow ptr row 
-					if reg->nfe.operacao = SAIDA then
-					end if
-				end select
+				   
+					case CANCELADO, CANCELADO_EXT, DENEGADO, INUTILIZADO
+					end select
+				end if
 			end if
 
 		'CT-e?
 		case DOC_CTE
 			if reg->cte.modelo = 57 then
-				select case as const reg->cte.situacao
-				case REGULAR, EXTEMPORANEO
-					var part = cast( TParticipante ptr, hashLookup(@participanteDict, reg->cte.idParticipante) )
-					if reg->cte.operacao = SAIDA then
-					end if
+				if reg->cte.operacao = SAIDA then
+					select case as const reg->cte.situacao
+					case REGULAR, EXTEMPORANEO
+						var part = cast( TParticipante ptr, hashLookup(@participanteDict, reg->cte.idParticipante) )
+						adicionarDocRelatorioSaidas(@reg->cte, part)
 
-				case CANCELADO, CANCELADO_EXT, DENEGADO, INUTILIZADO
-					dim as ExcelRow ptr row 
-					if reg->cte.operacao = SAIDA then
-					end if
+					case CANCELADO, CANCELADO_EXT, DENEGADO, INUTILIZADO
+						dim as ExcelRow ptr row 
 
-					var dataEmi = iif( len(reg->cte.chave) = 44, "01" + mid(reg->cte.chave,5,2) + "20" + mid(reg->cte.chave,3,2), regListHead->mestre.dataIni )
-				end select
+						var dataEmi = iif( len(reg->cte.chave) = 44, "01" + mid(reg->cte.chave,5,2) + "20" + mid(reg->cte.chave,3,2), regListHead->mestre.dataIni )
+					end select
+				end if
 			end if
 			
 		end select
 
 		reg = reg->next_
 	loop
+	
+	finalizarRelatorio()
 	
 	reg = regListHead
 	do while reg <> null
@@ -2320,60 +2315,6 @@ sub Efd.analisar(mostrarProgresso as sub(porCompleto as double))
 	end if
 
 end sub
-
-function carregarTemplate(nomeArquivo as string) as string
-	var bf = new bfile()
-	bf->abrir(nomeArquivo)
-	function = bf->lerTudo()
-	bf->fechar()
-end function
-
-sub salvarPDF(nomeArquivo as string, template as string)
-	var tempFile = "__temp__" + nomeArquivo + ".html"
-	
-	var bf = new bfile()
-	bf->criar(tempFile)
-	bf->escrever(template)
-	bf->fechar
-	
-	var f = freefile
-	open pipe """" + ExePath + "\wkhtmltox\wkhtmltopdf.exe"" -q .\" + tempFile + " .\" + nomeArquivo + ".pdf 2> nul" For binary access read write As #f
-	close #f
-	
-	'exec(ExePath + "\wkhtmltox\wkhtmltopdf.exe", "-q " + tempFile + " " + nomeArquivo + ".pdf")
-	
-	kill tempFile
-end sub
-
-function strReplace _
-	( _
-		byref text as string, _
-		byref a as string, _
-		byref b as string _
-	) as string
-
-	var result = text
-
-	var alen = len(a)
-	var blen = len(b)
-
-	var i = 0
-	do
-		i = instr(i + 1, result, a)
-		if i = 0 then
-			exit do
-		end if
-
-		var keep = right(result, len(result) - ((i - 1) + alen))
-		result = left(result, i - 1)
-		result += b
-		result += keep
-
-		i += blen - 1
-	loop
-
-	function = result
-end function
 
 ''''''''
 function STR2IE(ie as string) as string
@@ -2499,7 +2440,10 @@ end sub
 
 ''''''''
 private sub Efd.relatorioSomarLR(sit as TipoSituacao, anal as TDocItemAnal ptr)
-	var chave = sit & "_" & anal->cst & "_" & anal->cfop & "_" & anal->aliq
+	
+	dim as string chave = iif(ultimoRelatorio = REL_LRS, sit & "_", "")
+	
+	chave &= anal->cst & "_" & anal->cfop & "_" & anal->aliq
 	
 	var soma = cast(RelSomatorioLR ptr, hashLookUp(@relSomaLRHash, chave))
 	if soma = null then
@@ -2520,10 +2464,32 @@ private sub Efd.relatorioSomarLR(sit as TipoSituacao, anal as TDocItemAnal ptr)
 end sub
 
 ''''''''
-sub Efd.adicionarDocRelatorioSaidas(doc as TDocNFe ptr, part as TParticipante ptr)
+sub Efd.adicionarDocRelatorioItemAnal(sit as TipoSituacao, anal as TDocItemAnal ptr)
+	do while anal <> null
+		relatorioSomarLR(sit, anal)
 
-	iniciarRelatorio(REL_LRS, "saidas", "LRS")
-	
+		dfwd->setClipboardValueByStr("linha_anal", "cst", format(anal->cst,"000"))
+		dfwd->setClipboardValueByStr("linha_anal", "cfop", anal->cfop)
+		dfwd->setClipboardValueByStr("linha_anal", "aliq", DBL2MONEYBR(anal->aliq))
+		dfwd->setClipboardValueByStr("linha_anal", "bc", DBL2MONEYBR(anal->bc))
+		dfwd->setClipboardValueByStr("linha_anal", "icms", DBL2MONEYBR(anal->ICMS))
+		dfwd->setClipboardValueByStr("linha_anal", "bcst", DBL2MONEYBR(anal->bcST))
+		dfwd->setClipboardValueByStr("linha_anal", "icmsst", DBL2MONEYBR(anal->ICMSST))
+		dfwd->setClipboardValueByStr("linha_anal", "ipi", DBL2MONEYBR(anal->IPI))
+		dfwd->setClipboardValueByStr("linha_anal", "valop", DBL2MONEYBR(anal->valorOp))
+		if ultimoRelatorio = REL_LRE then
+			dfwd->setClipboardValueByStr("linha_anal", "redbc", DBL2MONEYBR(anal->redBC))
+		end if
+		
+		dfwd->paste("linha_anal")
+
+		anal = anal->next_
+	loop
+end sub
+
+''''''''
+sub Efd.adicionarDocRelatorioSaidas(doc as TDocDFe ptr, part as TParticipante ptr)
+
 	dfwd->setClipboardValueByStr("linha", "demi", STR2DATABR(doc->dataEmi))
 	dfwd->setClipboardValueByStr("linha", "dsaida", STR2DATABR(doc->dataEntSaida))
 	dfwd->setClipboardValueByStr("linha", "nrini", doc->numero)
@@ -2538,32 +2504,13 @@ sub Efd.adicionarDocRelatorioSaidas(doc as TDocNFe ptr, part as TParticipante pt
 	
 	dfwd->paste("linha")
 	
-	var anal = doc->itemAnalListHead
-	do while anal <> null
-		relatorioSomarLR(doc->situacao, anal)
-
-		dfwd->setClipboardValueByStr("linha_anal", "cst", format(anal->cst,"000"))
-		dfwd->setClipboardValueByStr("linha_anal", "cfop", anal->cfop)
-		dfwd->setClipboardValueByStr("linha_anal", "aliq", DBL2MONEYBR(anal->aliq))
-		dfwd->setClipboardValueByStr("linha_anal", "bc", DBL2MONEYBR(anal->bc))
-		dfwd->setClipboardValueByStr("linha_anal", "icms", DBL2MONEYBR(anal->ICMS))
-		dfwd->setClipboardValueByStr("linha_anal", "bcst", DBL2MONEYBR(anal->bcST))
-		dfwd->setClipboardValueByStr("linha_anal", "icmsst", DBL2MONEYBR(anal->ICMSST))
-		dfwd->setClipboardValueByStr("linha_anal", "ipi", DBL2MONEYBR(anal->IPI))
-		dfwd->setClipboardValueByStr("linha_anal", "valop", DBL2MONEYBR(anal->valorOp))
-		
-		dfwd->paste("linha_anal")
-
-		anal = anal->next_
-	loop
+	adicionarDocRelatorioItemAnal(doc->situacao, doc->itemAnalListHead)
 	
 end sub
 
 ''''''''
-sub Efd.adicionarDocRelatorioEntradas(doc as TDocNFe ptr, part as TParticipante ptr)
+sub Efd.adicionarDocRelatorioEntradas(doc as TDocDFe ptr, part as TParticipante ptr)
 
-	iniciarRelatorio(REL_LRE, "entradas", "LRE")
-	
 	dfwd->setClipboardValueByStr("linha", "demi", STR2DATABR(doc->dataEmi))
 	dfwd->setClipboardValueByStr("linha", "dent", STR2DATABR(doc->dataEntSaida))
 	dfwd->setClipboardValueByStr("linha", "nro", doc->numero)
@@ -2574,35 +2521,21 @@ sub Efd.adicionarDocRelatorioEntradas(doc as TDocNFe ptr, part as TParticipante 
 	dfwd->setClipboardValueByStr("linha", "ie", STR2IE(part->ie))
 	dfwd->setClipboardValueByStr("linha", "uf", MUNICIPIO2SIGLA(part->municip))
 	dfwd->setClipboardValueByStr("linha", "municip", part->municip)
-	dfwd->setClipboardValueByStrW("linha", "razao", left(part->nome, 32))
+	dfwd->setClipboardValueByStrW("linha", "razao", left(part->nome, 64))
 	
 	dfwd->paste("linha")
 	
-	var anal = doc->itemAnalListHead
-	do while anal <> null
-		relatorioSomarLR(doc->situacao, anal)
-
-		dfwd->setClipboardValueByStr("linha_anal", "cst", format(anal->cst,"000"))
-		dfwd->setClipboardValueByStr("linha_anal", "cfop", anal->cfop)
-		dfwd->setClipboardValueByStr("linha_anal", "aliq", DBL2MONEYBR(anal->aliq))
-		dfwd->setClipboardValueByStr("linha_anal", "bc", DBL2MONEYBR(anal->bc))
-		dfwd->setClipboardValueByStr("linha_anal", "icms", DBL2MONEYBR(anal->ICMS))
-		dfwd->setClipboardValueByStr("linha_anal", "bcst", DBL2MONEYBR(anal->bcST))
-		dfwd->setClipboardValueByStr("linha_anal", "icmsst", DBL2MONEYBR(anal->ICMSST))
-		dfwd->setClipboardValueByStr("linha_anal", "ipi", DBL2MONEYBR(anal->IPI))
-		dfwd->setClipboardValueByStr("linha_anal", "valop", DBL2MONEYBR(anal->valorOp))
-		dfwd->setClipboardValueByStr("linha_anal", "redbc", DBL2MONEYBR(anal->redBC))
-		
-		dfwd->paste("linha_anal")
-		
-		anal = anal->next_
-	loop
+	adicionarDocRelatorioItemAnal(doc->situacao, doc->itemAnalListHead)
 	
 end sub
 
 ''''''''
 sub Efd.finalizarRelatorio()
 
+	if ultimoRelatorio = -1 then
+		return
+	end if
+	
 	dim as string bookmark
 	select case ultimoRelatorio
 	case REL_LRE, REL_LRS
@@ -2624,7 +2557,10 @@ sub Efd.finalizarRelatorio()
 		
 		var soma = cast(RelSomatorioLR ptr, listGetHead(@relSomaLRList))
 		do while soma <> null
-			dfwd->setClipboardValueByStr("resumo_linha", "sit", format(cdbl(soma->situacao), "00"))
+			if ultimoRelatorio = REL_LRS then
+				dfwd->setClipboardValueByStr("resumo_linha", "sit", format(cdbl(soma->situacao), "00"))
+			end if
+			
 			dfwd->setClipboardValueByStr("resumo_linha", "cst", format(soma->cst,"000"))
 			dfwd->setClipboardValueByStr("resumo_linha", "cfop", soma->cfop)
 			dfwd->setClipboardValueByStr("resumo_linha", "aliq", DBL2MONEYBR(soma->aliq))
