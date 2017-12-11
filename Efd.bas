@@ -2492,7 +2492,7 @@ sub Efd.adicionarDocRelatorioSaidas(doc as TDocNFe ptr, part as TParticipante pt
 	dfwd->setClipboardValueByStr("linha", "iedest", STR2IE(part->ie))
 	dfwd->setClipboardValueByStr("linha", "uf", MUNICIPIO2SIGLA(part->municip))
 	dfwd->setClipboardValueByStr("linha", "mundest", part->municip)
-	dfwd->setClipboardValueByStrW("linha", "razaodest", left(part->nome, 32))
+	dfwd->setClipboardValueByStrW("linha", "razaodest", left(part->nome, 64))
 	
 	dfwd->paste("linha")
 	
