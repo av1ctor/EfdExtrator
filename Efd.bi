@@ -573,7 +573,6 @@ private:
 	ultimoRelatorioSufixo	as string
 	relSomaLRHash			as THASH
 	relSomaLRList			as TLIST			'' de RelSomatorioLR
-	relNumLinhas			as integer
 	
 	''
 	assinaturaP7K_DER(any)	as byte
@@ -595,6 +594,7 @@ private:
 	declare sub gerarRelatorioApuracaoICMS(nomeArquivo as string, reg as TRegistro ptr)
 	declare sub gerarRelatorioApuracaoICMSST(nomeArquivo as string, reg as TRegistro ptr)
 	declare sub iniciarRelatorio(relatorio as TipoRelatorio, nomeRelatorio as string, sufixo as string)
+	declare sub adicionarDocRelatorioEntradas(doc as TDocNFe ptr, part as TParticipante ptr)
 	declare sub adicionarDocRelatorioSaidas(doc as TDocNFe ptr, part as TParticipante ptr)
 	declare sub finalizarRelatorio()
 	declare sub relatorioSomarLR(sit as TipoSituacao, anal as TDocItemAnal ptr)
