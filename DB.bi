@@ -7,8 +7,11 @@ type TRSetRow
 	declare destructor()
 	declare sub newColumn(name as zstring ptr, value as zstring ptr)
 	declare operator [](index as string) as zstring ptr
+	declare operator [](index as integer) as zstring ptr
 private:
-	columns		as THash
+	columns			as THash
+	colList(any)	as zstring ptr
+	colCnt			as integer
 end type
 
 type TRSet
@@ -20,14 +23,15 @@ type TRSet
 	declare property row as TRSetRow ptr
 	
 private:
-	rows		as TList		'' list of TRSetRow
-	currRow		as TRSetRow ptr
+	rows			as TList		'' list of TRSetRow
+	currRow			as TRSetRow ptr
 end type
 
 type TDb
 	declare function open(fileName as string) as boolean
 	declare sub close()
 	declare function exec(query as string) as TRSet ptr
+	declare function execScalar(query as string) as zstring ptr
 
 private:
 	instance 		as sqlite3 ptr 

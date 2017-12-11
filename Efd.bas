@@ -2412,19 +2412,13 @@ sub Efd.gerarRelatorioApuracaoICMSST(nomeArquivo as string, reg as TRegistro ptr
 end sub
 
 private function codMunicip2Nome(dbConfig as TDb ptr, cod as integer) as string
-	var rs = dbConfig->exec("select Nome || ' - ' || uf nome from Municipio where Codigo = " & cod)
-	if rs = null then
+	var nome =  dbConfig->execScalar("select Nome || ' - ' || uf nome from Municipio where Codigo = " & cod)
+
+	if nome = null then
 		return ""
-	end if
-	
-	if rs->hasNext then
-		var nome = (*rs->row)["nome"]
-		function = iif(nome <> null, *nome, "")
 	else
-		function = ""
+		return *nome
 	end if
-	
-	delete rs
 end function
 
 ''''''''
@@ -2445,9 +2439,38 @@ sub Efd.iniciarRelatorio(relatorio as TipoRelatorio, nomeRelatorio as string, su
 	dfwd->setClipboardValueByStr("_header", "cnpj", STR2CNPJ(regListHead->mestre.cnpj))
 	dfwd->setClipboardValueByStr("_header", "ie", STR2IE(regListHead->mestre.ie))
 	dfwd->setClipboardValueByStr("_header", "uf", MUNICIPIO2SIGLA(regListHead->mestre.municip))
-	dfwd->setClipboardValueByStr("_header", "municipio", codMunicip2Nome(dbConfig, regListHead->mestre.municip))
-	dfwd->setClipboardValueByStr("_header", "apu", STR2DATABR(regListHead->mestre.dataIni) + " a " + STR2DATABR(regListHead->mestre.dataFim))
 	
+	select case relatorio
+	case REL_LRE, REL_LRS
+		dfwd->setClipboardValueByStrW("_header", "municipio", codMunicip2Nome(dbConfig, regListHead->mestre.municip))
+		dfwd->setClipboardValueByStr("_header", "apu", STR2DATABR(regListHead->mestre.dataIni) + " a " + STR2DATABR(regListHead->mestre.dataFim))
+	
+		listInit(@relSomaLRLIst, 10, len(RelSomatorioLR))
+		hashInit(@relSomaLRHash, 10, true, false, true)
+	end select
+	
+end sub
+
+''''''''
+private sub Efd.relatorioSomarLR(sit as TipoSituacao, anal as TDocItemAnal ptr)
+	var chave = sit & "_" & anal->cst & "_" & anal->cfop & "_" & anal->aliq
+	
+	var soma = cast(RelSomatorioLR ptr, hashLookUp(@relSomaLRHash, chave))
+	if soma = null then
+		soma = listNewNode(@relSomaLRList)
+		hashAdd(@relSomaLRHash, chave, soma)
+		soma->situacao = sit
+		soma->cst = anal->cst
+		soma->cfop = anal->cfop
+		soma->aliq = anal->aliq
+	end if
+	
+	soma->valorOp += anal->valorOp
+	soma->bc += anal->bc
+	soma->icms += anal->icms
+	soma->bcST += anal->bcST
+	soma->icmsST += anal->icmsST
+	soma->ipi += anal->ipi
 end sub
 
 ''''''''
@@ -2471,6 +2494,8 @@ sub Efd.adicionarDocRelatorioSaidas(doc as TDocNFe ptr, part as TParticipante pt
 	
 	var anal = doc->itemAnalListHead
 	do while anal <> null
+		relatorioSomarLR(doc->situacao, anal)
+		
 		dfwd->setClipboardValueByStr("linha_anal", "cst", format(anal->cst,"000"))
 		dfwd->setClipboardValueByStr("linha_anal", "cfop", anal->cfop)
 		dfwd->setClipboardValueByStr("linha_anal", "aliq", DBL2MONEYBR(anal->aliq))
@@ -2507,6 +2532,49 @@ sub Efd.finalizarRelatorio()
 
 	select case ultimoRelatorio
 	case REL_LRE, REL_LRS
+		
+		dim as RelSomatorioLR totSoma
+		
+		var soma = cast(RelSomatorioLR ptr, listGetHead(@relSomaLRList))
+		do while soma <> null
+			dfwd->setClipboardValueByStr("resumo_linha", "sit", format(cdbl(soma->situacao), "00"))
+			dfwd->setClipboardValueByStr("resumo_linha", "cst", format(soma->cst,"000"))
+			dfwd->setClipboardValueByStr("resumo_linha", "cfop", soma->cfop)
+			dfwd->setClipboardValueByStr("resumo_linha", "aliq", DBL2MONEYBR(soma->aliq))
+			dfwd->setClipboardValueByStr("resumo_linha", "valop", DBL2MONEYBR(soma->valorOp))
+			dfwd->setClipboardValueByStr("resumo_linha", "bc", DBL2MONEYBR(soma->bc))
+			dfwd->setClipboardValueByStr("resumo_linha", "icms", DBL2MONEYBR(soma->icms))
+			dfwd->setClipboardValueByStr("resumo_linha", "bcst", DBL2MONEYBR(soma->bcST))
+			dfwd->setClipboardValueByStr("resumo_linha", "icmsst", DBL2MONEYBR(soma->ICMSST))
+			dfwd->setClipboardValueByStr("resumo_linha", "ipi", DBL2MONEYBR(soma->ipi))
+			
+			dfwd->paste("resumo_linha")
+			
+			totSoma.valorOp += soma->valorOp
+			totSoma.bc += soma->bc
+			totSoma.icms += soma->icms
+			totSoma.bcST += soma->bcST
+			totSoma.ICMSST += soma->ICMSST
+			totSoma.ipi += soma->ipi
+			
+			soma = listGetNext(soma)
+		loop
+		
+		dfwd->paste("resumo_sep")
+		
+		dfwd->setClipboardValueByStr("resumo_total", "totvalop", DBL2MONEYBR(totSoma.valorOp))
+		dfwd->setClipboardValueByStr("resumo_total", "totbc", DBL2MONEYBR(totSoma.bc))
+		dfwd->setClipboardValueByStr("resumo_total", "toticms", DBL2MONEYBR(totSoma.icms))
+		dfwd->setClipboardValueByStr("resumo_total", "totbcst", DBL2MONEYBR(totSoma.bcST))
+		dfwd->setClipboardValueByStr("resumo_total", "toticmsst", DBL2MONEYBR(totSoma.ICMSST))
+		dfwd->setClipboardValueByStr("resumo_total", "totipi", DBL2MONEYBR(totSoma.ipi))
+		
+		dfwd->paste("resumo_total")
+		
+		dfwd->paste("resumo")
+	
+		hashEnd(@relSomaLRHash)
+		listEnd(@relSomaLRList)
 	case else
 		dfwd->paste("ass")
 	end select

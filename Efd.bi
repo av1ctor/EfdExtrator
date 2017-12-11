@@ -502,6 +502,19 @@ enum TipoRelatorio
 	REL_RAICMSST		= 4
 end enum
 
+type RelSomatorioLR
+	situacao		as TipoSituacao
+	cst				as integer
+	cfop			as integer
+	aliq			as double
+	valorOp 		as double
+	bc 				as double
+	icms 			as double
+	bcST 			as double
+	icmsST 			as double
+	ipi 			as double
+end type
+
 type Efd
 public:
 	declare constructor ()
@@ -558,6 +571,8 @@ private:
 	dfwd					as DocxFactoryDyn ptr
 	ultimoRelatorio			as TipoRelatorio
 	ultimoRelatorioSufixo	as string
+	relSomaLRHash			as THASH
+	relSomaLRList			as TLIST			'' de RelSomatorioLR
 	
 	''
 	assinaturaP7K_DER(any)	as byte
@@ -581,5 +596,6 @@ private:
 	declare sub iniciarRelatorio(relatorio as TipoRelatorio, nomeRelatorio as string, sufixo as string)
 	declare sub adicionarDocRelatorioSaidas(doc as TDocNFe ptr, part as TParticipante ptr)
 	declare sub finalizarRelatorio()
+	declare sub relatorioSomarLR(sit as TipoSituacao, anal as TDocItemAnal ptr)
 end type
 
