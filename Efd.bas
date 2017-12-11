@@ -2154,11 +2154,8 @@ sub Efd.gerarRelatorios(nomeArquivo as string)
 		case DOC_NFE
 			if reg->nfe.modelo = 55 then 
 				if reg->nfe.operacao = ENTRADA then
-					select case as const reg->nfe.situacao
-					case REGULAR, EXTEMPORANEO
-						var part = cast( TParticipante ptr, hashLookup(@participanteDict, reg->nfe.idParticipante) )
-						adicionarDocRelatorioEntradas(@reg->nfe, part)
-					end select
+					var part = cast( TParticipante ptr, hashLookup(@participanteDict, reg->nfe.idParticipante) )
+					adicionarDocRelatorioEntradas(@reg->nfe, part)
 				end if
 			end if
 		
@@ -2166,11 +2163,8 @@ sub Efd.gerarRelatorios(nomeArquivo as string)
 		case DOC_CTE
 			if reg->cte.modelo = 57 then
 				if reg->cte.operacao = ENTRADA then
-					select case as const reg->cte.situacao
-					case REGULAR, EXTEMPORANEO
-						var part = cast( TParticipante ptr, hashLookup(@participanteDict, reg->cte.idParticipante) )
-						adicionarDocRelatorioEntradas(@reg->cte, part)
-					end select
+					var part = cast( TParticipante ptr, hashLookup(@participanteDict, reg->cte.idParticipante) )
+					adicionarDocRelatorioEntradas(@reg->cte, part)
 				end if
 			end if
 		end select
@@ -2191,13 +2185,8 @@ sub Efd.gerarRelatorios(nomeArquivo as string)
 		case DOC_NFE
 			if reg->nfe.modelo = 55 then 
 				if reg->nfe.operacao = SAIDA then
-					select case as const reg->nfe.situacao
-					case REGULAR, EXTEMPORANEO
-						var part = cast( TParticipante ptr, hashLookup(@participanteDict, reg->nfe.idParticipante) )
-						adicionarDocRelatorioSaidas(@reg->nfe, part)
-				   
-					case CANCELADO, CANCELADO_EXT, DENEGADO, INUTILIZADO
-					end select
+					var part = cast( TParticipante ptr, hashLookup(@participanteDict, reg->nfe.idParticipante) )
+					adicionarDocRelatorioSaidas(@reg->nfe, part)
 				end if
 			end if
 
@@ -2205,16 +2194,8 @@ sub Efd.gerarRelatorios(nomeArquivo as string)
 		case DOC_CTE
 			if reg->cte.modelo = 57 then
 				if reg->cte.operacao = SAIDA then
-					select case as const reg->cte.situacao
-					case REGULAR, EXTEMPORANEO
-						var part = cast( TParticipante ptr, hashLookup(@participanteDict, reg->cte.idParticipante) )
-						adicionarDocRelatorioSaidas(@reg->cte, part)
-
-					case CANCELADO, CANCELADO_EXT, DENEGADO, INUTILIZADO
-						dim as ExcelRow ptr row 
-
-						var dataEmi = iif( len(reg->cte.chave) = 44, "01" + mid(reg->cte.chave,5,2) + "20" + mid(reg->cte.chave,3,2), regListHead->mestre.dataIni )
-					end select
+					var part = cast( TParticipante ptr, hashLookup(@participanteDict, reg->cte.idParticipante) )
+					adicionarDocRelatorioSaidas(@reg->cte, part)
 				end if
 			end if
 			
@@ -2465,6 +2446,7 @@ end sub
 
 ''''''''
 sub Efd.adicionarDocRelatorioItemAnal(sit as TipoSituacao, anal as TDocItemAnal ptr)
+	
 	do while anal <> null
 		relatorioSomarLR(sit, anal)
 
@@ -2490,17 +2472,25 @@ end sub
 ''''''''
 sub Efd.adicionarDocRelatorioSaidas(doc as TDocDFe ptr, part as TParticipante ptr)
 
-	dfwd->setClipboardValueByStr("linha", "demi", STR2DATABR(doc->dataEmi))
-	dfwd->setClipboardValueByStr("linha", "dsaida", STR2DATABR(doc->dataEntSaida))
+	if len(doc->dataEmi) > 0 then
+		dfwd->setClipboardValueByStr("linha", "demi", STR2DATABR(doc->dataEmi))
+	end if
+	if len(doc->dataEntSaida) > 0 then
+		dfwd->setClipboardValueByStr("linha", "dsaida", STR2DATABR(doc->dataEntSaida))
+	end if
 	dfwd->setClipboardValueByStr("linha", "nrini", doc->numero)
 	dfwd->setClipboardValueByStr("linha", "md", doc->modelo)
 	dfwd->setClipboardValueByStr("linha", "sr", doc->serie)
 	dfwd->setClipboardValueByStr("linha", "sit", format(cdbl(doc->situacao), "00"))
-	dfwd->setClipboardValueByStr("linha", "cnpjdest", STR2CNPJ(part->cnpj))
-	dfwd->setClipboardValueByStr("linha", "iedest", STR2IE(part->ie))
-	dfwd->setClipboardValueByStr("linha", "uf", MUNICIPIO2SIGLA(part->municip))
-	dfwd->setClipboardValueByStr("linha", "mundest", part->municip)
-	dfwd->setClipboardValueByStrW("linha", "razaodest", left(part->nome, 64))
+	
+	select case doc->situacao
+	case REGULAR, EXTEMPORANEO
+		dfwd->setClipboardValueByStr("linha", "cnpjdest", STR2CNPJ(part->cnpj))
+		dfwd->setClipboardValueByStr("linha", "iedest", STR2IE(part->ie))
+		dfwd->setClipboardValueByStr("linha", "uf", MUNICIPIO2SIGLA(part->municip))
+		dfwd->setClipboardValueByStr("linha", "mundest", part->municip)
+		dfwd->setClipboardValueByStrW("linha", "razaodest", left(part->nome, 64))
+	end select
 	
 	dfwd->paste("linha")
 	
