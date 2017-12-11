@@ -2447,7 +2447,11 @@ sub Efd.iniciarRelatorio(relatorio as TipoRelatorio, nomeRelatorio as string, su
 	
 		listInit(@relSomaLRLIst, 10, len(RelSomatorioLR))
 		hashInit(@relSomaLRHash, 10, true, false, true)
+		
+		dfwd->paste("tabela")
 	end select
+	
+	relNumLinhas = 0
 	
 end sub
 
@@ -2495,7 +2499,7 @@ sub Efd.adicionarDocRelatorioSaidas(doc as TDocNFe ptr, part as TParticipante pt
 	var anal = doc->itemAnalListHead
 	do while anal <> null
 		relatorioSomarLR(doc->situacao, anal)
-		
+
 		dfwd->setClipboardValueByStr("linha_anal", "cst", format(anal->cst,"000"))
 		dfwd->setClipboardValueByStr("linha_anal", "cfop", anal->cfop)
 		dfwd->setClipboardValueByStr("linha_anal", "aliq", DBL2MONEYBR(anal->aliq))
@@ -2506,12 +2510,12 @@ sub Efd.adicionarDocRelatorioSaidas(doc as TDocNFe ptr, part as TParticipante pt
 		dfwd->setClipboardValueByStr("linha_anal", "ipi", DBL2MONEYBR(anal->IPI))
 		dfwd->setClipboardValueByStr("linha_anal", "valop", DBL2MONEYBR(anal->valorOp))
 		
-		dfwd->paste("linha_anal")
-		
 		anal = anal->next_
+
+		dfwd->paste("linha_anal")
 	loop
 	
-	dfwd->paste("linha_sep")
+	'dfwd->paste("linha_sep")
 	
 end sub
 
@@ -2533,6 +2537,8 @@ sub Efd.finalizarRelatorio()
 	select case ultimoRelatorio
 	case REL_LRE, REL_LRS
 		
+		dfwd->paste("resumo")
+	
 		dim as RelSomatorioLR totSoma
 		
 		var soma = cast(RelSomatorioLR ptr, listGetHead(@relSomaLRList))
@@ -2571,8 +2577,6 @@ sub Efd.finalizarRelatorio()
 		
 		dfwd->paste("resumo_total")
 		
-		dfwd->paste("resumo")
-	
 		hashEnd(@relSomaLRHash)
 		listEnd(@relSomaLRList)
 	case else

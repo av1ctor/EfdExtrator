@@ -573,6 +573,7 @@ private:
 	ultimoRelatorioSufixo	as string
 	relSomaLRHash			as THASH
 	relSomaLRList			as TLIST			'' de RelSomatorioLR
+	relNumLinhas			as integer
 	
 	''
 	assinaturaP7K_DER(any)	as byte
