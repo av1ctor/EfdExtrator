@@ -60,13 +60,14 @@ type ExcelWorkbook
 	declare function AddWorksheet(name as string) as ExcelWorksheet ptr
 end type
 
+type ProgressCB as sub(stage as const wstring ptr, preComplete as double)
 
 type ExcelWriter
 	declare constructor
 	declare destructor
 	declare function AddWorksheet(name as string) as ExcelWorksheet ptr
 	declare function create(fileName as string) as boolean
-	declare function flush(showProgress as sub(perComplete as double)) as boolean
+	declare function flush(showProgress as ProgressCB) as boolean
 	declare sub close
 	
 private:

@@ -979,38 +979,36 @@ private function Efd.lerRegistroSintegra(bf as bfile, reg as TRegistro ptr) as B
 end function
 
 ''''''''
-function Efd.carregarSintegra(bf as bfile, mostrarProgresso as sub(porCompleto as double)) as Boolean
+function Efd.carregarSintegra(bf as bfile, mostrarProgresso as ProgressoCB) as Boolean
 	
-   var fsize = bf.tamanho
+	var fsize = bf.tamanho
 
-   do while bf.temProximo()		 
-	  var reg = new TRegistro
-	  
-	  if lerRegistroSintegra( bf, reg ) then 
-		 if mostrarProgresso <> NULL then
-			mostrarProgresso(bf.posicao / fsize)
-		 end if 
+	do while bf.temProximo()		 
+		var reg = new TRegistro
+
+		if lerRegistroSintegra( bf, reg ) then 
+			mostrarProgresso(null, bf.posicao / fsize)
 			
-		 if reg->tipo <> DESCONHECIDO then
-			if regListHead = null then
-			   regListHead = reg
-			   regListTail = reg
+			if reg->tipo <> DESCONHECIDO then
+				if regListHead = null then
+				   regListHead = reg
+				   regListTail = reg
+				else
+				   regListTail->next_ = reg
+				   regListTail = reg
+				end if
+
+				nroRegs += 1
 			else
-			   regListTail->next_ = reg
-			   regListTail = reg
+				delete reg
 			end if
-			
-			nroRegs += 1
-		 else
-			delete reg
-		 end if
 		 
-	  else
-		 exit do
-	  end if
-   loop
+		else
+			exit do
+		end if
+	loop
 	   
-   function = true
+	function = true
 
 end function
 
@@ -1089,7 +1087,7 @@ sub Efd.addRegistroOrdenadoPorData(reg as TRegistro ptr)
 end sub
 
 ''''''''
-function Efd.carregarTxt(nomeArquivo as String, mostrarProgresso as sub(porCompleto as double)) as Boolean
+function Efd.carregarTxt(nomeArquivo as String, mostrarProgresso as ProgressoCB) as Boolean
 
 	dim bf as bfile
    
@@ -1104,6 +1102,8 @@ function Efd.carregarTxt(nomeArquivo as String, mostrarProgresso as sub(porCompl
 	regListHead = null
 	regListTail = null
 	nroRegs = 0
+	
+	mostrarProgresso("Carregando arquivo: " + nomeArquivo, 0)
 
 	if bf.peek1 <> asc("|") then
 		tipoArquivo = TIPO_ARQUIVO_SINTEGRA
@@ -1115,9 +1115,7 @@ function Efd.carregarTxt(nomeArquivo as String, mostrarProgresso as sub(porCompl
 		do while bf.temProximo()		 
 			var reg = new TRegistro
 
-			if mostrarProgresso <> NULL then
-				mostrarProgresso(bf.posicao / fsize)
-			end if 
+			mostrarProgresso(null, bf.posicao / fsize)
 				
 			if lerRegistro( bf, reg ) then 
 				if reg->tipo <> DESCONHECIDO then
@@ -1125,9 +1123,7 @@ function Efd.carregarTxt(nomeArquivo as String, mostrarProgresso as sub(porCompl
 					'' fim de arquivo?
 					case EOF_
 						delete reg
-						if mostrarProgresso <> NULL then
-							mostrarProgresso(1)
-						end if					
+						mostrarProgresso(null, 1)
 						exit do
 
 					'' ordernar por data emi
@@ -1379,13 +1375,15 @@ sub Efd.adicionarDFe(dfe as TDFe ptr)
 end sub
 
 ''''''''
-function Efd.carregarCsv(nomeArquivo as String, mostrarProgresso as sub(porCompleto as double)) as Boolean
+function Efd.carregarCsv(nomeArquivo as String, mostrarProgresso as ProgressoCB) as Boolean
 
 	dim bf as bfile
    
 	if not bf.abrir( nomeArquivo ) then
 		return false
 	end if
+	
+	mostrarProgresso("Carregando arquivo: " + nomeArquivo, 0)
 	
 	dim as integer tipoArquivo
 	if instr( nomeArquivo, "SAFI_NFe_Destinatario" ) > 0 then
@@ -1418,17 +1416,13 @@ function Efd.carregarCsv(nomeArquivo as String, mostrarProgresso as sub(porCompl
 	var emModoOutrasUFs = false
 	
 	do while bf.temProximo()		 
-		if mostrarProgresso <> NULL then
-			mostrarProgresso(bf.posicao / fsize)
-		end if 
+		mostrarProgresso(null, bf.posicao / fsize)
 		
 		'' outro header?
 		if bf.peek1 <> asc("""") then
 			'' final de arquivo?
 			if lcase(left(lerLinha(bf), 22)) = "cnpj base contribuinte" then
-				if mostrarProgresso <> NULL then
-					mostrarProgresso(1)
-				end if 
+				mostrarProgresso(null, 1)
 				
 				'' se for CT-e, temos que ler o CNPJ base do contribuinte para fazer um 
 				'' patch em todos os tipos de operação (saída ou entrada)
@@ -1559,12 +1553,15 @@ sub Efd.iniciarExtracao(nomeArquivo as String)
 	entradas = null
 	saidas = null
 	naoEscrituradas = null
+	nomeArquivoSaida = nomeArquivo
 
 end sub
 
 ''''''''
-sub Efd.finalizarExtracao(mostrarProgresso as sub(porCompleto as double))
+sub Efd.finalizarExtracao(mostrarProgresso as ProgressoCB)
 
+	mostrarProgresso("Gravando planilha: " + nomeArquivoSaida, 0)
+	
 	ew->Flush(mostrarProgresso)
 
 	ew->Close
@@ -1734,15 +1731,15 @@ function lerInfoAssinatura(nomeArquivo as string, assinaturaP7K_DER() as byte) a
 end function
 
 ''''''''
-function Efd.processar(nomeArquivo as string, mostrarProgresso as sub(porCompleto as double), gerarPDF as boolean) as Boolean
+function Efd.processar(nomeArquivo as string, mostrarProgresso as ProgressoCB, gerarRelatorios_ as boolean) as Boolean
    
-	gerarPlanilhas(nomeArquivo)
+	gerarPlanilhas(nomeArquivo, mostrarProgresso)
 	
-	if gerarPDF then
+	if gerarRelatorios_ then
 		if tipoArquivo = TIPO_ARQUIVO_EFD then
 			infAssinatura = lerInfoAssinatura(nomeArquivo, assinaturaP7K_DER())
 		
-			gerarRelatorios(nomeArquivo)
+			gerarRelatorios(nomeArquivo, mostrarProgresso)
 			
 			if infAssinatura <> NULL then
 				delete infAssinatura
@@ -1767,12 +1764,15 @@ function Efd.processar(nomeArquivo as string, mostrarProgresso as sub(porComplet
 end function
 
 ''''''''
-sub Efd.gerarPlanilhas(nomeArquivo as string)
+sub Efd.gerarPlanilhas(nomeArquivo as string, mostrarProgresso as ProgressoCB)
 	
 	if entradas = null then
 		criarPlanilhas
 	end if
 	
+	mostrarProgresso(!"\tGerando planilhas", 0)
+	
+	var regCnt = 0
 	var reg = regListHead
 	do while reg <> null
 		'para cada registro..
@@ -2179,12 +2179,20 @@ sub Efd.gerarPlanilhas(nomeArquivo as string)
 
 		end select
 
+		regCnt =+ 1
+		mostrarProgresso(null, regCnt / nroRegs)
+		
 		reg = reg->next_
 	loop
+	
+	mostrarProgresso(null, 1)
+	
 end sub
 
 ''''''''
-sub Efd.gerarRelatorios(nomeArquivo as string)
+sub Efd.gerarRelatorios(nomeArquivo as string, mostrarProgresso as ProgressoCB)
+	
+	mostrarProgresso(!"\tGerando relatórios", 0)
 	
 	ultimoRelatorio = -1
 	
@@ -2262,6 +2270,8 @@ sub Efd.gerarRelatorios(nomeArquivo as string)
 
 		reg = reg->next_
 	loop
+	
+	mostrarProgresso(null, 1)
 
 end sub
 
@@ -2298,8 +2308,14 @@ function STRDFE2DATA(s as zstring ptr) as string
 end function
 
 ''''''''
-sub Efd.analisar(mostrarProgresso as sub(porCompleto as double)) 
+sub Efd.analisar(mostrarProgresso as ProgressoCB) 
 
+	analisarFaltaDeEscrituracao(mostrarProgresso)
+
+end sub
+
+''''''''
+sub Efd.analisarFaltaDeEscrituracao(mostrarProgresso as ProgressoCB)
 	naoEscrituradas = ew->AddWorksheet("Nao Escrituradas")
 	naoEscrituradas->AddCellType(CT_STRING, "Chave")
 	naoEscrituradas->AddCellType(CT_DATE, "Data")
@@ -2308,6 +2324,8 @@ sub Efd.analisar(mostrarProgresso as sub(porCompleto as double))
 	naoEscrituradas->AddCellType(CT_INTNUMBER, "Numero")
 	naoEscrituradas->AddCellType(CT_STRING, "Operacao")
 	naoEscrituradas->AddCellType(CT_MONEY, "Valor Operacao")
+	
+	mostrarProgresso(wstr(!"\tFalta de escrituração"), 0)
 	
 	var i = 0
 	var dfe = dfeListHead
@@ -2329,13 +2347,15 @@ sub Efd.analisar(mostrarProgresso as sub(porCompleto as double))
 
 			i += 1
 			if mostrarProgresso <> NULL then
-				'mostrarProgresso(i / nroDFe)
+				'mostrarProgresso(null, i / nroDFe)
 			end if 
 			
 			dfe = dfe->next_
 		loop
 	end if
-
+	
+	mostrarProgresso(null, 1)
+	
 end sub
 
 ''''''''

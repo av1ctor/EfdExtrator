@@ -501,18 +501,49 @@ type RelSomatorioLR
 	ipi 			as double
 end type
 
+type ProgressoCB as sub(estagio as const wstring ptr, porCompleto as double)
+
 type Efd
 public:
 	declare constructor ()
 	declare destructor ()
 	declare sub iniciarExtracao(nomeArquivo as String)
-	declare sub finalizarExtracao(mostrarProgresso as sub(porCompleto as double))
-	declare function carregarTxt(nomeArquivo as String, mostrarProgresso as sub(porCompleto as double)) as Boolean
-	declare function carregarCsv(nomeArquivo as String, mostrarProgresso as sub(porCompleto as double)) as Boolean
-	declare function processar(nomeArquivo as string, mostrarProgresso as sub(porCompleto as double), gerarRelatorios as boolean) as Boolean
-	declare sub analisar(mostrarProgresso as sub(porCompleto as double))
+	declare sub finalizarExtracao(mostrarProgresso as ProgressoCB)
+	declare function carregarTxt(nomeArquivo as String, mostrarProgresso as ProgressoCB) as Boolean
+	declare function carregarCsv(nomeArquivo as String, mostrarProgresso as ProgressoCB) as Boolean
+	declare function processar(nomeArquivo as string, mostrarProgresso as ProgressoCB, gerarRelatorios as boolean) as Boolean
+	declare sub analisar(mostrarProgresso as ProgressoCB)
    
 private:
+	declare function lerRegistro(bf as bfile, reg as TRegistro ptr) as Boolean
+	declare function lerRegistroSintegra(bf as bfile, reg as TRegistro ptr) as Boolean
+	declare sub lerAssinatura(bf as bfile)
+	declare function carregarSintegra(bf as bfile, mostrarProgresso as ProgressoCB) as Boolean
+	declare function carregarCsvNFeDest(bf as bfile, emModoOutrasUFs as boolean) as TDFe ptr
+	declare function carregarCsvNFeEmit(bf as bfile) as TDFe ptr
+	declare function carregarCsvNFeEmitItens(bf as bfile, chave as string) as TDFe_NFeItem ptr
+	declare function carregarCsvCTe(bf as bfile, emModoOutrasUFs as boolean) as TDFe ptr
+	declare sub adicionarDFe(dfe as TDFe ptr)
+	declare sub adicionarEfdDfe(chave as zstring ptr, operacao as TipoOperacao, dataEmi as zstring ptr, valorOperacao as double)
+	
+	declare sub addRegistroOrdenadoPorData(reg as TRegistro ptr)
+	
+	declare sub criarPlanilhas()
+	declare sub gerarPlanilhas(nomeArquivo as string, mostrarProgresso as ProgressoCB)
+	
+	declare sub gerarRelatorios(nomeArquivo as string, mostrarProgresso as ProgressoCB)
+	declare sub gerarRelatorioApuracaoICMS(nomeArquivo as string, reg as TRegistro ptr)
+	declare sub gerarRelatorioApuracaoICMSST(nomeArquivo as string, reg as TRegistro ptr)
+	declare sub iniciarRelatorio(relatorio as TipoRelatorio, nomeRelatorio as string, sufixo as string)
+	declare sub adicionarDocRelatorioEntradas(doc as TDocDFe ptr, part as TParticipante ptr)
+	declare sub adicionarDocRelatorioSaidas(doc as TDocDFe ptr, part as TParticipante ptr)
+	declare sub adicionarDocRelatorioItemAnal(sit as TipoSituacao, anal as TDocItemAnal ptr)
+	declare sub finalizarRelatorio()
+	declare sub relatorioSomarLR(sit as TipoSituacao, anal as TDocItemAnal ptr)
+	declare function codMunicipio2Nome(cod as integer) as string
+	
+	declare sub analisarFaltaDeEscrituracao(mostrarProgresso as ProgressoCB)
+
 	tipoArquivo				as TTipoArquivo
 	
 	'' registros das EFD's e do Sintegra (reiniciados a cada novo .txt carregado)
@@ -536,6 +567,7 @@ private:
 	naoEscrituradas			as ExcelWorksheet ptr
 	apuracaoIcms			as ExcelWorksheet ptr
 	apuracaoIcmsST			as ExcelWorksheet ptr
+	nomeArquivoSaida		as string
 
 	'' registros das NF-e's e CT-e's retirados dos relatórios do Infoview (mantidos do início ao fim da extração)
 	chaveDFeDict			as TDict
@@ -565,29 +597,5 @@ private:
 	''
 	assinaturaP7K_DER(any)	as byte
 	infAssinatura			as InfoAssinatura ptr
-
-	declare function lerRegistro(bf as bfile, reg as TRegistro ptr) as Boolean
-	declare function lerRegistroSintegra(bf as bfile, reg as TRegistro ptr) as Boolean
-	declare sub lerAssinatura(bf as bfile)
-	declare function carregarSintegra(bf as bfile, mostrarProgresso as sub(porCompleto as double)) as Boolean
-	declare function carregarCsvNFeDest(bf as bfile, emModoOutrasUFs as boolean) as TDFe ptr
-	declare function carregarCsvNFeEmit(bf as bfile) as TDFe ptr
-	declare function carregarCsvNFeEmitItens(bf as bfile, chave as string) as TDFe_NFeItem ptr
-	declare function carregarCsvCTe(bf as bfile, emModoOutrasUFs as boolean) as TDFe ptr
-	declare sub adicionarDFe(dfe as TDFe ptr)
-	declare sub adicionarEfdDfe(chave as zstring ptr, operacao as TipoOperacao, dataEmi as zstring ptr, valorOperacao as double)
-	declare sub addRegistroOrdenadoPorData(reg as TRegistro ptr)
-	declare sub criarPlanilhas()
-	declare sub gerarPlanilhas(nomeArquivo as string)
-	declare sub gerarRelatorios(nomeArquivo as string)
-	declare sub gerarRelatorioApuracaoICMS(nomeArquivo as string, reg as TRegistro ptr)
-	declare sub gerarRelatorioApuracaoICMSST(nomeArquivo as string, reg as TRegistro ptr)
-	declare sub iniciarRelatorio(relatorio as TipoRelatorio, nomeRelatorio as string, sufixo as string)
-	declare sub adicionarDocRelatorioEntradas(doc as TDocDFe ptr, part as TParticipante ptr)
-	declare sub adicionarDocRelatorioSaidas(doc as TDocDFe ptr, part as TParticipante ptr)
-	declare sub adicionarDocRelatorioItemAnal(sit as TipoSituacao, anal as TDocItemAnal ptr)
-	declare sub finalizarRelatorio()
-	declare sub relatorioSomarLR(sit as TipoSituacao, anal as TDocItemAnal ptr)
-	declare function codMunicipio2Nome(cod as integer) as string
 end type
 
