@@ -2,7 +2,7 @@
 #include once "list.bi" 
 
 ''''''''
-function TDb.open(fileName as string) as boolean
+function TDb.open(fileName as const zstring ptr) as boolean
 	
 	if sqlite3_open( fileName, @instance ) then 
   		errMsg = *sqlite3_errmsg( instance )
@@ -53,23 +53,7 @@ private function callback cdecl _
 end function 
 	
 ''''''''	
-function TDb.exec(query as string) as TRSet ptr
-
-	var rset_ = new TRSet
-	
-	dim as zstring ptr errMsg_ = null
-	if sqlite3_exec( instance, query, @callback, rset_, @errMsg_ ) <> SQLITE_OK then 
-		delete rset_
-		errMsg = *errMsg_
-		return null
-	end if 
-	
-	return rset_
-
-end function
-
-''''''''	
-function TDb.execScalar(query as string) as zstring ptr
+function TDb.exec(query as const zstring ptr) as TRSet ptr
 
 	var rs = new TRSet
 	
@@ -80,14 +64,34 @@ function TDb.execScalar(query as string) as zstring ptr
 		return null
 	end if 
 	
-	if rs->hasNext then
-		function = (*rs->row)[0]
+	return rs
+
+end function
+
+''''''''	
+function TDb.execScalar(query as const zstring ptr) as zstring ptr
+
+	dim as TRSet rs
+	
+	dim as zstring ptr errMsg_ = null
+	if sqlite3_exec( instance, query, @callback, @rs, @errMsg_ ) <> SQLITE_OK then 
+		errMsg = *errMsg_
+		return null
+	end if 
+	
+	if rs.hasNext then
+		var val = (*rs.row)[0]
+		if val = null then
+			return null
+		end if
+		
+		var val2 = cast(zstring ptr, allocate(len(*val)+1))
+		*val2 = *val
+		function = val2
 	else
 		function = null
 	end if
 	
-	delete rs
-
 end function
 
 
@@ -154,7 +158,7 @@ destructor TRSetRow()
 end destructor
 
 ''''''''
-sub TRSetRow.newColumn(name_ as zstring ptr, value as zstring ptr)
+sub TRSetRow.newColumn(name_ as const zstring ptr, value as const zstring ptr)
 	if columns.lookup(name_) = null then
 		dim as zstring ptr value2 = null
 		if value <> null then
@@ -174,7 +178,7 @@ sub TRSetRow.newColumn(name_ as zstring ptr, value as zstring ptr)
 end sub
 
 ''''''''
-operator TRSetRow.[](index as string) as zstring ptr
+operator TRSetRow.[](index as const zstring ptr) as zstring ptr
 	return columns.lookup( index )
 end operator
 

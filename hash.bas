@@ -165,19 +165,30 @@ function THash.lookupEx(key as const zstring ptr, index as uinteger ) as any ptr
 end function
 
 ''::::::
-function THash.lookup(key as zstring ptr) as any ptr
-
+function THash.lookup(key as const zstring ptr) as any ptr
     function = lookupEx( key, hash( key ) )
-
 end function
 
 ''::::::
-function THash.add(key as const zstring ptr, value as any ptr, index as uinteger) as HashItem ptr
+operator THash.[](key as integer) as any ptr
+	var k = str(key)
+	operator = lookupEx( strptr(k), hash( strptr(k) ) )
+end operator
 
-	'' calc hash?
-	if( index = cuint( -1 ) ) then
-		index = hash( key )
-	end if
+''::::::
+operator THash.[](key as const zstring ptr) as any ptr
+	operator = lookupEx( key, hash( key ) )
+end operator
+
+operator THash.[](key as double) as any ptr
+	var k = str(key)
+	operator = lookupEx( strptr(k), hash( strptr(k) ) )
+end operator
+
+''::::::
+function THash.add(key as const zstring ptr, value as any ptr) as HashItem ptr
+
+	var index = hash( key )
 
     index mod= this.nodes
 
@@ -198,6 +209,16 @@ function THash.add(key as const zstring ptr, value as any ptr, index as uinteger
     item->value = value
 
     function = item
+end function
+
+''::::::
+function THash.add(key as integer, value as any ptr) as HashItem ptr
+	function = add(str(key), value)
+end function
+
+''::::::
+function THash.add(key as double, value as any ptr) as HashItem ptr
+	function = add(str(key), value)
 end function
 
 ''::::::

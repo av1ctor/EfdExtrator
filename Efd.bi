@@ -559,6 +559,7 @@ private:
 	ultimoRelatorioSufixo	as string
 	relSomaLRHash			as THASH
 	relSomaLRList			as TLIST			'' de RelSomatorioLR
+	municipDict				as THash
 	
 	''
 	assinaturaP7K_DER(any)	as byte
@@ -586,5 +587,6 @@ private:
 	declare sub adicionarDocRelatorioItemAnal(sit as TipoSituacao, anal as TDocItemAnal ptr)
 	declare sub finalizarRelatorio()
 	declare sub relatorioSomarLR(sit as TipoSituacao, anal as TDocItemAnal ptr)
+	declare function codMunicipio2Nome(cod as integer) as string
 end type
 

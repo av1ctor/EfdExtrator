@@ -5,8 +5,8 @@
 type TRSetRow
 	declare constructor()
 	declare destructor()
-	declare sub newColumn(name as zstring ptr, value as zstring ptr)
-	declare operator [](index as string) as zstring ptr
+	declare sub newColumn(name as const zstring ptr, value as const zstring ptr)
+	declare operator [](index as const zstring ptr) as zstring ptr
 	declare operator [](index as integer) as zstring ptr
 private:
 	columns			as THash
@@ -28,10 +28,10 @@ private:
 end type
 
 type TDb
-	declare function open(fileName as string) as boolean
+	declare function open(fileName as const zstring ptr) as boolean
 	declare sub close()
-	declare function exec(query as string) as TRSet ptr
-	declare function execScalar(query as string) as zstring ptr
+	declare function exec(query as const zstring ptr) as TRSet ptr
+	declare function execScalar(query as const zstring ptr) as zstring ptr
 
 private:
 	instance 		as sqlite3 ptr 
