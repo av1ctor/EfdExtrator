@@ -1,13 +1,13 @@
-'' generic hash tables
+'' generic Dict tables
 
-#include once "hash.bi"
+#include once "Dict.bi"
 
-type HashItemPOOL
+type DictItemPOOL
 	refcount		as integer
 	list			as TList
 end type
 
-dim shared as HashItemPOOL itempool
+dim shared as DictItemPOOL itempool
 
 ''::::::
 private sub lazyInit()
@@ -19,7 +19,7 @@ private sub lazyInit()
 	const INITIAL_ITEMS = 8096
 
 	'' allocate the initial item list pool
-	itempool.list.init(INITIAL_ITEMS, sizeof(HashItem), false)
+	itempool.list.init(INITIAL_ITEMS, sizeof(DictItem), false)
 end sub
 
 ''::::::
@@ -33,10 +33,10 @@ private sub lazyEnd()
 end sub
 
 ''::::::
-private function hNewItem(chain_ as HashChain ptr) as HashItem ptr
+private function hNewItem(chain_ as DictChain ptr) as DictItem ptr
 
 	'' add a new node
-	var item = cast(HashItem ptr, itempool.list.add( ))
+	var item = cast(DictItem ptr, itempool.list.add( ))
 
 	'' add it to the internal linked-list
 	if( chain_->tail <> NULL ) then
@@ -55,7 +55,7 @@ private function hNewItem(chain_ as HashChain ptr) as HashItem ptr
 end function
 
 ''::::::
-private sub hDelItem(chain_ as HashChain ptr, item as HashItem ptr)
+private sub hDelItem(chain_ as DictChain ptr, item as DictItem ptr)
 
 	''
 	if( item = NULL ) Then
@@ -83,12 +83,12 @@ private sub hDelItem(chain_ as HashChain ptr, item as HashItem ptr)
 end sub
 
 ''::::::
-sub THash.init(nodes as integer, delKey as boolean, delVal as boolean, allocKey as boolean)
+sub TDict.init(nodes as integer, delKey as boolean, delVal as boolean, allocKey as boolean)
 
 	lazyInit()
 
 	'' allocate a fixed list of internal linked-lists
-	this.chain = callocate( nodes * len( HashChain ) )
+	this.chain = callocate( nodes * len( DictChain ) )
 	this.nodes = nodes
 	this.delKey = delKey or allocKey
 	this.delVal = delVal
@@ -97,7 +97,7 @@ sub THash.init(nodes as integer, delKey as boolean, delVal as boolean, allocKey 
 end sub
 
 ''::::::
-sub THash.end_()
+sub TDict.end_()
 
     var list_ = this.chain
 
@@ -132,7 +132,7 @@ sub THash.end_()
 end sub
 
 ''::::::
-function THash.hash(key as const zstring ptr) as uinteger
+function TDict.hash(key as const zstring ptr) as uinteger
 	dim as uinteger index = 0
 	do while (key[0])
 		index = key[0] + (index shl 5) - index
@@ -142,7 +142,7 @@ function THash.hash(key as const zstring ptr) as uinteger
 end function
 
 ''::::::
-function THash.lookupEx(key as const zstring ptr, index as uinteger ) as any ptr
+function TDict.lookupEx(key as const zstring ptr, index as uinteger ) as any ptr
 
     index mod= this.nodes
 
@@ -165,28 +165,28 @@ function THash.lookupEx(key as const zstring ptr, index as uinteger ) as any ptr
 end function
 
 ''::::::
-function THash.lookup(key as const zstring ptr) as any ptr
+function TDict.lookup(key as const zstring ptr) as any ptr
     function = lookupEx( key, hash( key ) )
 end function
 
 ''::::::
-operator THash.[](key as integer) as any ptr
+operator TDict.[](key as integer) as any ptr
 	var k = str(key)
 	operator = lookupEx( strptr(k), hash( strptr(k) ) )
 end operator
 
 ''::::::
-operator THash.[](key as const zstring ptr) as any ptr
+operator TDict.[](key as const zstring ptr) as any ptr
 	operator = lookupEx( key, hash( key ) )
 end operator
 
-operator THash.[](key as double) as any ptr
+operator TDict.[](key as double) as any ptr
 	var k = str(key)
 	operator = lookupEx( strptr(k), hash( strptr(k) ) )
 end operator
 
 ''::::::
-function THash.add(key as const zstring ptr, value as any ptr) as HashItem ptr
+function TDict.add(key as const zstring ptr, value as any ptr) as DictItem ptr
 
 	var index = hash( key )
 
@@ -212,17 +212,17 @@ function THash.add(key as const zstring ptr, value as any ptr) as HashItem ptr
 end function
 
 ''::::::
-function THash.add(key as integer, value as any ptr) as HashItem ptr
+function TDict.add(key as integer, value as any ptr) as DictItem ptr
 	function = add(str(key), value)
 end function
 
 ''::::::
-function THash.add(key as double, value as any ptr) as HashItem ptr
+function TDict.add(key as double, value as any ptr) as DictItem ptr
 	function = add(str(key), value)
 end function
 
 ''::::::
-sub THash.del(item as HashItem ptr, index as uinteger)
+sub TDict.del(item as DictItem ptr, index as uinteger)
 
 	if( item = NULL ) then
 		exit sub

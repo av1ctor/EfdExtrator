@@ -54,7 +54,7 @@ function ExcelWriter.Create(fileName as string) as boolean
 end function
 
 ''
-function ExcelWriter.Flush(showProgress as sub(perComplete as double)) as boolean
+function ExcelWriter.Flush(showProgress as ProgressCB) as boolean
 
 	var sheet = workbook->worksheetListHead
 	var p = 1
@@ -131,7 +131,7 @@ function ExcelWriter.Flush(showProgress as sub(perComplete as double)) as boolea
 				
 				curRow += 1
 				if showProgress <> null then
-					showProgress(curRow / totalRows)
+					showProgress(null, curRow / totalRows)
 				end if
 				
 				print #fnum, !"<Row>"

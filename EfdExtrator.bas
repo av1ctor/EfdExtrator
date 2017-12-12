@@ -7,7 +7,7 @@ declare sub main()
 '''''''''''
 sub mostrarUso()
 	print wstr("Modo de usar:")
-	print wstr("EfdExtrator.exe [-gerarPDF] arquivo.txt [arquivo.csv]")
+	print wstr("EfdExtrator.exe [-gerarRelatorios] arquivo.txt [arquivo.csv]")
 	print wstr("Notas:")
 	print wstr(!"\t1. No lugar do nome dos arquivos, podem ser usadas máscaras,")
 	print wstr(!"\t   como por exemplo: *.txt e *.csv")
@@ -17,7 +17,8 @@ sub mostrarUso()
 	print wstr(!"\t   como por exemplo: \"2017 SAFI_NFe_Emitente_Itens parte 1.csv\"")
 	print wstr(!"\t4. No final da extração será gerado um arquivo .xml que deve ser")
 	print wstr(!"\t   aberto no Excel 2003 ou superior")
-	print wstr(!"\t5. A opção -gerarPDF ir gerar os relatórios no formato do EFD-ICMS-IPI")
+	print wstr(!"\t5. A opção -gerarRelatorios gera os relatórios do EFD-ICMS-IPI")
+	print wstr(!"\t   no formato Word/docx")
 	print 
 end sub
 
@@ -28,18 +29,33 @@ sub mostrarCopyright()
 	print
 end sub
 
-	dim shared ultPorCompleto as double = 0
-
-sub mostrarProgresso(porCompleto as double)
+'''''''''''
+sub mostrarProgresso(estagio as const wstring ptr, porCompleto as double)
+	static as double ultPorCompleto = 0
+	
+	if estagio <> null then
+		print *estagio;
+	end if
+	
+	if porCompleto = 0 then
+		ultPorCompleto = 0
+		return
+	end if
+	
 	do while porCompleto >= ultPorCompleto + 0.05
 		print ".";
 		ultPorCompleto += 0.05
 	loop
+	
+	if porCompleto = 1 then
+		print "OK!"
+	end if
+	
 end sub
 
 '''''''''''
 sub main()
-	var gerarPDF = false
+	var gerarRelatorios = false
 	
 	mostrarCopyright()
    
@@ -48,7 +64,7 @@ sub main()
 		exit sub
 	end if
    
-	dim e as Efd
+	dim as Efd e
 	
 	'' verificar opções
 	var nroOpcoes = 0
@@ -60,8 +76,8 @@ sub main()
 		end if
 		
 		if arg[0] = asc("-") then
-			if arg = "-gerarPDF" then
-				gerarPDF = true
+			if arg = "-gerarRelatorios" then
+				gerarRelatorios = true
 				nroOpcoes += 1
 			else
 				mostrarUso()
@@ -84,14 +100,10 @@ sub main()
 	   var arquivoEntrada = command(i)
 	   do while len(arquivoEntrada) > 0
 			if lcase(right(arquivoEntrada,3)) = "csv" then
-				print "Carregando arquivo " + arquivoEntrada;
-				
-				ultPorCompleto = 0
 				if not e.carregarCsv( arquivoEntrada, @mostrarProgresso ) then
 					print !"\r\nErro ao carregar arquivo!"
 					end -1
 				end if
-				print "OK!"
 			end if 
 
 			i += 1
@@ -103,22 +115,16 @@ sub main()
 	   arquivoEntrada = command(i)
 	   do while len(arquivoEntrada) > 0
 			if lcase(right(arquivoEntrada,3)) = "txt" then
-				print "Carregando arquivo " + arquivoEntrada;
-
-				ultPorCompleto = 0
 				if not e.carregarTxt( arquivoEntrada, @mostrarProgresso ) then
 					print !"\r\nErro ao carregar arquivo!"
 					end -1
 				end if
-				print "OK!"
 				
-				print "Processando";
-				ultPorCompleto = 0
-				if not e.processar( arquivoEntrada, @mostrarProgresso, gerarPDF ) then
+				print "Processando:"
+				if not e.processar( arquivoEntrada, @mostrarProgresso, gerarRelatorios ) then
 					print !"\r\nErro ao extrair arquivo: "; arquivoEntrada
 					end -1
 				end if
-				print "OK!"
 			end if 
 			 
 			i += 1
@@ -127,35 +133,25 @@ sub main()
 	   
 	'' só um arquivo .txt informado..
 	else
-		print "Carregando arquivo";
-		ultPorCompleto = 0
 		var arquivoEntrada = command(nroOpcoes+1)
 		if not e.carregarTxt( arquivoEntrada, @mostrarProgresso ) then
 			print !"\r\nErro ao carregar arquivo: "; arquivoEntrada
 			end -1
 		end if
-		print "OK!"
 	
-		print "Processando";
-		ultPorCompleto = 0
-		if not e.processar( arquivoEntrada, @mostrarProgresso, gerarPDF ) then
+		print "Processando:"
+		if not e.processar( arquivoEntrada, @mostrarProgresso, gerarRelatorios ) then
 			print !"\r\nErro ao extrair arquivo: "; arquivoEntrada
 			end -1
 		end if
-		print "OK!"
 	end if
 	
 	''
-	print wstr("Realizando cruzamentos e análises");
-	ultPorCompleto = 0
+	print "Analisando:"
 	e.analisar(@mostrarProgresso)
-	print "OK!"
    
 	''
-	print wstr("Gravando arquivo de saída: "); arquivoSaida + ".xml";
-	ultPorCompleto = 0
 	e.finalizarExtracao( @mostrarProgresso )
-	print "OK!"
 	
 end sub
    

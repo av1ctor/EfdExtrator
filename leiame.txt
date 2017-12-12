@@ -1,4 +1,4 @@
-Extrator de EFD/Sintegra para Excel
+Extrator de EFD/Sintegra para Excel/Word
 Copyleft 2017 by André Vicentini (avtvicentini)
 
 Modo de usar:
@@ -12,4 +12,5 @@ Notas:
            como por exemplo: "2017 SAFI_NFe_Emitente_Itens parte 1.csv"
         4. No final da extração será gerado um arquivo .xml que deve ser
            aberto no Excel 2003 ou superior
-        5. A opção -gerarPDF ir gerar os relatórios no formato do EFD-ICMS-IPI
+        5. A opção -gerarRelatorios gera os relatórios do EFD-ICMS-IPI
+		   no formato Word/docx
