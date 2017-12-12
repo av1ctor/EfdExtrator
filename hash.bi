@@ -18,9 +18,14 @@ end type
 type THash
 	declare sub init(nodes as integer, delKey as boolean = false, delVal as boolean = false, allocKey as boolean = false)
 	declare sub end_()
-	declare function lookup(key as zstring ptr) as any ptr
+	declare function lookup(key as const zstring ptr) as any ptr
 	declare function lookupEx(key as const zstring ptr, index as uinteger) as any ptr
-	declare function add(key as const zstring ptr, value as any ptr, index as uinteger = cuint( -1 )) as HashItem ptr
+	declare operator [](key as integer) as any ptr
+	declare operator [](key as double) as any ptr
+	declare operator [](key as const zstring ptr) as any ptr
+	declare function add(key as integer, value as any ptr) as HashItem ptr
+	declare function add(key as double, value as any ptr) as HashItem ptr
+	declare function add(key as const zstring ptr, value as any ptr) as HashItem ptr
 	declare sub del(item as HashItem ptr, index as uinteger)
 
 private:	

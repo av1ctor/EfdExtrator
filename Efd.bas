@@ -75,6 +75,8 @@ constructor Efd()
 	
 	dfwd = new DocxFactoryDyn
 	
+	municipDict.init(2^10, true, true, true)
+	
 	''
 	dbConfig = new TDb
 	dbConfig->open(ExePath + "\db\config.db")
@@ -88,6 +90,8 @@ destructor Efd()
 	delete dbConfig
 	
 	''
+	municipDict.end_()
+	
 	delete dfwd
 	
 	''
@@ -2414,14 +2418,22 @@ sub Efd.gerarRelatorioApuracaoICMSST(nomeArquivo as string, reg as TRegistro ptr
 	
 end sub
 
-private function codMunicip2Nome(dbConfig as TDb ptr, cod as integer) as string
-	var nome =  dbConfig->execScalar("select Nome || ' - ' || uf nome from Municipio where Codigo = " & cod)
-
-	if nome = null then
-		return ""
-	else
+''''''''
+function EFd.codMunicipio2Nome(cod as integer) as string
+	
+	var nome = cast(zstring ptr, municipDict[cod])
+	if nome <> null then
 		return *nome
 	end if
+	
+	var nomedb = dbConfig->execScalar("select Nome || ' - ' || uf nome from Municipio where Codigo = " & cod)
+	if nomedb = null then
+		return ""
+	end if
+	
+	municipDict.add(cod, nomedb)
+	
+	function = *nomedb
 end function
 
 ''''''''
@@ -2445,7 +2457,7 @@ sub Efd.iniciarRelatorio(relatorio as TipoRelatorio, nomeRelatorio as string, su
 	
 	select case relatorio
 	case REL_LRE, REL_LRS
-		dfwd->setClipboardValueByStrW("_header", "municipio", codMunicip2Nome(dbConfig, regListHead->mestre.municip))
+		dfwd->setClipboardValueByStrW("_header", "municipio", codMunicipio2Nome(regListHead->mestre.municip))
 		dfwd->setClipboardValueByStr("_header", "apu", STR2DATABR(regListHead->mestre.dataIni) + " a " + STR2DATABR(regListHead->mestre.dataFim))
 	
 		relSomaLRList.init(10, len(RelSomatorioLR))
@@ -2555,7 +2567,7 @@ sub Efd.adicionarDocRelatorioEntradas(doc as TDocDFe ptr, part as TParticipante 
 	dfwd->setClipboardValueByStr("linha", "cnpj", STR2CNPJ(part->cnpj))
 	dfwd->setClipboardValueByStr("linha", "ie", STR2IE(part->ie))
 	dfwd->setClipboardValueByStr("linha", "uf", MUNICIPIO2SIGLA(part->municip))
-	dfwd->setClipboardValueByStr("linha", "municip", part->municip)
+	dfwd->setClipboardValueByStr("linha", "municip", codMunicipio2Nome(part->municip))
 	dfwd->setClipboardValueByStrW("linha", "razao", left(part->nome, 64))
 	
 	dfwd->paste("linha")
