@@ -18,6 +18,7 @@ type TList
 	declare sub init(nodes as integer, nodeLen as integer, clearNodes as boolean = true)
 	declare sub end_()
 	declare function add() as any ptr
+	declare function addOrdAsc(key as any ptr, cmpFunc as function(key as any ptr, node as any ptr) as boolean) as any ptr
 	declare sub del(node as any ptr)
 	declare property head() as any ptr
 	declare property tail() as any ptr

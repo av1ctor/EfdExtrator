@@ -113,6 +113,57 @@ function TList.add() as any ptr
 end function
 
 '':::::
+function TList.addOrdAsc(key as any ptr, cmpFunc as function(key as any ptr, node as any ptr) as boolean) as any ptr
+
+	'' alloc new node list if there are no free nodes
+	if( this.fhead = NULL ) Then
+		allocTB( cunsg(this.nodes) \ 4 )
+	end if
+
+	'' take from free list
+	var node = this.fhead
+	this.fhead = node->next
+	
+	'' add to used list
+	if( this.ahead = null ) then
+		this.ahead = node
+		this.atail = node
+		node->prev = null
+		node->next = null
+	else
+		var n = this.ahead
+		var p = cast(TListNode ptr, null)
+		do
+			if( cmpFunc(key, cast(any ptr, cast( byte ptr, n ) + len( TListNode ))) ) then
+				node->next = n
+				node->prev = n->prev
+				n->prev = node
+				if p <> null then
+					p->next = node
+				else
+					this.ahead = node
+				end if
+				exit do
+			end if
+			
+			p = n
+			n = n->next
+		loop until( n = null )
+		
+		if( n = null ) then
+			this.atail->next = node
+			node->prev = this.atail
+			node->next = null
+			this.atail = node
+		end if
+	end if
+
+	function = cast( byte ptr, node ) + len( TListNode )
+
+end function
+
+
+'':::::
 sub TList.del(node_ as any ptr)
 
 	if( node_ = NULL ) then
