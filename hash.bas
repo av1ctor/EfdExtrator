@@ -4,7 +4,7 @@
 
 type HASHITEMPOOL
 	as integer refcount
-	as TLIST list
+	as TList list
 end type
 
 
@@ -24,7 +24,7 @@ private sub lazyInit()
 	const INITIAL_ITEMS = 8096
 
 	'' allocate the initial item list pool
-	listInit(@itempool.list, INITIAL_ITEMS, sizeof(HASHITEM), LIST_FLAGS_NOCLEAR)
+	itempool.list.init(INITIAL_ITEMS, sizeof(HASHITEM))
 end sub
 
 ''::::::
@@ -34,7 +34,7 @@ private sub lazyEnd()
 		exit sub
 	end if
 
-	listEnd(@itempool.list)
+	itempool.list.end_()
 end sub
 
 ''::::::
@@ -150,7 +150,7 @@ private function hashNewItem _
 	) as HASHITEM ptr
 
 	'' add a new node
-	var item = cast(HASHITEM ptr, listNewNode( @itempool.list ))
+	var item = cast(HASHITEM ptr, itempool.list.add( ))
 
 	'' add it to the internal linked-list
 	if( list->tail <> NULL ) then
@@ -196,7 +196,7 @@ private sub hashDelItem _
 	end if
 
 	'' remove node
-	listDelNode( @itempool.list, item )
+	itempool.list.del( item )
 
 end sub
 

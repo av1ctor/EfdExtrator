@@ -3,18 +3,6 @@
 
 #define NULL 0
 
-enum LIST_FLAGS
-	LIST_FLAGS_NONE				= &h00000000
-
-	LIST_FLAGS_CLEARNODES		= &h00000001
-	LIST_FLAGS_LINKFREENODES	= &h00000002
-	LIST_FLAGS_LINKUSEDNODES	= &h00000004
-
-	LIST_FLAGS_CLEAR			= LIST_FLAGS_CLEARNODES or LIST_FLAGS_LINKFREENODES or LIST_FLAGS_LINKUSEDNODES
-	LIST_FLAGS_NOCLEAR			= LIST_FLAGS_LINKFREENODES or LIST_FLAGS_LINKUSEDNODES
-	LIST_FLAGS_ALL 				= &hFFFFFFFF
-end enum
-
 type TLISTNODE
 	prev	as TLISTNODE ptr
 	next	as TLISTNODE ptr
@@ -26,62 +14,27 @@ type TLISTTB
 	nodes	as integer
 end type
 
-type TLIST
+type TList
+	declare sub init(byval nodes as integer, byval nodelen as integer)
+	declare sub end_()
+	declare function add() as any ptr
+	declare sub del(byval node as any ptr)
+	declare property head() as any ptr
+	declare property tail() as any ptr
+	declare property prev(byval node as any ptr) as any ptr
+	declare property next_(byval node as any ptr) as any ptr
+
+private:
+	declare sub allocTB(byval nodes as integer)
+	
 	tbhead	as TLISTTB ptr
 	tbtail	as TLISTTB ptr
 	nodes 	as integer
 	nodelen	as integer
 	fhead	as TLISTNODE ptr					'' free list
-	head	as any ptr							'' used list
-	tail	as any ptr							'' /
-	flags	as LIST_FLAGS
+	ahead	as TLISTNODE ptr					'' allocated list
+	atail	as TLISTNODE ptr					'' /
 end type
 
-declare sub listInit _
-	( _
-		byval list as TLIST ptr, _
-		byval nodes as integer, _
-		byval nodelen as integer, _
-		byval flags as LIST_FLAGS = LIST_FLAGS_ALL _
-	)
-
-declare sub listEnd(byval list as TLIST ptr)
-
-declare function listNewNode _
-	( _
-		byval list as TLIST ptr _
-	) as any ptr
-
-declare sub listDelNode _
-	( _
-		byval list as TLIST ptr, _
-		byval node as any ptr _
-	)
-
-declare sub listAllocTB _
-	( _
-		byval list as TLIST ptr, _
-		byval nodes as integer _
-	)
-
-declare function listGetHead _
-	( _
-		byval list as TLIST ptr _
-	) as any ptr
-
-declare function listGetTail _
-	( _
-		byval list as TLIST ptr _
-	) as any ptr
-
-declare function listGetPrev _
-	( _
-		byval node as any ptr _
-	) as any ptr
-
-declare function listGetNext _
-	( _
-		byval node as any ptr _
-	) as any ptr
 
 #endif '' __LIST_BI__

@@ -95,19 +95,19 @@ end function
 
 ''''''''
 constructor TRSet()
-	listInit(@rows, 10, len(TRSetRow))
+	rows.init(10, len(TRSetRow))
 	currRow = null
 end constructor	
 	
 ''''''''
 destructor TRSet()
-	var r = cast(TRSetRow ptr, listGetHead(@rows))
+	var r = cast(TRSetRow ptr, rows.head)
 	do while r <> null
 		r->destructor
-		r = listGetNext(r)
+		r = rows.next_(r)
 	loop
 	
-	listEnd(@rows)
+	rows.end_()
 	currRow = null
 end destructor
 
@@ -119,7 +119,7 @@ end function
 ''''''''
 sub TRSet.next_() 
 	if currRow <> null then
-		currRow = listGetNext(currRow)
+		currRow = rows.next_(currRow)
 	end if
 end sub
 
@@ -130,7 +130,7 @@ end property
 
 ''''''''
 function TRSet.newRow() as TRSetRow ptr
-	var p = listNewNode(@rows)
+	var p = rows.add()
 	var r = new (p) TRSetRow()
 	if currRow = null then
 		currRow = r
