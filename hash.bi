@@ -3,16 +3,16 @@
 
 #include once "list.bi"
 
-type HASHITEM
+type HashItem
 	key			as const zstring ptr			'' shared if allocKey = false
 	value		as any ptr						'' user data
-	prev		as HASHITEM ptr
-	next		as HASHITEM ptr
+	prev		as HashItem ptr
+	next		as HashItem ptr
 end type
 
-type HASHLIST
-	head		as HASHITEM ptr
-	tail		as HASHITEM ptr
+type HashChain
+	head		as HashItem ptr
+	tail		as HashItem ptr
 end type
 
 type THash
@@ -20,13 +20,13 @@ type THash
 	declare sub end_()
 	declare function lookup(key as zstring ptr) as any ptr
 	declare function lookupEx(key as const zstring ptr, index as uinteger) as any ptr
-	declare function add(key as const zstring ptr, value as any ptr, index as uinteger = cuint( -1 )) as HASHITEM ptr
-	declare sub del(item as HASHITEM ptr, index as uinteger)
+	declare function add(key as const zstring ptr, value as any ptr, index as uinteger = cuint( -1 )) as HashItem ptr
+	declare sub del(item as HashItem ptr, index as uinteger)
 
 private:	
 	declare function hash(key as const zstring ptr) as uinteger
 
-	list		as HASHLIST ptr
+	chain		as HashChain ptr
 	nodes		as integer
 	delKey		as boolean
 	delVal		as boolean

@@ -3,19 +3,19 @@
 
 #define NULL 0
 
-type TLISTNODE
-	prev	as TLISTNODE ptr
-	next	as TLISTNODE ptr
+type TListNode
+	prev		as TListNode ptr
+	next		as TListNode ptr
 end type
 
-type TLISTTB
-	next	as TLISTTB ptr
-	nodetb	as any ptr
-	nodes	as integer
+type TListTb
+	next		as TListTb ptr
+	nodetb		as any ptr
+	nodes		as integer
 end type
 
 type TList
-	declare sub init(nodes as integer, nodelen as integer)
+	declare sub init(nodes as integer, nodeLen as integer, clearNodes as boolean = true)
 	declare sub end_()
 	declare function add() as any ptr
 	declare sub del(node as any ptr)
@@ -27,13 +27,14 @@ type TList
 private:
 	declare sub allocTB(nodes as integer)
 	
-	tbhead	as TLISTTB ptr
-	tbtail	as TLISTTB ptr
-	nodes 	as integer
-	nodelen	as integer
-	fhead	as TLISTNODE ptr					'' free list
-	ahead	as TLISTNODE ptr					'' allocated list
-	atail	as TLISTNODE ptr					'' /
+	tbhead		as TListTb ptr
+	tbtail		as TListTb ptr
+	nodes 		as integer
+	nodeLen		as integer
+	clearNodes	as boolean
+	fhead		as TListNode ptr					'' free list
+	ahead		as TListNode ptr					'' allocated list
+	atail		as TListNode ptr					'' /
 end type
 
 

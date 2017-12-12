@@ -3,15 +3,16 @@
 #include once "list.bi"
 
 '':::::
-sub TList.init(nodes as integer, nodelen as integer )
+sub TList.init(nodes as integer, nodelen as integer, clearNodes as boolean)
 
 	'' fill ctrl struct
 	this.tbhead = NULL
 	this.tbtail = NULL
 	this.nodes	= 0
-	this.nodelen = nodelen + len( TLISTNODE )
+	this.nodeLen = nodelen + len( TListNode )
 	this.ahead = NULL
 	this.atail = NULL
+	this.clearNodes = clearNodes
 
 	'' allocate the initial pool
 	allocTB( nodes )
@@ -40,10 +41,15 @@ sub TList.allocTB(nodes as integer)
 	assert(nodes >= 1)
 
 	'' allocate the pool
-	var nodetb = cast(TLISTNODE ptr, callocate( nodes * this.nodelen ))
+	dim as TListNode ptr nodetb
+	if clearNodes then
+		nodetb = cast(TListNode ptr, callocate( nodes * this.nodelen ))
+	else
+		nodetb = cast(TListNode ptr, allocate( nodes * this.nodelen ))
+	end if
 
 	'' and the pool ctrl struct
-	var tb = cast(TLISTTB ptr, allocate( len( TLISTTB ) ))
+	var tb = cast(TListTb ptr, allocate( len( TListTb ) ))
 
 	'' add the ctrl struct to pool list
 	if( this.tbhead = NULL ) then
@@ -62,12 +68,12 @@ sub TList.allocTB(nodes as integer)
 	this.fhead = nodetb
 	this.nodes += nodes
 
-	var prv = cast(TLISTNODE ptr, NULL)
+	var prv = cast(TListNode ptr, NULL)
 	var node = this.fhead
 
 	for i as integer = 1 to nodes-1
 		node->prev	= prv
-		node->next	= cast( TLISTNODE ptr, cast( byte ptr, node ) + this.nodelen )
+		node->next	= cast( TListNode ptr, cast( byte ptr, node ) + this.nodelen )
 
 		prv = node
 		node = node->next
@@ -91,18 +97,18 @@ function TList.add() as any ptr
 	this.fhead = node->next
 
 	'' add to used list
-	var t = this.atail
-	this.atail = node
-	if( t <> NULL ) then
-		t->next = node
+	if( this.atail <> NULL ) then
+		this.atail->next = node
 	else
 		this.ahead = node
 	end If
 
-	node->prev = atail
+	node->prev = this.atail
 	node->next = NULL
 
-	function = cast( byte ptr, node ) + len( TLISTNODE )
+	this.atail = node
+
+	function = cast( byte ptr, node ) + len( TListNode )
 
 end function
 
@@ -113,7 +119,7 @@ sub TList.del(node_ as any ptr)
 		exit sub
 	end if
 
-	var node = cast( TLISTNODE ptr, cast( byte ptr, node_ ) - len( TLISTNODE ) )
+	var node = cast( TListNode ptr, cast( byte ptr, node_ ) - len( TListNode ) )
 
 	'' remove from used list
 	var prv = node->prev
@@ -135,7 +141,9 @@ sub TList.del(node_ as any ptr)
 	this.fhead = node
 
 	'' node can contain strings descriptors, so, erase it..
-	clear( node_, 0, this.nodelen - len( TLISTNODE ) )
+	if clearNodes then
+		clear( byval node_, 0, this.nodelen - len( TListNode ) )
+	end if
 
 end sub
 
@@ -145,7 +153,7 @@ property TList.head( ) as any ptr
 	if( this.ahead = NULL ) then
 		return NULL
 	else
-		return cast( byte ptr, this.ahead ) + len( TLISTNODE )
+		return cast( byte ptr, this.ahead ) + len( TListNode )
 	end if
 
 end property
@@ -156,7 +164,7 @@ property TList.tail() as any ptr
 	if( this.atail = NULL ) then
 		return NULL
 	else
-		return cast( byte ptr, this.atail ) + len( TLISTNODE )
+		return cast( byte ptr, this.atail ) + len( TListNode )
 	end if
 
 end property
@@ -166,12 +174,12 @@ property TList.prev(node as any ptr) as any ptr
 
 	assert( node <> NULL )
 
-	var prv = cast( TLISTNODE ptr, cast( byte ptr, node ) - len( TLISTNODE ) )->prev
+	var prv = cast( TListNode ptr, cast( byte ptr, node ) - len( TListNode ) )->prev
 
 	if( prv = NULL ) then
 		return NULL
 	else
-		return cast( byte ptr, prv ) + len( TLISTNODE )
+		return cast( byte ptr, prv ) + len( TListNode )
 	end if
 
 end property
@@ -181,12 +189,12 @@ property TList.next_(node as any ptr) as any ptr
 
 	assert( node <> NULL )
 
-	var nxt = cast( TLISTNODE ptr, cast( byte ptr, node ) - len( TLISTNODE ) )->next
+	var nxt = cast( TListNode ptr, cast( byte ptr, node ) - len( TListNode ) )->next
 
 	if( nxt = NULL ) then
 		return NULL
 	else
-		return cast( byte ptr, nxt ) + len( TLISTNODE )
+		return cast( byte ptr, nxt ) + len( TListNode )
 	end if
 
 end property
