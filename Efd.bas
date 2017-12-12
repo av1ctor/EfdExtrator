@@ -1737,12 +1737,12 @@ function Efd.processar(nomeArquivo as string, mostrarProgresso as sub(porComplet
 	if gerarPDF then
 		if tipoArquivo = TIPO_ARQUIVO_EFD then
 			infAssinatura = lerInfoAssinatura(nomeArquivo, assinaturaP7K_DER())
-		end if
 		
-		gerarRelatorios(nomeArquivo)
-		
-		if infAssinatura <> NULL then
-			delete infAssinatura
+			gerarRelatorios(nomeArquivo)
+			
+			if infAssinatura <> NULL then
+				delete infAssinatura
+			end if
 		end if
 	end if
 	

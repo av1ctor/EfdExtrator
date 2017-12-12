@@ -2,12 +2,12 @@
 
 #include once "hash.bi"
 
-type HASHITEMPOOL
-	as integer refcount
-	as TList list
+type HashItemPOOL
+	refcount		as integer
+	list			as TList
 end type
 
-dim shared as HASHITEMPOOL itempool
+dim shared as HashItemPOOL itempool
 
 ''::::::
 private sub lazyInit()
@@ -19,7 +19,7 @@ private sub lazyInit()
 	const INITIAL_ITEMS = 8096
 
 	'' allocate the initial item list pool
-	itempool.list.init(INITIAL_ITEMS, sizeof(HASHITEM))
+	itempool.list.init(INITIAL_ITEMS, sizeof(HashItem), false)
 end sub
 
 ''::::::
@@ -33,29 +33,29 @@ private sub lazyEnd()
 end sub
 
 ''::::::
-private function hNewItem(list as HASHLIST ptr) as HASHITEM ptr
+private function hNewItem(chain_ as HashChain ptr) as HashItem ptr
 
 	'' add a new node
-	var item = cast(HASHITEM ptr, itempool.list.add( ))
+	var item = cast(HashItem ptr, itempool.list.add( ))
 
 	'' add it to the internal linked-list
-	if( list->tail <> NULL ) then
-		list->tail->next = item
+	if( chain_->tail <> NULL ) then
+		chain_->tail->next = item
 	else
-		list->head = item
+		chain_->head = item
 	end if
 
-	item->prev = list->tail
+	item->prev = chain_->tail
 	item->next = NULL
 
-	list->tail = item
+	chain_->tail = item
 
 	function = item
 
 end function
 
 ''::::::
-private sub hDelItem(list as HASHLIST ptr, item as HASHITEM ptr)
+private sub hDelItem(chain_ as HashChain ptr, item as HashItem ptr)
 
 	''
 	if( item = NULL ) Then
@@ -68,13 +68,13 @@ private sub hDelItem(list as HASHLIST ptr, item as HASHITEM ptr)
 	if( prv <> NULL ) then
 		prv->next = nxt
 	else
-		list->head = nxt
+		chain_->head = nxt
 	end If
 
 	if( nxt <> NULL ) then
 		nxt->prev = prv
 	else
-		list->tail = prv
+		chain_->tail = prv
 	end if
 
 	'' remove node
@@ -88,7 +88,7 @@ sub THash.init(nodes as integer, delKey as boolean, delVal as boolean, allocKey 
 	lazyInit()
 
 	'' allocate a fixed list of internal linked-lists
-	this.list = callocate( nodes * len( HASHLIST ) )
+	this.chain = callocate( nodes * len( HashChain ) )
 	this.nodes = nodes
 	this.delKey = delKey or allocKey
 	this.delVal = delVal
@@ -99,7 +99,7 @@ end sub
 ''::::::
 sub THash.end_()
 
-    var list_ = this.list
+    var list_ = this.chain
 
 	for i as integer = 0 to this.nodes-1
 		var item = list_->head
@@ -124,8 +124,8 @@ sub THash.end_()
 		list_ += 1
 	next
 
-	deallocate( this.list )
-	this.list = NULL
+	deallocate( this.chain )
+	this.chain = NULL
 
 	lazyEnd()
 
@@ -147,7 +147,7 @@ function THash.lookupEx(key as const zstring ptr, index as uinteger ) as any ptr
     index mod= this.nodes
 
 	'' get the start of list
-	var item = (@this.list[index])->head
+	var item = (@this.chain[index])->head
 	if( item = NULL ) then
 		return NULL
 	end if
@@ -172,7 +172,7 @@ function THash.lookup(key as zstring ptr) as any ptr
 end function
 
 ''::::::
-function THash.add(key as const zstring ptr, value as any ptr, index as uinteger) as HASHITEM ptr
+function THash.add(key as const zstring ptr, value as any ptr, index as uinteger) as HashItem ptr
 
 	'' calc hash?
 	if( index = cuint( -1 ) ) then
@@ -182,7 +182,7 @@ function THash.add(key as const zstring ptr, value as any ptr, index as uinteger
     index mod= this.nodes
 
     '' allocate a new node
-    var item = hNewItem( @this.list[index] )
+    var item = hNewItem( @this.chain[index] )
 
     if( item = NULL ) then
     	return null
@@ -201,7 +201,7 @@ function THash.add(key as const zstring ptr, value as any ptr, index as uinteger
 end function
 
 ''::::::
-sub THash.del(item as HASHITEM ptr, index as uinteger)
+sub THash.del(item as HashItem ptr, index as uinteger)
 
 	if( item = NULL ) then
 		exit sub
@@ -220,7 +220,7 @@ sub THash.del(item as HASHITEM ptr, index as uinteger)
 	end if
 	item->value = NULL
 
-	hDelItem( @this.list[index], item )
+	hDelItem( @this.chain[index], item )
 
 end sub
 
