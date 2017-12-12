@@ -1,7 +1,7 @@
 
 #include once "efd.bi"
 #include once "bfile.bi"
-#include once "hash.bi"
+#include once "Dict.bi"
 #include once "ExcelWriter.bi"
 #include once "vbcompat.bi"
 #include once "ssl_helper.bi"
@@ -918,10 +918,10 @@ private function Efd.lerRegistroSintegra(bf as bfile, reg as TRegistro ptr) as B
 		end if
 
 		'adicionar ao dicionário
-		reg->docSint.chaveHash = GENSINTEGRAKEY(reg)
-		var antReg = cast(TRegistro ptr, sintegraDict.lookup(reg->docSint.chaveHash))
+		reg->docSint.chaveDict = GENSINTEGRAKEY(reg)
+		var antReg = cast(TRegistro ptr, sintegraDict.lookup(reg->docSint.chaveDict))
 		if antReg = null then
-			sintegraDict.add(reg->docSint.chaveHash, reg)
+			sintegraDict.add(reg->docSint.chaveDict, reg)
 		else
 			'' para cada alíquota diferente há um novo registro 50, mas nós só queremos os valores totais
 			antReg->docSint.valorTotal	+= reg->docSint.valorTotal
@@ -939,11 +939,11 @@ private function Efd.lerRegistroSintegra(bf as bfile, reg as TRegistro ptr) as B
 			return false
 		end if
 
-		reg->docSint.chaveHash = GENSINTEGRAKEY(reg)
-		var antReg = cast(TRegistro ptr, sintegraDict.lookup(reg->docSint.chaveHash))
+		reg->docSint.chaveDict = GENSINTEGRAKEY(reg)
+		var antReg = cast(TRegistro ptr, sintegraDict.lookup(reg->docSint.chaveDict))
 		'' NOTA: pode existir registro 53 sem o correspondente 50, para quando só há ICMS ST, sem destaque ICMS próprio
 		if antReg = null then
-			sintegraDict.add(reg->docSint.chaveHash, reg)
+			sintegraDict.add(reg->docSint.chaveDict, reg)
 		else
 			antReg->docSint.bcICMSST		+= reg->docSint.bcICMSST
 			antReg->docSint.ICMSST			+= reg->docSint.ICMSST
@@ -957,10 +957,10 @@ private function Efd.lerRegistroSintegra(bf as bfile, reg as TRegistro ptr) as B
 			return false
 		end if
 
-		reg->docSint.chaveHash = GENSINTEGRAKEY(reg)
-		var antReg = cast(TRegistro ptr, sintegraDict.lookup(reg->docSint.chaveHash))
+		reg->docSint.chaveDict = GENSINTEGRAKEY(reg)
+		var antReg = cast(TRegistro ptr, sintegraDict.lookup(reg->docSint.chaveDict))
 		if antReg = null then
-			print "ERRO: Sintegra 53 sem 50: "; reg->docSint.chaveHash
+			print "ERRO: Sintegra 53 sem 50: "; reg->docSint.chaveDict
 		else
 			antReg->docSint.valorIPI		= reg->docSint.valorIPI
 			antReg->docSint.valorIsentoIPI	= reg->docSint.valorIsentoIPI
@@ -1670,7 +1670,7 @@ type HashCtx
 	bytesLidosTotal	as longint
 end type
 
-private function hashReadCB cdecl(ctx_ as any ptr, buffer as ubyte ptr, maxLen as integer) as integer
+private function HashReadCB cdecl(ctx_ as any ptr, buffer as ubyte ptr, maxLen as integer) as integer
 	var ctx = cast(HashCtx ptr, ctx_)
 	
 	if ctx->bytesLidosTotal + maxLen > ctx->tamanhoSemSign then
@@ -1717,7 +1717,7 @@ function lerInfoAssinatura(nomeArquivo as string, assinaturaP7K_DER() as byte) a
 	ctx->tamanhoSemSign = bf->tamanho() - (tamanhoAssinatura + len(ASSINATURA_P7K_HEADER))
 	ctx->bytesLidosTotal = 0
 	
-	s = sh->Compute_SHA1(@hashReadCB, ctx)
+	s = sh->Compute_SHA1(@HashReadCB, ctx)
 	if s <> null then
 		res->hashDoArquivo = *s
 		deallocate s
@@ -2447,6 +2447,7 @@ sub Efd.iniciarRelatorio(relatorio as TipoRelatorio, nomeRelatorio as string, su
 	
 	ultimoRelatorioSufixo = sufixo
 	ultimoRelatorio = relatorio
+	nroRegistrosRel = 0
 
 	dfwd->load(baseTemplatesDir + nomeRelatorio + ".dfw")
 
@@ -2461,7 +2462,7 @@ sub Efd.iniciarRelatorio(relatorio as TipoRelatorio, nomeRelatorio as string, su
 		dfwd->setClipboardValueByStr("_header", "apu", STR2DATABR(regListHead->mestre.dataIni) + " a " + STR2DATABR(regListHead->mestre.dataFim))
 	
 		relSomaLRList.init(10, len(RelSomatorioLR))
-		relSomaLRHash.init(10)
+		relSomaLRDict.init(10)
 		
 		dfwd->paste("tabela")
 	end select
@@ -2479,7 +2480,7 @@ private sub Efd.relatorioSomarLR(sit as TipoSituacao, anal as TDocItemAnal ptr)
 	
 	chave &= format(anal->cst,"000") & anal->cfop & format(anal->aliq, "00")
 	
-	var soma = cast(RelSomatorioLR ptr, relSomaLRHash.lookUp(chave))
+	var soma = cast(RelSomatorioLR ptr, relSomaLRDict.lookUp(chave))
 	if soma = null then
 		soma = relSomaLRList.addOrdAsc(strptr(chave), @cmpFunc)
 		soma->chave = chave
@@ -2487,7 +2488,7 @@ private sub Efd.relatorioSomarLR(sit as TipoSituacao, anal as TDocItemAnal ptr)
 		soma->cst = anal->cst
 		soma->cfop = anal->cfop
 		soma->aliq = anal->aliq
-		relSomaLRHash.add(soma->chave, soma)
+		relSomaLRDict.add(soma->chave, soma)
 	end if
 	
 	soma->valorOp += anal->valorOp
@@ -2553,6 +2554,8 @@ sub Efd.adicionarDocRelatorioSaidas(doc as TDocDFe ptr, part as TParticipante pt
 	
 	adicionarDocRelatorioItemAnal(doc->situacao, doc->itemAnalListHead)
 	
+	nroRegistrosRel += 1
+	
 end sub
 
 ''''''''
@@ -2573,6 +2576,8 @@ sub Efd.adicionarDocRelatorioEntradas(doc as TDocDFe ptr, part as TParticipante 
 	dfwd->paste("linha")
 	
 	adicionarDocRelatorioItemAnal(doc->situacao, doc->itemAnalListHead)
+	
+	nroRegistrosRel += 1
 	
 end sub
 
@@ -2598,50 +2603,54 @@ sub Efd.finalizarRelatorio()
 	select case ultimoRelatorio
 	case REL_LRE, REL_LRS
 		
-		dfwd->paste("resumo")
-	
-		dim as RelSomatorioLR totSoma
+		if nroRegistrosRel = 0 then
+			dfwd->paste("vazio")
+		else
+			dfwd->paste("resumo")
 		
-		var soma = cast(RelSomatorioLR ptr, relSomaLRList.head)
-		do while soma <> null
-			if ultimoRelatorio = REL_LRS then
-				dfwd->setClipboardValueByStr("resumo_linha", "sit", format(cdbl(soma->situacao), "00"))
-			end if
+			dim as RelSomatorioLR totSoma
 			
-			dfwd->setClipboardValueByStr("resumo_linha", "cst", format(soma->cst,"000"))
-			dfwd->setClipboardValueByStr("resumo_linha", "cfop", soma->cfop)
-			dfwd->setClipboardValueByStr("resumo_linha", "aliq", DBL2MONEYBR(soma->aliq))
-			dfwd->setClipboardValueByStr("resumo_linha", "valop", DBL2MONEYBR(soma->valorOp))
-			dfwd->setClipboardValueByStr("resumo_linha", "bc", DBL2MONEYBR(soma->bc))
-			dfwd->setClipboardValueByStr("resumo_linha", "icms", DBL2MONEYBR(soma->icms))
-			dfwd->setClipboardValueByStr("resumo_linha", "bcst", DBL2MONEYBR(soma->bcST))
-			dfwd->setClipboardValueByStr("resumo_linha", "icmsst", DBL2MONEYBR(soma->ICMSST))
-			dfwd->setClipboardValueByStr("resumo_linha", "ipi", DBL2MONEYBR(soma->ipi))
+			var soma = cast(RelSomatorioLR ptr, relSomaLRList.head)
+			do while soma <> null
+				if ultimoRelatorio = REL_LRS then
+					dfwd->setClipboardValueByStr("resumo_linha", "sit", format(cdbl(soma->situacao), "00"))
+				end if
+				
+				dfwd->setClipboardValueByStr("resumo_linha", "cst", format(soma->cst,"000"))
+				dfwd->setClipboardValueByStr("resumo_linha", "cfop", soma->cfop)
+				dfwd->setClipboardValueByStr("resumo_linha", "aliq", DBL2MONEYBR(soma->aliq))
+				dfwd->setClipboardValueByStr("resumo_linha", "valop", DBL2MONEYBR(soma->valorOp))
+				dfwd->setClipboardValueByStr("resumo_linha", "bc", DBL2MONEYBR(soma->bc))
+				dfwd->setClipboardValueByStr("resumo_linha", "icms", DBL2MONEYBR(soma->icms))
+				dfwd->setClipboardValueByStr("resumo_linha", "bcst", DBL2MONEYBR(soma->bcST))
+				dfwd->setClipboardValueByStr("resumo_linha", "icmsst", DBL2MONEYBR(soma->ICMSST))
+				dfwd->setClipboardValueByStr("resumo_linha", "ipi", DBL2MONEYBR(soma->ipi))
+				
+				dfwd->paste("resumo_linha")
+				
+				totSoma.valorOp += soma->valorOp
+				totSoma.bc += soma->bc
+				totSoma.icms += soma->icms
+				totSoma.bcST += soma->bcST
+				totSoma.ICMSST += soma->ICMSST
+				totSoma.ipi += soma->ipi
+				
+				soma = relSomaLRList.next_(soma)
+			loop
 			
-			dfwd->paste("resumo_linha")
+			dfwd->paste("resumo_sep")
 			
-			totSoma.valorOp += soma->valorOp
-			totSoma.bc += soma->bc
-			totSoma.icms += soma->icms
-			totSoma.bcST += soma->bcST
-			totSoma.ICMSST += soma->ICMSST
-			totSoma.ipi += soma->ipi
+			dfwd->setClipboardValueByStr("resumo_total", "totvalop", DBL2MONEYBR(totSoma.valorOp))
+			dfwd->setClipboardValueByStr("resumo_total", "totbc", DBL2MONEYBR(totSoma.bc))
+			dfwd->setClipboardValueByStr("resumo_total", "toticms", DBL2MONEYBR(totSoma.icms))
+			dfwd->setClipboardValueByStr("resumo_total", "totbcst", DBL2MONEYBR(totSoma.bcST))
+			dfwd->setClipboardValueByStr("resumo_total", "toticmsst", DBL2MONEYBR(totSoma.ICMSST))
+			dfwd->setClipboardValueByStr("resumo_total", "totipi", DBL2MONEYBR(totSoma.ipi))
 			
-			soma = relSomaLRList.next_(soma)
-		loop
+			dfwd->paste("resumo_total")
+		end if
 		
-		dfwd->paste("resumo_sep")
-		
-		dfwd->setClipboardValueByStr("resumo_total", "totvalop", DBL2MONEYBR(totSoma.valorOp))
-		dfwd->setClipboardValueByStr("resumo_total", "totbc", DBL2MONEYBR(totSoma.bc))
-		dfwd->setClipboardValueByStr("resumo_total", "toticms", DBL2MONEYBR(totSoma.icms))
-		dfwd->setClipboardValueByStr("resumo_total", "totbcst", DBL2MONEYBR(totSoma.bcST))
-		dfwd->setClipboardValueByStr("resumo_total", "toticmsst", DBL2MONEYBR(totSoma.ICMSST))
-		dfwd->setClipboardValueByStr("resumo_total", "totipi", DBL2MONEYBR(totSoma.ipi))
-		
-		dfwd->paste("resumo_total")
-		
-		relSomaLRHash.end_()
+		relSomaLRDict.end_()
 		relSomaLRList.end_()
 	case else
 		dfwd->paste("ass")
@@ -2652,5 +2661,6 @@ sub Efd.finalizarRelatorio()
 	dfwd->close()
 	
 	ultimoRelatorio = -1
+	nroRegistrosRel = 0
 
 end sub

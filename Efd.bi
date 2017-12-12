@@ -1,5 +1,5 @@
 
-#include once "hash.bi"
+#include once "Dict.bi"
 #include once "bfile.bi"
 #include once "ExcelWriter.bi"
 #include once "DocxFactoryDyn.bi"
@@ -313,7 +313,7 @@ type TDocumentoSintegra
 	aliqICMS	  	as double					'' NOTA: não usar se houver mais de um registro 50 para a mesma NF-e, pois as alíquotas são diferentes
 	situacao	    as TipoSituacao
 	chave		  	as zstring * 44+1
-	chaveHash	  	as zstring * 50+1
+	chaveDict	  	as zstring * 50+1
 end type
 
 type TApuracaoIcmsPeriodo
@@ -519,13 +519,13 @@ private:
 	regListHead         	as TRegistro ptr = null
 	regListTail         	as TRegistro ptr = null
 	nroRegs             	as integer = 0
-	participanteDict    	as THASH
-	itemIdDict          	as THASH
-	sintegraDict			as THASH
+	participanteDict    	as TDict
+	itemIdDict          	as TDict
+	sintegraDict			as TDict
 	ultimoReg   			as TRegistro ptr
 
 	'' registros para cruzamento das EFD's com as NF-e/CT-e (mantidos do início ao fim da extração)
-	efdDFeDict				as THASH
+	efdDFeDict				as TDict
 	efdDFeListHead			as TEfd_DFe ptr
 	efdDFeListTail			as TEfd_DFe ptr
 
@@ -538,7 +538,7 @@ private:
 	apuracaoIcmsST			as ExcelWorksheet ptr
 
 	'' registros das NF-e's e CT-e's retirados dos relatórios do Infoview (mantidos do início ao fim da extração)
-	chaveDFeDict			as THASH
+	chaveDFeDict			as TDict
 	dfeListHead				as TDFe ptr = null
 	dfeListTail				as TDFe ptr = null
 	nroDfe					as integer = 0
@@ -557,9 +557,10 @@ private:
 	dfwd					as DocxFactoryDyn ptr
 	ultimoRelatorio			as TipoRelatorio
 	ultimoRelatorioSufixo	as string
-	relSomaLRHash			as THASH
-	relSomaLRList			as TLIST			'' de RelSomatorioLR
-	municipDict				as THash
+	relSomaLRDict			as TDict
+	relSomaLRList			as TList			'' de RelSomatorioLR
+	nroRegistrosRel			as integer
+	municipDict				as TDict
 	
 	''
 	assinaturaP7K_DER(any)	as byte
