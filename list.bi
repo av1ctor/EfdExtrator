@@ -15,17 +15,17 @@ type TLISTTB
 end type
 
 type TList
-	declare sub init(byval nodes as integer, byval nodelen as integer)
+	declare sub init(nodes as integer, nodelen as integer)
 	declare sub end_()
 	declare function add() as any ptr
-	declare sub del(byval node as any ptr)
+	declare sub del(node as any ptr)
 	declare property head() as any ptr
 	declare property tail() as any ptr
-	declare property prev(byval node as any ptr) as any ptr
-	declare property next_(byval node as any ptr) as any ptr
+	declare property prev(node as any ptr) as any ptr
+	declare property next_(node as any ptr) as any ptr
 
 private:
-	declare sub allocTB(byval nodes as integer)
+	declare sub allocTB(nodes as integer)
 	
 	tbhead	as TLISTTB ptr
 	tbtail	as TLISTTB ptr
