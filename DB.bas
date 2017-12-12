@@ -142,7 +142,7 @@ end function
 
 ''''''''
 constructor TRSetRow()
-	hashInit(@columns, 16, true, true, true)
+	columns.init(16, true, true, true)
 	redim colList(0 to 15)
 	colCnt = 0
 end constructor	
@@ -150,19 +150,19 @@ end constructor
 ''''''''
 destructor TRSetRow()
 	colCnt = 0
-	hashEnd(@columns)
+	columns.end_()
 end destructor
 
 ''''''''
 sub TRSetRow.newColumn(name_ as zstring ptr, value as zstring ptr)
-	if hashLookup( @columns, name_ ) = null then
+	if columns.lookup(name_) = null then
 		dim as zstring ptr value2 = null
 		if value <> null then
 			value2 = cast(zstring ptr, allocate(len(*value)+1))	
 			*value2 = *value
 		end if
 		
-		hashAdd( @columns, name_, value2 )
+		columns.add( name_, value2 )
 		
 		colCnt += 1
 		if colCnt-1 > ubound(colList) then
@@ -175,7 +175,7 @@ end sub
 
 ''''''''
 operator TRSetRow.[](index as string) as zstring ptr
-	return hashLookup( @columns, index )
+	return columns.lookup( index )
 end operator
 
 ''''''''

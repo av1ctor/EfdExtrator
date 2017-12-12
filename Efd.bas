@@ -57,7 +57,7 @@ end sub
 ''''''''
 constructor Efd()
 	''
-	hashInit(@chaveDFeDict, 2^20)
+	chaveDFeDict.init(2^20)
 	nfeDestSafiFornecido = false
 	nfeEmitSafiFornecido = false
 	itemNFeSafiFornecido = false
@@ -66,7 +66,7 @@ constructor Efd()
 	dfeListTail = null
 	
 	''
-	hashInit(@efdDFeDict, 2^20)
+	efdDFeDict.init(2^20)
 	efdDfeListHead = null
 	efdDfeListTail = null
 	
@@ -91,7 +91,7 @@ destructor Efd()
 	delete dfwd
 	
 	''
-	hashEnd(@efdDFeDict)
+	efdDFeDict.end_()
 
 	do while efdDfeListHead <> null
 		var next_ = efdDfeListHead->next_
@@ -100,7 +100,7 @@ destructor Efd()
 	loop
 	
 	''
-	hashEnd(@chaveDFeDict)
+	chaveDFeDict.end_()
 	
 	do while dfeListHead <> null
 		var next_ = dfeListHead->next_
@@ -720,8 +720,8 @@ private function Efd.lerRegistro(bf as bfile, reg as TRegistro ptr) as Boolean
 		end if
 
 		'adicionar ao dicionário
-		if hashLookup(@itemIdDict, reg->itemId.id) = null then
-			hashAdd(@itemIdDict, reg->itemId.id, @reg->itemId)
+		if itemIdDict.lookup(reg->itemId.id) = null then
+			itemIdDict.add(reg->itemId.id, @reg->itemId)
 		end if
 
 	case PARTICIPANTE
@@ -730,8 +730,8 @@ private function Efd.lerRegistro(bf as bfile, reg as TRegistro ptr) as Boolean
 		end if
 
 		'adicionar ao dicionário
-		if hashLookup(@participanteDict, reg->part.id) = null then
-			hashAdd(@participanteDict, reg->part.id, @reg->part)
+		if participanteDict.lookup(reg->part.id) = null then
+			participanteDict.add(reg->part.id, @reg->part)
 		end if
 
 	case APURACAO_ICMS_PERIODO
@@ -915,9 +915,9 @@ private function Efd.lerRegistroSintegra(bf as bfile, reg as TRegistro ptr) as B
 
 		'adicionar ao dicionário
 		reg->docSint.chaveHash = GENSINTEGRAKEY(reg)
-		var antReg = cast(TRegistro ptr, hashLookup(@sintegraDict, reg->docSint.chaveHash))
+		var antReg = cast(TRegistro ptr, sintegraDict.lookup(reg->docSint.chaveHash))
 		if antReg = null then
-			hashAdd(@sintegraDict, reg->docSint.chaveHash, reg)
+			sintegraDict.add(reg->docSint.chaveHash, reg)
 		else
 			'' para cada alíquota diferente há um novo registro 50, mas nós só queremos os valores totais
 			antReg->docSint.valorTotal	+= reg->docSint.valorTotal
@@ -936,10 +936,10 @@ private function Efd.lerRegistroSintegra(bf as bfile, reg as TRegistro ptr) as B
 		end if
 
 		reg->docSint.chaveHash = GENSINTEGRAKEY(reg)
-		var antReg = cast(TRegistro ptr, hashLookup(@sintegraDict, reg->docSint.chaveHash))
+		var antReg = cast(TRegistro ptr, sintegraDict.lookup(reg->docSint.chaveHash))
 		'' NOTA: pode existir registro 53 sem o correspondente 50, para quando só há ICMS ST, sem destaque ICMS próprio
 		if antReg = null then
-			hashAdd(@sintegraDict, reg->docSint.chaveHash, reg)
+			sintegraDict.add(reg->docSint.chaveHash, reg)
 		else
 			antReg->docSint.bcICMSST		+= reg->docSint.bcICMSST
 			antReg->docSint.ICMSST			+= reg->docSint.ICMSST
@@ -954,7 +954,7 @@ private function Efd.lerRegistroSintegra(bf as bfile, reg as TRegistro ptr) as B
 		end if
 
 		reg->docSint.chaveHash = GENSINTEGRAKEY(reg)
-		var antReg = cast(TRegistro ptr, hashLookup(@sintegraDict, reg->docSint.chaveHash))
+		var antReg = cast(TRegistro ptr, sintegraDict.lookup(reg->docSint.chaveHash))
 		if antReg = null then
 			print "ERRO: Sintegra 53 sem 50: "; reg->docSint.chaveHash
 		else
@@ -1093,9 +1093,9 @@ function Efd.carregarTxt(nomeArquivo as String, mostrarProgresso as sub(porCompl
 		return false
 	end if
 
-	hashInit(@participanteDict, 2^20)
-	hashInit(@itemIdDict, 2^20)	 
-	hashInit(@sintegraDict, 2^20)
+	participanteDict.init(2^20)
+	itemIdDict.init(2^20)	 
+	sintegraDict.init(2^20)
 
 	regListHead = null
 	regListTail = null
@@ -1217,7 +1217,7 @@ end function
 function Efd.carregarCsvNFeEmit(bf as bfile) as TDFe ptr
 	
 	var chave = bf.charCsv
-	var dfe = cast(TDFe ptr, hashLookup(@chaveDFeDict, chave))	
+	var dfe = cast(TDFe ptr, chaveDFeDict.lookup(chave))	
 	if dfe = null then
 		dfe = new TDFe
 	end if
@@ -1366,8 +1366,8 @@ sub Efd.adicionarDFe(dfe as TDFe ptr)
 	dfeListTail = dfe
 	dfe->next_ = null
 	
-	if hashLookup(@chaveDFeDict, dfe->chave) = null then
-		hashAdd(@chaveDFeDict, dfe->chave, dfe)
+	if chaveDFeDict.lookup(dfe->chave) = null then
+		chaveDFeDict.add(dfe->chave, dfe)
 	end if
 	
 	nroDfe =+ 1
@@ -1464,13 +1464,13 @@ function Efd.carregarCsv(nomeArquivo as String, mostrarProgresso as sub(porCompl
 			var nfeItem = carregarCsvNFeEmitItens( bf, chave )
 			if nfeItem <> null then
 
-				var dfe = cast(TDFe ptr, hashLookup(@chaveDFeDict, chave))
+				var dfe = cast(TDFe ptr, chaveDFeDict.lookup(chave))
 				'' nf-e não encontrada? pode acontecer se processarmos o csv de itens antes do csv de nf-e
 				if dfe = null then
 					dfe = new TDFe
 					'' só adicionar ao dicionário, depois será adicionado por adicionarDFe() no case acima
 					dfe->chave = chave
-					hashAdd(@chaveDFeDict, dfe->chave, dfe)
+					chaveDFeDict.add(dfe->chave, dfe)
 				end if
 				
 				if dfe->nfe.itemListHead = null then
@@ -1589,7 +1589,7 @@ sub Efd.adicionarEfdDfe(chave as zstring ptr, operacao as TipoOperacao, dataEmi 
 		return
 	end if
 	
-	if hashLookup(@efdDFeDict, chave) = null then
+	if efdDFeDict.lookup(chave) = null then
 		var ed = new TEfd_Dfe
 		ed->chave = *chave
 		ed->operacao = operacao
@@ -1603,7 +1603,7 @@ sub Efd.adicionarEfdDfe(chave as zstring ptr, operacao as TipoOperacao, dataEmi 
 		efdDfeListTail = ed
 		ed->next_ = null
 		
-		hashAdd(@efdDFeDict, ed->chave, @ed)
+		efdDFeDict.add(ed->chave, @ed)
 	end if
 	
 end sub
@@ -1755,9 +1755,9 @@ function Efd.processar(nomeArquivo as string, mostrarProgresso as sub(porComplet
 	regListHead = null
 	regListTail = null
 
-	hashEnd(@sintegraDict)
-	hashEnd(@itemIdDict)
-	hashEnd(@participanteDict)
+	sintegraDict.end_()
+	itemIdDict.end_()
+	participanteDict.end_()
 
 	function = true
 end function
@@ -1786,7 +1786,7 @@ sub Efd.gerarPlanilhas(nomeArquivo as string)
 
 					var row = entradas->AddRow()
 
-					var part = cast( TParticipante ptr, hashLookup(@participanteDict, doc->idParticipante) )
+					var part = cast( TParticipante ptr, participanteDict.lookup(doc->idParticipante) )
 					if part <> null then
 						row->addCell(part->cnpj)
 						row->addCell(part->ie)
@@ -1818,7 +1818,7 @@ sub Efd.gerarPlanilhas(nomeArquivo as string)
 					row->addCell(reg->itemNFe.unidade)
 					row->addCell(reg->itemNFe.cfop)
 					row->addCell(reg->itemNFe.cstICMS)
-					var itemId = cast( TItemId ptr, hashLookup(@itemIdDict, reg->itemNFe.itemId) )
+					var itemId = cast( TItemId ptr, itemIdDict.lookup(reg->itemNFe.itemId) )
 					if itemId <> null then 
 						row->addCell(itemId->ncm)
 						row->addCell(itemId->id)
@@ -1845,14 +1845,14 @@ sub Efd.gerarPlanilhas(nomeArquivo as string)
 					dim as TDFe_NFeItem ptr item = null
 					if itemNFeSafiFornecido then
 						if len(reg->nfe.chave) > 0 then
-							var dfe = cast( TDFe ptr, hashLookup(@chaveDFeDict, reg->nfe.chave) )
+							var dfe = cast( TDFe ptr, chaveDFeDict.lookup(reg->nfe.chave) )
 							if dfe <> null then
 								item = dfe->nfe.itemListHead
 							end if
 						end if
 					end if
 
-					var part = cast( TParticipante ptr, hashLookup(@participanteDict, reg->nfe.idParticipante) )
+					var part = cast( TParticipante ptr, participanteDict.lookup(reg->nfe.idParticipante) )
 
 					do
 						var row = saidas->AddRow()
@@ -1953,12 +1953,12 @@ sub Efd.gerarPlanilhas(nomeArquivo as string)
 					adicionarEfdDfe(reg->cte.chave, reg->cte.operacao, reg->cte.dataEmi, reg->cte.valorServico)
 				end if
 				
-				var part = cast( TParticipante ptr, hashLookup(@participanteDict, reg->cte.idParticipante) )
+				var part = cast( TParticipante ptr, participanteDict.lookup(reg->cte.idParticipante) )
 
 				dim as TDFe_CTe ptr cte = null
 				if cteSafiFornecido then
 					if len(reg->cte.chave) > 0 then
-						var dfe = cast( TDFe ptr, hashLookup(@chaveDFeDict, reg->cte.chave) )
+						var dfe = cast( TDFe ptr, chaveDFeDict.lookup(reg->cte.chave) )
 						if dfe <> null then
 							cte = @dfe->cte
 						end if
@@ -2198,14 +2198,14 @@ sub Efd.gerarRelatorios(nomeArquivo as string)
 		'NF-e?
 		case DOC_NFE
 			if reg->nfe.operacao = ENTRADA then
-				var part = cast( TParticipante ptr, hashLookup(@participanteDict, reg->nfe.idParticipante) )
+				var part = cast( TParticipante ptr, participanteDict.lookup(reg->nfe.idParticipante) )
 				adicionarDocRelatorioEntradas(@reg->nfe, part)
 			end if
 		
 		'CT-e?
 		case DOC_CTE
 			if reg->cte.operacao = ENTRADA then
-				var part = cast( TParticipante ptr, hashLookup(@participanteDict, reg->cte.idParticipante) )
+				var part = cast( TParticipante ptr, participanteDict.lookup(reg->cte.idParticipante) )
 				adicionarDocRelatorioEntradas(@reg->cte, part)
 			end if
 		end select
@@ -2225,14 +2225,14 @@ sub Efd.gerarRelatorios(nomeArquivo as string)
 		'NF-e?
 		case DOC_NFE
 			if reg->nfe.operacao = SAIDA then
-				var part = cast( TParticipante ptr, hashLookup(@participanteDict, reg->nfe.idParticipante) )
+				var part = cast( TParticipante ptr, participanteDict.lookup(reg->nfe.idParticipante) )
 				adicionarDocRelatorioSaidas(@reg->nfe, part)
 			end if
 
 		'CT-e?
 		case DOC_CTE
 			if reg->cte.operacao = SAIDA then
-				var part = cast( TParticipante ptr, hashLookup(@participanteDict, reg->cte.idParticipante) )
+				var part = cast( TParticipante ptr, participanteDict.lookup(reg->cte.idParticipante) )
 				adicionarDocRelatorioSaidas(@reg->cte, part)
 			end if
 			
@@ -2312,7 +2312,7 @@ sub Efd.analisar(mostrarProgresso as sub(porCompleto as double))
 		row->addCell("Nao foi possivel verificar falta de escrituracao porque os relatorios do SAFI nao foram fornecidos")
 	else
 		do while dfe <> null
-			if hashLookup(@efdDFeDict, dfe->chave) = null then
+			if efdDFeDict.lookup(dfe->chave) = null then
 				var row = naoEscrituradas->AddRow()
 				row->addCell(dfe->chave)
 				row->addCell(STRDFE2DATA(dfe->dataEmi))
@@ -2449,7 +2449,7 @@ sub Efd.iniciarRelatorio(relatorio as TipoRelatorio, nomeRelatorio as string, su
 		dfwd->setClipboardValueByStr("_header", "apu", STR2DATABR(regListHead->mestre.dataIni) + " a " + STR2DATABR(regListHead->mestre.dataFim))
 	
 		relSomaLRList.init(10, len(RelSomatorioLR))
-		hashInit(@relSomaLRHash, 10)
+		relSomaLRHash.init(10)
 		
 		dfwd->paste("tabela")
 	end select
@@ -2463,7 +2463,7 @@ private sub Efd.relatorioSomarLR(sit as TipoSituacao, anal as TDocItemAnal ptr)
 	
 	chave &= format(anal->cst,"000") & anal->cfop & format(anal->aliq, "00")
 	
-	var soma = cast(RelSomatorioLR ptr, hashLookUp(@relSomaLRHash, chave))
+	var soma = cast(RelSomatorioLR ptr, relSomaLRHash.lookUp(chave))
 	if soma = null then
 		soma = relSomaLRList.add()
 		soma->chave = chave
@@ -2471,7 +2471,7 @@ private sub Efd.relatorioSomarLR(sit as TipoSituacao, anal as TDocItemAnal ptr)
 		soma->cst = anal->cst
 		soma->cfop = anal->cfop
 		soma->aliq = anal->aliq
-		hashAdd(@relSomaLRHash, soma->chave, soma)
+		relSomaLRHash.add(soma->chave, soma)
 	end if
 	
 	soma->valorOp += anal->valorOp
@@ -2622,7 +2622,7 @@ sub Efd.finalizarRelatorio()
 		
 		dfwd->paste("resumo_total")
 		
-		hashEnd(@relSomaLRHash)
+		relSomaLRHash.end_()
 		relSomaLRList.end_()
 	case else
 		dfwd->paste("ass")

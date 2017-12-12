@@ -7,11 +7,6 @@ type HASHITEMPOOL
 	as TList list
 end type
 
-
-declare function 	hashNewItem	( byval list as HASHLIST ptr ) as HASHITEM ptr
-declare sub 		hashDelItem	( byval list as HASHLIST ptr, _
-								  byval item as HASHITEM ptr )
-
 dim shared as HASHITEMPOOL itempool
 
 ''::::::
@@ -38,116 +33,7 @@ private sub lazyEnd()
 end sub
 
 ''::::::
-sub hashInit _
-	( _
-		byval hash as THASH ptr, _
-		byval nodes as integer, _
-		byval delKey as boolean, _
-		byval delVal as boolean, _
-		byval allocKey as boolean	_
-	)
-
-	lazyInit()
-
-	'' allocate a fixed list of internal linked-lists
-	hash->list = callocate( nodes * len( HASHLIST ) )
-	hash->nodes = nodes
-	hash->delKey = delKey or allocKey
-	hash->delVal = delVal
-	hash->allocKey = allocKey
-
-end sub
-
-''::::::
-sub hashEnd(byval hash as THASH ptr)
-
-    var list = hash->list
-
-	for i as integer = 0 to hash->nodes-1
-		var item = list->head
-		do while( item <> NULL )
-			var nxt = item->next
-
-			if hash->delVal then
-				if item->value <> null then
-					deallocate( item->value )
-					item->value = null
-				end if
-			end if
-			if( hash->delKey ) then
-				deallocate( item->key )
-			end if
-			item->key = NULL
-			hashDelItem( list, item )
-
-			item = nxt
-		loop
-
-		list += 1
-	next
-
-	deallocate( hash->list )
-	hash->list = NULL
-
-	lazyEnd()
-
-end sub
-
-''::::::
-function hashHash(byval key as const zstring ptr) as uinteger
-	dim as uinteger index = 0
-	do while (key[0])
-		index = key[0] + (index shl 5) - index
-		key += 1
-	loop
-	return index
-end function
-
-''::::::
-function hashLookupEx _
-	( _
-		byval hash as THASH ptr, _
-		byval key as const zstring ptr, _
-		byval index as uinteger _
-	) as any ptr
-
-    index mod= hash->nodes
-
-	'' get the start of list
-	var list = @hash->list[index]
-	var item = list->head
-	if( item = NULL ) then
-		return NULL
-	end if
-
-	'' loop until end of list or if item was found
-	do while( item <> NULL )
-		if( *item->key = *key ) then
-			return item->value
-		end if
-		item = item->next
-	loop
-	
-	function = null
-
-end function
-
-''::::::
-function hashLookup _
-	( _
-		byval hash as THASH ptr, _
-		byval key as zstring ptr _
-	) as any ptr
-
-    function = hashLookupEx( hash, key, hashHash( key ) )
-
-end function
-
-''::::::
-private function hashNewItem _
-	( _
-		byval list as HASHLIST ptr _
-	) as HASHITEM ptr
+private function hNewItem(list as HASHLIST ptr) as HASHITEM ptr
 
 	'' add a new node
 	var item = cast(HASHITEM ptr, itempool.list.add( ))
@@ -169,11 +55,7 @@ private function hashNewItem _
 end function
 
 ''::::::
-private sub hashDelItem _
-	( _
-		byval list as HASHLIST ptr, _
-		byval item as HASHITEM ptr _
-	)
+private sub hDelItem(list as HASHLIST ptr, item as HASHITEM ptr)
 
 	''
 	if( item = NULL ) Then
@@ -201,30 +83,113 @@ private sub hashDelItem _
 end sub
 
 ''::::::
-function hashAdd _
-	( _
-		byval hash as THASH ptr, _
-		byval key as const zstring ptr, _
-		byval value as any ptr, _
-		byval index as uinteger _
-	) as HASHITEM ptr
+sub THash.init(nodes as integer, delKey as boolean, delVal as boolean, allocKey as boolean)
+
+	lazyInit()
+
+	'' allocate a fixed list of internal linked-lists
+	this.list = callocate( nodes * len( HASHLIST ) )
+	this.nodes = nodes
+	this.delKey = delKey or allocKey
+	this.delVal = delVal
+	this.allocKey = allocKey
+
+end sub
+
+''::::::
+sub THash.end_()
+
+    var list_ = this.list
+
+	for i as integer = 0 to this.nodes-1
+		var item = list_->head
+		do while( item <> NULL )
+			var nxt = item->next
+
+			if this.delVal then
+				if item->value <> null then
+					deallocate( item->value )
+					item->value = null
+				end if
+			end if
+			if( this.delKey ) then
+				deallocate( item->key )
+			end if
+			item->key = NULL
+			hDelItem( list_, item )
+
+			item = nxt
+		loop
+
+		list_ += 1
+	next
+
+	deallocate( this.list )
+	this.list = NULL
+
+	lazyEnd()
+
+end sub
+
+''::::::
+function THash.hash(key as const zstring ptr) as uinteger
+	dim as uinteger index = 0
+	do while (key[0])
+		index = key[0] + (index shl 5) - index
+		key += 1
+	loop
+	return index
+end function
+
+''::::::
+function THash.lookupEx(key as const zstring ptr, index as uinteger ) as any ptr
+
+    index mod= this.nodes
+
+	'' get the start of list
+	var item = (@this.list[index])->head
+	if( item = NULL ) then
+		return NULL
+	end if
+
+	'' loop until end of list or if item was found
+	do while( item <> NULL )
+		if( *item->key = *key ) then
+			return item->value
+		end if
+		item = item->next
+	loop
+	
+	function = null
+
+end function
+
+''::::::
+function THash.lookup(key as zstring ptr) as any ptr
+
+    function = lookupEx( key, hash( key ) )
+
+end function
+
+''::::::
+function THash.add(key as const zstring ptr, value as any ptr, index as uinteger) as HASHITEM ptr
 
 	'' calc hash?
 	if( index = cuint( -1 ) ) then
-		index = hashHash( key )
+		index = hash( key )
 	end if
 
-    index mod= hash->nodes
+    index mod= this.nodes
 
     '' allocate a new node
-    var item = hashNewItem( @hash->list[index] )
+    var item = hNewItem( @this.list[index] )
 
     if( item = NULL ) then
     	return null
 	end if
 
     '' fill node
-    if hash->allocKey then
+    if this.allocKey then
 		var key2 = cast(zstring ptr, allocate(len(*key)+1))
 		*key2 = *key
 		key = key2
@@ -236,34 +201,26 @@ function hashAdd _
 end function
 
 ''::::::
-sub hashDel _
-	( _
-		byval hash as THASH ptr, _
-		byval item as HASHITEM ptr, _
-		byval index as uinteger _
-	)
+sub THash.del(item as HASHITEM ptr, index as uinteger)
 
 	if( item = NULL ) then
 		exit sub
 	end if
 
-	index mod= hash->nodes
-
-	'' get start of list
-	var list = @hash->list[index]
+	index mod= this.nodes
 
 	''
-	if( hash->delKey ) then
+	if( this.delKey ) then
 		deallocate( item->key )
 	end if
 	item->key = NULL
 
-	if( hash->delVal ) then
+	if( this.delVal ) then
 		deallocate( item->value )
 	end if
 	item->value = NULL
 
-	hashDelItem( list, item )
+	hDelItem( @this.list[index], item )
 
 end sub
 

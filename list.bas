@@ -3,7 +3,7 @@
 #include once "list.bi"
 
 '':::::
-sub TList.init(byval nodes as integer, byval nodelen as integer )
+sub TList.init(nodes as integer, nodelen as integer )
 
 	'' fill ctrl struct
 	this.tbhead = NULL
@@ -35,7 +35,7 @@ sub TList.end_()
 end sub
 
 '':::::
-sub TList.allocTB(byval nodes as integer)
+sub TList.allocTB(nodes as integer)
 
 	assert(nodes >= 1)
 
@@ -107,7 +107,7 @@ function TList.add() as any ptr
 end function
 
 '':::::
-sub TList.del(byval node_ as any ptr)
+sub TList.del(node_ as any ptr)
 
 	if( node_ = NULL ) then
 		exit sub
@@ -135,7 +135,7 @@ sub TList.del(byval node_ as any ptr)
 	this.fhead = node
 
 	'' node can contain strings descriptors, so, erase it..
-	clear( byval node_, 0, this.nodelen - len( TLISTNODE ) )
+	clear( node_, 0, this.nodelen - len( TLISTNODE ) )
 
 end sub
 
@@ -162,7 +162,7 @@ property TList.tail() as any ptr
 end property
 
 '':::::
-property TList.prev(byval node as any ptr) as any ptr
+property TList.prev(node as any ptr) as any ptr
 
 	assert( node <> NULL )
 
@@ -177,7 +177,7 @@ property TList.prev(byval node as any ptr) as any ptr
 end property
 
 '':::::
-property TList.next_(byval node as any ptr) as any ptr
+property TList.next_(node as any ptr) as any ptr
 
 	assert( node <> NULL )
 
