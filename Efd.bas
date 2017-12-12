@@ -1010,6 +1010,80 @@ function Efd.carregarSintegra(bf as bfile, mostrarProgresso as sub(porCompleto a
 
 end function
 
+private sub STR2YYYYMMDD(s as const zstring ptr, d as zstring ptr)
+	'(mid(s,5) + mid(s,3,2) + left(s,2))
+	static as integer ltb(0 to 7) = { 4, 5, 6, 7, 2, 3, 0, 1 }
+	
+	if len(*s) = 0 then
+		(*d)[0] = 0
+	else
+		for i as integer = 0 to 7
+			(*d)[i] = (*s)[ltb(i)]
+		next
+		(*d)[8] = 0
+	end if
+	
+end sub
+
+''''''''
+sub Efd.addRegistroOrdenadoPorData(reg as TRegistro ptr)
+
+	if regListHead = null then
+		regListHead = reg
+		regListTail = reg
+		return
+	end if
+
+	dim as zstring * 8+1 demi
+	
+	select case reg->tipo
+	case DOC_NFE
+		STR2YYYYMMDD(reg->nfe.dataEmi, demi)
+	case DOC_CTE
+		STR2YYYYMMDD(reg->cte.dataEmi, demi)
+	case DOC_NFE_ITEM
+		STR2YYYYMMDD(reg->itemNFe.documentoPai->dataEmi, demi)
+	end select
+	
+	var n = regListHead
+	dim as TRegistro ptr p = null
+	dim as zstring * 8+1 n_demi
+	do 
+		var dotest = true
+		select case n->tipo
+		case DOC_NFE
+			STR2YYYYMMDD(n->nfe.dataEmi, n_demi)
+		case DOC_CTE
+			STR2YYYYMMDD(n->cte.dataEmi, n_demi)
+		case DOC_NFE_ITEM
+			STR2YYYYMMDD(n->itemNFe.documentoPai->dataEmi, n_demi)
+		case else
+			dotest = false
+		end select
+		
+		if dotest then
+			if n_demi > demi then
+				reg->next_ = n
+				if p <> null then
+					p->next_ = reg
+				else
+					regListHead = reg
+				end if
+				exit do
+			end if
+		end if
+		
+		p = n
+		n = n->next_
+	loop until n = null
+	
+	if n = null then
+		regListTail->next_ = reg
+		regListTail = reg
+	end if
+
+end sub
+
 ''''''''
 function Efd.carregarTxt(nomeArquivo as String, mostrarProgresso as sub(porCompleto as double)) as Boolean
 
@@ -1043,27 +1117,34 @@ function Efd.carregarTxt(nomeArquivo as String, mostrarProgresso as sub(porCompl
 				
 			if lerRegistro( bf, reg ) then 
 				if reg->tipo <> DESCONHECIDO then
-				'' fim de arquivo?
-				if reg->tipo = EOF_ then
-					delete reg
-					if mostrarProgresso <> NULL then
-						mostrarProgresso(1)
-					end if					
-					exit do
-				end if
+					select case reg->tipo
+					'' fim de arquivo?
+					case EOF_
+						delete reg
+						if mostrarProgresso <> NULL then
+							mostrarProgresso(1)
+						end if					
+						exit do
 
-				if regListHead = null then
-					regListHead = reg
-					regListTail = reg
+					'' ordernar por data emi
+					case DOC_NFE, DOC_NFE_ITEM, DOC_CTE
+						addRegistroOrdenadoPorData(reg)
+					
+					'' registro sem data, adicionar ao fim da fila
+					case else
+						if regListHead = null then
+							regListHead = reg
+							regListTail = reg
+						else
+							regListTail->next_ = reg
+							regListTail = reg
+						end if
+					end select
+
+					nroRegs += 1
 				else
-					regListTail->next_ = reg
-					regListTail = reg
+					delete reg
 				end if
-
-				nroRegs += 1
-			 else
-				delete reg
-			 end if
 			 
 			else
 				exit do
@@ -1695,140 +1776,153 @@ sub Efd.gerarPlanilhas(nomeArquivo as string)
 		'item de NF-e?
 		case DOC_NFE_ITEM
 			var doc = reg->itemNFe.documentoPai
-			if doc->modelo = 55 then 
-				select case as const doc->situacao
-				case REGULAR, EXTEMPORANEO
-					'só existe item para entradas
-					if doc->operacao = ENTRADA then
+			select case as const doc->situacao
+			case REGULAR, EXTEMPORANEO
+				'só existe item para entradas
+				if doc->operacao = ENTRADA then
+					if len(doc->chave) > 0 then
 						adicionarEfdDfe(doc->chave, doc->operacao, doc->dataEmi, doc->valorTotal)
+					end if
 
-						var part = cast( TParticipante ptr, hashLookup(@participanteDict, doc->idParticipante) )
-						var row = entradas->AddRow()
+					var row = entradas->AddRow()
+
+					var part = cast( TParticipante ptr, hashLookup(@participanteDict, doc->idParticipante) )
+					if part <> null then
 						row->addCell(part->cnpj)
 						row->addCell(part->ie)
 						row->addCell(MUNICIPIO2SIGLA(part->municip))
 						row->addCell(part->nome)
-						row->addCell(doc->modelo)
-						row->addCell(doc->serie)
-						row->addCell(doc->numero)
-						row->addCell(STR2DATA(doc->dataEmi))
-						row->addCell(STR2DATA(doc->dataEntSaida))
-						row->addCell(doc->chave)
-						row->addCell(situacao2String(doc->situacao))
-						row->addCell(reg->itemNFe.bcICMS)
-						row->addCell(reg->itemNFe.aliqICMS)
-						row->addCell(reg->itemNFe.ICMS)
-						row->addCell(reg->itemNFe.bcICMSST)
-						row->addCell(reg->itemNFe.aliqICMSST)
-						row->addCell(reg->itemNFe.ICMSST)
-						row->addCell(reg->itemNFe.IPI)
-						row->addCell(reg->itemNFe.valor)
-						row->addCell(reg->itemNFe.numItem)
-						row->addCell(reg->itemNFe.qtd)
-						row->addCell(reg->itemNFe.unidade)
-						row->addCell(reg->itemNFe.cfop)
-						row->addCell(reg->itemNFe.cstICMS)
-						var itemId = cast( TItemId ptr, hashLookup(@itemIdDict, reg->itemNFe.itemId) )
-						if itemId <> null then 
-							row->addCell(itemId->ncm)
-							row->addCell(itemId->id)
-							row->addCell(itemId->descricao)
-						else
-							row->addCell("")
-							row->addCell("")
-							row->addCell("")
-						end if
+					else
+						row->addCell("")
+						row->addCell("")
+						row->addCell("")
+						row->addCell("")
 					end if
-				end select
-			end if
+					row->addCell(doc->modelo)
+					row->addCell(doc->serie)
+					row->addCell(doc->numero)
+					row->addCell(STR2DATA(doc->dataEmi))
+					row->addCell(STR2DATA(doc->dataEntSaida))
+					row->addCell(doc->chave)
+					row->addCell(situacao2String(doc->situacao))
+					row->addCell(reg->itemNFe.bcICMS)
+					row->addCell(reg->itemNFe.aliqICMS)
+					row->addCell(reg->itemNFe.ICMS)
+					row->addCell(reg->itemNFe.bcICMSST)
+					row->addCell(reg->itemNFe.aliqICMSST)
+					row->addCell(reg->itemNFe.ICMSST)
+					row->addCell(reg->itemNFe.IPI)
+					row->addCell(reg->itemNFe.valor)
+					row->addCell(reg->itemNFe.numItem)
+					row->addCell(reg->itemNFe.qtd)
+					row->addCell(reg->itemNFe.unidade)
+					row->addCell(reg->itemNFe.cfop)
+					row->addCell(reg->itemNFe.cstICMS)
+					var itemId = cast( TItemId ptr, hashLookup(@itemIdDict, reg->itemNFe.itemId) )
+					if itemId <> null then 
+						row->addCell(itemId->ncm)
+						row->addCell(itemId->id)
+						row->addCell(itemId->descricao)
+					else
+						row->addCell("")
+						row->addCell("")
+						row->addCell("")
+					end if
+				end if
+			end select
 
 		'NF-e?
 		case DOC_NFE
-			if reg->nfe.modelo = 55 then 
-
-				select case as const reg->nfe.situacao
-				case REGULAR, EXTEMPORANEO
+			select case as const reg->nfe.situacao
+			case REGULAR, EXTEMPORANEO
+				if len(reg->nfe.chave) > 0 then
 					adicionarEfdDfe(reg->nfe.chave, reg->nfe.operacao, reg->nfe.dataEmi, reg->nfe.valorTotal)
+				end if
 
-					'' NOTA: não existe itemDoc para saídas, só temos informação básica do DF-e, 
-					'' 	     a não ser que sejam carregos os relatórios .csv do SAFI vindos do infoview
-					if reg->nfe.operacao = SAIDA then
-						var part = cast( TParticipante ptr, hashLookup(@participanteDict, reg->nfe.idParticipante) )
-
-						dim as TDFe_NFeItem ptr item = null
-						if itemNFeSafiFornecido then
+				'' NOTA: não existe itemDoc para saídas, só temos informação básica do DF-e, 
+				'' 	     a não ser que sejam carregados os relatórios .csv do SAFI vindos do infoview
+				if reg->nfe.operacao = SAIDA then
+					dim as TDFe_NFeItem ptr item = null
+					if itemNFeSafiFornecido then
+						if len(reg->nfe.chave) > 0 then
 							var dfe = cast( TDFe ptr, hashLookup(@chaveDFeDict, reg->nfe.chave) )
 							if dfe <> null then
 								item = dfe->nfe.itemListHead
 							end if
 						end if
+					end if
 
-						do
-							var row = saidas->AddRow()
+					var part = cast( TParticipante ptr, hashLookup(@participanteDict, reg->nfe.idParticipante) )
+
+					do
+						var row = saidas->AddRow()
+						if part <> null then
 							row->addCell(part->cnpj)
 							row->addCell(part->ie)
 							row->addCell(MUNICIPIO2SIGLA(part->municip))
 							row->addCell(part->nome)
-							row->addCell(reg->nfe.modelo)
-							row->addCell(reg->nfe.serie)
-							row->addCell(reg->nfe.numero)
-							row->addCell(STR2DATA(reg->nfe.dataEmi))
-							row->addCell(STR2DATA(reg->nfe.dataEntSaida))
-							row->addCell(reg->nfe.chave)
-							row->addCell(situacao2String(reg->nfe.situacao))
+						else
+							row->addCell("")
+							row->addCell("")
+							row->addCell("")
+							row->addCell("")
+						end if
+						row->addCell(reg->nfe.modelo)
+						row->addCell(reg->nfe.serie)
+						row->addCell(reg->nfe.numero)
+						row->addCell(STR2DATA(reg->nfe.dataEmi))
+						row->addCell(STR2DATA(reg->nfe.dataEntSaida))
+						row->addCell(reg->nfe.chave)
+						row->addCell(situacao2String(reg->nfe.situacao))
 
-							if itemNFeSafiFornecido then
-								if item <> null then
-									row->addCell(item->bcICMS)
-									row->addCell(item->aliqICMS)
-									row->addCell(item->ICMS)
-									row->addCell(item->bcICMSST)
-									row->addCell("")
-									row->addCell("")
-									row->addCell(item->IPI)
-									row->addCell(item->valorProduto)
-									row->addCell(item->nroItem)
-									row->addCell(item->qtd)
-									row->addCell(item->unidade)
-									row->addCell(item->cfop)
-									row->addCell("")
-									row->addCell("")
-									row->addCell(item->codProduto)
-									row->addCell(item->descricao)
-								else
-									for cell as integer = 1 to 13
-										row->addCell("")
-									next
-								end if
-
+						if itemNFeSafiFornecido then
+							if item <> null then
+								row->addCell(item->bcICMS)
+								row->addCell(item->aliqICMS)
+								row->addCell(item->ICMS)
+								row->addCell(item->bcICMSST)
+								row->addCell("")
+								row->addCell("")
+								row->addCell(item->IPI)
+								row->addCell(item->valorProduto)
+								row->addCell(item->nroItem)
+								row->addCell(item->qtd)
+								row->addCell(item->unidade)
+								row->addCell(item->cfop)
+								row->addCell("")
+								row->addCell("")
+								row->addCell(item->codProduto)
+								row->addCell(item->descricao)
 							else
-								row->addCell(reg->nfe.bcICMS)
-								row->addCell(reg->nfe.ICMS)
-								row->addCell(reg->nfe.bcICMSST)
-								row->addCell(reg->nfe.ICMSST)
-								row->addCell(reg->nfe.IPI)
-								row->addCell(reg->nfe.valorTotal)
+								for cell as integer = 1 to 13
+									row->addCell("")
+								next
 							end if
 
-							row->addCell(reg->nfe.difal.fcp)
-							row->addCell(reg->nfe.difal.icmsOrigem)
-							row->addCell(reg->nfe.difal.icmsDest)
-							
-							if item = null then
-								exit do
-							end if
+						else
+							row->addCell(reg->nfe.bcICMS)
+							row->addCell(reg->nfe.ICMS)
+							row->addCell(reg->nfe.bcICMSST)
+							row->addCell(reg->nfe.ICMSST)
+							row->addCell(reg->nfe.IPI)
+							row->addCell(reg->nfe.valorTotal)
+						end if
 
-							item = item->next_
-						loop while item <> null
-					end if
-			   
-				case CANCELADO, CANCELADO_EXT, DENEGADO, INUTILIZADO
-					dim as ExcelRow ptr row 
-					if reg->nfe.operacao = SAIDA then
-						row = saidas->AddRow()
-					else
-						row = entradas->AddRow()
-					end if
+						row->addCell(reg->nfe.difal.fcp)
+						row->addCell(reg->nfe.difal.icmsOrigem)
+						row->addCell(reg->nfe.difal.icmsDest)
+						
+						if item = null then
+							exit do
+						end if
+
+						item = item->next_
+					loop while item <> null
+				end if
+		   
+			case CANCELADO, CANCELADO_EXT, DENEGADO, INUTILIZADO
+				if reg->nfe.operacao = SAIDA then
+					var row = saidas->AddRow()
 
 					row->addCell("")
 					row->addCell("")
@@ -1839,149 +1933,131 @@ sub Efd.gerarPlanilhas(nomeArquivo as string)
 					row->addCell(reg->nfe.numero)
 					'' NOTA: cancelados e inutilizados não vêm com a data preenchida, então retiramos a data da chave ou do registro mestre
 					var dataEmi = iif( len(reg->nfe.chave) = 44, "01" + mid(reg->nfe.chave,5,2) + "20" + mid(reg->nfe.chave,3,2), regListHead->mestre.dataIni )
-					adicionarEfdDfe(reg->nfe.chave, reg->nfe.operacao, dataEmi, 0)
+					if len(reg->nfe.chave) > 0 then
+						adicionarEfdDfe(reg->nfe.chave, reg->nfe.operacao, dataEmi, 0)
+					end if
+					
 					row->addCell(STR2DATA(dataEmi))
 					row->addCell("")
 					row->addCell(reg->nfe.chave)
 					row->addCell(situacao2String(reg->nfe.situacao))
-					row->addCell("")
-					if reg->nfe.operacao = ENTRADA or cint(itemNFeSafiFornecido) then
-						row->addCell("")
-					end if
-					row->addCell("")
-					row->addCell("")
-					if reg->nfe.operacao = ENTRADA or cint(itemNFeSafiFornecido) then
-						row->addCell("")
-					end if
-					row->addCell("")
-					row->addCell("")
-					row->addCell("")
-					if reg->nfe.operacao = ENTRADA or cint(itemNFeSafiFornecido) then
-						row->addCell("")
-						row->addCell("")
-						row->addCell("")
-						row->addCell("")
-						row->addCell("")
-					end if
-					
-					'' difal
-					if reg->nfe.operacao = SAIDA then
-						row->addCell("")
-						row->addCell("")
-						row->addCell("")
-					end if
+				end if
 
-				end select
-			end if
+			end select
 
 		'CT-e?
 		case DOC_CTE
-			if reg->cte.modelo = 57 then
-				select case as const reg->cte.situacao
-				case REGULAR, EXTEMPORANEO
+			select case as const reg->cte.situacao
+			case REGULAR, EXTEMPORANEO
+				if len(reg->cte.chave) > 0 then
 					adicionarEfdDfe(reg->cte.chave, reg->cte.operacao, reg->cte.dataEmi, reg->cte.valorServico)
-					
-					var part = cast( TParticipante ptr, hashLookup(@participanteDict, reg->cte.idParticipante) )
+				end if
+				
+				var part = cast( TParticipante ptr, hashLookup(@participanteDict, reg->cte.idParticipante) )
 
-					dim as TDFe_CTe ptr cte = null
-					if cteSafiFornecido then
+				dim as TDFe_CTe ptr cte = null
+				if cteSafiFornecido then
+					if len(reg->cte.chave) > 0 then
 						var dfe = cast( TDFe ptr, hashLookup(@chaveDFeDict, reg->cte.chave) )
 						if dfe <> null then
 							cte = @dfe->cte
 						end if
 					end if
-					
-					dim as TDocItemAnal ptr item = null
-					if reg->cte.operacao = ENTRADA or cint(itemNFeSafiFornecido) then
-						item = reg->cte.itemAnalListHead
-					end if
-					
-					var itemCnt = 1
-					do
-						dim as ExcelRow ptr row 
-						if reg->cte.operacao = SAIDA then
-							row = saidas->AddRow()
-						else
-							row = entradas->AddRow()
-						end if
-						
-						row->addCell(part->cnpj)
-						row->addCell(part->ie)
-						row->addCell(MUNICIPIO2SIGLA(part->municip))
-						row->addCell(part->nome)
-						row->addCell(reg->cte.modelo)
-						row->addCell(reg->cte.serie)
-						row->addCell(reg->cte.numero)
-						row->addCell(STR2DATA(reg->cte.dataEmi))
-						row->addCell(STR2DATA(reg->cte.dataEntSaida))
-						row->addCell(reg->cte.chave)
-						row->addCell(situacao2String(reg->cte.situacao))
-						
-						if item <> null then
-							row->addCell(item->bc)
-							row->addCell(item->aliq)
-							row->addCell(item->ICMS)
-							row->addCell("")
-							row->addCell("")
-							row->addCell("")
-							row->addCell("")
-							row->addCell(item->valorOp)
-							row->addCell(itemCnt)
-							row->addCell("")
-							row->addCell("")
-							row->addCell(item->cfop)
-							row->addCell(item->cst)
-							row->addCell("")
-							row->addCell("")
-							row->addCell("")
-							
-							item = item->next_
-							itemCnt += 1
-						else
-							if reg->cte.operacao = ENTRADA or cint(itemNFeSafiFornecido) then
-								row->addCell(reg->cte.bcICMS)
-								row->addCell("")
-								row->addCell(reg->cte.ICMS)
-								row->addCell("")
-								row->addCell("")
-								row->addCell("")
-								row->addCell("")
-								row->addCell(reg->cte.valorServico)
-								row->addCell(1)
-								row->addCell("")
-								row->addCell("")
-								row->addCell("")
-								row->addCell("")
-								row->addCell("")
-								row->addCell("")
-								row->addCell("")
-							else
-								row->addCell(reg->cte.bcICMS)
-								row->addCell(reg->cte.ICMS)
-								row->addCell("")
-								row->addCell("")
-								row->addCell("")
-								row->addCell(reg->cte.valorServico)
-							end if
-							
-						end if
-
-						if reg->cte.operacao = SAIDA then
-							row->addCell(reg->cte.difal.fcp)
-							row->addCell(reg->cte.difal.icmsOrigem)
-							row->addCell(reg->cte.difal.icmsDest)
-						end if
-						
-					loop while item <> null
-					
+				end if
 				
-				case CANCELADO, CANCELADO_EXT, DENEGADO, INUTILIZADO
+				dim as TDocItemAnal ptr item = null
+				if reg->cte.operacao = ENTRADA then
+					item = reg->cte.itemAnalListHead
+				end if
+				
+				var itemCnt = 1
+				do
 					dim as ExcelRow ptr row 
 					if reg->cte.operacao = SAIDA then
 						row = saidas->AddRow()
 					else
 						row = entradas->AddRow()
 					end if
+					
+					if part <> null then
+						row->addCell(part->cnpj)
+						row->addCell(part->ie)
+						row->addCell(MUNICIPIO2SIGLA(part->municip))
+						row->addCell(part->nome)
+					else
+						row->addCell("")
+						row->addCell("")
+						row->addCell("")
+						row->addCell("")
+					end if
+					row->addCell(reg->cte.modelo)
+					row->addCell(reg->cte.serie)
+					row->addCell(reg->cte.numero)
+					row->addCell(STR2DATA(reg->cte.dataEmi))
+					row->addCell(STR2DATA(reg->cte.dataEntSaida))
+					row->addCell(reg->cte.chave)
+					row->addCell(situacao2String(reg->cte.situacao))
+					
+					if item <> null then
+						row->addCell(item->bc)
+						row->addCell(item->aliq)
+						row->addCell(item->ICMS)
+						row->addCell("")
+						row->addCell("")
+						row->addCell("")
+						row->addCell("")
+						row->addCell(item->valorOp)
+						row->addCell(itemCnt)
+						row->addCell("")
+						row->addCell("")
+						row->addCell(item->cfop)
+						row->addCell(item->cst)
+						row->addCell("")
+						row->addCell("")
+						row->addCell("")
+						
+						item = item->next_
+						itemCnt += 1
+					else
+						if reg->cte.operacao = ENTRADA or cint(itemNFeSafiFornecido) then
+							row->addCell(reg->cte.bcICMS)
+							row->addCell("")
+							row->addCell(reg->cte.ICMS)
+							row->addCell("")
+							row->addCell("")
+							row->addCell("")
+							row->addCell("")
+							row->addCell(reg->cte.valorServico)
+							row->addCell(1)
+							row->addCell("")
+							row->addCell("")
+							row->addCell("")
+							row->addCell("")
+							row->addCell("")
+							row->addCell("")
+							row->addCell("")
+						else
+							row->addCell(reg->cte.bcICMS)
+							row->addCell(reg->cte.ICMS)
+							row->addCell("")
+							row->addCell("")
+							row->addCell("")
+							row->addCell(reg->cte.valorServico)
+						end if
+						
+					end if
+
+					if reg->cte.operacao = SAIDA then
+						row->addCell(reg->cte.difal.fcp)
+						row->addCell(reg->cte.difal.icmsOrigem)
+						row->addCell(reg->cte.difal.icmsDest)
+					end if
+					
+				loop while item <> null
+			
+			case CANCELADO, CANCELADO_EXT, DENEGADO, INUTILIZADO
+				if reg->cte.operacao = SAIDA then
+					var row = saidas->AddRow()
 
 					row->addCell("")
 					row->addCell("")
@@ -1992,40 +2068,16 @@ sub Efd.gerarPlanilhas(nomeArquivo as string)
 					row->addCell(reg->cte.numero)
 					'' NOTA: cancelados e inutilizados não vêm com a data preenchida, então retiramos a data da chave ou do registro mestre
 					var dataEmi = iif( len(reg->cte.chave) = 44, "01" + mid(reg->cte.chave,5,2) + "20" + mid(reg->cte.chave,3,2), regListHead->mestre.dataIni )
-					adicionarEfdDfe(reg->cte.chave, reg->cte.operacao, dataEmi, 0)
+					if len(reg->cte.chave) > 0 then
+						adicionarEfdDfe(reg->cte.chave, reg->cte.operacao, dataEmi, 0)
+					end if
 					row->addCell(STR2DATA(dataEmi))
 					row->addCell("")
 					row->addCell(reg->cte.chave)
 					row->addCell(situacao2String(reg->cte.situacao))
-					row->addCell("")
-					if reg->nfe.operacao = ENTRADA or cint(itemNFeSafiFornecido) then
-						row->addCell("")
-					end if
-					row->addCell("")
-					row->addCell("")
-					if reg->nfe.operacao = ENTRADA or cint(itemNFeSafiFornecido) then
-						row->addCell("")
-					end if
-					row->addCell("")
-					row->addCell("")
-					row->addCell("")
-					if reg->nfe.operacao = ENTRADA or cint(itemNFeSafiFornecido) then
-						row->addCell("")
-						row->addCell("")
-						row->addCell("")
-						row->addCell("")
-						row->addCell("")
-					end if
-					
-					'' difal
-					if reg->nfe.operacao = SAIDA then
-						row->addCell("")
-						row->addCell("")
-						row->addCell("")
-					end if
-				
-				end select
-			end if
+				end if
+			
+			end select
 			
 		case APURACAO_ICMS_PERIODO
 			var row = apuracaoIcms->AddRow()
@@ -2111,13 +2163,6 @@ sub Efd.gerarPlanilhas(nomeArquivo as string)
 						row->addCell("")
 					end if
 					
-					'' difal
-					if reg->docSint.operacao = SAIDA then
-						row->addCell("")
-						row->addCell("")
-						row->addCell("")
-					end if
-				   
 				case CANCELADO, CANCELADO_EXT, DENEGADO, INUTILIZADO
 					/'var row = canceladas->AddRow()
 					row->addCell(reg->docSint.modelo)
@@ -2152,20 +2197,16 @@ sub Efd.gerarRelatorios(nomeArquivo as string)
 		select case reg->tipo
 		'NF-e?
 		case DOC_NFE
-			if reg->nfe.modelo = 55 then 
-				if reg->nfe.operacao = ENTRADA then
-					var part = cast( TParticipante ptr, hashLookup(@participanteDict, reg->nfe.idParticipante) )
-					adicionarDocRelatorioEntradas(@reg->nfe, part)
-				end if
+			if reg->nfe.operacao = ENTRADA then
+				var part = cast( TParticipante ptr, hashLookup(@participanteDict, reg->nfe.idParticipante) )
+				adicionarDocRelatorioEntradas(@reg->nfe, part)
 			end if
 		
 		'CT-e?
 		case DOC_CTE
-			if reg->cte.modelo = 57 then
-				if reg->cte.operacao = ENTRADA then
-					var part = cast( TParticipante ptr, hashLookup(@participanteDict, reg->cte.idParticipante) )
-					adicionarDocRelatorioEntradas(@reg->cte, part)
-				end if
+			if reg->cte.operacao = ENTRADA then
+				var part = cast( TParticipante ptr, hashLookup(@participanteDict, reg->cte.idParticipante) )
+				adicionarDocRelatorioEntradas(@reg->cte, part)
 			end if
 		end select
 		
@@ -2183,20 +2224,16 @@ sub Efd.gerarRelatorios(nomeArquivo as string)
 		select case reg->tipo
 		'NF-e?
 		case DOC_NFE
-			if reg->nfe.modelo = 55 then 
-				if reg->nfe.operacao = SAIDA then
-					var part = cast( TParticipante ptr, hashLookup(@participanteDict, reg->nfe.idParticipante) )
-					adicionarDocRelatorioSaidas(@reg->nfe, part)
-				end if
+			if reg->nfe.operacao = SAIDA then
+				var part = cast( TParticipante ptr, hashLookup(@participanteDict, reg->nfe.idParticipante) )
+				adicionarDocRelatorioSaidas(@reg->nfe, part)
 			end if
 
 		'CT-e?
 		case DOC_CTE
-			if reg->cte.modelo = 57 then
-				if reg->cte.operacao = SAIDA then
-					var part = cast( TParticipante ptr, hashLookup(@participanteDict, reg->cte.idParticipante) )
-					adicionarDocRelatorioSaidas(@reg->cte, part)
-				end if
+			if reg->cte.operacao = SAIDA then
+				var part = cast( TParticipante ptr, hashLookup(@participanteDict, reg->cte.idParticipante) )
+				adicionarDocRelatorioSaidas(@reg->cte, part)
 			end if
 			
 		end select
@@ -2206,6 +2243,7 @@ sub Efd.gerarRelatorios(nomeArquivo as string)
 	
 	finalizarRelatorio()
 	
+	'' outros livros..
 	reg = regListHead
 	do while reg <> null
 		'para cada registro..
@@ -2220,7 +2258,6 @@ sub Efd.gerarRelatorios(nomeArquivo as string)
 
 		reg = reg->next_
 	loop
-	
 
 end sub
 
