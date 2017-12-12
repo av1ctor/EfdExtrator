@@ -2448,8 +2448,8 @@ sub Efd.iniciarRelatorio(relatorio as TipoRelatorio, nomeRelatorio as string, su
 		dfwd->setClipboardValueByStrW("_header", "municipio", codMunicip2Nome(dbConfig, regListHead->mestre.municip))
 		dfwd->setClipboardValueByStr("_header", "apu", STR2DATABR(regListHead->mestre.dataIni) + " a " + STR2DATABR(regListHead->mestre.dataFim))
 	
-		listInit(@relSomaLRLIst, 10, len(RelSomatorioLR))
-		hashInit(@relSomaLRHash, 10, true, false, true)
+		relSomaLRList.init(10, len(RelSomatorioLR))
+		hashInit(@relSomaLRHash, 10)
 		
 		dfwd->paste("tabela")
 	end select
@@ -2459,18 +2459,19 @@ end sub
 ''''''''
 private sub Efd.relatorioSomarLR(sit as TipoSituacao, anal as TDocItemAnal ptr)
 	
-	dim as string chave = iif(ultimoRelatorio = REL_LRS, sit & "_", "")
+	dim as string chave = iif(ultimoRelatorio = REL_LRS, str(sit), "0")
 	
-	chave &= anal->cst & "_" & anal->cfop & "_" & anal->aliq
+	chave &= format(anal->cst,"000") & anal->cfop & format(anal->aliq, "00")
 	
 	var soma = cast(RelSomatorioLR ptr, hashLookUp(@relSomaLRHash, chave))
 	if soma = null then
-		soma = listNewNode(@relSomaLRList)
-		hashAdd(@relSomaLRHash, chave, soma)
+		soma = relSomaLRList.add()
+		soma->chave = chave
 		soma->situacao = sit
 		soma->cst = anal->cst
 		soma->cfop = anal->cfop
 		soma->aliq = anal->aliq
+		hashAdd(@relSomaLRHash, soma->chave, soma)
 	end if
 	
 	soma->valorOp += anal->valorOp
@@ -2582,7 +2583,7 @@ sub Efd.finalizarRelatorio()
 	
 		dim as RelSomatorioLR totSoma
 		
-		var soma = cast(RelSomatorioLR ptr, listGetHead(@relSomaLRList))
+		var soma = cast(RelSomatorioLR ptr, relSomaLRList.head)
 		do while soma <> null
 			if ultimoRelatorio = REL_LRS then
 				dfwd->setClipboardValueByStr("resumo_linha", "sit", format(cdbl(soma->situacao), "00"))
@@ -2607,7 +2608,7 @@ sub Efd.finalizarRelatorio()
 			totSoma.ICMSST += soma->ICMSST
 			totSoma.ipi += soma->ipi
 			
-			soma = listGetNext(soma)
+			soma = relSomaLRList.next_(soma)
 		loop
 		
 		dfwd->paste("resumo_sep")
@@ -2622,7 +2623,7 @@ sub Efd.finalizarRelatorio()
 		dfwd->paste("resumo_total")
 		
 		hashEnd(@relSomaLRHash)
-		listEnd(@relSomaLRList)
+		relSomaLRList.end_()
 	case else
 		dfwd->paste("ass")
 	end select

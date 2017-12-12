@@ -488,6 +488,7 @@ enum TipoRelatorio
 end enum
 
 type RelSomatorioLR
+	chave			as zstring * 10+1
 	situacao		as TipoSituacao
 	cst				as integer
 	cfop			as integer
