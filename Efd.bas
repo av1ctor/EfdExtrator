@@ -2456,6 +2456,10 @@ sub Efd.iniciarRelatorio(relatorio as TipoRelatorio, nomeRelatorio as string, su
 	
 end sub
 
+private function cmpFunc(key as any ptr, node as any ptr) as boolean
+	function = *cast(zstring ptr, key) < cast(RelSomatorioLR ptr, node)->chave
+end function
+
 ''''''''
 private sub Efd.relatorioSomarLR(sit as TipoSituacao, anal as TDocItemAnal ptr)
 	
@@ -2465,7 +2469,7 @@ private sub Efd.relatorioSomarLR(sit as TipoSituacao, anal as TDocItemAnal ptr)
 	
 	var soma = cast(RelSomatorioLR ptr, relSomaLRHash.lookUp(chave))
 	if soma = null then
-		soma = relSomaLRList.add()
+		soma = relSomaLRList.addOrdAsc(strptr(chave), @cmpFunc)
 		soma->chave = chave
 		soma->situacao = sit
 		soma->cst = anal->cst
