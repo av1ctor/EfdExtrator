@@ -2492,20 +2492,23 @@ sub Efd.adicionarDocRelatorioItemAnal(sit as TipoSituacao, anal as TDocItemAnal 
 	do while anal <> null
 		relatorioSomarLR(sit, anal)
 
-		dfwd->setClipboardValueByStr("linha_anal", "cst", format(anal->cst,"000"))
-		dfwd->setClipboardValueByStr("linha_anal", "cfop", anal->cfop)
-		dfwd->setClipboardValueByStr("linha_anal", "aliq", DBL2MONEYBR(anal->aliq))
-		dfwd->setClipboardValueByStr("linha_anal", "bc", DBL2MONEYBR(anal->bc))
-		dfwd->setClipboardValueByStr("linha_anal", "icms", DBL2MONEYBR(anal->ICMS))
-		dfwd->setClipboardValueByStr("linha_anal", "bcst", DBL2MONEYBR(anal->bcST))
-		dfwd->setClipboardValueByStr("linha_anal", "icmsst", DBL2MONEYBR(anal->ICMSST))
-		dfwd->setClipboardValueByStr("linha_anal", "ipi", DBL2MONEYBR(anal->IPI))
-		dfwd->setClipboardValueByStr("linha_anal", "valop", DBL2MONEYBR(anal->valorOp))
-		if ultimoRelatorio = REL_LRE then
-			dfwd->setClipboardValueByStr("linha_anal", "redbc", DBL2MONEYBR(anal->redBC))
-		end if
-		
-		dfwd->paste("linha_anal")
+		select case sit
+		case REGULAR, EXTEMPORANEO
+			dfwd->setClipboardValueByStr("linha_anal", "cst", format(anal->cst,"000"))
+			dfwd->setClipboardValueByStr("linha_anal", "cfop", anal->cfop)
+			dfwd->setClipboardValueByStr("linha_anal", "aliq", DBL2MONEYBR(anal->aliq))
+			dfwd->setClipboardValueByStr("linha_anal", "bc", DBL2MONEYBR(anal->bc))
+			dfwd->setClipboardValueByStr("linha_anal", "icms", DBL2MONEYBR(anal->ICMS))
+			dfwd->setClipboardValueByStr("linha_anal", "bcst", DBL2MONEYBR(anal->bcST))
+			dfwd->setClipboardValueByStr("linha_anal", "icmsst", DBL2MONEYBR(anal->ICMSST))
+			dfwd->setClipboardValueByStr("linha_anal", "ipi", DBL2MONEYBR(anal->IPI))
+			dfwd->setClipboardValueByStr("linha_anal", "valop", DBL2MONEYBR(anal->valorOp))
+			if ultimoRelatorio = REL_LRE then
+				dfwd->setClipboardValueByStr("linha_anal", "redbc", DBL2MONEYBR(anal->redBC))
+			end if
+			
+			dfwd->paste("linha_anal")
+		end select
 
 		anal = anal->next_
 	loop
