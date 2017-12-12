@@ -1,6 +1,6 @@
 #include once "sqlite3.bi" 
 #include once "list.bi" 
-#include once "hash.bi" 
+#include once "Dict.bi" 
 
 type TRSetRow
 	declare constructor()
@@ -9,7 +9,7 @@ type TRSetRow
 	declare operator [](index as const zstring ptr) as zstring ptr
 	declare operator [](index as integer) as zstring ptr
 private:
-	columns			as THash
+	columns			as TDict
 	colList(any)	as zstring ptr
 	colCnt			as integer
 end type
