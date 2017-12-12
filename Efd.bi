@@ -573,6 +573,7 @@ private:
 	declare function carregarCsvCTe(bf as bfile, emModoOutrasUFs as boolean) as TDFe ptr
 	declare sub adicionarDFe(dfe as TDFe ptr)
 	declare sub adicionarEfdDfe(chave as zstring ptr, operacao as TipoOperacao, dataEmi as zstring ptr, valorOperacao as double)
+	declare sub addRegistroOrdenadoPorData(reg as TRegistro ptr)
 	declare sub criarPlanilhas()
 	declare sub gerarPlanilhas(nomeArquivo as string)
 	declare sub gerarRelatorios(nomeArquivo as string)
