@@ -17,8 +17,8 @@ public:
    declare sub escrever(texto as string)
    declare sub escrever(src() as byte) 
    declare function temProximo() as Boolean
-   declare property peek1() as Byte
-   declare property char1() as Byte
+   declare property peek1() as uByte
+   declare property char1() as uByte
    declare property char2() as string
    declare property char4() as string
    declare property char6() as string
@@ -27,9 +27,9 @@ public:
    declare property char14() as string
    declare property char22() as string
    declare function nchar(caracteres as Integer, preenchimento as byte = asc("0")) as string
-   declare function varchar(separador as Integer = asc("|")) as string
-   declare function varint(separador as Integer = asc("|")) as longint
-   declare function vardbl(separador as Integer = asc("|")) as double
+   declare function varchar(separador as uInteger = asc("|")) as string
+   declare function varint(separador as uInteger = asc("|")) as longint
+   declare function vardbl(separador as uInteger = asc("|"), decimalSep as uinteger = asc(",")) as double
    declare property dbl13_2() as double
    declare property dbl13_3() as double
    declare property dbl4_2() as double
@@ -39,9 +39,9 @@ public:
    declare property int6() as integer
    declare property int9() as integer
    declare property lng14() as longint
-   declare function charCsv(separador as Integer = asc(","), qualificador as Integer = asc("""")) as string
-   declare function intCsv(separador as Integer = asc(","), qualificador as Integer = asc("""")) as longint
-   declare function dblCsv(separador as Integer = asc(","), qualificador as Integer = asc("""")) as double
+   declare function charCsv(separador as uInteger = asc(","), qualificador as uInteger = asc("""")) as string
+   declare function intCsv(separador as uInteger = asc(","), qualificador as uInteger = asc("""")) as longint
+   declare function dblCsv(separador as uInteger = asc(","), qualificador as uInteger = asc("""")) as double
 
 private:
    fnum as integer = 0

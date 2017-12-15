@@ -398,20 +398,11 @@ type TDFe_NFeItem									'' Nota: só existe para NF-e emitidas, já que para as 
 end type
 
 type TDFe_NFe
-	serie			as integer
-	numero			as integer
-	cnpjEmit		as zstring * 14+1
-	nomeEmit		as zstring * 100+1
 	ieEmit			as zstring * 14+1
-	ufEmit			as zstring * 2+1
-	cnpjDest		as zstring * 14+1
-	nomeDest		as zstring * 100+1
-	ufDest			as zstring * 2+1
 	bcICMSTotal		as double
 	ICMSTotal		as double
 	bcICMSSTTotal	as double
 	ICMSSTTotal		as double
-	valorNotaTotal	as double
 	
 	itemListHead	as TDFe_NFeItem ptr
 	itemListTail	as TDFe_NFeItem ptr
@@ -420,14 +411,6 @@ end type
 type TDFe_ as TDFe ptr
 
 type TDFe_CTe
-	serie			as integer
-	numero			as integer
-	cnpjEmit		as zstring * 14+1
-	nomeEmit		as zstring * 100+1
-	ufEmit			as zstring * 2+1
-	cnpjDest		as zstring * 14+1
-	nomeDest		as zstring * 100+1
-	ufDest			as zstring * 2+1
 	cnpjToma		as zstring * 14+1
 	nomeToma		as zstring * 100+1
 	ufToma			as zstring * 2+1
@@ -439,7 +422,6 @@ type TDFe_CTe
 	cnpjReceb		as zstring * 14+1
 	ufReceb			as zstring * 2+1
 	tipo			as byte
-	valorPrestacao	as double
 	valorReceber	as double
 	qtdCTe			as double
 	cfop			as integer
@@ -456,6 +438,14 @@ type TDFe
 	operacao		as TipoOperacao					'' entrada ou saída
 	chave			as zstring * 44+1
 	dataEmi			as zstring * 10+1
+	serie			as integer
+	numero			as integer
+	cnpjEmit		as zstring * 14+1
+	nomeEmit		as zstring * 100+1
+	ufEmit			as zstring * 2+1
+	cnpjDest		as zstring * 14+1
+	nomeDest		as zstring * 100+1
+	ufDest			as zstring * 2+1
 	valorOperacao	as double
 	
 	union
@@ -515,6 +505,8 @@ public:
 	declare sub analisar(mostrarProgresso as ProgressoCB)
    
 private:
+	declare sub configurarDB()
+	
 	declare function lerRegistro(bf as bfile, reg as TRegistro ptr) as Boolean
 	declare function lerRegistroSintegra(bf as bfile, reg as TRegistro ptr) as Boolean
 	declare sub lerAssinatura(bf as bfile)
@@ -583,6 +575,11 @@ private:
 	
 	'' base de dados de configuração
 	dbConfig				as TDb ptr
+	
+	'' base de dados temparária para análises
+	db						as TDb ptr
+	db_docEntradaInsertStmt	as TDbStmt ptr
+	db_docSaidaInsertStmt	as TDbStmt ptr
 	
 	'' geração de relatórios em formato PDF com o layout do programa EFD-ICMS-IPI da RFB
 	baseTemplatesDir		as string

@@ -114,7 +114,7 @@ function bfile.temProximo as Boolean
 end function
 
 ''''''''
-property bfile.char1() as Byte
+property bfile.char1() as uByte
       
 	property = peek1
 
@@ -124,7 +124,7 @@ property bfile.char1() as Byte
 end property
 
 ''''''''
-property bfile.peek1() as Byte
+property bfile.peek1() as uByte
 
 	if blen = 0 then
 		fpos = seek( fnum )
@@ -153,7 +153,7 @@ function bfile.nchar(caracteres as Integer, preenchimento as byte) as string
 end function
 
 ''''''''
-function bfile.varchar(separador as Integer) as string
+function bfile.varchar(separador as uInteger) as string
 
 	var res = ""
 	var c1 = " "
@@ -171,7 +171,7 @@ function bfile.varchar(separador as Integer) as string
 end function
 
 ''''''''
-function bfile.varint(separador as Integer) as longint
+function bfile.varint(separador as uInteger) as longint
 
 	dim as longint res = 0
 
@@ -188,7 +188,7 @@ function bfile.varint(separador as Integer) as longint
 end function
 
 ''''''''
-function bfile.vardbl(separador as Integer) as double
+function bfile.vardbl(separador as uInteger, decimalSep as uinteger) as double
 
 	dim as longint intp = 0
 
@@ -197,13 +197,13 @@ function bfile.vardbl(separador as Integer) as double
 		c1 = char1
 		if c1 = separador then
 			exit do
-		elseif c1 = asc(",") then
+		elseif c1 = decimalSep then
 			exit do
 		end if
 		intp = intp * 10 + CHAR2BYTE(c1)
 	loop
 
-	if c1 = asc(",") then
+	if c1 = decimalSep then
 		dim as integer decp = 0
 		dim as integer decdiv = 1
 		do
@@ -402,7 +402,7 @@ property bfile.char22() as string
 end property
 
 ''''''''
-function bfile.charcsv(separador as Integer, qualificador as Integer) as string
+function bfile.charcsv(separador as uInteger, qualificador as uInteger) as string
 
 	var res = ""
 	var c1 = " "
@@ -449,7 +449,7 @@ function bfile.charcsv(separador as Integer, qualificador as Integer) as string
 end function
 
 ''''''''
-function bfile.intCsv(separador as Integer, qualificador as Integer) as longint
+function bfile.intCsv(separador as uInteger, qualificador as uInteger) as longint
 
 	'' pular qualificador
 	if peek1 = qualificador then
@@ -466,7 +466,7 @@ function bfile.intCsv(separador as Integer, qualificador as Integer) as longint
 end function
 
 ''''''''
-function bfile.dblCsv(separador as Integer, qualificador as Integer) as double
+function bfile.dblCsv(separador as uInteger, qualificador as uInteger) as double
 
 	'' pular qualificador
 	if peek1 = qualificador then

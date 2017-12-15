@@ -16,6 +16,13 @@ function TDb.open(fileName as const zstring ptr) as boolean
 end function
 
 ''''''''
+function TDb.open() as boolean
+
+	function = open(":memory:")
+
+end function
+
+''''''''
 sub TDb.close()
 	if instance <> null then
 		sqlite3_close( instance ) 
@@ -24,7 +31,12 @@ sub TDb.close()
 	end if
 end sub
 
-''''''''	
+''''''''
+function TDb.getErrorMsg() as const zstring ptr
+	function = strptr(errMsg)
+end function
+
+''''''''
 private function callback cdecl _
 	( _
 		byval rset__ as any ptr, _
@@ -62,10 +74,36 @@ function TDb.exec(query as const zstring ptr) as TRSet ptr
 		delete rs
 		errMsg = *errMsg_
 		return null
+	else
+		errMsg = ""
 	end if 
 	
 	return rs
 
+end function
+
+''''''''	
+function TDb.exec(stmt as TDbStmt ptr) as TRSet ptr
+
+	var rs = new TRSet
+	
+	stmt->reset()
+	
+	do
+		if stmt->step_() <> SQLITE_ROW then
+			exit do
+		end if
+		
+		var row = rs->newRow()
+		
+		var nCols = stmt->colCount()
+		for i as integer = 0 to nCols - 1
+			row->newColumn( stmt->colName( i ), stmt->colValue( i ) )
+		next
+	loop
+	
+	function = rs
+	
 end function
 
 ''''''''	
@@ -77,6 +115,8 @@ function TDb.execScalar(query as const zstring ptr) as zstring ptr
 	if sqlite3_exec( instance, query, @callback, @rs, @errMsg_ ) <> SQLITE_OK then 
 		errMsg = *errMsg_
 		return null
+	else
+		errMsg = ""
 	end if 
 	
 	if rs.hasNext then
@@ -91,6 +131,93 @@ function TDb.execScalar(query as const zstring ptr) as zstring ptr
 	else
 		function = null
 	end if
+	
+end function
+
+''''''''	
+sub TDb.execNonQuery(query as const zstring ptr) 
+
+	var rs = new TRSet
+	
+	dim as zstring ptr errMsg_ = null
+	if sqlite3_exec( instance, query, null, rs, @errMsg_ ) <> SQLITE_OK then 
+		errMsg = *errMsg_
+	else
+		errMsg = ""
+	end if 
+	
+	delete rs
+
+end sub
+
+''''''''	
+sub TDb.execNonQuery(stmt as TDbStmt ptr) 
+
+	do
+		if stmt->step_() <> SQLITE_ROW then
+			exit do
+		end if
+	loop
+
+end sub
+	
+''''''''	
+function TDb.prepare(query as const zstring ptr) as TDBStmt ptr
+
+	var res = new TDbStmt(this.instance)
+	if not res->prepare(query) then
+		errMsg = *sqlite3_errmsg(instance)
+		delete res
+		return null
+	else
+		errMsg = ""
+	end if
+	
+	function = res
+
+end function
+
+''''''''
+function TDb.format cdecl(fmt as string, ...) as string
+
+	dim as string args_v(0 to 9)
+	dim as VarType args_t(0 to 9)
+
+	var arg = va_first()
+	var a = -1
+	
+	var res = ""
+	
+	var i = 0
+	do while i < len(fmt)
+		if fmt[i] = asc("{") then
+			i += 1
+			var j = cint(fmt[i] - asc("0"))
+			i += 1
+			
+			if j > a then
+				do until a = j
+					a += 1
+					var v = va_arg(arg, VarBox ptr)
+					args_v(a) = *v
+					args_t(a) = v->vtype
+					arg = va_next(arg, VarBox ptr)
+				loop
+			end if
+			
+			if args_t(a) = VT_STR then
+				res += "'" + args_v(j) + "'"
+			else
+				res += args_v(j)
+			end if
+		else
+			res += chr(fmt[i])
+		end if
+	
+		i += 1
+	loop
+
+	function = res
 	
 end function
 
@@ -190,3 +317,91 @@ operator TRSetRow.[](index as integer) as zstring ptr
 		return null
 	end if
 end operator
+
+
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+
+''''''''
+constructor TDbStmt(db as sqlite3 ptr)
+	this.db = db
+end constructor
+
+''''''''
+destructor TDbStmt()
+	if stmt <> null then
+		sqlite3_finalize(stmt)
+	end if
+end destructor
+
+''''''''
+function TDbStmt.prepare(query as const zstring ptr) as boolean
+	function = sqlite3_prepare_v2(db, query, -1, @stmt, null) = SQLITE_OK
+end function
+	
+''''''''	
+sub TDbStmt.bind(index as integer, value as integer)
+	sqlite3_bind_int(stmt, index, value)
+end sub
+	
+''''''''	
+sub TDbStmt.bind(index as integer, value as longint)
+	sqlite3_bind_int64(stmt, index, value)
+end sub
+	
+''''''''	
+sub TDbStmt.bind(index as integer, value as double)
+	sqlite3_bind_double(stmt, index, value)
+end sub
+	
+''''''''	
+sub TDbStmt.bind(index as integer, value as const zstring ptr)
+	if value = null then
+		sqlite3_bind_null(stmt, index)
+	else
+		sqlite3_bind_text(stmt, index, value, len(*value), null)
+	end if
+end sub
+
+''''''''	
+sub TDbStmt.bind(index as integer, value as const wstring ptr)
+	if value = null then
+		sqlite3_bind_null(stmt, index)
+	else
+		sqlite3_bind_text16(stmt, index, value, len(*value), null)
+	end if
+end sub
+
+''''''''	
+sub TDbStmt.bindNull(index as integer)
+	sqlite3_bind_null(stmt, index)
+end sub
+
+''''''''	
+function TDbStmt.step_() as long
+	function = sqlite3_step(stmt)
+end function
+
+''''''''
+sub TDbStmt.reset()
+	sqlite3_reset(stmt)
+end sub
+
+''''''''
+sub TDbStmt.clear_()
+	sqlite3_clear_bindings(stmt)
+end sub
+
+''''''''
+function TDbStmt.colCount() as integer
+	function = sqlite3_column_count(stmt)
+end function
+
+''''''''
+function TDbStmt.colName(index as integer) as const zstring ptr
+	function = sqlite3_column_name(stmt, index)
+end function
+
+''''''''
+function TDbStmt.colValue(index as integer) as const zstring ptr
+	function = sqlite3_column_text(stmt, index)
+end function

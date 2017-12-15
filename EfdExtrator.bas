@@ -1,8 +1,12 @@
-'' para compilar: fbc.exe EfdExtrator.bas Efd.bas bfile.bas ExcelWriter.bas list.bas Dict.bas DocxFactoryDyn.bas DB.bas
+'' para compilar: fbc.exe EfdExtrator.bas Efd.bas bfile.bas ExcelWriter.bas list.bas Dict.bas DocxFactoryDyn.bas DB.bas VarBox.bas -exx
 
 #include once "EFD.bi"
 
 declare sub main()
+declare sub importarGia()
+declare sub importarCadContribuinte()
+
+on error goto exceptionReport
 
 '''''''''''
 sub mostrarUso()
@@ -64,8 +68,6 @@ sub main()
 		exit sub
 	end if
    
-	dim as Efd e
-	
 	'' verificar opções
 	var nroOpcoes = 0
 	var i = 1
@@ -76,17 +78,26 @@ sub main()
 		end if
 		
 		if arg[0] = asc("-") then
-			if arg = "-gerarRelatorios" then
+			select case lcase(arg)
+			case "-gerarrelatorios"
 				gerarRelatorios = true
 				nroOpcoes += 1
-			else
+			case "-importargia"
+				importarGia()
+				exit sub
+			case "-importarcadcontribuinte"
+				importarCadContribuinte()
+				exit sub
+			case else
 				mostrarUso()
 				exit sub
-			end if
+			end select
 		end if
 		
 		i += 1
 	loop
+	
+	dim as Efd e
 	
 	'' 
 	var arquivoSaida = iif( len(command(nroOpcoes+2)) > 0, "__efd__", command(nroOpcoes+1))
@@ -154,6 +165,202 @@ sub main()
 	e.finalizarExtracao( @mostrarProgresso )
 	
 end sub
-   
+
+  
+'''''''''''
+sub importarGia()   
+
+	const SEP = asc("¨")
+	
+	var db = new TDb
+	
+	db->open(ExePath + "\db\GIA.db")
+	
+	var i = 2
+	do
+		var arquivo = command(i)
+		if len(arquivo) = 0 then
+			exit do
+		end if
+		
+		dim as bfile inf
+		inf.abrir(arquivo)
+		
+		'' encontrar ano na 1a linha
+		inf.varint(SEP)
+		inf.varint(SEP)
+		inf.varint(SEP)
+		inf.varint(SEP)
+		var ano = inf.int4
+		inf.char2			'' skip \r\n
+		
+		mostrarProgresso("Carregando GIA(" & arquivo & ")", 0)
+		
+		'' remover todos os registros desse ano
+		db->execNonQuery(db->format("delete from GIA where ano = {0}", VB(ano)))
+		
+		var arqTamanho = inf.tamanho
+		var l = 0
+		do while inf.temProximo()
+			
+			if l = 0 then
+				db->execNonQuery("begin")
+			end if
+			
+			'' carregar cada registro
+			'' formato: IE¨mês¨indICMS¨(totDebitos¨totCreditos|totDevolucoes|totRetencoes)\r\n
+			var ie = inf.varint(SEP)
+			var mes = inf.varint(SEP)
+			var icmsSt = inf.varint(SEP)
+			'' icms próprio?
+			if icmsSt = 0 then
+				var totDebitos = inf.vardbl(SEP, asc("."))
+				var totCreditos = inf.vardbl(13, asc("."))
+				db->execNonQuery(db->format("insert into GIA (ie, mes, ano, totCreditos, totDebitos) values ({0},{1},{2},{3},{4})", VB(ie), VB(mes), VB(ano), VB(totCreditos), VB(totDebitos)))
+			'' st..
+			else
+				var totDevolucoes = inf.vardbl(SEP, asc("."))
+				var totRetencoes = inf.vardbl(13, asc("."))
+				db->execNonQuery(db->format("update GIA set totDevolucoes = {3}, totRetencoes = {4} where ie = {0} and mes = {1} and ano = {2}", VB(ie), VB(mes), VB(ano), VB(totDevolucoes), VB(totRetencoes)))
+			end if
+			
+			inf.char1			'' skip \n
+			
+			mostrarProgresso(0, inf.posicao / arqTamanho)
+			
+			if l = 100000 then
+				db->execNonQuery("end")
+				l = -1
+			end if
+			
+			l += 1
+		loop
+
+		if l > 0 then
+			mostrarProgresso(0, 1)
+			db->execNonQuery("end")
+		end if
+		
+		inf.fechar()
+		
+		i += 1
+	loop
+	
+	db->close()
+	
+end sub
+
+private function brdata2yyyymmdd(s as const zstring ptr) as string
+	dim as string res = "yyyymmdd"
+	
+	var i = 0
+	if s[i+1] = asc("/") then
+		res[6] = asc("0")
+		res[7] = s[i]
+		i += 2
+	else
+		res[6] = s[i]
+		res[7] = s[i+1]
+		i += 3
+	end if
+	
+	if s[i+1] = asc("/") then
+		res[4] = asc("0")
+		res[5] = s[i]
+		i += 2
+	else
+		res[4] = s[i]
+		res[5] = s[i+1]
+		i += 3
+	end if
+	
+	res[0] = s[i]
+	res[1] = s[i+1]
+	res[2] = s[i+2]
+	res[3] = s[i+3]
+	
+	function = res
+
+end function
+
+'''''''''''
+sub importarCadContribuinte()   
+
+	const SEP = asc("¨")
+	
+	var db = new TDb
+	
+	db->open(ExePath + "\db\CadContribuinte.db")
+	
+	var arquivo = command(2)
+	if len(arquivo) = 0 then
+		return
+	end if
+		
+	dim as bfile inf
+	inf.abrir(arquivo)
+	
+	'' pular as 2 primeiras linhas
+	inf.varchar(10)
+	inf.varchar(10)
+	
+	mostrarProgresso("Carregando Cadastro Contribuinte (" & arquivo & ")", 0)
+	
+	'' remover todos os registros desse ano
+	db->execNonQuery("delete from Contribuinte")
+	
+	var arqTamanho = inf.tamanho
+	var l = 0
+	do while inf.temProximo()
+		
+		if l = 0 then
+			db->execNonQuery("begin")
+		end if
+		
+		'' carregar cada registro
+		'' formato: CNPJ¨IE¨Nome¨DataIni¨DataFim¨CodBaixa¨Cnae\r\n
+		var cnpj = inf.varint(SEP)
+		var ie = inf.varint(SEP)
+		var nome = inf.varchar(SEP)
+		var dataIni = inf.varchar(SEP)
+		var dataFim = inf.varchar(SEP)
+		var codBaixa = inf.varint(SEP)
+		var cnae = inf.varint(13)
+		inf.char1			'' skip \n
+			
+		dataIni = brdata2yyyymmdd(dataIni)
+		
+		if dataFim = "1899-12-31" then
+			dataFim = "00000000"
+		else
+			dataFim = brdata2yyyymmdd(dataFim)
+		end if
+		
+		db->execNonQuery(db->format("insert into Contribuinte (cnpj, ie, dataIni, dataFim, codBaixa, cnae) values ({0},{1},{2},{3},{4},{5})", VB(cnpj), VB(ie), VB(dataIni), VB(dataFim), VB(codBaixa), VB(cnae)))
+		
+		if l = 100000 then
+			mostrarProgresso(0, inf.posicao / arqTamanho)
+			db->execNonQuery("end")
+			l = -1
+		end if
+		
+		l += 1
+	loop
+	
+	if l > 0 then
+		mostrarProgresso(0, 1)
+		db->execNonQuery("end")
+	end if
+	
+	inf.fechar()
+	
+	db->close()
+	
+end sub
 
 main()
+end 0
+
+exceptionReport:
+	print wstr(!"\r\nErro não tratado (" & Err & ") no módulo(" & *Ermn & ") na função(" & *Erfn & ") na linha (" & erl & !")\r\n")
+	end 1
