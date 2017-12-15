@@ -1169,42 +1169,40 @@ function Efd.carregarCsvNFeDest(bf as bfile, emModoOutrasUFs as boolean) as TDFe
 	if not emModoOutrasUFs then
 		dfe->chave				= bf.charCsv
 		dfe->dataEmi			= bf.charCsv
-		dfe->nfe.cnpjEmit		= bf.charCsv
-		dfe->nfe.nomeEmit		= bf.charCsv
+		dfe->cnpjEmit			= bf.charCsv
+		dfe->nomeEmit			= bf.charCsv
 		dfe->nfe.ieEmit			= bf.charCsv
-		dfe->nfe.cnpjDest		= bf.charCsv
-		dfe->nfe.ufDest			= bf.charCsv
-		dfe->nfe.nomeDest		= bf.charCsv
+		dfe->cnpjDest			= bf.charCsv
+		dfe->ufDest				= bf.charCsv
+		dfe->nomeDest			= bf.charCsv
 		dfe->nfe.bcICMSTotal	= bf.dblCsv
 		dfe->nfe.ICMSTotal		= bf.dblCsv
 		dfe->nfe.bcICMSSTTotal	= bf.dblCsv
 		dfe->nfe.ICMSSTTotal	= bf.dblCsv
-		dfe->nfe.valorNotaTotal	= bf.dblCsv
-		dfe->nfe.ufEmit			= bf.charCsv
-		dfe->nfe.numero			= bf.intCsv
-		dfe->nfe.serie			= bf.intCsv
+		dfe->valorOperacao		= bf.dblCsv
+		dfe->ufEmit				= bf.charCsv
+		dfe->numero				= bf.intCsv
+		dfe->serie				= bf.intCsv
 		dfe->modelo				= bf.intCsv
 	else
 		dfe->chave				= bf.charCsv
-		dfe->nfe.cnpjDest		= bf.charCsv
-		dfe->nfe.nomeDest		= bf.charCsv
+		dfe->cnpjDest			= bf.charCsv
+		dfe->nomeDest			= bf.charCsv
 		dfe->dataEmi			= bf.charCsv
-		dfe->nfe.ufDest			= "SP"
-		dfe->nfe.cnpjEmit		= bf.charCsv
-		dfe->nfe.nomeEmit		= bf.charCsv
-		dfe->nfe.ufEmit			= bf.charCsv
+		dfe->ufDest				= "SP"
+		dfe->cnpjEmit			= bf.charCsv
+		dfe->nomeEmit			= bf.charCsv
+		dfe->ufEmit				= bf.charCsv
 		dfe->nfe.bcICMSTotal	= bf.dblCsv
 		dfe->nfe.ICMSTotal		= bf.dblCsv
 		dfe->nfe.bcICMSSTTotal	= bf.dblCsv
 		dfe->nfe.ICMSSTTotal	= bf.dblCsv
-		dfe->nfe.valorNotaTotal	= bf.dblCsv
+		dfe->valorOperacao		= bf.dblCsv
 		dfe->modelo				= bf.intCsv
-		dfe->nfe.serie			= bf.intCsv
-		dfe->nfe.numero			= bf.intCsv
+		dfe->serie				= bf.intCsv
+		dfe->numero				= bf.intCsv
 	end if
 
-	dfe->valorOperacao			= dfe->nfe.valorNotaTotal
-	
 	'' pular \r\n
 	bf.char1
 	bf.char1
@@ -1225,24 +1223,22 @@ function Efd.carregarCsvNFeEmit(bf as bfile) as TDFe ptr
 	dfe->operacao			= SAIDA
 	dfe->chave				= chave
 	dfe->dataEmi			= bf.charCsv
-	dfe->nfe.cnpjEmit		= bf.charCsv
-	dfe->nfe.nomeEmit		= bf.charCsv
+	dfe->cnpjEmit			= bf.charCsv
+	dfe->nomeEmit			= bf.charCsv
 	dfe->nfe.ieEmit			= bf.charCsv
-	dfe->nfe.ufEmit			= "SP"
-	dfe->nfe.cnpjDest		= bf.charCsv
-	dfe->nfe.ufDest			= bf.charCsv
-	dfe->nfe.nomeDest		= bf.charCsv
+	dfe->ufEmit				= "SP"
+	dfe->cnpjDest			= bf.charCsv
+	dfe->ufDest				= bf.charCsv
+	dfe->nomeDest			= bf.charCsv
 	dfe->nfe.bcICMSTotal	= bf.dblCsv
 	dfe->nfe.ICMSTotal		= bf.dblCsv
 	dfe->nfe.bcICMSSTTotal	= bf.dblCsv
 	dfe->nfe.ICMSSTTotal	= bf.dblCsv
-	dfe->nfe.valorNotaTotal	= bf.dblCsv
+	dfe->valorOperacao		= bf.dblCsv
 	bf.charCsv		'' pular "Saída"
-	dfe->nfe.numero			= bf.intCsv
-	dfe->nfe.serie			= bf.intCsv
+	dfe->numero				= bf.intCsv
+	dfe->serie				= bf.intCsv
 	dfe->modelo				= bf.intCsv
-	
-	dfe->valorOperacao		= dfe->nfe.valorNotaTotal
 	
 	dfe->nfe.itemListHead	= null
 	dfe->nfe.itemListTail	= null
@@ -1302,28 +1298,28 @@ function Efd.carregarCsvCTe(bf as bfile, emModoOutrasUFs as boolean) as TDFe ptr
 	dfe->operacao			= DESCONHECIDA			
 	
 	bf.charCsv				'' pular chave quebrada
-	dfe->cte.serie			= bf.intCsv
-	dfe->cte.numero			= bf.intCsv
-	dfe->cte.cnpjEmit		= bf.charCsv
+	dfe->serie				= bf.intCsv
+	dfe->numero				= bf.intCsv
+	dfe->cnpjEmit			= bf.charCsv
 	dfe->dataEmi			= bf.charCsv
-	dfe->cte.nomeEmit		= bf.charCsv
-	dfe->cte.ufEmit			= bf.charCsv
+	dfe->nomeEmit			= bf.charCsv
+	dfe->ufEmit				= bf.charCsv
 	dfe->cte.cnpjToma		= bf.charCsv
 	dfe->cte.nomeToma		= bf.charCsv
 	dfe->cte.ufToma			= bf.charCsv
 	dfe->cte.cnpjRem		= bf.charCsv
 	dfe->cte.nomeRem		= bf.charCsv
 	dfe->cte.ufRem			= bf.charCsv
-	dfe->cte.cnpjDest		= bf.charCsv
-	dfe->cte.nomeDest		= bf.charCsv
-	dfe->cte.ufDest			= bf.charCsv
+	dfe->cnpjDest			= bf.charCsv
+	dfe->nomeDest			= bf.charCsv
+	dfe->ufDest				= bf.charCsv
 	dfe->cte.cnpjExp		= bf.charCsv
 	dfe->cte.ufExp			= bf.charCsv
 	dfe->cte.cnpjReceb		= bf.charCsv
 	dfe->cte.ufReceb		= bf.charCsv
 	dfe->cte.tipo			= valint(left(bf.charCsv,1))
 	dfe->chave				= bf.charCsv
-	dfe->cte.valorPrestacao	= bf.dblCsv
+	dfe->valorOperacao		= bf.dblCsv
 	dfe->cte.valorReceber	= bf.dblCsv
 	dfe->cte.qtdCTe			= bf.dblCsv
 	dfe->cte.cfop			= bf.intCsv
@@ -1332,8 +1328,6 @@ function Efd.carregarCsvCTe(bf as bfile, emModoOutrasUFs as boolean) as TDFe ptr
 	dfe->cte.nomeMunicFim	= bf.charCsv
 	dfe->cte.ufFim			= bf.charCsv
 	dfe->modelo				= 57
-	
-	dfe->valorOperacao 		= dfe->cte.valorPrestacao
 	
 	'' pular \r\n
 	bf.char1
@@ -1368,6 +1362,33 @@ sub Efd.adicionarDFe(dfe as TDFe ptr)
 	
 	if chaveDFeDict.lookup(dfe->chave) = null then
 		chaveDFeDict.add(dfe->chave, dfe)
+	end if
+	
+	'' adicionar ao db
+	if dfe->operacao = ENTRADA then
+		'' (cnpjEmit, ufEmit, serie, numero, modelo, chave, dataEmit, valorOp)
+		db_docEntradaInsertStmt->bind(0, dfe->cnpjEmit)
+		db_docEntradaInsertStmt->bind(1, dfe->ufEmit)
+		db_docEntradaInsertStmt->bind(2, dfe->serie)
+		db_docEntradaInsertStmt->bind(3, dfe->numero)
+		db_docEntradaInsertStmt->bind(4, dfe->modelo)
+		db_docEntradaInsertStmt->bind(5, dfe->chave)
+		db_docEntradaInsertStmt->bind(6, dfe->dataEmi)
+		db_docEntradaInsertStmt->bind(7, dfe->valorOperacao)
+		
+		db->execNonQuery(db_docEntradaInsertStmt)
+	else
+		'' (cnpjDest, ufDest, serie, numero, modelo, chave, dataEmit, valorOp)
+		db_docSaidaInsertStmt->bind(0, dfe->cnpjDest)
+		db_docSaidaInsertStmt->bind(1, dfe->ufDest)
+		db_docSaidaInsertStmt->bind(2, dfe->serie)
+		db_docSaidaInsertStmt->bind(3, dfe->numero)
+		db_docSaidaInsertStmt->bind(4, dfe->modelo)
+		db_docSaidaInsertStmt->bind(5, dfe->chave)
+		db_docSaidaInsertStmt->bind(6, dfe->dataEmi)
+		db_docSaidaInsertStmt->bind(7, dfe->valorOperacao)
+	
+		db->execNonQuery(db_docSaidaInsertStmt)
 	end if
 	
 	nroDfe =+ 1
@@ -1430,9 +1451,9 @@ function Efd.carregarCsv(nomeArquivo as String, mostrarProgresso as ProgressoCB)
 					var cnpjBase = bf.charCsv
 					var cte = cteListHead
 					do while cte <> null 
-						if left(cte->cnpjEmit,8) = cnpjBase then
+						if left(cte->parent_->cnpjEmit,8) = cnpjBase then
 							cte->parent_->operacao = SAIDA
-						elseif left(cte->cnpjDest,8) = cnpjBase then
+						elseif left(cte->parent_->cnpjDest,8) = cnpjBase then
 							cte->parent_->operacao = ENTRADA
 						end if
 						cte = cte->next_
@@ -1545,8 +1566,87 @@ private sub adicionarColunasComuns(sheet as ExcelWorksheet ptr, ehEntrada as Boo
 end sub
    
 ''''''''
+sub Efd.configurarDB()
+
+	db = new TDb
+	db->open()
+	
+	'' doc entrada
+	db->execNonQuery( _
+		"create table docEntrada( " + _
+			"cnpjEmit	bigint not null," + _
+			"ufEmit		bigint not null," + _
+			"serie		integer not null," + _
+			"numero		integer not null," + _
+			"modelo		integer not null," + _
+			"dataEmit	integer not null," + _
+			"valorOp	real not null," + _
+			"chave		char(44) null," + _
+			"PRIMARY KEY (" + _
+				"cnpjEmit," + _
+				"ufEmit," + _
+				"serie," + _
+				"numero" + _
+			")" + _
+		")" _
+	)
+	
+	db->execNonQuery( _
+		"CREATE INDEX chaveEntradaIdx ON docEntrada (" + _
+			"chave" + _
+		")" _
+	)
+
+	db->execNonQuery( _
+		"CREATE INDEX cnpjEmitIdx ON docEntrada (" + _
+			"cnpjEmit," + _
+			"ufEmit" + _
+		")" _
+	)
+	
+	db_docEntradaInsertStmt = db->prepare("insert into docEntrada (cnpjEmit, ufEmit, serie, numero, modelo, chave, dataEmit, valorOp) values (?,?,?,?,?,?,?,?)")
+
+	'' doc saída
+	db->execNonQuery( _
+		"create table docSaida( " + _
+			"serie		integer not null," + _
+			"numero		integer not null," + _
+			"modelo		integer not null," + _
+			"dataEmit	integer not null," + _
+			"valorOp	real not null," + _
+			"chave		char(44) null," + _
+			"cnpjDest	bigint not null," + _
+			"ufDest		bigint not null," + _
+			"PRIMARY KEY (" + _
+				"cnpjDest," + _
+				"ufDest," + _
+				"serie," + _
+				"numero" + _
+			")" + _
+		")" _
+	)
+	
+	db->execNonQuery( _
+		"CREATE INDEX chaveSaidaIdx ON docSaida (" + _
+			"chave" + _
+		")" _
+	)
+	
+	db->execNonQuery( _
+		"CREATE INDEX cnpjDestIdx ON docSaida (" + _
+			"cnpjDest," + _
+			"ufDest" + _
+		")" _
+	)
+	
+	db_docSaidaInsertStmt = db->prepare("insert into docSaida (cnpjDest, ufDest, serie, numero, modelo, chave, dataEmit, valorOp) values (?,?,?,?,?,?,?,?)")
+	
+end sub   
+  
+''''''''
 sub Efd.iniciarExtracao(nomeArquivo as String)
 	
+	''
 	ew = new ExcelWriter
 	ew->create(nomeArquivo)
 
@@ -1554,21 +1654,24 @@ sub Efd.iniciarExtracao(nomeArquivo as String)
 	saidas = null
 	naoEscrituradas = null
 	nomeArquivoSaida = nomeArquivo
+	
+	''
+	configurarDB()
 
 end sub
 
 ''''''''
 sub Efd.finalizarExtracao(mostrarProgresso as ProgressoCB)
 
+	''
 	mostrarProgresso("Gravando planilha: " + nomeArquivoSaida, 0)
-	
 	ew->Flush(mostrarProgresso)
-
 	ew->Close
-	
 	delete ew
-	ew = null
    
+	''
+	delete db
+	
 end sub
 
 ''''''''
@@ -2478,7 +2581,7 @@ sub Efd.iniciarRelatorio(relatorio as TipoRelatorio, nomeRelatorio as string, su
 	
 	select case relatorio
 	case REL_LRE, REL_LRS
-		dfwd->setClipboardValueByStrW("_header", "municipio", codMunicipio2Nome(regListHead->mestre.municip))
+		dfwd->setClipboardValueByStr("_header", "municipio", codMunicipio2Nome(regListHead->mestre.municip))
 		dfwd->setClipboardValueByStr("_header", "apu", STR2DATABR(regListHead->mestre.dataIni) + " a " + STR2DATABR(regListHead->mestre.dataFim))
 	
 		relSomaLRList.init(10, len(RelSomatorioLR))
