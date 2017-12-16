@@ -273,7 +273,7 @@ end function
 ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
 ''
-function ExcelRow.AddCell(content as string) as ExcelCell ptr
+function ExcelRow.AddCell(content as const zstring ptr) as ExcelCell ptr
 
 	var cell = new ExcelCell(content)
 	
@@ -325,6 +325,6 @@ end destructor
 ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
 ''
-constructor ExcelCell(content as string)
-	this.content = content
+constructor ExcelCell(content as const zstring ptr)
+	this.content = *content
 end constructor

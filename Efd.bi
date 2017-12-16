@@ -241,12 +241,12 @@ end type
 
 type TDocDFe
 	operacao		as TipoOperacao
+	situacao		as TipoSituacao
 	emitente		as TipoEmitente
 	idParticipante	as zstring * 60+1
 	modelo			as TipoModelo
 	dataEmi			as zstring * 8+1		'DDMMAAAA
 	dataEntSaida	as zstring * 8+1		'DDMMAAAA
-	situacao		as TipoSituacao
 	serie			as integer
 	numero			as longint
 	chave			as zstring * 44+1
@@ -293,7 +293,7 @@ type TDocumentoSintegra
 	cnpj           	as zstring * 14+1
 	ie             	as zstring * 14+1
 	dataEmi        	as zstring * 8+1
-	uf             	as zstring * 2+1
+	uf             	as byte
 	modelo		  	as TipoModelo
 	serie          	as short
 	numero         	as integer
@@ -408,7 +408,7 @@ type TDFe_NFe
 	itemListTail	as TDFe_NFeItem ptr
 end type
 
-type TDFe_ as TDFe ptr
+type TDFe_ as TDFe
 
 type TDFe_CTe
 	cnpjToma		as zstring * 14+1
@@ -430,22 +430,22 @@ type TDFe_CTe
 	nomeMunicFim	as zstring * 64+1
 	ufFim			as zstring * 2+1
 	next_			as TDFe_CTe ptr					'' usado para dar patch 
-	parent_			as TDFe_
+	parent			as TDFe_ ptr
 end type
 
 type TDFe
 	modelo			as TipoModelo
 	operacao		as TipoOperacao					'' entrada ou saída
 	chave			as zstring * 44+1
-	dataEmi			as zstring * 10+1
+	dataEmi			as zstring * 8+1
 	serie			as integer
 	numero			as integer
 	cnpjEmit		as zstring * 14+1
 	nomeEmit		as zstring * 100+1
-	ufEmit			as zstring * 2+1
+	ufEmit			as byte
 	cnpjDest		as zstring * 14+1
 	nomeDest		as zstring * 100+1
-	ufDest			as zstring * 2+1
+	ufDest			as byte
 	valorOperacao	as double
 	
 	union
@@ -454,14 +454,6 @@ type TDFe
 	end union
 	
 	next_			as TDFe ptr
-end type
-
-type TEfd_DFe
-	chave			as zstring * 44+1
-	dataEmi			as zstring * 8+1
-	operacao		as TipoOperacao
-	valorOperacao	as double
-	next_			as TEfd_DFe ptr
 end type
 
 type InfoAssinatura
@@ -515,8 +507,10 @@ private:
 	declare function carregarCsvNFeEmit(bf as bfile) as TDFe ptr
 	declare function carregarCsvNFeEmitItens(bf as bfile, chave as string) as TDFe_NFeItem ptr
 	declare function carregarCsvCTe(bf as bfile, emModoOutrasUFs as boolean) as TDFe ptr
+	
 	declare sub adicionarDFe(dfe as TDFe ptr)
 	declare sub adicionarEfdDfe(chave as zstring ptr, operacao as TipoOperacao, dataEmi as zstring ptr, valorOperacao as double)
+	declare sub adicionarDocEscriturado(doc as TDocDFe ptr)
 	
 	declare sub addRegistroOrdenadoPorData(reg as TRegistro ptr)
 	
@@ -547,16 +541,12 @@ private:
 	sintegraDict			as TDict
 	ultimoReg   			as TRegistro ptr
 
-	'' registros para cruzamento das EFD's com as NF-e/CT-e (mantidos do início ao fim da extração)
-	efdDFeDict				as TDict
-	efdDFeListHead			as TEfd_DFe ptr
-	efdDFeListTail			as TEfd_DFe ptr
-
 	'' planilhas que serão geradas (mantidos do início ao fim da extração)
 	ew                  	as ExcelWriter ptr
 	entradas            	as ExcelWorksheet ptr
 	saidas              	as ExcelWorksheet ptr
-	naoEscrituradas			as ExcelWorksheet ptr
+	entradasNaoEscrituradas	as ExcelWorksheet ptr
+	saidasNaoEscrituradas	as ExcelWorksheet ptr
 	apuracaoIcms			as ExcelWorksheet ptr
 	apuracaoIcmsST			as ExcelWorksheet ptr
 	nomeArquivoSaida		as string
@@ -576,10 +566,12 @@ private:
 	'' base de dados de configuração
 	dbConfig				as TDb ptr
 	
-	'' base de dados temparária para análises
+	'' base de dados temporária usadada para análises e cruzamentos
 	db						as TDb ptr
 	db_docEntradaInsertStmt	as TDbStmt ptr
 	db_docSaidaInsertStmt	as TDbStmt ptr
+	db_LREInsertStmt		as TDbStmt ptr
+	db_LRSInsertStmt		as TDbStmt ptr
 	
 	'' geração de relatórios em formato PDF com o layout do programa EFD-ICMS-IPI da RFB
 	baseTemplatesDir		as string
