@@ -42,6 +42,21 @@ operator VarBox.cast() as string
 	end select
 end operator
 
+operator VarBox.cast() as integer
+	select case as const vtype
+	case VT_INT
+		return vi
+	case VT_UINT
+		return cint(vui)
+	case VT_LNG
+		return cint(vl)
+	case VT_DBL
+		return cint(vd)
+	case VT_STR
+		return valint(*vs)
+	end select
+end operator
+
 destructor VarBox()
 	if vtype = VT_STR then
 		deallocate vs

@@ -28,5 +28,6 @@ type VarBox
 	declare destructor()
 	
 	declare operator cast() as string
+	declare operator cast() as integer
 end type
 

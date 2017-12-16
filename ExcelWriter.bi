@@ -22,7 +22,7 @@ type ExcelCell
 	content			   		as string
 	next_				   	as ExcelCell ptr = null
 	
-	declare constructor(content as string)
+	declare constructor(content as const zstring ptr)
 end type
 
 type ExcelRow
@@ -31,7 +31,7 @@ type ExcelRow
 	next_				   	as ExcelRow ptr = null
 	
 	declare destructor
-	declare function AddCell(content as string) as ExcelCell ptr
+	declare function AddCell(content as const zstring ptr) as ExcelCell ptr
 	declare function AddCell(content as integer) as ExcelCell ptr
 	declare function AddCell(content as longint) as ExcelCell ptr
 	declare function AddCell(content as double) as ExcelCell ptr
