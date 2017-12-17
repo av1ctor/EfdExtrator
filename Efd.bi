@@ -509,6 +509,7 @@ private:
 	declare function carregarCsvCTe(bf as bfile, emModoOutrasUFs as boolean) as TDFe ptr
 	
 	declare sub adicionarDFe(dfe as TDFe ptr)
+	declare sub adicionarItemDFe(chave as const zstring ptr, item as TDFe_NFeItem ptr)
 	declare sub adicionarEfdDfe(chave as zstring ptr, operacao as TipoOperacao, dataEmi as zstring ptr, valorOperacao as double)
 	declare sub adicionarDocEscriturado(doc as TDocDF ptr)
 	declare sub adicionarDocEscriturado(item as TDocNFItem ptr)
@@ -569,8 +570,9 @@ private:
 	
 	'' base de dados temporária usadada para análises e cruzamentos
 	db						as TDb ptr
-	db_docEntradaInsertStmt	as TDbStmt ptr
-	db_docSaidaInsertStmt	as TDbStmt ptr
+	db_dfeEntradaInsertStmt	as TDbStmt ptr
+	db_dfeSaidaInsertStmt	as TDbStmt ptr
+	db_itensDfeSaidaInsertStmt as TDbStmt ptr
 	db_LREInsertStmt		as TDbStmt ptr
 	db_LRSInsertStmt		as TDbStmt ptr
 	
@@ -589,3 +591,25 @@ private:
 	infAssinatura			as InfoAssinatura ptr
 end type
 
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+
+#define DdMmYyyy2Yyyy_Mm(s) (mid(s,1,4) + "-" + mid(s,5,2))
+
+#define STR2CNPJ(s) (left(s,2) + "." + mid(s,3,3) + "." + mid(s,3+3,3) + "/" + mid(s,3+3+3,4) + "-" + right(s,2))
+
+#define STR2CPF(s) (left(s,3) + "." + mid(s,4,3) + "." + mid(s,4+3,3) + "-" + right(s,2))
+
+#define DBL2MONEYBR(d) (format(d,"#,#,#.00"))
+
+#define UF_SIGLA2COD(s) (cast(integer, *cast(VarBox ptr, ufSigla2CodDict[s])))
+
+#define MUNICIPIO2SIGLA(m) (iif(m >= 1100000 and m <= 5399999, ufCod2Sigla(m \ 100000), "EX"))
+
+declare function ddMmYyyy2YyyyMmDd(s as const zstring ptr) as string
+declare function yyyyMmDd2Datetime(s as const zstring ptr) as string 
+declare function YyyyMmDd2DatetimeBR(s as const zstring ptr) as string 
+declare function STR2IE(ie as string) as string
+
+extern as string ufCod2Sigla(11 to 53)
+extern as TDict ufSigla2CodDict
+extern as string codSituacao2Str(0 to __TipoSituacao__LEN__-1)
