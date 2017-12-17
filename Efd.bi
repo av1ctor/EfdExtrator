@@ -493,6 +493,15 @@ enum TipoInconsistencia
 	TI_DIF
 end enum
 
+enum TipoRegime
+	TR_RPA				= 2
+	TR_DESC1			= 3
+	TR_MICROEMPRESA		= 5
+	TR_RPA_DECENDIAL	= asc("A")
+	TR_SN				= asc("N")
+	TR_DESC2			= asc("G")
+end enum
+
 type Efd
 public:
 	declare constructor ()
