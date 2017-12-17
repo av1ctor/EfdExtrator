@@ -245,8 +245,8 @@ type TDocDF
 	emitente		as TipoEmitente
 	idParticipante	as zstring * 60+1
 	modelo			as TipoModelo
-	dataEmi			as zstring * 8+1		'DDMMAAAA
-	dataEntSaida	as zstring * 8+1		'DDMMAAAA
+	dataEmi			as zstring * 8+1		'AAAAMMDD
+	dataEntSaida	as zstring * 8+1
 	serie			as integer
 	numero			as longint
 	chave			as zstring * 44+1
@@ -485,6 +485,14 @@ end type
 
 type ProgressoCB as sub(estagio as const wstring ptr, porCompleto as double)
 
+enum TipoInconsistencia
+	TI_ESCRIT_FALTA
+	TI_ESCRIT_FANTASMA
+	TI_ALIQ
+	TI_DUP
+	TI_DIF
+end enum
+
 type Efd
 public:
 	declare constructor ()
@@ -512,7 +520,7 @@ private:
 	declare sub adicionarItemDFe(chave as const zstring ptr, item as TDFe_NFeItem ptr)
 	declare sub adicionarEfdDfe(chave as zstring ptr, operacao as TipoOperacao, dataEmi as zstring ptr, valorOperacao as double)
 	declare sub adicionarDocEscriturado(doc as TDocDF ptr)
-	declare sub adicionarDocEscriturado(item as TDocNFItem ptr)
+	declare sub adicionarItemNFEscriturado(item as TDocNFItem ptr)
 	
 	declare sub addRegistroOrdenadoPorData(reg as TRegistro ptr)
 	
@@ -530,7 +538,8 @@ private:
 	declare sub relatorioSomarLR(sit as TipoSituacao, anal as TDocItemAnal ptr)
 	declare function codMunicipio2Nome(cod as integer) as string
 	
-	declare sub analisarFaltaDeEscrituracao(mostrarProgresso as ProgressoCB)
+	declare sub analisarInconsistenciasLRE(mostrarProgresso as ProgressoCB)
+	declare sub analisarInconsistenciasLRS(mostrarProgresso as ProgressoCB)
 
 	tipoArquivo				as TTipoArquivo
 	
@@ -547,8 +556,6 @@ private:
 	ew                  	as ExcelWriter ptr
 	entradas            	as ExcelWorksheet ptr
 	saidas              	as ExcelWorksheet ptr
-	entradasNaoEscrituradas	as ExcelWorksheet ptr
-	saidasNaoEscrituradas	as ExcelWorksheet ptr
 	apuracaoIcms			as ExcelWorksheet ptr
 	apuracaoIcmsST			as ExcelWorksheet ptr
 	nomeArquivoSaida		as string
@@ -574,6 +581,7 @@ private:
 	db_dfeSaidaInsertStmt	as TDbStmt ptr
 	db_itensDfeSaidaInsertStmt as TDbStmt ptr
 	db_LREInsertStmt		as TDbStmt ptr
+	db_itensNfLREInsertStmt	as TDbStmt ptr
 	db_LRSInsertStmt		as TDbStmt ptr
 	
 	'' geração de relatórios em formato PDF com o layout do programa EFD-ICMS-IPI da RFB

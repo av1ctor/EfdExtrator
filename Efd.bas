@@ -90,7 +90,8 @@ sub Efd.configurarDB()
 			"cnpjEmit," + _
 			"ufEmit," + _
 			"serie," + _
-			"numero" + _
+			"numero," + _
+			"modelo" + _
 		")" _
 	)
 
@@ -125,7 +126,8 @@ sub Efd.configurarDB()
 			"cnpjDest," + _
 			"ufDest," + _
 			"serie," + _
-			"numero" + _
+			"numero," + _
+			"modelo" + _
 		")" _
 	)
 	
@@ -173,6 +175,7 @@ sub Efd.configurarDB()
 	'' LRE
 	db->execNonQuery( _
 		"create table LRE( " + _
+			"periodo	integer not null," + _
 			"cnpjEmit	bigint not null," + _
 			"ufEmit		bigint not null," + _
 			"serie		integer not null," + _
@@ -182,14 +185,26 @@ sub Efd.configurarDB()
 			"valorOp	real not null," + _
 			"chave		char(44) null," + _
 			"PRIMARY KEY (" + _
+				"periodo," + _
 				"cnpjEmit," + _
 				"ufEmit," + _
 				"serie," + _
-				"numero" + _
+				"numero," + _
+				"modelo" + _
 			")" + _
 		")" _
 	)
 	
+	db->execNonQuery( _
+		"CREATE INDEX cnpjUfSerieNumeroLREIdx ON LRE (" + _
+			"cnpjEmit," + _
+			"ufEmit," + _
+			"serie," + _
+			"numero," + _
+			"modelo" + _
+		")" _
+	)
+
 	db->execNonQuery( _
 		"CREATE INDEX chaveLREIdx ON LRE (" + _
 			"chave" + _
@@ -202,12 +217,60 @@ sub Efd.configurarDB()
 			"ufEmit" + _
 		")" _
 	)
+
+	db->execNonQuery( _
+		"CREATE INDEX ufEmitIdx ON LRE (" + _
+			"ufEmit" + _
+		")" _
+	)
 	
-	db_LREInsertStmt = db->prepare("insert into LRE (cnpjEmit, ufEmit, serie, numero, modelo, chave, dataEmit, valorOp) values (?,?,?,?,?,?,?,?)")
+	db_LREInsertStmt = db->prepare("insert into LRE (periodo, cnpjEmit, ufEmit, serie, numero, modelo, chave, dataEmit, valorOp) values (?,?,?,?,?,?,?,?,?)")
+
+	'' itens de NF da LRE
+	db->execNonQuery( _
+		"create table itensNfLRE( " + _
+			"periodo	integer not null," + _
+			"cnpjEmit	bigint not null," + _
+			"ufEmit		bigint not null," + _
+			"serie		integer not null," + _
+			"numero		integer not null," + _
+			"modelo		integer not null," + _
+			"cfop		integer not null," + _
+			"valorProd	real not null," + _
+			"valorDesc	real not null," + _
+			"bc			real not null," + _
+			"aliq		real not null," + _
+			"icms		real not null," + _
+			"bcIcmsST	real not null," + _
+			"PRIMARY KEY (" + _
+				"periodo," + _
+				"cnpjEmit," + _
+				"ufEmit," + _
+				"serie," + _
+				"numero," + _
+				"modelo" + _
+			")" + _
+		")" _
+	)
+
+	db->execNonQuery( _
+		"CREATE INDEX cnpjItensNfLRECfop ON itensNfLRE (" + _
+			"cfop" + _
+		")" _
+	)
+
+	db->execNonQuery( _
+		"CREATE INDEX cnpjItensNfLREAliq ON itensNfLRE (" + _
+			"aliq" + _
+		")" _
+	)
+	
+	db_itensNfLREInsertStmt = db->prepare("insert into itensNfLRE (periodo, cnpjEmit, ufEmit, serie, numero, modelo, cfop, valorProd, valorDesc, bc, aliq, icms, bcIcmsST) values (?,?,?,?,?,?,?,?,?,?,?,?,?)")
 
 	'' LRS
 	db->execNonQuery( _
 		"create table LRS( " + _
+			"periodo	integer not null," + _
 			"serie		integer not null," + _
 			"numero		integer not null," + _
 			"modelo		integer not null," + _
@@ -217,11 +280,23 @@ sub Efd.configurarDB()
 			"cnpjDest	bigint not null," + _
 			"ufDest		bigint not null," + _
 			"PRIMARY KEY (" + _
+				"periodo," + _
 				"cnpjDest," + _
 				"ufDest," + _
 				"serie," + _
-				"numero" + _
+				"numero," + _
+				"modelo" + _
 			")" + _
+		")" _
+	)
+	
+	db->execNonQuery( _
+		"CREATE INDEX cnpjUfSerieNumeroLRSIdx ON LRS (" + _
+			"cnpjDest," + _
+			"ufDest," + _
+			"serie," + _
+			"numero," + _
+			"modelo" + _
 		")" _
 	)
 	
@@ -238,7 +313,7 @@ sub Efd.configurarDB()
 		")" _
 	)
 	
-	db_LRSInsertStmt = db->prepare("insert into LRS (cnpjDest, ufDest, serie, numero, modelo, chave, dataEmit, valorOp) values (?,?,?,?,?,?,?,?)")
+	db_LRSInsertStmt = db->prepare("insert into LRS (periodo, cnpjDest, ufDest, serie, numero, modelo, chave, dataEmit, valorOp) values (?,?,?,?,?,?,?,?,?)")
 
 end sub   
   
@@ -251,8 +326,6 @@ sub Efd.iniciarExtracao(nomeArquivo as String)
 
 	entradas = null
 	saidas = null
-	entradasNaoEscrituradas = null
-	saidasNaoEscrituradas = null
 	nomeArquivoSaida = nomeArquivo
 	
 	''
@@ -1177,29 +1250,31 @@ sub Efd.adicionarDocEscriturado(doc as TDocDF ptr)
 		
 		'' adicionar ao db
 		if doc->operacao = ENTRADA then
-			'' (cnpjEmit, ufEmit, serie, numero, modelo, chave, dataEmit, valorOp)
+			'' (periodo, cnpjEmit, ufEmit, serie, numero, modelo, chave, dataEmit, valorOp)
 			db_LREInsertStmt->reset()
-			db_LREInsertStmt->bind(1, part->cnpj)
-			db_LREInsertStmt->bind(2, uf)
-			db_LREInsertStmt->bind(3, doc->serie)
-			db_LREInsertStmt->bind(4, doc->numero)
-			db_LREInsertStmt->bind(5, doc->modelo)
-			db_LREInsertStmt->bind(6, doc->chave)
-			db_LREInsertStmt->bind(7, doc->dataEmi)
-			db_LREInsertStmt->bind(8, doc->valorTotal)
+			db_LREInsertStmt->bind(1, valint(regListHead->mestre.dataIni))
+			db_LREInsertStmt->bind(2, part->cnpj)
+			db_LREInsertStmt->bind(3, uf)
+			db_LREInsertStmt->bind(4, doc->serie)
+			db_LREInsertStmt->bind(5, doc->numero)
+			db_LREInsertStmt->bind(6, doc->modelo)
+			db_LREInsertStmt->bind(7, doc->chave)
+			db_LREInsertStmt->bind(8, doc->dataEmi)
+			db_LREInsertStmt->bind(9, doc->valorTotal)
 			
 			db->execNonQuery(db_LREInsertStmt)
 		else
-			'' (cnpjDest, ufDest, serie, numero, modelo, chave, dataEmit, valorOp)
+			'' (periodo, cnpjDest, ufDest, serie, numero, modelo, chave, dataEmit, valorOp)
 			db_LRSInsertStmt->reset()
-			db_LRSInsertStmt->bind(1, part->cnpj)
-			db_LRSInsertStmt->bind(2, uf)
-			db_LRSInsertStmt->bind(3, doc->serie)
-			db_LRSInsertStmt->bind(4, doc->numero)
-			db_LRSInsertStmt->bind(5, doc->modelo)
-			db_LRSInsertStmt->bind(6, doc->chave)
-			db_LRSInsertStmt->bind(7, doc->dataEmi)
-			db_LRSInsertStmt->bind(8, doc->valorTotal)
+			db_LRSInsertStmt->bind(1, valint(regListHead->mestre.dataIni))
+			db_LRSInsertStmt->bind(2, part->cnpj)
+			db_LRSInsertStmt->bind(3, uf)
+			db_LRSInsertStmt->bind(4, doc->serie)
+			db_LRSInsertStmt->bind(5, doc->numero)
+			db_LRSInsertStmt->bind(6, doc->modelo)
+			db_LRSInsertStmt->bind(7, doc->chave)
+			db_LRSInsertStmt->bind(8, doc->dataEmi)
+			db_LRSInsertStmt->bind(9, doc->valorTotal)
 		
 			db->execNonQuery(db_LRSInsertStmt)
 		end if
@@ -1214,10 +1289,32 @@ sub Efd.adicionarDocEscriturado(doc as TDocDF ptr)
 end sub
 
 ''''''''
-sub Efd.adicionarDocEscriturado(item as TDocNFItem ptr)
+sub Efd.adicionarItemNFEscriturado(item as TDocNFItem ptr)
 	
-	select case as const item->documentoPai->situacao
+	var doc = item->documentoPai
+	select case as const doc->situacao
 	case REGULAR, EXTEMPORANEO
+		var part = cast( TParticipante ptr, participanteDict[doc->idParticipante] )
+		
+		var uf = iif(part->municip >= 1100000 and part->municip <= 5399999, part->municip \ 100000, 99)
+
+		'' (periodo, cnpjEmit, ufEmit, serie, numero, modelo, cfop, valorProd, valorDesc, bc, aliq, icms, bcIcmsST)
+		db_itensNfLREInsertStmt->reset()
+		db_itensNfLREInsertStmt->bind(1, valint(regListHead->mestre.dataIni))
+		db_itensNfLREInsertStmt->bind(2, part->cnpj)
+		db_itensNfLREInsertStmt->bind(3, uf)
+		db_itensNfLREInsertStmt->bind(4, doc->serie)
+		db_itensNfLREInsertStmt->bind(5, doc->numero)
+		db_itensNfLREInsertStmt->bind(6, doc->modelo)
+		db_itensNfLREInsertStmt->bind(7, item->cfop)
+		db_itensNfLREInsertStmt->bind(8, item->valor)
+		db_itensNfLREInsertStmt->bind(9, item->desconto)
+		db_itensNfLREInsertStmt->bind(10, item->bcICMS)
+		db_itensNfLREInsertStmt->bind(11, item->aliqICMS)
+		db_itensNfLREInsertStmt->bind(12, item->icms)
+		db_itensNfLREInsertStmt->bind(13, item->bcICMSST)
+		
+		db->execNonQuery(db_itensNfLREInsertStmt)
 	end select
 	
 end sub
@@ -1229,7 +1326,7 @@ sub Efd.addRegistroOrdenadoPorData(reg as TRegistro ptr)
 	case DOC_NF
 		adicionarDocEscriturado(@reg->nf)
 	case DOC_NF_ITEM
-		adicionarDocEscriturado(@reg->itemNF)
+		adicionarItemNFEscriturado(@reg->itemNF)
 	case DOC_CT
 		adicionarDocEscriturado(@reg->ct)
 	end select
