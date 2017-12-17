@@ -39,15 +39,15 @@ end function
 ''''''''
 private function callback cdecl _
 	( _
-		byval rset__ as any ptr, _
+		byval dset as any ptr, _
 		byval argc as integer, _
 		byval argv as zstring ptr ptr, _
 		byval colName as zstring ptr ptr _
 	) as integer
 	
-	var rset_ = cast(TRSet ptr, rset__)
+	var ds = cast(TDataSet ptr, dset)
 	
-	var row = rset_->newRow()
+	var row = ds->newRow()
   
 	for i as integer = 0 to argc - 1
 		dim as zstring ptr text = null
@@ -65,27 +65,27 @@ private function callback cdecl _
 end function 
 	
 ''''''''	
-function TDb.exec(query as const zstring ptr) as TRSet ptr
+function TDb.exec(query as const zstring ptr) as TDataSet ptr
 
-	var rs = new TRSet
+	var ds = new TDataSet
 	
 	dim as zstring ptr errMsg_ = null
-	if sqlite3_exec( instance, query, @callback, rs, @errMsg_ ) <> SQLITE_OK then 
-		delete rs
+	if sqlite3_exec( instance, query, @callback, ds, @errMsg_ ) <> SQLITE_OK then 
+		delete ds
 		errMsg = *errMsg_
 		return null
 	else
 		errMsg = ""
 	end if 
 	
-	return rs
+	return ds
 
 end function
 
 ''''''''	
-function TDb.exec(stmt as TDbStmt ptr) as TRSet ptr
+function TDb.exec(stmt as TDbStmt ptr) as TDataSet ptr
 
-	var rs = new TRSet
+	var ds = new TDataSet
 	
 	stmt->reset()
 	
@@ -94,7 +94,7 @@ function TDb.exec(stmt as TDbStmt ptr) as TRSet ptr
 			exit do
 		end if
 		
-		var row = rs->newRow()
+		var row = ds->newRow()
 		
 		var nCols = stmt->colCount()
 		for i as integer = 0 to nCols - 1
@@ -102,25 +102,25 @@ function TDb.exec(stmt as TDbStmt ptr) as TRSet ptr
 		next
 	loop
 	
-	function = rs
+	function = ds
 	
 end function
 
 ''''''''	
 function TDb.execScalar(query as const zstring ptr) as zstring ptr
 
-	dim as TRSet rs
+	dim as TDataSet ds
 	
 	dim as zstring ptr errMsg_ = null
-	if sqlite3_exec( instance, query, @callback, @rs, @errMsg_ ) <> SQLITE_OK then 
+	if sqlite3_exec( instance, query, @callback, @ds, @errMsg_ ) <> SQLITE_OK then 
 		errMsg = *errMsg_
 		return null
 	else
 		errMsg = ""
 	end if 
 	
-	if rs.hasNext then
-		var val = (*rs.row)[0]
+	if ds.hasNext then
+		var val = (*ds.row)[0]
 		if val = null then
 			return null
 		end if
@@ -137,16 +137,16 @@ end function
 ''''''''	
 sub TDb.execNonQuery(query as const zstring ptr) 
 
-	var rs = new TRSet
+	var ds = new TDataSet
 	
 	dim as zstring ptr errMsg_ = null
-	if sqlite3_exec( instance, query, null, rs, @errMsg_ ) <> SQLITE_OK then 
+	if sqlite3_exec( instance, query, null, ds, @errMsg_ ) <> SQLITE_OK then 
 		errMsg = *errMsg_
 	else
 		errMsg = ""
 	end if 
 	
-	delete rs
+	delete ds
 
 end sub
 
@@ -225,14 +225,14 @@ end function
 ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
 ''''''''
-constructor TRSet()
-	rows.init(10, len(TRSetRow))
+constructor TDataSet()
+	rows.init(10, len(TDataSetRow))
 	currRow = null
 end constructor	
 	
 ''''''''
-destructor TRSet()
-	var r = cast(TRSetRow ptr, rows.head)
+destructor TDataSet()
+	var r = cast(TDataSetRow ptr, rows.head)
 	do while r <> null
 		r->destructor
 		r = rows.next_(r)
@@ -243,26 +243,26 @@ destructor TRSet()
 end destructor
 
 ''''''''
-function TRSet.hasNext() as boolean
+function TDataSet.hasNext() as boolean
 	return currRow <> null
 end function
 
 ''''''''
-sub TRSet.next_() 
+sub TDataSet.next_() 
 	if currRow <> null then
 		currRow = rows.next_(currRow)
 	end if
 end sub
 
 ''''''''
-property TRSet.row() as TRSetRow ptr
+property TDataSet.row() as TDataSetRow ptr
 	return currRow
 end property
 
 ''''''''
-function TRSet.newRow() as TRSetRow ptr
+function TDataSet.newRow() as TDataSetRow ptr
 	var p = rows.add()
-	var r = new (p) TRSetRow()
+	var r = new (p) TDataSetRow()
 	if currRow = null then
 		currRow = r
 	end if
@@ -272,20 +272,20 @@ end function
 ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
 ''''''''
-constructor TRSetRow()
+constructor TDataSetRow()
 	columns.init(16, true, true, true)
 	redim colList(0 to 15)
 	colCnt = 0
 end constructor	
 	
 ''''''''
-destructor TRSetRow()
+destructor TDataSetRow()
 	colCnt = 0
 	columns.end_()
 end destructor
 
 ''''''''
-sub TRSetRow.newColumn(name_ as const zstring ptr, value as const zstring ptr)
+sub TDataSetRow.newColumn(name_ as const zstring ptr, value as const zstring ptr)
 	if columns.lookup(name_) = null then
 		dim as zstring ptr value2 = null
 		if value <> null then
@@ -305,12 +305,12 @@ sub TRSetRow.newColumn(name_ as const zstring ptr, value as const zstring ptr)
 end sub
 
 ''''''''
-operator TRSetRow.[](index as const zstring ptr) as zstring ptr
+operator TDataSetRow.[](index as const zstring ptr) as zstring ptr
 	return columns.lookup( index )
 end operator
 
 ''''''''
-operator TRSetRow.[](index as integer) as zstring ptr
+operator TDataSetRow.[](index as integer) as zstring ptr
 	if index <= colCnt-1 then
 		return colList(index)
 	else

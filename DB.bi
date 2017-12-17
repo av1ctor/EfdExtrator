@@ -26,7 +26,7 @@ private:
 	stmt			as sqlite3_stmt ptr = null
 end type
 
-type TRSetRow
+type TDataSetRow
 	declare constructor()
 	declare destructor()
 	declare sub newColumn(name as const zstring ptr, value as const zstring ptr)
@@ -38,17 +38,17 @@ private:
 	colCnt			as integer
 end type
 
-type TRSet
+type TDataSet
 	declare constructor()
 	declare destructor()
-	declare function newRow() as TRSetRow ptr
+	declare function newRow() as TDataSetRow ptr
 	declare function hasNext() as boolean
 	declare sub next_()
-	declare property row as TRSetRow ptr
+	declare property row as TDataSetRow ptr
 	
 private:
-	rows			as TList		'' list of TRSetRow
-	currRow			as TRSetRow ptr
+	rows			as TList		'' list of TDataSetRow
+	currRow			as TDataSetRow ptr
 end type
 
 type TDb
@@ -58,8 +58,8 @@ type TDb
 	declare function getErrorMsg() as const zstring ptr
 	declare function prepare(query as const zstring ptr) as TDbStmt ptr
 	declare function format cdecl(fmt as string, ... /' of VarBox ptr '/) as string
-	declare function exec(query as const zstring ptr) as TRSet ptr
-	declare function exec(stmt as TDbStmt ptr) as TRSet ptr
+	declare function exec(query as const zstring ptr) as TDataSet ptr
+	declare function exec(stmt as TDbStmt ptr) as TDataSet ptr
 	declare function execScalar(query as const zstring ptr) as zstring ptr
 	declare sub execNonQuery(query as const zstring ptr) 
 	declare sub execNonQuery(stmt as TDbStmt ptr)
