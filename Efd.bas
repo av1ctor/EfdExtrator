@@ -8,65 +8,7 @@
 #include once "DocxFactoryDyn.bi"
 #include once "DB.bi"
 
-dim shared as string ufCod2Sigla(11 to 53)
-dim shared as TDict ufSigla2CodDict
-dim shared as string codSituacao2Str(0 to __TipoSituacao__LEN__-1)
-
 const ASSINATURA_P7K_HEADER = "SBRCAAEPDR"
-
-private sub tablesCtor constructor
-	ufCod2Sigla(11)="RO"
-	ufCod2Sigla(12)="AC"
-	ufCod2Sigla(13)="AM"
-	ufCod2Sigla(14)="RR"
-	ufCod2Sigla(15)="PA"
-	ufCod2Sigla(16)="AP"
-	ufCod2Sigla(17)="TO"
-	ufCod2Sigla(21)="MA"
-	ufCod2Sigla(22)="PI"
-	ufCod2Sigla(23)="CE"
-	ufCod2Sigla(24)="RN"
-	ufCod2Sigla(25)="PB"
-	ufCod2Sigla(26)="PE"
-	ufCod2Sigla(27)="AL"
-	ufCod2Sigla(28)="SE"
-	ufCod2Sigla(29)="BA"
-	ufCod2Sigla(31)="MG"
-	ufCod2Sigla(32)="ES"
-	ufCod2Sigla(33)="RJ"
-	ufCod2Sigla(35)="SP"
-	ufCod2Sigla(41)="PR"
-	ufCod2Sigla(42)="SC"
-	ufCod2Sigla(43)="RS"
-	ufCod2Sigla(50)="MS"
-	ufCod2Sigla(51)="MT"
-	ufCod2Sigla(52)="GO"
-	ufCod2Sigla(53)="DF"
-	
-	''
-	ufSigla2CodDict.init(30)
-	for i as integer = 11 to 53
-		if len(ufCod2Sigla(i)) > 0 then
-			var valor = new VarBox(i)
-			ufSigla2CodDict.add(ufCod2Sigla(i), valor)
-		end if
-	next
-
-	var valor = new VarBox(99)
-	ufSigla2CodDict.add("EX", valor)
-	
-	''
-	codSituacao2Str(REGULAR) 			= "REG"
-	codSituacao2Str(EXTEMPORANEO) 		= "EXTEMP"
-	codSituacao2Str(CANCELADO) 			= "CANC"
-	codSituacao2Str(CANCELADO_EXT) 		= "CANC EXTEMP"
-	codSituacao2Str(DENEGADO) 			= "DENEG"
-	codSituacao2Str(INUTILIZADO) 		= "INUT"
-	codSituacao2Str(COMPLEMENTAR) 		= "COMPL"
-	codSituacao2Str(COMPLEMENTAR_EXT) 	= "COMPL EXTEMP"
-	codSituacao2Str(REGIME_ESPECIAL) 	= "REG ESP"
-	codSituacao2Str(SUBSTITUIDO) 		= "SUBST"
-end sub
 
 ''''''''
 constructor Efd()
@@ -121,81 +63,216 @@ destructor Efd()
 end destructor
 
 ''''''''
-private function ddMmYyyy2YyyyMmDd(s as const zstring ptr) as string
+sub Efd.configurarDB()
+
+	db = new TDb
+	db->open()
 	
-	var res = "00000000"
+	'' dfe's de entrada (relatórios do SAFI)
+	db->execNonQuery( _
+		"create table dfeEntrada( " + _
+			"chave		char(44) not null," + _
+			"cnpjEmit	bigint not null," + _
+			"ufEmit		bigint not null," + _
+			"serie		integer not null," + _
+			"numero		integer not null," + _
+			"modelo		integer not null," + _
+			"dataEmit	integer not null," + _
+			"valorOp	real not null," + _
+			"PRIMARY KEY (" + _
+				"chave" + _
+			")" + _
+		")" _
+	)
 	
-	if len(*s) > 0 then
-		res[0] = s[4]
-		res[1] = s[5]
-		res[2] = s[6]
-		res[3] = s[7]
-		res[4] = s[2]
-		res[5] = s[3]
-		res[6] = s[0]
-		res[7] = s[1]
-	end if
+	db->execNonQuery( _
+		"CREATE INDEX chaveDfeEntradaIdx ON dfeEntrada (" + _
+			"cnpjEmit," + _
+			"ufEmit," + _
+			"serie," + _
+			"numero" + _
+		")" _
+	)
+
+	db->execNonQuery( _
+		"CREATE INDEX cnpjDfeEntradaEmitIdx ON dfeEntrada (" + _
+			"cnpjEmit," + _
+			"ufEmit" + _
+		")" _
+	)
 	
-	function = res
+	db_dfeEntradaInsertStmt = db->prepare("insert into dfeEntrada (cnpjEmit, ufEmit, serie, numero, modelo, chave, dataEmit, valorOp) values (?,?,?,?,?,?,?,?)")
+
+	'' dfe's de saída (relatórios do SAFI)
+	db->execNonQuery( _
+		"create table dfeSaida( " + _
+			"chave		char(44) not null," + _
+			"serie		integer not null," + _
+			"numero		integer not null," + _
+			"modelo		integer not null," + _
+			"dataEmit	integer not null," + _
+			"valorOp	real not null," + _
+			"cnpjDest	bigint not null," + _
+			"ufDest		bigint not null," + _
+			"PRIMARY KEY (" + _
+				"chave" + _
+			")" + _
+		")" _
+	)
 	
-end function
+	db->execNonQuery( _
+		"CREATE INDEX chaveDfeSaidaIdx ON dfeSaida (" + _
+			"cnpjDest," + _
+			"ufDest," + _
+			"serie," + _
+			"numero" + _
+		")" _
+	)
+	
+	db->execNonQuery( _
+		"CREATE INDEX cnpjDfeSaidaDestIdx ON dfeSaida (" + _
+			"cnpjDest," + _
+			"ufDest" + _
+		")" _
+	)
+	
+	db_dfeSaidaInsertStmt = db->prepare("insert into dfeSaida (cnpjDest, ufDest, serie, numero, modelo, chave, dataEmit, valorOp) values (?,?,?,?,?,?,?,?)")
+	
+	'' itens de docs saída
+	db->execNonQuery( _
+		"create table itensDfeSaida( " + _
+			"chave		char(44) not null," + _
+			"cfop		integer not null," + _
+			"valorProd	real not null," + _
+			"valorDesc	real not null," + _
+			"valorAcess	real not null," + _
+			"bc			real not null," + _
+			"aliq		real not null," + _
+			"icms		real not null," + _
+			"bcIcmsST	real not null," + _
+			"PRIMARY KEY (" + _
+				"chave" + _
+			")" + _
+		")" _
+	)
+
+	db->execNonQuery( _
+		"CREATE INDEX cnpjItensDfeSaidaCfop ON itensDfeSaida (" + _
+			"cfop" + _
+		")" _
+	)
+
+	db->execNonQuery( _
+		"CREATE INDEX cnpjItensDfeSaidaAliq ON itensDfeSaida (" + _
+			"aliq" + _
+		")" _
+	)
+	
+	db_itensDfeSaidaInsertStmt = db->prepare("insert into itensDfeSaida (chave, cfop, valorProd, valorDesc, valorAcess, bc, aliq, icms, bcIcmsST) values (?,?,?,?,?,?,?,?,?)")
+	
+	'' LRE
+	db->execNonQuery( _
+		"create table LRE( " + _
+			"cnpjEmit	bigint not null," + _
+			"ufEmit		bigint not null," + _
+			"serie		integer not null," + _
+			"numero		integer not null," + _
+			"modelo		integer not null," + _
+			"dataEmit	integer not null," + _
+			"valorOp	real not null," + _
+			"chave		char(44) null," + _
+			"PRIMARY KEY (" + _
+				"cnpjEmit," + _
+				"ufEmit," + _
+				"serie," + _
+				"numero" + _
+			")" + _
+		")" _
+	)
+	
+	db->execNonQuery( _
+		"CREATE INDEX chaveLREIdx ON LRE (" + _
+			"chave" + _
+		")" _
+	)
+
+	db->execNonQuery( _
+		"CREATE INDEX cnpjEmitIdx ON LRE (" + _
+			"cnpjEmit," + _
+			"ufEmit" + _
+		")" _
+	)
+	
+	db_LREInsertStmt = db->prepare("insert into LRE (cnpjEmit, ufEmit, serie, numero, modelo, chave, dataEmit, valorOp) values (?,?,?,?,?,?,?,?)")
+
+	'' LRS
+	db->execNonQuery( _
+		"create table LRS( " + _
+			"serie		integer not null," + _
+			"numero		integer not null," + _
+			"modelo		integer not null," + _
+			"dataEmit	integer not null," + _
+			"valorOp	real not null," + _
+			"chave		char(44) null," + _
+			"cnpjDest	bigint not null," + _
+			"ufDest		bigint not null," + _
+			"PRIMARY KEY (" + _
+				"cnpjDest," + _
+				"ufDest," + _
+				"serie," + _
+				"numero" + _
+			")" + _
+		")" _
+	)
+	
+	db->execNonQuery( _
+		"CREATE INDEX chaveLRSIdx ON LRS (" + _
+			"chave" + _
+		")" _
+	)
+	
+	db->execNonQuery( _
+		"CREATE INDEX cnpjDestLRSIdx ON LRS (" + _
+			"cnpjDest," + _
+			"ufDest" + _
+		")" _
+	)
+	
+	db_LRSInsertStmt = db->prepare("insert into LRS (cnpjDest, ufDest, serie, numero, modelo, chave, dataEmit, valorOp) values (?,?,?,?,?,?,?,?)")
+
+end sub   
+  
+''''''''
+sub Efd.iniciarExtracao(nomeArquivo as String)
+	
+	''
+	ew = new ExcelWriter
+	ew->create(nomeArquivo)
+
+	entradas = null
+	saidas = null
+	entradasNaoEscrituradas = null
+	saidasNaoEscrituradas = null
+	nomeArquivoSaida = nomeArquivo
+	
+	''
+	configurarDB()
+
+end sub
 
 ''''''''
-private function yyyyMmDd2Datetime(s as const zstring ptr) as string 
-	''         0123456789
-	var res = "0000-00-00T00:00:00.000"
+sub Efd.finalizarExtracao(mostrarProgresso as ProgressoCB)
+
+	''
+	mostrarProgresso("Gravando planilha: " + nomeArquivoSaida, 0)
+	ew->Flush(mostrarProgresso)
+	ew->Close
+	delete ew
+   
+	''
+	delete db
 	
-	if len(*s) > 0 then
-		res[0] = s[0]
-		res[1] = s[1]
-		res[2] = s[2]
-		res[3] = s[3]
-		res[5] = s[4]
-		res[6] = s[5]
-		res[8] = s[6]
-		res[9] = s[7]
-	end if
-	
-	function = res
-end function
-
-''''''''
-private function YyyyMmDd2DatetimeBR(s as const zstring ptr) as string 
-	''         0123456789
-	var res = "00/00/0000"
-	
-	if len(*s) > 0 then
-		res[0] = s[6]
-		res[1] = s[7]
-		res[3] = s[4]
-		res[4] = s[5]
-		res[6] = s[0]
-		res[7] = s[1]
-		res[8] = s[2]
-		res[9] = s[3]
-	end if
-	
-	function = res
-end function
-
-''''''''
-private function STR2IE(ie as string) as string
-	var ie2 = right(string(12,"0") + ie, 12)
-	function = left(ie2,3) + "." + mid(ie2,4,3) + "." + mid(ie2,4+3,3) + "." + right(ie2,3)
-end function
-
-''''''''
-#define DdMmYyyy2Yyyy_Mm(s) (mid(s,1,4) + "-" + mid(s,5,2))
-
-#define STR2CNPJ(s) (left(s,2) + "." + mid(s,3,3) + "." + mid(s,3+3,3) + "/" + mid(s,3+3+3,4) + "-" + right(s,2))
-
-#define STR2CPF(s) (left(s,3) + "." + mid(s,4,3) + "." + mid(s,4+3,3) + "-" + right(s,2))
-
-#define DBL2MONEYBR(d) (format(d,"#,#,#.00"))
-
-#define UF_SIGLA2COD(s) (cast(integer, *cast(VarBox ptr, ufSigla2CodDict[s])))
-
-#define MUNICIPIO2SIGLA(m) (iif(m >= 1100000 and m <= 5399999, ufCod2Sigla(m \ 100000), "EX"))
+end sub
 
 ''''''''
 private sub pularLinha(bf as bfile) 
@@ -1526,34 +1603,51 @@ sub Efd.adicionarDFe(dfe as TDFe ptr)
 	select case dfe->operacao
 	case ENTRADA
 		'' (cnpjEmit, ufEmit, serie, numero, modelo, chave, dataEmit, valorOp)
-		db_docEntradaInsertStmt->reset()
-		db_docEntradaInsertStmt->bind(1, dfe->cnpjEmit)
-		db_docEntradaInsertStmt->bind(2, dfe->ufEmit)
-		db_docEntradaInsertStmt->bind(3, dfe->serie)
-		db_docEntradaInsertStmt->bind(4, dfe->numero)
-		db_docEntradaInsertStmt->bind(5, dfe->modelo)
-		db_docEntradaInsertStmt->bind(6, dfe->chave)
-		db_docEntradaInsertStmt->bind(7, dfe->dataEmi)
-		db_docEntradaInsertStmt->bind(8, dfe->valorOperacao)
+		db_dfeEntradaInsertStmt->reset()
+		db_dfeEntradaInsertStmt->bind(1, dfe->cnpjEmit)
+		db_dfeEntradaInsertStmt->bind(2, dfe->ufEmit)
+		db_dfeEntradaInsertStmt->bind(3, dfe->serie)
+		db_dfeEntradaInsertStmt->bind(4, dfe->numero)
+		db_dfeEntradaInsertStmt->bind(5, dfe->modelo)
+		db_dfeEntradaInsertStmt->bind(6, dfe->chave)
+		db_dfeEntradaInsertStmt->bind(7, dfe->dataEmi)
+		db_dfeEntradaInsertStmt->bind(8, dfe->valorOperacao)
 		
-		db->execNonQuery(db_docEntradaInsertStmt)
+		db->execNonQuery(db_dfeEntradaInsertStmt)
 	case SAIDA
 		'' (cnpjDest, ufDest, serie, numero, modelo, chave, dataEmit, valorOp)
-		db_docSaidaInsertStmt->reset()
-		db_docSaidaInsertStmt->bind(1, dfe->cnpjDest)
-		db_docSaidaInsertStmt->bind(2, dfe->ufDest)
-		db_docSaidaInsertStmt->bind(3, dfe->serie)
-		db_docSaidaInsertStmt->bind(4, dfe->numero)
-		db_docSaidaInsertStmt->bind(5, dfe->modelo)
-		db_docSaidaInsertStmt->bind(6, dfe->chave)
-		db_docSaidaInsertStmt->bind(7, dfe->dataEmi)
-		db_docSaidaInsertStmt->bind(8, dfe->valorOperacao)
+		db_dfeSaidaInsertStmt->reset()
+		db_dfeSaidaInsertStmt->bind(1, dfe->cnpjDest)
+		db_dfeSaidaInsertStmt->bind(2, dfe->ufDest)
+		db_dfeSaidaInsertStmt->bind(3, dfe->serie)
+		db_dfeSaidaInsertStmt->bind(4, dfe->numero)
+		db_dfeSaidaInsertStmt->bind(5, dfe->modelo)
+		db_dfeSaidaInsertStmt->bind(6, dfe->chave)
+		db_dfeSaidaInsertStmt->bind(7, dfe->dataEmi)
+		db_dfeSaidaInsertStmt->bind(8, dfe->valorOperacao)
 	
-		db->execNonQuery(db_docSaidaInsertStmt)
+		db->execNonQuery(db_dfeSaidaInsertStmt)
 	end select
 	
 	nroDfe =+ 1
 
+end sub
+
+''''''''
+sub Efd.adicionarItemDFe(chave as const zstring ptr, item as TDFe_NFeItem ptr)
+		'' (chave, cfop, valorProd, valorDesc, valorAcess, bc, aliq, icms, bcIcmsST)
+		db_itensDfeSaidaInsertStmt->reset()
+		db_itensDfeSaidaInsertStmt->bind(1, chave)
+		db_itensDfeSaidaInsertStmt->bind(2, item->cfop)
+		db_itensDfeSaidaInsertStmt->bind(3, item->valorProduto)
+		db_itensDfeSaidaInsertStmt->bind(4, item->desconto)
+		db_itensDfeSaidaInsertStmt->bind(5, item->despesasAcess)
+		db_itensDfeSaidaInsertStmt->bind(6, item->bcICMS)
+		db_itensDfeSaidaInsertStmt->bind(7, item->aliqICMS)
+		db_itensDfeSaidaInsertStmt->bind(8, item->icms)
+		db_itensDfeSaidaInsertStmt->bind(9, item->bcIcmsST)
+	
+		db->execNonQuery(db_itensDfeSaidaInsertStmt)
 end sub
 
 ''''''''
@@ -1644,6 +1738,7 @@ function Efd.carregarCsv(nomeArquivo as String, mostrarProgresso as ProgressoCB)
 			var chave = ""
 			var nfeItem = carregarCsvNFeEmitItens( bf, chave )
 			if nfeItem <> null then
+				adicionarItemDFe(chave, nfeItem)
 
 				var dfe = cast(TDFe ptr, chaveDFeDict[chave])
 				'' nf-e não encontrada? pode acontecer se processarmos o csv de itens antes do csv de nf-e
@@ -1724,186 +1819,6 @@ private sub adicionarColunasComuns(sheet as ExcelWorksheet ptr, ehEntrada as Boo
 	end if
 end sub
    
-''''''''
-sub Efd.configurarDB()
-
-	db = new TDb
-	db->open()
-	
-	'' docs entrada
-	db->execNonQuery( _
-		"create table docsEntrada( " + _
-			"cnpjEmit	bigint not null," + _
-			"ufEmit		bigint not null," + _
-			"serie		integer not null," + _
-			"numero		integer not null," + _
-			"modelo		integer not null," + _
-			"dataEmit	integer not null," + _
-			"valorOp	real not null," + _
-			"chave		char(44) null," + _
-			"PRIMARY KEY (" + _
-				"cnpjEmit," + _
-				"ufEmit," + _
-				"serie," + _
-				"numero" + _
-			")" + _
-		")" _
-	)
-	
-	db->execNonQuery( _
-		"CREATE INDEX chaveEntradaIdx ON docsEntrada (" + _
-			"chave" + _
-		")" _
-	)
-
-	db->execNonQuery( _
-		"CREATE INDEX cnpjEmitIdx ON docsEntrada (" + _
-			"cnpjEmit," + _
-			"ufEmit" + _
-		")" _
-	)
-	
-	db_docEntradaInsertStmt = db->prepare("insert into docsEntrada (cnpjEmit, ufEmit, serie, numero, modelo, chave, dataEmit, valorOp) values (?,?,?,?,?,?,?,?)")
-
-	'' docs saída
-	db->execNonQuery( _
-		"create table docsSaida( " + _
-			"serie		integer not null," + _
-			"numero		integer not null," + _
-			"modelo		integer not null," + _
-			"dataEmit	integer not null," + _
-			"valorOp	real not null," + _
-			"chave		char(44) null," + _
-			"cnpjDest	bigint not null," + _
-			"ufDest		bigint not null," + _
-			"PRIMARY KEY (" + _
-				"cnpjDest," + _
-				"ufDest," + _
-				"serie," + _
-				"numero" + _
-			")" + _
-		")" _
-	)
-	
-	db->execNonQuery( _
-		"CREATE INDEX chaveSaidaIdx ON docsSaida (" + _
-			"chave" + _
-		")" _
-	)
-	
-	db->execNonQuery( _
-		"CREATE INDEX cnpjDestIdx ON docsSaida (" + _
-			"cnpjDest," + _
-			"ufDest" + _
-		")" _
-	)
-	
-	db_docSaidaInsertStmt = db->prepare("insert into docsSaida (cnpjDest, ufDest, serie, numero, modelo, chave, dataEmit, valorOp) values (?,?,?,?,?,?,?,?)")
-	
-	'' LRE
-	db->execNonQuery( _
-		"create table LRE( " + _
-			"cnpjEmit	bigint not null," + _
-			"ufEmit		bigint not null," + _
-			"serie		integer not null," + _
-			"numero		integer not null," + _
-			"modelo		integer not null," + _
-			"dataEmit	integer not null," + _
-			"valorOp	real not null," + _
-			"chave		char(44) null," + _
-			"PRIMARY KEY (" + _
-				"cnpjEmit," + _
-				"ufEmit," + _
-				"serie," + _
-				"numero" + _
-			")" + _
-		")" _
-	)
-	
-	db->execNonQuery( _
-		"CREATE INDEX chaveLREIdx ON LRE (" + _
-			"chave" + _
-		")" _
-	)
-
-	db->execNonQuery( _
-		"CREATE INDEX cnpjEmitIdx ON LRE (" + _
-			"cnpjEmit," + _
-			"ufEmit" + _
-		")" _
-	)
-	
-	db_LREInsertStmt = db->prepare("insert into LRE (cnpjEmit, ufEmit, serie, numero, modelo, chave, dataEmit, valorOp) values (?,?,?,?,?,?,?,?)")
-
-	'' LRS
-	db->execNonQuery( _
-		"create table LRS( " + _
-			"serie		integer not null," + _
-			"numero		integer not null," + _
-			"modelo		integer not null," + _
-			"dataEmit	integer not null," + _
-			"valorOp	real not null," + _
-			"chave		char(44) null," + _
-			"cnpjDest	bigint not null," + _
-			"ufDest		bigint not null," + _
-			"PRIMARY KEY (" + _
-				"cnpjDest," + _
-				"ufDest," + _
-				"serie," + _
-				"numero" + _
-			")" + _
-		")" _
-	)
-	
-	db->execNonQuery( _
-		"CREATE INDEX chaveLRSIdx ON LRS (" + _
-			"chave" + _
-		")" _
-	)
-	
-	db->execNonQuery( _
-		"CREATE INDEX cnpjDestLRSIdx ON LRS (" + _
-			"cnpjDest," + _
-			"ufDest" + _
-		")" _
-	)
-	
-	db_LRSInsertStmt = db->prepare("insert into LRS (cnpjDest, ufDest, serie, numero, modelo, chave, dataEmit, valorOp) values (?,?,?,?,?,?,?,?)")
-
-end sub   
-  
-''''''''
-sub Efd.iniciarExtracao(nomeArquivo as String)
-	
-	''
-	ew = new ExcelWriter
-	ew->create(nomeArquivo)
-
-	entradas = null
-	saidas = null
-	entradasNaoEscrituradas = null
-	saidasNaoEscrituradas = null
-	nomeArquivoSaida = nomeArquivo
-	
-	''
-	configurarDB()
-
-end sub
-
-''''''''
-sub Efd.finalizarExtracao(mostrarProgresso as ProgressoCB)
-
-	''
-	mostrarProgresso("Gravando planilha: " + nomeArquivoSaida, 0)
-	ew->Flush(mostrarProgresso)
-	ew->Close
-	delete ew
-   
-	''
-	delete db
-	
-end sub
-
 ''''''''
 sub Efd.criarPlanilhas()
 	'' planilha de entradas
@@ -2465,487 +2380,3 @@ sub Efd.gerarPlanilhas(nomeArquivo as string, mostrarProgresso as ProgressoCB)
 	
 end sub
 
-''''''''
-sub Efd.gerarRelatorios(nomeArquivo as string, mostrarProgresso as ProgressoCB)
-	
-	mostrarProgresso(!"\tGerando relatórios", 0)
-	
-	ultimoRelatorio = -1
-	
-	'' NOTA: por limitação do DocxFactory, que só consegue trabalhar com um template por vez, 
-	''		 precisamos processar entradas primeiro, depois saídas e por último os registros 
-	''		 que são sequenciais (LRE e LRS vêm intercalados na EFD)
-	
-	'' LRE
-	iniciarRelatorio(REL_LRE, "entradas", "LRE")
-	
-	var reg = regListHead
-	do while reg <> null
-		'para cada registro..
-		select case reg->tipo
-		'NF-e?
-		case DOC_NF
-			if reg->nf.operacao = ENTRADA then
-				var part = cast( TParticipante ptr, participanteDict[reg->nf.idParticipante] )
-				adicionarDocRelatorioEntradas(@reg->nf, part)
-			end if
-		
-		'CT-e?
-		case DOC_CT
-			if reg->ct.operacao = ENTRADA then
-				var part = cast( TParticipante ptr, participanteDict[reg->ct.idParticipante] )
-				adicionarDocRelatorioEntradas(@reg->ct, part)
-			end if
-		end select
-		
-		reg = reg->next_
-	loop
-	
-	finalizarRelatorio()
-	
-	'' LRS
-	iniciarRelatorio(REL_LRS, "saidas", "LRS")
-	
-	reg = regListHead
-	do while reg <> null
-		'para cada registro..
-		select case reg->tipo
-		'NF-e?
-		case DOC_NF
-			if reg->nf.operacao = SAIDA then
-				var part = cast( TParticipante ptr, participanteDict[reg->nf.idParticipante] )
-				adicionarDocRelatorioSaidas(@reg->nf, part)
-			end if
-
-		'CT-e?
-		case DOC_CT
-			if reg->ct.operacao = SAIDA then
-				var part = cast( TParticipante ptr, participanteDict[reg->ct.idParticipante] )
-				adicionarDocRelatorioSaidas(@reg->ct, part)
-			end if
-			
-		end select
-
-		reg = reg->next_
-	loop
-	
-	finalizarRelatorio()
-	
-	'' outros livros..
-	reg = regListHead
-	do while reg <> null
-		'para cada registro..
-		select case reg->tipo
-		case APURACAO_ICMS_PERIODO
-			gerarRelatorioApuracaoICMS(nomeArquivo, reg)
-
-		case APURACAO_ICMS_ST_PERIODO
-			gerarRelatorioApuracaoICMSST(nomeArquivo, reg)
-			
-		end select
-
-		reg = reg->next_
-	loop
-	
-	mostrarProgresso(null, 1)
-
-end sub
-
-''''''''
-sub Efd.analisar(mostrarProgresso as ProgressoCB) 
-
-	analisarFaltaDeEscrituracao(mostrarProgresso)
-
-end sub
-
-''''''''
-private sub faltaDeEscrituracaoAddHeaderCols(ws as ExcelWorksheet ptr)
-	ws->AddCellType(CT_STRING, "Chave")
-	ws->AddCellType(CT_DATE, "Data")
-	ws->AddCellType(CT_INTNUMBER, "Modelo")
-	ws->AddCellType(CT_INTNUMBER, "Serie")
-	ws->AddCellType(CT_INTNUMBER, "Numero")
-	ws->AddCellType(CT_MONEY, "Valor Operacao")
-end sub
-
-''''''''
-private sub faltaDeEscrituracaoAddCols(xrow as ExcelRow ptr, byref drow as TRSetRow)
-	xrow->addCell(drow["chave"])
-	xrow->addCell(yyyyMmDd2Datetime(drow["dataEmit"]))
-	xrow->addCell(drow["modelo"])
-	xrow->addCell(drow["serie"])
-	xrow->addCell(drow["numero"])
-	xrow->addCell(drow["valorOp"])
-end sub
-
-''''''''
-sub Efd.analisarFaltaDeEscrituracao(mostrarProgresso as ProgressoCB)
-	
-	'' entradas
-	entradasNaoEscrituradas = ew->AddWorksheet("Entradas nao escrituradas")
-	faltaDeEscrituracaoAddHeaderCols(entradasNaoEscrituradas)
-	
-	mostrarProgresso(wstr(!"\tFalta de escrituração nas entradas"), 0)
-	
-	if not nfeDestSafiFornecido or not cteSafiFornecido then
-		var row = entradasNaoEscrituradas->AddRow()
-		row->addCell("Nao foi possivel verificar falta de escrituracao nas entradas porque os relatorios SAFI_NFe_Destinatario ou SAFI_CTe_CNPJ nao foram fornecidos")
-	else
-		var rs = db->exec( _
-			"select " + _
-					"d.chave, d.dataEmit, d.modelo, d.serie, d.numero, d.valorOp " + _
-				"from docsEntrada d " + _
-				"left join LRE l " + _
-					"on l.cnpjEmit = d.cnpjEmit and l.ufEmit = d.ufEmit and l.serie = d.serie and l.numero = d.numero " + _
-				"where l.cnpjEmit is null " + _
-				"order by d.dataEmit asc" _
-		)
-		
-		do while rs->hasNext()
-			faltaDeEscrituracaoAddCols( entradasNaoEscrituradas->AddRow(), *rs->row )
-			rs->next_()
-		loop
-	end if
-	
-	mostrarProgresso(null, 1)
-	
-	'' saídas
-	saidasNaoEscrituradas = ew->AddWorksheet("Saidas nao escrituradas")
-	faltaDeEscrituracaoAddHeaderCols(saidasNaoEscrituradas)
-	
-	mostrarProgresso(wstr(!"\tFalta de escrituração nas saídas"), 0)
-	
-	if not nfeEmitSafiFornecido or not cteSafiFornecido then
-		var row = saidasNaoEscrituradas->AddRow()
-		row->addCell("Nao foi possivel verificar falta de escrituracao nas saidas porque os relatorios SAFI_NFe_Emitente ou SAFI_CTe_CNPJ nao foram fornecidos")
-	else
-		var rs = db->exec( _
-			"select " + _
-					"d.chave, d.dataEmit, d.modelo, d.serie, d.numero, d.valorOp " + _
-				"from docsSaida d " + _
-				"left join LRS l " + _
-					"on l.cnpjDest = d.cnpjDest and l.ufDest = d.ufDest and l.serie = d.serie and l.numero = d.numero " + _
-				"where l.cnpjDest is null " + _
-				"order by d.dataEmit asc" _
-		)
-		
-		do while rs->hasNext()
-			faltaDeEscrituracaoAddCols( saidasNaoEscrituradas->AddRow(), *rs->row )
-			rs->next_()
-		loop
-	end if
-	
-	mostrarProgresso(null, 1)	
-end sub
-
-''''''''
-sub Efd.gerarRelatorioApuracaoICMS(nomeArquivo as string, reg as TRegistro ptr)
-
-	iniciarRelatorio(REL_RAICMS, "apuracao_icms", "RAICMS")
-	
-	dfwd->setClipboardValueByStrW("grid", "nome", regListHead->mestre.nome)
-	dfwd->setClipboardValueByStr("grid", "cnpj", STR2CNPJ(regListHead->mestre.cnpj))
-	dfwd->setClipboardValueByStr("grid", "ie", STR2IE(regListHead->mestre.ie))
-	dfwd->setClipboardValueByStr("grid", "escrit", YyyyMmDd2DatetimeBR(regListHead->mestre.dataIni) + " a " + YyyyMmDd2DatetimeBR(regListHead->mestre.dataFim))
-	dfwd->setClipboardValueByStr("grid", "apur", YyyyMmDd2DatetimeBR(reg->apuIcms.dataIni) + " a " + YyyyMmDd2DatetimeBR(reg->apuIcms.dataFim))
-	
-	dfwd->setClipboardValueByStr("grid", "saidas", DBL2MONEYBR(reg->apuIcms.totalDebitos))
-	dfwd->setClipboardValueByStr("grid", "ajuste_deb", DBL2MONEYBR(reg->apuIcms.ajustesDebitos))
-	dfwd->setClipboardValueByStr("grid", "ajuste_deb_imp", DBL2MONEYBR(reg->apuIcms.totalAjusteDeb))
-	dfwd->setClipboardValueByStr("grid", "estorno_cred", DBL2MONEYBR(reg->apuIcms.estornosCredito))
-	dfwd->setClipboardValueByStr("grid", "credito", DBL2MONEYBR(reg->apuIcms.totalCreditos))
-	dfwd->setClipboardValueByStr("grid", "ajuste_cred", DBL2MONEYBR(reg->apuIcms.ajustesCreditos))
-	dfwd->setClipboardValueByStr("grid", "ajuste_cred_imp", DBL2MONEYBR(reg->apuIcms.totalAjusteCred))
-	dfwd->setClipboardValueByStr("grid", "estorno_deb", DBL2MONEYBR(reg->apuIcms.estornoDebitos))
-	dfwd->setClipboardValueByStr("grid", "cred_anterior", DBL2MONEYBR(reg->apuIcms.saldoCredAnterior))
-	dfwd->setClipboardValueByStr("grid", "saldo_dev", DBL2MONEYBR(reg->apuIcms.saldoDevedorApurado))
-	dfwd->setClipboardValueByStr("grid", "deducoes", DBL2MONEYBR(reg->apuIcms.totalDeducoes))
-	dfwd->setClipboardValueByStr("grid", "a_recolher", DBL2MONEYBR(reg->apuIcms.icmsRecolher))
-	dfwd->setClipboardValueByStr("grid", "a_transportar", DBL2MONEYBR(reg->apuIcms.saldoCredTransportar))
-	dfwd->setClipboardValueByStr("grid", "extra_apu", DBL2MONEYBR(reg->apuIcms.debExtraApuracao))
-	
-	dfwd->paste("grid")
-
-	finalizarRelatorio()
-	
-end sub
-
-''''''''
-sub Efd.gerarRelatorioApuracaoICMSST(nomeArquivo as string, reg as TRegistro ptr)
-
-	iniciarRelatorio(REL_RAICMSST, "apuracao_icms_st", "RAICMSST_" + reg->apuIcmsST.UF)
-
-	dfwd->setClipboardValueByStrW("grid", "nome", regListHead->mestre.nome)
-	dfwd->setClipboardValueByStr("grid", "cnpj", STR2CNPJ(regListHead->mestre.cnpj))
-	dfwd->setClipboardValueByStr("grid", "ie", STR2IE(regListHead->mestre.ie))
-	dfwd->setClipboardValueByStr("grid", "escrit", YyyyMmDd2DatetimeBR(regListHead->mestre.dataIni) + " a " + YyyyMmDd2DatetimeBR(regListHead->mestre.dataFim))
-	dfwd->setClipboardValueByStrW("grid", "apur", YyyyMmDd2DatetimeBR(reg->apuIcmsST.dataIni) + " a " + YyyyMmDd2DatetimeBR(reg->apuIcmsST.dataFim) + " - INSCRIÇÃO ESTADUAL:")
-	dfwd->setClipboardValueByStr("grid", "UF", reg->apuIcmsST.UF)
-	dfwd->setClipboardValueByStr("grid", "MOV", iif(reg->apuIcmsST.mov, "1 - COM", "0 - SEM"))
-	
-	dfwd->setClipboardValueByStr("grid", "saldo_cred", DBL2MONEYBR(reg->apuIcmsST.saldoCredAnterior))
-	dfwd->setClipboardValueByStr("grid", "devolucoes", DBL2MONEYBR(reg->apuIcmsST.devolMercadorias))
-	dfwd->setClipboardValueByStr("grid", "ressarcimentos", DBL2MONEYBR(reg->apuIcmsST.totalRessarciment))
-	dfwd->setClipboardValueByStr("grid", "outros_cred", DBL2MONEYBR(reg->apuIcmsST.totalOutrosCred))
-	dfwd->setClipboardValueByStr("grid", "ajuste_cred", DBL2MONEYBR(reg->apuIcmsST.ajusteCred))
-	dfwd->setClipboardValueByStr("grid", "icms_st", DBL2MONEYBR(reg->apuIcmsST.totalRetencao))
-	dfwd->setClipboardValueByStr("grid", "outros_deb", DBL2MONEYBR(reg->apuIcmsST.totalOutrosDeb))
-	dfwd->setClipboardValueByStr("grid", "ajuste_deb", DBL2MONEYBR(reg->apuIcmsST.ajusteDeb))
-	dfwd->setClipboardValueByStr("grid", "saldo_dev", DBL2MONEYBR(reg->apuIcmsST.saldoAntesDed))
-	dfwd->setClipboardValueByStr("grid", "deducoes", DBL2MONEYBR(reg->apuIcmsST.totalDeducoes))
-	dfwd->setClipboardValueByStr("grid", "a_recolher", DBL2MONEYBR(reg->apuIcmsST.icmsRecolher))
-	dfwd->setClipboardValueByStr("grid", "a_transportar", DBL2MONEYBR(reg->apuIcmsST.saldoCredTransportar))
-	dfwd->setClipboardValueByStr("grid", "extra_apu", DBL2MONEYBR(reg->apuIcmsST.debExtraApuracao))
-
-	dfwd->paste("grid")
-
-	finalizarRelatorio()
-	
-end sub
-
-''''''''
-function EFd.codMunicipio2Nome(cod as integer) as string
-	
-	var nome = cast(zstring ptr, municipDict[cod])
-	if nome <> null then
-		return *nome
-	end if
-	
-	var nomedb = dbConfig->execScalar("select Nome || ' - ' || uf nome from Municipio where Codigo = " & cod)
-	if nomedb = null then
-		return ""
-	end if
-	
-	municipDict.add(cod, nomedb)
-	
-	function = *nomedb
-end function
-
-''''''''
-sub Efd.iniciarRelatorio(relatorio as TipoRelatorio, nomeRelatorio as string, sufixo as string)
-
-	if ultimoRelatorio = relatorio then
-		return
-	end if
-		
-	finalizarRelatorio()
-	
-	ultimoRelatorioSufixo = sufixo
-	ultimoRelatorio = relatorio
-	nroRegistrosRel = 0
-
-	dfwd->load(baseTemplatesDir + nomeRelatorio + ".dfw")
-
-	dfwd->setClipboardValueByStrW("_header", "nome", regListHead->mestre.nome)
-	dfwd->setClipboardValueByStr("_header", "cnpj", STR2CNPJ(regListHead->mestre.cnpj))
-	dfwd->setClipboardValueByStr("_header", "ie", STR2IE(regListHead->mestre.ie))
-	dfwd->setClipboardValueByStr("_header", "uf", MUNICIPIO2SIGLA(regListHead->mestre.municip))
-	
-	select case relatorio
-	case REL_LRE, REL_LRS
-		dfwd->setClipboardValueByStr("_header", "municipio", codMunicipio2Nome(regListHead->mestre.municip))
-		dfwd->setClipboardValueByStr("_header", "apu", YyyyMmDd2DatetimeBR(regListHead->mestre.dataIni) + " a " + YyyyMmDd2DatetimeBR(regListHead->mestre.dataFim))
-	
-		relSomaLRList.init(10, len(RelSomatorioLR))
-		relSomaLRDict.init(10)
-		
-		dfwd->paste("tabela")
-	end select
-	
-end sub
-
-private function cmpFunc(key as any ptr, node as any ptr) as boolean
-	function = *cast(zstring ptr, key) < cast(RelSomatorioLR ptr, node)->chave
-end function
-
-''''''''
-private sub Efd.relatorioSomarLR(sit as TipoSituacao, anal as TDocItemAnal ptr)
-	
-	dim as string chave = iif(ultimoRelatorio = REL_LRS, str(sit), "0")
-	
-	chave &= format(anal->cst,"000") & anal->cfop & format(anal->aliq, "00")
-	
-	var soma = cast(RelSomatorioLR ptr, relSomaLRDict[chave])
-	if soma = null then
-		soma = relSomaLRList.addOrdAsc(strptr(chave), @cmpFunc)
-		soma->chave = chave
-		soma->situacao = sit
-		soma->cst = anal->cst
-		soma->cfop = anal->cfop
-		soma->aliq = anal->aliq
-		relSomaLRDict.add(soma->chave, soma)
-	end if
-	
-	soma->valorOp += anal->valorOp
-	soma->bc += anal->bc
-	soma->icms += anal->icms
-	soma->bcST += anal->bcST
-	soma->icmsST += anal->icmsST
-	soma->ipi += anal->ipi
-end sub
-
-''''''''
-sub Efd.adicionarDocRelatorioItemAnal(sit as TipoSituacao, anal as TDocItemAnal ptr)
-	
-	do while anal <> null
-		relatorioSomarLR(sit, anal)
-
-		select case sit
-		case REGULAR, EXTEMPORANEO
-			dfwd->setClipboardValueByStr("linha_anal", "cst", format(anal->cst,"000"))
-			dfwd->setClipboardValueByStr("linha_anal", "cfop", anal->cfop)
-			dfwd->setClipboardValueByStr("linha_anal", "aliq", DBL2MONEYBR(anal->aliq))
-			dfwd->setClipboardValueByStr("linha_anal", "bc", DBL2MONEYBR(anal->bc))
-			dfwd->setClipboardValueByStr("linha_anal", "icms", DBL2MONEYBR(anal->ICMS))
-			dfwd->setClipboardValueByStr("linha_anal", "bcst", DBL2MONEYBR(anal->bcST))
-			dfwd->setClipboardValueByStr("linha_anal", "icmsst", DBL2MONEYBR(anal->ICMSST))
-			dfwd->setClipboardValueByStr("linha_anal", "ipi", DBL2MONEYBR(anal->IPI))
-			dfwd->setClipboardValueByStr("linha_anal", "valop", DBL2MONEYBR(anal->valorOp))
-			if ultimoRelatorio = REL_LRE then
-				dfwd->setClipboardValueByStr("linha_anal", "redbc", DBL2MONEYBR(anal->redBC))
-			end if
-			
-			dfwd->paste("linha_anal")
-		end select
-
-		anal = anal->next_
-	loop
-end sub
-
-''''''''
-sub Efd.adicionarDocRelatorioSaidas(doc as TDocDF ptr, part as TParticipante ptr)
-
-	if len(doc->dataEmi) > 0 then
-		dfwd->setClipboardValueByStr("linha", "demi", YyyyMmDd2DatetimeBR(doc->dataEmi))
-	end if
-	if len(doc->dataEntSaida) > 0 then
-		dfwd->setClipboardValueByStr("linha", "dsaida", YyyyMmDd2DatetimeBR(doc->dataEntSaida))
-	end if
-	dfwd->setClipboardValueByStr("linha", "nrini", doc->numero)
-	dfwd->setClipboardValueByStr("linha", "md", doc->modelo)
-	dfwd->setClipboardValueByStr("linha", "sr", doc->serie)
-	dfwd->setClipboardValueByStr("linha", "sit", format(cdbl(doc->situacao), "00"))
-	
-	select case doc->situacao
-	case REGULAR, EXTEMPORANEO
-		dfwd->setClipboardValueByStr("linha", "cnpjdest", STR2CNPJ(part->cnpj))
-		dfwd->setClipboardValueByStr("linha", "iedest", STR2IE(part->ie))
-		dfwd->setClipboardValueByStr("linha", "uf", MUNICIPIO2SIGLA(part->municip))
-		dfwd->setClipboardValueByStr("linha", "mundest", part->municip)
-		dfwd->setClipboardValueByStrW("linha", "razaodest", left(part->nome, 64))
-	end select
-	
-	dfwd->paste("linha")
-	
-	adicionarDocRelatorioItemAnal(doc->situacao, doc->itemAnalListHead)
-	
-	nroRegistrosRel += 1
-	
-end sub
-
-''''''''
-sub Efd.adicionarDocRelatorioEntradas(doc as TDocDF ptr, part as TParticipante ptr)
-
-	dfwd->setClipboardValueByStr("linha", "demi", YyyyMmDd2DatetimeBR(doc->dataEmi))
-	dfwd->setClipboardValueByStr("linha", "dent", YyyyMmDd2DatetimeBR(doc->dataEntSaida))
-	dfwd->setClipboardValueByStr("linha", "nro", doc->numero)
-	dfwd->setClipboardValueByStr("linha", "mod", doc->modelo)
-	dfwd->setClipboardValueByStr("linha", "ser", doc->serie)
-	dfwd->setClipboardValueByStr("linha", "sit", format(cdbl(doc->situacao), "00"))
-	dfwd->setClipboardValueByStr("linha", "cnpj", STR2CNPJ(part->cnpj))
-	dfwd->setClipboardValueByStr("linha", "ie", STR2IE(part->ie))
-	dfwd->setClipboardValueByStr("linha", "uf", MUNICIPIO2SIGLA(part->municip))
-	dfwd->setClipboardValueByStr("linha", "municip", codMunicipio2Nome(part->municip))
-	dfwd->setClipboardValueByStrW("linha", "razao", left(part->nome, 64))
-	
-	dfwd->paste("linha")
-	
-	adicionarDocRelatorioItemAnal(doc->situacao, doc->itemAnalListHead)
-	
-	nroRegistrosRel += 1
-	
-end sub
-
-''''''''
-sub Efd.finalizarRelatorio()
-
-	if ultimoRelatorio = -1 then
-		return
-	end if
-	
-	dim as string bookmark
-	select case ultimoRelatorio
-	case REL_LRE, REL_LRS
-		bookmark = "_header"
-	case else
-		bookmark = "ass"
-	end select
-	
-	dfwd->setClipboardValueByStr(bookmark, "nome_ass", infAssinatura->assinante)
-	dfwd->setClipboardValueByStr(bookmark, "cpf_ass", STR2CPF(infAssinatura->cpf))
-	dfwd->setClipboardValueByStr(bookmark, "hash_ass", infAssinatura->hashDoArquivo)
-
-	select case ultimoRelatorio
-	case REL_LRE, REL_LRS
-		
-		if nroRegistrosRel = 0 then
-			dfwd->paste("vazio")
-		else
-			dfwd->paste("resumo")
-		
-			dim as RelSomatorioLR totSoma
-			
-			var soma = cast(RelSomatorioLR ptr, relSomaLRList.head)
-			do while soma <> null
-				if ultimoRelatorio = REL_LRS then
-					dfwd->setClipboardValueByStr("resumo_linha", "sit", format(cdbl(soma->situacao), "00"))
-				end if
-				
-				dfwd->setClipboardValueByStr("resumo_linha", "cst", format(soma->cst,"000"))
-				dfwd->setClipboardValueByStr("resumo_linha", "cfop", soma->cfop)
-				dfwd->setClipboardValueByStr("resumo_linha", "aliq", DBL2MONEYBR(soma->aliq))
-				dfwd->setClipboardValueByStr("resumo_linha", "valop", DBL2MONEYBR(soma->valorOp))
-				dfwd->setClipboardValueByStr("resumo_linha", "bc", DBL2MONEYBR(soma->bc))
-				dfwd->setClipboardValueByStr("resumo_linha", "icms", DBL2MONEYBR(soma->icms))
-				dfwd->setClipboardValueByStr("resumo_linha", "bcst", DBL2MONEYBR(soma->bcST))
-				dfwd->setClipboardValueByStr("resumo_linha", "icmsst", DBL2MONEYBR(soma->ICMSST))
-				dfwd->setClipboardValueByStr("resumo_linha", "ipi", DBL2MONEYBR(soma->ipi))
-				
-				dfwd->paste("resumo_linha")
-				
-				totSoma.valorOp += soma->valorOp
-				totSoma.bc += soma->bc
-				totSoma.icms += soma->icms
-				totSoma.bcST += soma->bcST
-				totSoma.ICMSST += soma->ICMSST
-				totSoma.ipi += soma->ipi
-				
-				soma = relSomaLRList.next_(soma)
-			loop
-			
-			dfwd->paste("resumo_sep")
-			
-			dfwd->setClipboardValueByStr("resumo_total", "totvalop", DBL2MONEYBR(totSoma.valorOp))
-			dfwd->setClipboardValueByStr("resumo_total", "totbc", DBL2MONEYBR(totSoma.bc))
-			dfwd->setClipboardValueByStr("resumo_total", "toticms", DBL2MONEYBR(totSoma.icms))
-			dfwd->setClipboardValueByStr("resumo_total", "totbcst", DBL2MONEYBR(totSoma.bcST))
-			dfwd->setClipboardValueByStr("resumo_total", "toticmsst", DBL2MONEYBR(totSoma.ICMSST))
-			dfwd->setClipboardValueByStr("resumo_total", "totipi", DBL2MONEYBR(totSoma.ipi))
-			
-			dfwd->paste("resumo_total")
-		end if
-		
-		relSomaLRDict.end_()
-		relSomaLRList.end_()
-	case else
-		dfwd->paste("ass")
-	end select
-	
-	dfwd->save(DdMmYyyy2Yyyy_Mm(regListHead->mestre.dataIni) + "_" + ultimoRelatorioSufixo + ".docx")
-	
-	dfwd->close()
-	
-	ultimoRelatorio = -1
-	nroRegistrosRel = 0
-
-end sub

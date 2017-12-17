@@ -1,4 +1,4 @@
-'' para compilar: fbc.exe EfdExtrator.bas Efd.bas bfile.bas ExcelWriter.bas list.bas Dict.bas DocxFactoryDyn.bas DB.bas VarBox.bas -exx
+'' para compilar: fbc.exe EfdExtrator.bas Efd.bas Efd-analises.bas Efd-relatorios.bas Efd-misc.bas bfile.bas ExcelWriter.bas list.bas Dict.bas DocxFactoryDyn.bas DB.bas VarBox.bas -exx
 
 #include once "EFD.bi"
 
