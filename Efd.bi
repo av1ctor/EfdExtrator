@@ -495,11 +495,16 @@ end enum
 
 enum TipoRegime
 	TR_RPA				= 2
-	TR_DESC1			= 3
+	TR_DESC1			= 3			'244488367115
+	TR_DESC5			= 4			'110704837000
 	TR_MICROEMPRESA		= 5
 	TR_RPA_DECENDIAL	= asc("A")
 	TR_SN				= asc("N")
-	TR_DESC2			= asc("G")
+	TR_DESC2			= asc("G")	'633315594110
+	TR_DESC3			= asc("H") 	'165123446118
+	TR_DESC4			= asc("M") 	'105789990116
+	TR_DESC6			= asc("O") 	'140132283116
+	TR_DESC7			= asc("P") 	'566053808112
 end enum
 
 type Efd
