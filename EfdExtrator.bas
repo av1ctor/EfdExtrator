@@ -5,6 +5,7 @@
 declare sub main()
 declare sub importarGia()
 declare sub importarCadContribuinte()
+declare sub importarCadContribuinteRegime()
 
 on error goto exceptionReport
 
@@ -87,6 +88,9 @@ sub main()
 				exit sub
 			case "-importarcadcontribuinte"
 				importarCadContribuinte()
+				exit sub
+			case "-importarcadregime"
+				importarCadContribuinteRegime()
 				exit sub
 			case else
 				mostrarUso()
@@ -176,6 +180,9 @@ sub importarGia()
 	
 	db->open(ExePath + "\db\GIA.db")
 	
+	var stmt = db->prepare("insert into GIA (ie, mes, ano, totCreditos, totDebitos) values (?,?,?,?,?)")
+	var updStmt = db->prepare("update GIA set totDevolucoes = ?, totRetencoes = ? where ie = ? and mes = ? and ano = ?")
+	
 	var i = 2
 	do
 		var arquivo = command(i)
@@ -216,12 +223,24 @@ sub importarGia()
 			if icmsSt = 0 then
 				var totDebitos = inf.vardbl(SEP, asc("."))
 				var totCreditos = inf.vardbl(13, asc("."))
-				db->execNonQuery(db->format("insert into GIA (ie, mes, ano, totCreditos, totDebitos) values ({0},{1},{2},{3},{4})", VB(ie), VB(mes), VB(ano), VB(totCreditos), VB(totDebitos)))
+				stmt->reset()
+				stmt->bind(1, ie)
+				stmt->bind(2, mes)
+				stmt->bind(3, ano)
+				stmt->bind(4, totCreditos)
+				stmt->bind(5, totDebitos)
+				db->execNonQuery(stmt)
 			'' st..
 			else
 				var totDevolucoes = inf.vardbl(SEP, asc("."))
 				var totRetencoes = inf.vardbl(13, asc("."))
-				db->execNonQuery(db->format("update GIA set totDevolucoes = {3}, totRetencoes = {4} where ie = {0} and mes = {1} and ano = {2}", VB(ie), VB(mes), VB(ano), VB(totDevolucoes), VB(totRetencoes)))
+				updStmt->reset()
+				updStmt->bind(1, totDevolucoes)
+				updStmt->bind(2, totRetencoes)
+				updStmt->bind(3, ie)
+				updStmt->bind(4, mes)
+				updStmt->bind(5, ano)
+				db->execNonQuery(updStmt)
 			end if
 			
 			inf.char1			'' skip \n
@@ -306,8 +325,10 @@ sub importarCadContribuinte()
 	
 	mostrarProgresso("Carregando Cadastro Contribuinte (" & arquivo & ")", 0)
 	
-	'' remover todos os registros desse ano
+	'' remover todos os registros
 	db->execNonQuery("delete from Contribuinte")
+	
+	var stmt = db->prepare("insert into Contribuinte (cnpj, ie, dataIni, dataFim, codBaixa, cnae) values (?,?,?,?,?,?)")
 	
 	var arqTamanho = inf.tamanho
 	var l = 0
@@ -331,12 +352,90 @@ sub importarCadContribuinte()
 		dataIni = brdata2yyyymmdd(dataIni)
 		
 		if dataFim = "1899-12-31" then
-			dataFim = "00000000"
+			dataFim = "99999999"
 		else
 			dataFim = brdata2yyyymmdd(dataFim)
 		end if
 		
-		db->execNonQuery(db->format("insert into Contribuinte (cnpj, ie, dataIni, dataFim, codBaixa, cnae) values ({0},{1},{2},{3},{4},{5})", VB(cnpj), VB(ie), VB(dataIni), VB(dataFim), VB(codBaixa), VB(cnae)))
+		stmt->reset()
+		stmt->bind(1, cnpj)
+		stmt->bind(2, ie)
+		stmt->bind(3, dataIni)
+		stmt->bind(4, dataFim)
+		stmt->bind(5, codBaixa)
+		stmt->bind(6, cnae)
+		db->execNonQuery(stmt)
+		
+		if l = 100000 then
+			mostrarProgresso(0, inf.posicao / arqTamanho)
+			db->execNonQuery("end")
+			l = -1
+		end if
+		
+		l += 1
+	loop
+	
+	if l > 0 then
+		mostrarProgresso(0, 1)
+		db->execNonQuery("end")
+	end if
+	
+	inf.fechar()
+	
+	db->close()
+	
+end sub
+
+'''''''''''
+sub importarCadContribuinteRegime()   
+
+	const SEP = asc("¨")
+	
+	var db = new TDb
+	
+	db->open(ExePath + "\db\CadContribuinte.db")
+	
+	var arquivo = command(2)
+	if len(arquivo) = 0 then
+		return
+	end if
+		
+	dim as bfile inf
+	inf.abrir(arquivo)
+	
+	'' pular as 2 primeiras linhas
+	inf.varchar(10)
+	inf.varchar(10)
+	
+	mostrarProgresso("Carregando Cadastro Regimes (" & arquivo & ")", 0)
+	
+	'' remover todos os registros
+	db->execNonQuery("delete from Regimes")
+	
+	var stmt = db->prepare("insert into Regimes (ie, tipo, dataIni, dataFim) values (?,?,?,?)")
+	
+	var arqTamanho = inf.tamanho
+	var l = 0
+	do while inf.temProximo()
+		
+		if l = 0 then
+			db->execNonQuery("begin")
+		end if
+		
+		'' carregar cada registro
+		'' formato: IE¨Regime¨DataIni¨DataFim\r\n
+		var ie = inf.varint(SEP)
+		var regime = inf.varchar(SEP)
+		var dataIni = inf.varchar(SEP)
+		var dataFim = inf.varchar(13)
+		inf.char1			'' skip \n
+			
+		stmt->reset()
+		stmt->bind(1, ie)
+		stmt->bind(2, regime)
+		stmt->bind(3, dataIni)
+		stmt->bind(4, dataFim)
+		db->execNonQuery(stmt)
 		
 		if l = 100000 then
 			mostrarProgresso(0, inf.posicao / arqTamanho)
