@@ -68,6 +68,11 @@ sub Efd.configurarDB()
 	db = new TDb
 	db->open()
 	
+	var dbPath = ExePath + "\db\"
+	db->execNonQuery("attach '" + dbPath + "CadContribuinte.db' as cdb")
+	db->execNonQuery("attach '" + dbPath + "inidoneos.db' as idb")
+	db->execNonQuery("attach '" + dbPath + "GIA.db' as gdb")
+	
 	'' dfe's de entrada (relatórios do SAFI)
 	db->execNonQuery( _
 		"create table dfeEntrada( " + _

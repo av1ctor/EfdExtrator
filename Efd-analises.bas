@@ -126,6 +126,31 @@ sub Efd.analisarInconsistenciasLRE(mostrarProgresso as ProgressoCB)
 			ds->next_()
 		loop
 	end scope
+
+	'' docs escriturados com crédito de fornecedor SN acima do permitido
+	scope
+		const aliqMaxSN = str(9)
+		var ds = db->exec( _
+			"select " + _
+					"l.chave, l.dataEmit, l.modelo, l.serie, l.numero, l.valorOp, it.aliq " + _
+				"from LRE l " + _
+				"inner join itensNfLRE it " + _
+					"on it.cnpjEmit = l.cnpjEmit and it.ufEmit = l.ufEmit and it.serie = l.serie and it.numero = l.numero and it.periodo = l.periodo and it.modelo = l.modelo " + _
+				"inner join cdb.Contribuinte c " + _
+					"on c.cnpj = l.cnpjEmit and l.ufEmit = 35 and c.dataIni <= l.dataEmit and c.dataFim > l.dataEmit " + _
+				"inner join cdb.Regimes r " + _
+					"on r.ie = c.ie and r.tipo = 'N' and r.dataIni <= cast(substr(l.dataEmit,1,6) as integer) and r.dataFim > cast(substr(l.dataEmit,1,6) as integer) " + _
+				"where it.aliq > " + aliqMaxSN + " " + _
+				"order by l.dataEmit asc" _
+		)
+		
+		do while ds->hasNext()
+			var row = ds->row
+			var aliq = *(*row)["aliq"]
+			inconsistenciaAddRow( ws->AddRow(), *row, TI_ALIQ, "Credito de SN acima do permitido: " & aliq & "%" )
+			ds->next_()
+		loop
+	end scope
 	
 	'' entradas não escrituradas
 	scope
