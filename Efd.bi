@@ -14,13 +14,13 @@ enum TipoRegistro
 	MESTRE         				= &h0000
 	PARTICIPANTE   				= &h0150
 	ITEM_ID        				= &h0200
-	DOC_NFE      				= &hC100		'' NF, NF-e, NFC-e
-	DOC_NFE_ITEM    			= &hC170		'' item de NF-e (só informado para entradas)
-	DOC_NFE_ANAL				= &hC190
-	DOC_NFE_DIFAL				= &hC101
-	DOC_CTE     				= &hD100		'' CT, CT-e, CT-e OS, BP-e
-	DOC_CTE_DIFAL				= &hD101
-	DOC_CTE_ANAL				= &hD190
+	DOC_NF      				= &hC100		'' NF, NF-e, NFC-e
+	DOC_NF_ITEM    				= &hC170		'' item de NF-e (só informado para entradas)
+	DOC_NF_ANAL					= &hC190
+	DOC_NF_DIFAL				= &hC101
+	DOC_CT     					= &hD100		'' CT, CT-e, CT-e OS, BP-e
+	DOC_CT_DIFAL				= &hD101
+	DOC_CT_ANAL					= &hD190
 	APURACAO_ICMS_PERIODO		= &hE100
 	APURACAO_ICMS_PROPRIO		= &hE110
 	APURACAO_ICMS_AJUSTE		= &hE111
@@ -72,10 +72,10 @@ type TParticipante
 end type
 
 enum TipoOperacao
-	ENTRADA		  = 0	'' NF-e
-	SAIDA		  = 1	'' NF-e
-	AQUISICAO	  = 0	'' CT-e
-	PRESTACAO	  = 1	'' CT-e
+	ENTRADA		  = 0	'' NF
+	SAIDA		  = 1	'' NF
+	AQUISICAO	  = 0	'' CT
+	PRESTACAO	  = 1	'' CT
 	DESCONHECIDA  = 2
 end enum
 
@@ -175,10 +175,10 @@ type TItemId
 	CEST           as integer
 end type
 
-type TDocNFe_ as TDocNFe ptr
+type TDocNF_ as TDocNF ptr
 
-type TDocNFeItem                       ' nota: só é obrigatório para entradas!!!
-	documentoPai   as TDocNFe_
+type TDocNFItem                       ' nota: só é obrigatório para entradas!!!
+	documentoPai   as TDocNF_
 	numItem        as Integer
 	itemId         as zstring * 60+1
 	descricao      as zstring * 256+1
@@ -239,7 +239,7 @@ type TDocItemAnal
 	next_			as TDocItemAnal ptr
 end type
 
-type TDocDFe
+type TDocDF
 	operacao		as TipoOperacao
 	situacao		as TipoSituacao
 	emitente		as TipoEmitente
@@ -258,7 +258,7 @@ type TDocDFe
 	itemAnalListTail as TDocItemAnal ptr
 end type
 
-type TDocNFe extends TDocDFe
+type TDocNF extends TDocDF
 	pagamento		as TipoPagamento
 	valorDesconto	as double
 	valorAbatimento as double
@@ -277,7 +277,7 @@ type TDocNFe extends TDocDFe
 	nroItens		as integer
 end type
 
-type TDocCTe extends TDocDFe
+type TDocCT extends TDocDF
 	tipoCTe				as integer
 	chaveRef			as zstring * 44+1		'' para CT-e do tipo complementar, substituto ou anulador
 	valorDesconto		as double
@@ -360,9 +360,9 @@ type TRegistro
 	union
 		mestre      as TMestre
 		part        as TParticipante
-		nfe         as TDocNFe
-		itemNFe     as TDocNFeItem
-		cte         as TDocCTe
+		nf         	as TDocNF
+		itemNF     	as TDocNFItem
+		ct         	as TDocCT
 		docSint	  	as TDocumentoSintegra
 		itemId      as TItemId
 		apuIcms	  	as TApuracaoIcmsPeriodo
@@ -510,7 +510,8 @@ private:
 	
 	declare sub adicionarDFe(dfe as TDFe ptr)
 	declare sub adicionarEfdDfe(chave as zstring ptr, operacao as TipoOperacao, dataEmi as zstring ptr, valorOperacao as double)
-	declare sub adicionarDocEscriturado(doc as TDocDFe ptr)
+	declare sub adicionarDocEscriturado(doc as TDocDF ptr)
+	declare sub adicionarDocEscriturado(item as TDocNFItem ptr)
 	
 	declare sub addRegistroOrdenadoPorData(reg as TRegistro ptr)
 	
@@ -521,8 +522,8 @@ private:
 	declare sub gerarRelatorioApuracaoICMS(nomeArquivo as string, reg as TRegistro ptr)
 	declare sub gerarRelatorioApuracaoICMSST(nomeArquivo as string, reg as TRegistro ptr)
 	declare sub iniciarRelatorio(relatorio as TipoRelatorio, nomeRelatorio as string, sufixo as string)
-	declare sub adicionarDocRelatorioEntradas(doc as TDocDFe ptr, part as TParticipante ptr)
-	declare sub adicionarDocRelatorioSaidas(doc as TDocDFe ptr, part as TParticipante ptr)
+	declare sub adicionarDocRelatorioEntradas(doc as TDocDF ptr, part as TParticipante ptr)
+	declare sub adicionarDocRelatorioSaidas(doc as TDocDF ptr, part as TParticipante ptr)
 	declare sub adicionarDocRelatorioItemAnal(sit as TipoSituacao, anal as TDocItemAnal ptr)
 	declare sub finalizarRelatorio()
 	declare sub relatorioSomarLR(sit as TipoSituacao, anal as TDocItemAnal ptr)
