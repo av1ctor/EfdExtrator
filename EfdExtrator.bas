@@ -23,7 +23,10 @@ sub mostrarUso()
 	print wstr(!"\t4. No final da extração será gerado um arquivo .xml que deve ser")
 	print wstr(!"\t   aberto no Excel 2003 ou superior")
 	print wstr(!"\t5. A opção -gerarRelatorios gera os relatórios do EFD-ICMS-IPI")
-	print wstr(!"\t   no formato Word/docx")
+	print wstr(!"\t   no formato Word/docx. Para converter em lote esses arquivos para")
+	print wstr(!"\t   PDF, copie o arquivo doc2pdf.ps1 para a pasta onde se encontram")
+	print wstr(!"\t   os relatórios e o execute - essa conversão é feita pelo Word e")
+	print wstr(!"\t   costuma ser demorada")
 	print 
 end sub
 

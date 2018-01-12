@@ -22,6 +22,11 @@ enum TipoRegistro
 	DOC_CT     					= &hD100		'' CT, CT-e, CT-e OS, BP-e
 	DOC_CT_DIFAL				= &hD101
 	DOC_CT_ANAL					= &hD190
+	EQUIP_ECF					= &hC400
+	ECF_REDUCAO_Z				= &hC405
+	DOC_ECF						= &hC460
+	DOC_ECF_ITEM				= &hC470
+	DOC_ECF_ANAL				= &hC490
 	APURACAO_ICMS_PERIODO		= &hE100
 	APURACAO_ICMS_PROPRIO		= &hE110
 	APURACAO_ICMS_AJUSTE		= &hE111
@@ -217,6 +222,23 @@ type TDocNFItem                       ' nota: só é obrigatório para entradas!!!
 	COFINS         as Double
 end type
 
+type TDocECF_ as TDocECF ptr
+
+type TDocECFItem
+	documentoPai   as TDocECF_
+	numItem        as Integer
+	itemId         as zstring * 60+1
+	qtd            as double
+	qtdCancelada   as double
+	unidade        as zstring * 6+1
+	valor          as Double
+	cstICMS        as integer
+	cfop           as Integer
+	aliqICMS       as double
+	PIS            as Double
+	COFINS         as Double
+end type
+
 type TDocDifAliq
 	fcp				as double
 	icmsDest		as double
@@ -290,6 +312,17 @@ type TDocCT extends TDocDF
 	municipioDestino	as integer
 end type
 
+type TEquipECF_ as TEquipECF ptr
+
+type TDocECF extends TDocDF
+	equipECF			as TEquipECF_
+	PIS					as double
+	COFINS				as double
+	cpfCnpjAdquirente	as zstring * 14+1
+	nomeAdquirente		as zstring * 60+1
+	nroItens			as integer
+end type
+
 type TDocumentoSintegra
 	cnpj           	as zstring * 14+1
 	ie             	as zstring * 14+1
@@ -356,6 +389,27 @@ type TApuracaoIcmsSTPeriodo
 	debExtraApuracao		as double
 end type
 
+type TEquipECF
+	modelo					as TipoModelo
+	modeloEquip				as zstring * 20+1
+	numSerie				as zstring * 21+1
+	numCaixa				as integer
+end type
+
+type TECFReducaoZ
+	equipECF				as TEquipECF ptr
+	dataMov					as zstring * 8+1
+	cro						as longint
+	crz						as longint
+	numOrdem				as longint
+	valorFinal				as double
+	valorBruto				as double
+	numIni					as integer
+	numFim					as integer
+	itemAnalListHead 		as TDocItemAnal ptr
+	itemAnalListTail 		as TDocItemAnal ptr
+end type
+
 type TRegistro
 	tipo           	as TipoRegistro
 	union
@@ -364,11 +418,15 @@ type TRegistro
 		nf         	as TDocNF
 		itemNF     	as TDocNFItem
 		ct         	as TDocCT
+		ecf         as TDocECF
+		itemECF     as TDocECFItem
 		docSint	  	as TDocumentoSintegra
 		itemId      as TItemId
 		apuIcms	  	as TApuracaoIcmsPeriodo
 		apuIcmsST  	as TApuracaoIcmsSTPeriodo
 		itemAnal	as TDocItemAnal
+		equipECF	as TEquipECF
+		ecfRedZ		as TECFReducaoZ
 	end union
 	next_          	as TRegistro ptr
 end type
@@ -537,6 +595,7 @@ private:
 	declare sub adicionarItemDFe(chave as const zstring ptr, item as TDFe_NFeItem ptr)
 	declare sub adicionarEfdDfe(chave as zstring ptr, operacao as TipoOperacao, dataEmi as zstring ptr, valorOperacao as double)
 	declare sub adicionarDocEscriturado(doc as TDocDF ptr)
+	declare sub adicionarDocEscriturado(doc as TDocECF ptr)
 	declare sub adicionarItemNFEscriturado(item as TDocNFItem ptr)
 	
 	declare sub addRegistroOrdenadoPorData(reg as TRegistro ptr)
@@ -550,6 +609,7 @@ private:
 	declare sub iniciarRelatorio(relatorio as TipoRelatorio, nomeRelatorio as string, sufixo as string)
 	declare sub adicionarDocRelatorioEntradas(doc as TDocDF ptr, part as TParticipante ptr)
 	declare sub adicionarDocRelatorioSaidas(doc as TDocDF ptr, part as TParticipante ptr)
+	declare sub adicionarDocRelatorioSaidas(doc as TECFReducaoZ ptr)
 	declare sub adicionarDocRelatorioItemAnal(sit as TipoSituacao, anal as TDocItemAnal ptr)
 	declare sub finalizarRelatorio()
 	declare sub relatorioSomarLR(sit as TipoSituacao, anal as TDocItemAnal ptr)
@@ -568,6 +628,8 @@ private:
 	itemIdDict          	as TDict
 	sintegraDict			as TDict
 	ultimoReg   			as TRegistro ptr
+	ultimoEquipECF			as TEquipECF ptr
+	ultimoECFRedZ			as TRegistro ptr
 	nroLinha				as integer
 
 	'' planilhas que serão geradas (mantidos do início ao fim da extração)

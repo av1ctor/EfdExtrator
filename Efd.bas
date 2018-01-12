@@ -338,6 +338,16 @@ function Efd.lerTipo(bf as bfile) as TipoRegistro
 			function = DOC_NF_ANAL
 		case "C101"
 			function = DOC_NF_DIFAL
+		case "C460"
+			function = DOC_ECF
+		case "C470"
+			function = DOC_ECF_ITEM
+		case "C490"
+			function = DOC_ECF_ANAL
+		case "C400"
+			function = EQUIP_ECF
+		case "C405"
+			function = ECF_REDUCAO_Z
 		end select
 	case asc("D")
 		select case tipo
@@ -664,6 +674,132 @@ private function lerRegDocCTDifal(bf as bfile, reg as TRegistro ptr, docPai as T
 end function
 
 ''''''''
+private function lerRegEquipECF(bf as bfile, reg as TRegistro ptr) as Boolean
+
+	bf.char1		'pular |
+
+	var modelo = bf.varchar
+	reg->equipECF.modelo	= iif(modelo = "2D", &h2D, valint(modelo))
+	reg->equipECF.modeloEquip = bf.varchar
+	reg->equipECF.numSerie 	= bf.varchar
+	reg->equipECF.numCaixa	= bf.varint
+
+	'pular \r\n
+	bf.char1
+	bf.char1
+
+	function = true
+
+end function
+
+''''''''
+private function lerRegDocECF(bf as bfile, reg as TRegistro ptr, equipECF as TEquipECF ptr) as Boolean
+
+	bf.char1		'pular |
+
+	reg->ecf.equipECF		= equipECF
+	reg->ecf.operacao		= SAIDA
+	var modelo = bf.varchar
+	reg->ecf.modelo			= iif(modelo = "2D", &h2D, valint(modelo))
+	reg->ecf.situacao		= bf.int2
+	bf.char1		'pular |
+	reg->ecf.numero			= bf.varint
+	reg->ecf.dataEmi		= ddMmYyyy2YyyyMmDd(bf.varchar)
+	reg->ecf.dataEntSaida	= reg->ecf.dataEmi
+	reg->ecf.valorTotal		= bf.vardbl
+	reg->ecf.PIS			= bf.vardbl
+	reg->ecf.COFINS			= bf.vardbl
+	reg->ecf.cpfCnpjAdquirente = bf.varchar
+	reg->ecf.nomeAdquirente = bf.varchar
+	reg->ecf.nroItens		= 0
+
+	'pular \r\n
+	bf.char1
+	bf.char1
+
+	function = true
+
+end function
+
+''''''''
+private function lerRegECFReducaoZ(bf as bfile, reg as TRegistro ptr, equipECF as TEquipECF ptr) as Boolean
+
+	bf.char1		'pular |
+
+	reg->ecfRedZ.equipECF	= equipECF
+	reg->ecfRedZ.dataMov	= ddMmYyyy2YyyyMmDd(bf.varchar)
+	reg->ecfRedZ.cro		= bf.varint
+	reg->ecfRedZ.crz		= bf.varint
+	reg->ecfRedZ.numOrdem	= bf.varint
+	reg->ecfRedZ.valorFinal	= bf.vardbl
+	reg->ecfRedZ.valorBruto	= bf.vardbl
+
+	reg->ecfRedZ.numIni		= 2^20
+	reg->ecfRedZ.numFim		= -1
+	reg->ecfRedZ.itemAnalListHead = null
+	reg->ecfRedZ.itemAnalListTail = null
+
+	'pular \r\n
+	bf.char1
+	bf.char1
+
+	function = true
+
+end function
+
+''''''''
+private function lerRegDocECFItem(bf as bfile, reg as TRegistro ptr, documentoPai as TDocECF ptr) as Boolean
+
+	bf.char1		'pular |
+
+	reg->itemECF.documentoPai	= documentoPai
+   
+	documentoPai->nroItens 		+= 1
+
+	reg->itemECF.numItem		= documentoPai->nroItens
+	reg->itemECF.itemId			= bf.varchar
+	reg->itemECF.qtd			= bf.vardbl
+	reg->itemECF.qtdCancelada	= bf.vardbl
+	reg->itemECF.unidade		= bf.varchar
+	reg->itemECF.valor			= bf.vardbl
+	reg->itemECF.cstICMS		= bf.varint
+	reg->itemECF.cfop			= bf.varint
+	reg->itemECF.aliqICMS		= bf.vardbl
+	reg->itemECF.PIS			= bf.vardbl
+	reg->itemECF.COFINS			= bf.vardbl
+
+	'pular \r\n
+	bf.char1
+	bf.char1
+
+	function = true
+
+end function
+
+''''''''
+private function lerRegDocECFItemAnal(bf as bfile, reg as TRegistro ptr, documentoPai as TRegistro ptr) as Boolean
+
+	bf.char1		'pular |
+
+	reg->itemAnal.documentoPai	= documentoPai
+   
+	reg->itemAnal.cst		= bf.varint
+	reg->itemAnal.cfop		= bf.varint
+	reg->itemAnal.aliq		= bf.vardbl
+	reg->itemAnal.valorOp	= bf.vardbl
+	reg->itemAnal.bc		= bf.vardbl
+	reg->itemAnal.ICMS		= bf.vardbl
+	bf.varchar					'' pular código de observação
+
+	'pular \r\n
+	bf.char1
+	bf.char1
+	
+	function = true
+
+end function
+
+''''''''
 private function lerRegItemId(bf as bfile, reg as TRegistro ptr) as Boolean
 
 	bf.char1		'pular |
@@ -864,6 +1000,54 @@ private function Efd.lerRegistro(bf as bfile, reg as TRegistro ptr) as Boolean
 		end if
 		
 		reg->tipo = DESCONHECIDO			'' deletar registro, já que vamos reusar o registro pai
+
+	case DOC_ECF
+		if not lerRegDocECF(bf, reg, ultimoEquipECF) then
+			return false
+		end if
+
+		ultimoReg = reg
+		
+		if ultimoECFRedZ->ecfRedZ.numIni > reg->ecf.numero then
+			ultimoECFRedZ->ecfRedZ.numIni = reg->ecf.numero
+		end if
+
+		if ultimoECFRedZ->ecfRedZ.numFim < reg->ecf.numero then
+			ultimoECFRedZ->ecfRedZ.numFim = reg->ecf.numero
+		end if
+		
+	case ECF_REDUCAO_Z
+		if not lerRegECFReducaoZ(bf, reg, ultimoEquipECF) then
+			return false
+		end if
+
+		ultimoECFRedZ = reg
+		
+	case DOC_ECF_ITEM
+		if not lerRegDocECFItem(bf, reg, @ultimoReg->ecf) then
+			return false
+		end if
+
+	case DOC_ECF_ANAL
+		if not lerRegDocECFItemAnal(bf, reg, ultimoECFRedZ) then
+			return false
+		end if
+		
+		if ultimoECFRedZ->ecfRedZ.itemAnalListHead = null then
+			ultimoECFRedZ->ecfRedZ.itemAnalListHead = @reg->itemAnal
+		else
+			ultimoECFRedZ->ecfRedZ.itemAnalListTail->next_ = @reg->itemAnal
+		end if
+		
+		ultimoECFRedZ->ecfRedZ.itemAnalListTail = @reg->itemAnal
+		reg->itemAnal.next_ = null
+
+	case EQUIP_ECF
+		if not lerRegEquipECF(bf, reg) then
+			return false
+		end if
+		
+		ultimoEquipECF = @reg->equipECF
 
 	case ITEM_ID
 		if not lerRegItemId(bf, reg) then
@@ -1209,6 +1393,38 @@ sub Efd.adicionarDocEscriturado(doc as TDocDF ptr)
 end sub
 
 ''''''''
+sub Efd.adicionarDocEscriturado(doc as TDocECF ptr)
+	
+	select case as const doc->situacao
+	case REGULAR, EXTEMPORANEO
+	
+		'' só existe de saída para ECF
+		if doc->operacao = SAIDA then
+			'' (periodo, cnpjDest, ufDest, serie, numero, modelo, chave, dataEmit, valorOp)
+			db_LRSInsertStmt->reset()
+			db_LRSInsertStmt->bind(1, valint(regListHead->mestre.dataIni))
+			db_LRSInsertStmt->bind(2, doc->cpfCnpjAdquirente)
+			db_LRSInsertStmt->bind(3, 35)
+			db_LRSInsertStmt->bind(4, 0)
+			db_LRSInsertStmt->bind(5, doc->numero)
+			db_LRSInsertStmt->bind(6, doc->modelo)
+			db_LRSInsertStmt->bind(7, doc->chave)
+			db_LRSInsertStmt->bind(8, doc->dataEmi)
+			db_LRSInsertStmt->bind(9, doc->valorTotal)
+		
+			db->execNonQuery(db_LRSInsertStmt)
+		end if
+	
+	case CANCELADO, CANCELADO_EXT, DENEGADO, INUTILIZADO
+		'' !!!TODO!!! inserir em outra tabela para fazermos análises posteriores
+	
+	case else
+		'' !!!TODO!!! como tratar outras situações? os dados vêm completos?
+	end select
+	
+end sub
+
+''''''''
 sub Efd.adicionarItemNFEscriturado(item as TDocNFItem ptr)
 	
 	var doc = item->documentoPai
@@ -1266,6 +1482,8 @@ sub Efd.addRegistroOrdenadoPorData(reg as TRegistro ptr)
 		demi = @reg->ct.dataEmi
 	case DOC_NF_ITEM
 		demi = @reg->itemNF.documentoPai->dataEmi
+	case ECF_REDUCAO_Z
+		demi = @reg->ecfRedZ.dataMov
 	end select
 	
 	var n = regListHead
@@ -1279,6 +1497,8 @@ sub Efd.addRegistroOrdenadoPorData(reg as TRegistro ptr)
 			n_demi = @n->ct.dataEmi
 		case DOC_NF_ITEM
 			n_demi = @n->itemNF.documentoPai->dataEmi
+		case ECF_REDUCAO_Z
+			n_demi = @n->ecfRedZ.dataMov
 		case else
 			n_demi = null
 		end select
@@ -1348,7 +1568,10 @@ function Efd.carregarTxt(nomeArquivo as String, mostrarProgresso as ProgressoCB)
 						exit do
 
 					'' ordernar por data emi
-					case DOC_NF, DOC_NF_ITEM, DOC_CT
+					case DOC_NF, _
+						 DOC_NF_ITEM, _
+						 DOC_CT, _
+						 ECF_REDUCAO_Z
 						addRegistroOrdenadoPorData(reg)
 					
 					'' registro sem data, adicionar ao fim da fila
@@ -1801,7 +2024,7 @@ private sub adicionarColunasComuns(sheet as ExcelWorksheet ptr, ehEntrada as Boo
 	sheet->AddCellType(CT_STRING, "IE " + iif(ehEntrada, "Emitente", "Destinatario"))
 	sheet->AddCellType(CT_STRING, "UF " + iif(ehEntrada, "Emitente", "Destinatario"))
 	sheet->AddCellType(CT_STRING, "Razao Social " + iif(ehEntrada, "Emitente", "Destinatario"))
-	sheet->AddCellType(CT_INTNUMBER, "Modelo")
+	sheet->AddCellType(CT_STRING, "Modelo")
 	sheet->AddCellType(CT_INTNUMBER, "Serie")
 	sheet->AddCellType(CT_INTNUMBER, "Numero")
 	sheet->AddCellType(CT_DATE, "Data Emissao")
@@ -1809,33 +2032,22 @@ private sub adicionarColunasComuns(sheet as ExcelWorksheet ptr, ehEntrada as Boo
 	sheet->AddCellType(CT_STRING, "Chave")
 	sheet->AddCellType(CT_STRING, "Situacao")
 
-	if ehEntrada or itemNFeSafiFornecido then 
-		sheet->AddCellType(CT_MONEY, "BC ICMS")
-		sheet->AddCellType(CT_NUMBER, "Aliq ICMS")
-		sheet->AddCellType(CT_MONEY, "Valor ICMS")
-		sheet->AddCellType(CT_MONEY, "BC ICMS ST")
-		sheet->AddCellType(CT_NUMBER, "Aliq ICMS ST")
-		sheet->AddCellType(CT_MONEY, "Valor ICMS ST")
-		sheet->AddCellType(CT_MONEY, "Valor IPI")
-		sheet->AddCellType(CT_MONEY, "Valor Item")
-		sheet->AddCellType(CT_INTNUMBER, "Nro Item")
-		sheet->AddCellType(CT_NUMBER, "Qtd")
-		sheet->AddCellType(CT_STRING, "Unidade")
-		sheet->AddCellType(CT_INTNUMBER, "CFOP")
-		sheet->AddCellType(CT_INTNUMBER, "CST")
-		sheet->AddCellType(CT_INTNUMBER, "NCM")
-		sheet->AddCellType(CT_STRING, "Codigo Item")
-		sheet->AddCellType(CT_STRING, "Descricao Item")
-	else
-		if not itemNFeSafiFornecido then
-			sheet->AddCellType(CT_MONEY, "BC ICMS")
-			sheet->AddCellType(CT_MONEY, "Valor ICMS")
-			sheet->AddCellType(CT_MONEY, "BC ICMS ST")
-			sheet->AddCellType(CT_MONEY, "Valor ICMS ST")
-			sheet->AddCellType(CT_MONEY, "Valor IPI")
-			sheet->AddCellType(CT_MONEY, "Valor Total")
-		end if
-	end if
+	sheet->AddCellType(CT_MONEY, "BC ICMS")
+	sheet->AddCellType(CT_NUMBER, "Aliq ICMS")
+	sheet->AddCellType(CT_MONEY, "Valor ICMS")
+	sheet->AddCellType(CT_MONEY, "BC ICMS ST")
+	sheet->AddCellType(CT_NUMBER, "Aliq ICMS ST")
+	sheet->AddCellType(CT_MONEY, "Valor ICMS ST")
+	sheet->AddCellType(CT_MONEY, "Valor IPI")
+	sheet->AddCellType(CT_MONEY, "Valor Item")
+	sheet->AddCellType(CT_INTNUMBER, "Nro Item")
+	sheet->AddCellType(CT_NUMBER, "Qtd")
+	sheet->AddCellType(CT_STRING, "Unidade")
+	sheet->AddCellType(CT_INTNUMBER, "CFOP")
+	sheet->AddCellType(CT_INTNUMBER, "CST")
+	sheet->AddCellType(CT_INTNUMBER, "NCM")
+	sheet->AddCellType(CT_STRING, "Codigo Item")
+	sheet->AddCellType(CT_STRING, "Descricao Item")
    
 	if not ehEntrada then
 		sheet->AddCellType(CT_MONEY, "DifAl FCP")
@@ -2058,10 +2270,6 @@ sub Efd.gerarPlanilhas(nomeArquivo as string, mostrarProgresso as ProgressoCB)
 						row->addCell(itemId->ncm)
 						row->addCell(itemId->id)
 						row->addCell(itemId->descricao)
-					else
-						row->addCell("")
-						row->addCell("")
-						row->addCell("")
 					end if
 				end if
 			end select
@@ -2131,18 +2339,23 @@ sub Efd.gerarPlanilhas(nomeArquivo as string, mostrarProgresso as ProgressoCB)
 								row->addCell(item->codProduto)
 								row->addCell(item->descricao)
 							else
-								for cell as integer = 1 to 13
+								for cell as integer = 1 to 16
 									row->addCell("")
 								next
 							end if
 
 						else
 							row->addCell(reg->nf.bcICMS)
+							row->addCell("")
 							row->addCell(reg->nf.ICMS)
 							row->addCell(reg->nf.bcICMSST)
 							row->addCell(reg->nf.ICMSST)
+							row->addCell("")
 							row->addCell(reg->nf.IPI)
 							row->addCell(reg->nf.valorTotal)
+							for cell as integer = 1 to 16-8
+								row->addCell("")
+							next
 						end if
 
 						if reg->nf.operacao = SAIDA then
@@ -2251,31 +2464,22 @@ sub Efd.gerarPlanilhas(nomeArquivo as string, mostrarProgresso as ProgressoCB)
 						item = item->next_
 						itemCnt += 1
 					else
-						if reg->ct.operacao = ENTRADA or cint(itemNFeSafiFornecido) then
-							row->addCell(reg->ct.bcICMS)
-							row->addCell("")
-							row->addCell(reg->ct.ICMS)
-							row->addCell("")
-							row->addCell("")
-							row->addCell("")
-							row->addCell("")
-							row->addCell(reg->ct.valorServico)
-							row->addCell(1)
-							row->addCell("")
-							row->addCell("")
-							row->addCell("")
-							row->addCell("")
-							row->addCell("")
-							row->addCell("")
-							row->addCell("")
-						else
-							row->addCell(reg->ct.bcICMS)
-							row->addCell(reg->ct.ICMS)
-							row->addCell("")
-							row->addCell("")
-							row->addCell("")
-							row->addCell(reg->ct.valorServico)
-						end if
+						row->addCell(reg->ct.bcICMS)
+						row->addCell("")
+						row->addCell(reg->ct.ICMS)
+						row->addCell("")
+						row->addCell("")
+						row->addCell("")
+						row->addCell("")
+						row->addCell(reg->ct.valorServico)
+						row->addCell(1)
+						row->addCell("")
+						row->addCell("")
+						row->addCell("")
+						row->addCell("")
+						row->addCell("")
+						row->addCell("")
+						row->addCell("")
 						
 					end if
 
@@ -2306,6 +2510,48 @@ sub Efd.gerarPlanilhas(nomeArquivo as string, mostrarProgresso as ProgressoCB)
 					row->addCell(codSituacao2Str(reg->ct.situacao))
 				end if
 			
+			end select
+			
+		'item de ECF?
+		case DOC_ECF_ITEM
+			var doc = reg->itemECF.documentoPai
+			select case as const doc->situacao
+			case REGULAR, EXTEMPORANEO
+				'só existe cupom para saída
+				if doc->operacao = SAIDA then
+					var row = saidas->AddRow()
+
+					row->addCell(doc->cpfCnpjAdquirente)
+					row->addCell("")
+					row->addCell("SP")
+					row->addCell(doc->nomeAdquirente)
+					row->addCell(iif(doc->modelo = &h2D, "2D", str(doc->modelo)))
+					row->addCell("")
+					row->addCell(doc->numero)
+					row->addCell(YyyyMmDd2Datetime(doc->dataEmi))
+					row->addCell(YyyyMmDd2Datetime(doc->dataEntSaida))
+					row->addCell(doc->chave)
+					row->addCell(codSituacao2Str(doc->situacao))
+					row->addCell("")
+					row->addCell(reg->itemECF.aliqICMS)
+					row->addCell("")
+					row->addCell("")
+					row->addCell("")
+					row->addCell("")
+					row->addCell("")
+					row->addCell(reg->itemECF.valor)
+					row->addCell(reg->itemECF.numItem)
+					row->addCell(reg->itemECF.qtd)
+					row->addCell(reg->itemECF.unidade)
+					row->addCell(reg->itemECF.cfop)
+					row->addCell(reg->itemECF.cstICMS)
+					var itemId = cast( TItemId ptr, itemIdDict[reg->itemECF.itemId] )
+					if itemId <> null then 
+						row->addCell(itemId->ncm)
+						row->addCell(itemId->id)
+						row->addCell(itemId->descricao)
+					end if
+				end if
 			end select
 			
 		case APURACAO_ICMS_PERIODO
@@ -2373,24 +2619,18 @@ sub Efd.gerarPlanilhas(nomeArquivo as string, mostrarProgresso as ProgressoCB)
 					row->addCell("")
 					row->addCell(codSituacao2Str(reg->docSint.situacao))
 					row->addCell(reg->docSint.bcICMS)
-					if reg->docSint.operacao = ENTRADA or cint(itemNFeSafiFornecido) then
-						row->addCell(reg->docSint.aliqICMS)
-					end if
+					row->addCell(reg->docSint.aliqICMS)
 					row->addCell(reg->docSint.ICMS)
 					row->addCell(reg->docSint.bcICMSST)
-					if reg->docSint.operacao = ENTRADA or cint(itemNFeSafiFornecido) then
-						row->addCell("")
-					end if
+					row->addCell("")
 					row->addCell(reg->docSint.ICMSST)
 					row->addCell(reg->docSint.valorIPI)
 					row->addCell(reg->docSint.valorTotal)
-					if reg->docSint.operacao = ENTRADA or cint(itemNFeSafiFornecido) then
-						row->addCell("")
-						row->addCell("")
-						row->addCell("")
-						row->addCell(reg->docSint.cfop)
-						row->addCell("")
-					end if
+					row->addCell("")
+					row->addCell("")
+					row->addCell("")
+					row->addCell(reg->docSint.cfop)
+					row->addCell("")
 					
 				case CANCELADO, CANCELADO_EXT, DENEGADO, INUTILIZADO
 					/'var row = canceladas->AddRow()
