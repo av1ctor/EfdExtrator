@@ -146,6 +146,20 @@ private function luacb_ds_next cdecl(byval L as lua_State ptr) as long
 end function
 
 ''''''''
+private function luacb_ds_kill cdecl(byval L as lua_State ptr) as long
+	var args = lua_gettop(L)
+	
+	if args = 1 then
+		var ds = cast(TDataSet ptr, lua_touserdata(L, 1))
+		
+		delete ds
+	end if
+	
+	function = 0
+	
+end function
+
+''''''''
 private function luacb_ds_row_getColValue cdecl(byval L as lua_State ptr) as long
 	var args = lua_gettop(L)
 	
@@ -172,6 +186,7 @@ sub EFd.configurarScripting()
 	lua_register(lua, "ds_hasNext", @luacb_ds_hasNext)
 	lua_register(lua, "ds_next", @luacb_ds_next)
 	lua_register(lua, "ds_row_getColValue", @luacb_ds_row_getColValue)
+	lua_register(lua, "ds_kill", @luacb_ds_kill)
 	
 	luaL_dofile(lua, ExePath + "\scripts\config.lua")
 	
