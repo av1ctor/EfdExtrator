@@ -12,7 +12,7 @@ on error goto exceptionReport
 '''''''''''
 sub mostrarUso()
 	print wstr("Modo de usar:")
-	print wstr("EfdExtrator.exe [-gerarRelatorios] arquivo.txt [arquivo.csv]")
+	print wstr("EfdExtrator.exe [-gerarRelatorios] [-complementarDados] arquivo.txt [arquivo.csv]")
 	print wstr("Notas:")
 	print wstr(!"\t1. No lugar do nome dos arquivos, podem ser usadas máscaras,")
 	print wstr(!"\t   como por exemplo: *.txt e *.csv")
@@ -27,13 +27,16 @@ sub mostrarUso()
 	print wstr(!"\t   PDF, copie o arquivo doc2pdf.ps1 para a pasta onde se encontram")
 	print wstr(!"\t   os relatórios e o execute - essa conversão é feita pelo Word e")
 	print wstr(!"\t   costuma ser demorada")
+	print wstr(!"\t6. A opção -complementarDados inclui dados complementares na planilha")
+	print wstr(!"\t   (aba saídas) que será gerada e que não constam na EFD, caso os")
+	print wstr(!"\t   arquivos .csv do SAFI sejam fornecidos")
 	print 
 end sub
 
 '''''''''''   
 sub mostrarCopyright()
 	print "Extrator de EFD/Sintegra para Excel"
-	print wstr("Copyleft 2017 by André Vicentini (avtvicentini)")
+	print wstr("Copyleft 2017-2018 by André Vicentini (avtvicentini)")
 	print
 end sub
 
@@ -64,6 +67,7 @@ end sub
 '''''''''''
 sub main()
 	var gerarRelatorios = false
+	var acrescentarDados = false
 	
 	mostrarCopyright()
    
@@ -85,6 +89,9 @@ sub main()
 			select case lcase(arg)
 			case "-gerarrelatorios"
 				gerarRelatorios = true
+				nroOpcoes += 1
+			case "-complementardados"
+				acrescentarDados = true
 				nroOpcoes += 1
 			case "-importargia"
 				importarGia()
@@ -139,7 +146,7 @@ sub main()
 				end if
 				
 				print "Processando:"
-				if not e.processar( arquivoEntrada, @mostrarProgresso, gerarRelatorios ) then
+				if not e.processar( arquivoEntrada, @mostrarProgresso, gerarRelatorios, acrescentarDados ) then
 					print !"\r\nErro ao extrair arquivo: "; arquivoEntrada
 					end -1
 				end if
@@ -158,7 +165,7 @@ sub main()
 		end if
 	
 		print "Processando:"
-		if not e.processar( arquivoEntrada, @mostrarProgresso, gerarRelatorios ) then
+		if not e.processar( arquivoEntrada, @mostrarProgresso, gerarRelatorios, acrescentarDados ) then
 			print !"\r\nErro ao extrair arquivo: "; arquivoEntrada
 			end -1
 		end if
