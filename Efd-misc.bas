@@ -61,7 +61,7 @@ end sub
 ''''''''
 function ddMmYyyy2YyyyMmDd(s as const zstring ptr) as string
 	
-	var res = "00000000"
+	var res = "19000101"
 	
 	if len(*s) > 0 then
 		res[0] = s[4]
@@ -81,7 +81,7 @@ end function
 ''''''''
 function yyyyMmDd2Datetime(s as const zstring ptr) as string 
 	''         0123456789
-	var res = "0000-00-00T00:00:00.000"
+	var res = "1900-01-01T00:00:00.000"
 	
 	if len(*s) > 0 then
 		res[0] = s[0]
@@ -100,7 +100,7 @@ end function
 ''''''''
 function YyyyMmDd2DatetimeBR(s as const zstring ptr) as string 
 	''         0123456789
-	var res = "00/00/0000"
+	var res = "01/01/1900"
 	
 	if len(*s) > 0 then
 		res[0] = s[6]

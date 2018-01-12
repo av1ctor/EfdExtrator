@@ -3,6 +3,7 @@ Copyleft 2017 by André Vicentini (avtvicentini)
 
 Modo de usar:
 EfdExtrator.exe [-gerarRelatorios] arquivo.txt [arquivo.csv]
+
 Notas:
         1. No lugar do nome dos arquivos, podem ser usadas máscaras,
            como por exemplo: *.txt e *.csv
@@ -13,4 +14,13 @@ Notas:
         4. No final da extração será gerado um arquivo .xml que deve ser
            aberto no Excel 2003 ou superior
         5. A opção -gerarRelatorios gera os relatórios do EFD-ICMS-IPI
-	   no formato Word/docx
+	   no formato Word/docx. Para converter em lote esses arquivos para 
+           PDF, copie o arquivo doc2pdf.ps1 para a pasta onde se encontram
+	   os relatórios e o execute - essa conversão é feita pelo Word e 
+           costuma ser demorada
+
+Para fazer as análises completas é necessário baixar os DBs (> 2GB) contendo 
+os dados de contribuintes utilizados no SAFI:
+	1. baixe o arquivo ....
+	2. extraia esse arquivo (senha: sefazsp) para o diretório onde estiver 
+           instalado o EfdExtrator
