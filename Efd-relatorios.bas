@@ -11,9 +11,9 @@ sub Efd.gerarRelatorios(nomeArquivo as string, mostrarProgresso as ProgressoCB)
 	
 	ultimoRelatorio = -1
 	
-	'' NOTA: por limitaÃ§Ã£o do DocxFactory, que sÃ³ consegue trabalhar com um template por vez, 
-	''		 precisamos processar entradas primeiro, depois saÃ­das e por Ãºltimo os registros 
-	''		 que sÃ£o sequenciais (LRE e LRS vÃªm intercalados na EFD)
+	'' NOTA: por limitação do DocxFactory, que só consegue trabalhar com um template por vez, 
+	''		 precisamos processar entradas primeiro, depois saídas e por último os registros 
+	''		 que são sequenciais (LRE e LRS vêm intercalados na EFD)
 	
 	'' LRE
 	iniciarRelatorio(REL_LRE, "entradas", "LRE")
@@ -63,6 +63,9 @@ sub Efd.gerarRelatorios(nomeArquivo as string, mostrarProgresso as ProgressoCB)
 				adicionarDocRelatorioSaidas(@reg->ct, part)
 			end if
 			
+		'ECF Redução Z?
+		case ECF_REDUCAO_Z
+			adicionarDocRelatorioSaidas(@reg->ecfRedZ)
 		end select
 
 		reg = reg->next_
@@ -313,6 +316,28 @@ sub Efd.adicionarDocRelatorioEntradas(doc as TDocDF ptr, part as TParticipante p
 	dfwd->paste("linha")
 	
 	adicionarDocRelatorioItemAnal(doc->situacao, doc->itemAnalListHead)
+	
+	nroRegistrosRel += 1
+	
+end sub
+
+''''''''
+sub Efd.adicionarDocRelatorioSaidas(doc as TECFReducaoZ ptr)
+
+	var equip = doc->equipECF
+
+	dfwd->setClipboardValueByStr("linha", "demi", YyyyMmDd2DatetimeBR(doc->dataMov))
+	dfwd->setClipboardValueByStr("linha", "nrini", doc->numIni)
+	dfwd->setClipboardValueByStr("linha", "nrfim", doc->numFim)
+	dfwd->setClipboardValueByStr("linha", "ncaixa", equip->numCaixa)
+	dfwd->setClipboardValueByStr("linha", "ecf", equip->numSerie)
+	dfwd->setClipboardValueByStr("linha", "md", iif(equip->modelo = &h2D, "2D", str(equip->modelo)))
+	dfwd->setClipboardValueByStr("linha", "sr", "")
+	dfwd->setClipboardValueByStr("linha", "sit", "00")
+	
+	dfwd->paste("linha")
+	
+	adicionarDocRelatorioItemAnal(REGULAR, doc->itemAnalListHead)
 	
 	nroRegistrosRel += 1
 	
