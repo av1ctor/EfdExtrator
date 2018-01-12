@@ -3,18 +3,8 @@
 #include once "ExcelWriter.bi"
 #include once "vbcompat.bi"
 #include once "DB.bi"
-
-''''''''
-sub Efd.analisar(mostrarProgresso as ProgressoCB) 
-
-	if not (nfeDestSafiFornecido or nfeEmitSafiFornecido or itemNFeSafiFornecido or cteSafiFornecido) then
-		print wstr(!"\tNão será possivel realizar análises e cruzamentos porque os relatórios Infoview BO do SAFI não foram fornecidos")
-	else
-		analisarInconsistenciasLRE(mostrarProgresso)
-		analisarInconsistenciasLRS(mostrarProgresso)
-	end if
-	
-end sub
+#include once "Lua/lualib.bi"
+#include once "Lua/lauxlib.bi"
 
 ''''''''
 private sub inconsistenciaAddHeader(ws as ExcelWorksheet ptr)
@@ -41,30 +31,66 @@ private sub inconsistenciaAddRow(xrow as ExcelRow ptr, byref drow as TDataSetRow
 end sub
 
 ''''''''
+private sub lua_setarGlobal(lua as lua_State ptr, varName as const zstring ptr, value as integer)
+	lua_pushnumber(lua, value)
+	lua_setglobal(lua, varName)
+end sub
+
+''''''''
+private function luacb_inconsistencia_AddRow cdecl(byval L as lua_State ptr) as long
+	var args = lua_gettop(L)
+	
+	if args = 4 then
+		var ws = cast(ExcelWorksheet ptr, lua_touserdata(L, 1))
+		var ds = cast(TDataSet ptr, lua_touserdata(L, 2))
+		var tipo = lua_tointeger(L, 3)
+		var descricao = lua_tostring(L, 4)
+		
+		inconsistenciaAddRow(ws->AddRow(), *ds->row, tipo, descricao)
+	end if
+	
+	function = 0
+	
+end function
+
+''''''''
+sub Efd.analisar(mostrarProgresso as ProgressoCB) 
+
+	'' configurar lua
+	lua_setarGlobal(lua, "TI_ESCRIT_FALTA", TI_ESCRIT_FALTA)
+	lua_setarGlobal(lua, "TI_ESCRIT_FANTASMA", TI_ESCRIT_FANTASMA)
+	lua_setarGlobal(lua, "TI_ALIQ", TI_ALIQ)
+	lua_setarGlobal(lua, "TI_DUP", TI_DUP)
+	lua_setarGlobal(lua, "TI_DIF", TI_DIF)
+	
+	lua_register(lua, "inconsistencia_AddRow", @luacb_inconsistencia_AddRow)
+	
+	luaL_dofile(lua, ExePath + "\scripts\analises.lua")
+	
+	''
+	if not (nfeDestSafiFornecido or nfeEmitSafiFornecido or itemNFeSafiFornecido or cteSafiFornecido) then
+		print wstr(!"\tNão será possivel realizar análises e cruzamentos porque os relatórios Infoview BO do SAFI não foram fornecidos")
+	else
+		analisarInconsistenciasLRE(mostrarProgresso)
+		analisarInconsistenciasLRS(mostrarProgresso)
+	end if
+	
+end sub
+
+''''''''
 sub Efd.analisarInconsistenciasLRE(mostrarProgresso as ProgressoCB)
 
 	var ws = ew->AddWorksheet("Inconsistencias LRE")
 	inconsistenciaAddHeader(ws)
 	
 	mostrarProgresso(wstr(!"\tInconsistências nas entradas"), 0)
-
-	'' docs escriturados, mas não encontrados no BO
-	scope
-		var ds = db->exec( _
-			"select " + _
-					"l.chave, l.dataEmit, l.modelo, l.serie, l.numero, l.valorOp " + _
-				"from LRE l " + _
-				"left join dfeEntrada d " + _
-					"on l.cnpjEmit = d.cnpjEmit and l.ufEmit = d.ufEmit and l.serie = d.serie and l.numero = d.numero and l.modelo = d.modelo " + _
-				"where d.cnpjEmit is null and l.modelo >= 55 " + _
-				"order by l.dataEmit asc" _
-		)
-		
-		do while ds->hasNext()
-			inconsistenciaAddRow( ws->AddRow(), *ds->row, TI_ESCRIT_FANTASMA, "DF-e nao encontrado no BO" )
-			ds->next_()
-		loop
-	end scope
+	
+	lua_getglobal(lua, "analisarInconsistenciasLRE")
+	lua_pushlightuserdata(lua, db)
+	lua_pushlightuserdata(lua, ws)
+	lua_call(lua, 2, 0)
+	
+	return
 
 	'' docs escriturados em valores superiores
 	scope
