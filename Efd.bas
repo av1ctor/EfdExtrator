@@ -82,7 +82,7 @@ destructor Efd()
 end destructor
 
 ''''''''
-private function lua__db_execNonQuery cdecl(byval L as lua_State ptr) as long
+private function luacb_db_execNonQuery cdecl(byval L as lua_State ptr) as long
 	var args = lua_gettop(L)
 	
 	if args = 2 then
@@ -97,11 +97,81 @@ private function lua__db_execNonQuery cdecl(byval L as lua_State ptr) as long
 end function
 
 ''''''''
+private function luacb_db_exec cdecl(byval L as lua_State ptr) as long
+	var args = lua_gettop(L)
+	
+	if args = 2 then
+		var db = cast(TDb ptr, lua_touserdata(L, 1))
+		var query = lua_tostring(L, 2)
+	
+		var ds = db->exec(query)
+		
+		lua_pushlightuserdata(L, ds)
+	else
+		lua_pushlightuserdata(L, null)
+	end if
+	
+	function = 1
+	
+end function
+
+''''''''
+private function luacb_ds_hasNext cdecl(byval L as lua_State ptr) as long
+	var args = lua_gettop(L)
+	
+	if args = 1 then
+		var ds = cast(TDataSet ptr, lua_touserdata(L, 1))
+		
+		lua_pushboolean(L, ds->hasNext())
+	else
+		lua_pushboolean(L, false)
+	end if
+	
+	function = 1
+	
+end function
+
+''''''''
+private function luacb_ds_next cdecl(byval L as lua_State ptr) as long
+	var args = lua_gettop(L)
+	
+	if args = 1 then
+		var ds = cast(TDataSet ptr, lua_touserdata(L, 1))
+		
+		ds->next_()
+	end if
+	
+	function = 0
+	
+end function
+
+''''''''
+private function luacb_ds_row_getColValue cdecl(byval L as lua_State ptr) as long
+	var args = lua_gettop(L)
+	
+	if args = 2 then
+		var ds = cast(TDataSet ptr, lua_touserdata(L, 1))
+		var colName = lua_tostring(L, 2)
+
+		lua_pushstring(L, (*ds->row)[colName])
+	else
+		lua_pushnumber(L, null)
+	end if
+	
+	function = 1
+	
+end function
+
+''''''''
 sub EFd.configurarScripting()
 	lua = lua_newstate(@my_lua_Alloc, NULL)
 	luaL_openlibs(lua)
 
-	lua_register(lua, "db_execNonQuery", @lua__db_execNonQuery)
+	lua_register(lua, "db_execNonQuery", @luacb_db_execNonQuery)
+	lua_register(lua, "db_exec", @luacb_db_exec)
+	lua_register(lua, "ds_hasNext", @luacb_ds_hasNext)
+	lua_register(lua, "ds_next", @luacb_ds_next)
+	lua_register(lua, "ds_row_getColValue", @luacb_ds_row_getColValue)
 	
 	luaL_dofile(lua, ExePath + "\scripts\config.lua")
 	
