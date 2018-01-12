@@ -7,8 +7,27 @@
 #include once "ssl_helper.bi"
 #include once "DocxFactoryDyn.bi"
 #include once "DB.bi"
+#include once "Lua/lualib.bi"
+#include once "Lua/lauxlib.bi"
 
 const ASSINATURA_P7K_HEADER = "SBRCAAEPDR"
+
+private function my_lua_Alloc cdecl _
+	( _
+		byval ud as any ptr, _
+		byval p as any ptr, _
+		byval osize as uinteger, _
+		byval nsize as uinteger _
+	) as any ptr
+
+	if( nsize = 0 ) then
+		deallocate( p )
+		function = NULL
+	else
+		function = reallocate( p, nsize )
+	end if
+
+end function
 
 ''''''''
 constructor Efd()
@@ -63,262 +82,67 @@ destructor Efd()
 end destructor
 
 ''''''''
+private function lua__db_execNonQuery cdecl(byval L as lua_State ptr) as long
+	var args = lua_gettop(L)
+	
+	if args = 2 then
+		var db = cast(TDb ptr, lua_touserdata(L, 1))
+		var query = lua_tostring(L, 2)
+	
+		db->execNonQuery(query)
+	end if
+	
+	function = 0
+	
+end function
+
+''''''''
+sub EFd.configurarScripting()
+	lua = lua_newstate(@my_lua_Alloc, NULL)
+	luaL_openlibs(lua)
+
+	lua_register(lua, "db_execNonQuery", @lua__db_execNonQuery)
+	
+	luaL_dofile(lua, ExePath + "\scripts\config.lua")
+	
+end sub
+
+private function lua_criarTabela(lua as lua_State ptr, db as TDb ptr, tabela as const zstring ptr) as TDbStmt ptr
+
+	lua_getglobal(lua, "criarTabela_" + *tabela)
+	lua_pushlightuserdata(lua, db)
+	lua_call(lua, 1, 1)
+	function = db->prepare(lua_tostring(lua, -1))
+	lua_pop(lua, 1)
+
+end function
+
+''''''''
 sub Efd.configurarDB()
 
 	db = new TDb
 	db->open()
-	
+
 	var dbPath = ExePath + "\db\"
-	db->execNonQuery("attach '" + dbPath + "CadContribuinte.db' as cdb")
-	db->execNonQuery("attach '" + dbPath + "inidoneos.db' as idb")
-	db->execNonQuery("attach '" + dbPath + "GIA.db' as gdb")
 	
-	'' dfe's de entrada (relatórios do SAFI)
-	db->execNonQuery( _
-		"create table dfeEntrada( " + _
-			"chave		char(44) not null," + _
-			"cnpjEmit	bigint not null," + _
-			"ufEmit		bigint not null," + _
-			"serie		integer not null," + _
-			"numero		integer not null," + _
-			"modelo		integer not null," + _
-			"dataEmit	integer not null," + _
-			"valorOp	real not null," + _
-			"PRIMARY KEY (" + _
-				"chave" + _
-			")" + _
-		")" _
-	)
-	
-	db->execNonQuery( _
-		"CREATE INDEX chaveDfeEntradaIdx ON dfeEntrada (" + _
-			"cnpjEmit," + _
-			"ufEmit," + _
-			"serie," + _
-			"numero," + _
-			"modelo" + _
-		")" _
-	)
+	'' chamar configurarDB()
+	lua_getglobal(lua, "configurarDB")
+	lua_pushlightuserdata(lua, db)
+	lua_pushstring(lua, dbPath)
+	lua_call(lua, 2, 0)
 
-	db->execNonQuery( _
-		"CREATE INDEX cnpjDfeEntradaEmitIdx ON dfeEntrada (" + _
-			"cnpjEmit," + _
-			"ufEmit" + _
-		")" _
-	)
-	
-	db_dfeEntradaInsertStmt = db->prepare("insert into dfeEntrada (cnpjEmit, ufEmit, serie, numero, modelo, chave, dataEmit, valorOp) values (?,?,?,?,?,?,?,?)")
+	'' criar tabelas
+	db_dfeEntradaInsertStmt = lua_criarTabela(lua, db, "dfeEntrada")
 
-	'' dfe's de saída (relatórios do SAFI)
-	db->execNonQuery( _
-		"create table dfeSaida( " + _
-			"chave		char(44) not null," + _
-			"serie		integer not null," + _
-			"numero		integer not null," + _
-			"modelo		integer not null," + _
-			"dataEmit	integer not null," + _
-			"valorOp	real not null," + _
-			"cnpjDest	bigint not null," + _
-			"ufDest		bigint not null," + _
-			"PRIMARY KEY (" + _
-				"chave" + _
-			")" + _
-		")" _
-	)
+	db_dfeSaidaInsertStmt = lua_criarTabela(lua, db, "dfeSaida")
 	
-	db->execNonQuery( _
-		"CREATE INDEX chaveDfeSaidaIdx ON dfeSaida (" + _
-			"cnpjDest," + _
-			"ufDest," + _
-			"serie," + _
-			"numero," + _
-			"modelo" + _
-		")" _
-	)
+	db_itensDfeSaidaInsertStmt = lua_criarTabela(lua, db, "itensDfeSaida")
 	
-	db->execNonQuery( _
-		"CREATE INDEX cnpjDfeSaidaDestIdx ON dfeSaida (" + _
-			"cnpjDest," + _
-			"ufDest" + _
-		")" _
-	)
-	
-	db_dfeSaidaInsertStmt = db->prepare("insert into dfeSaida (cnpjDest, ufDest, serie, numero, modelo, chave, dataEmit, valorOp) values (?,?,?,?,?,?,?,?)")
-	
-	'' itens de docs saída
-	db->execNonQuery( _
-		"create table itensDfeSaida( " + _
-			"chave		char(44) not null," + _
-			"cfop		integer not null," + _
-			"valorProd	real not null," + _
-			"valorDesc	real not null," + _
-			"valorAcess	real not null," + _
-			"bc			real not null," + _
-			"aliq		real not null," + _
-			"icms		real not null," + _
-			"bcIcmsST	real not null," + _
-			"PRIMARY KEY (" + _
-				"chave" + _
-			")" + _
-		")" _
-	)
+	db_LREInsertStmt = lua_criarTabela(lua, db, "LRE")
 
-	db->execNonQuery( _
-		"CREATE INDEX cnpjItensDfeSaidaCfop ON itensDfeSaida (" + _
-			"cfop" + _
-		")" _
-	)
+	db_itensNfLREInsertStmt = lua_criarTabela(lua, db, "itensNfLRE")
 
-	db->execNonQuery( _
-		"CREATE INDEX cnpjItensDfeSaidaAliq ON itensDfeSaida (" + _
-			"aliq" + _
-		")" _
-	)
-	
-	db_itensDfeSaidaInsertStmt = db->prepare("insert into itensDfeSaida (chave, cfop, valorProd, valorDesc, valorAcess, bc, aliq, icms, bcIcmsST) values (?,?,?,?,?,?,?,?,?)")
-	
-	'' LRE
-	db->execNonQuery( _
-		"create table LRE( " + _
-			"periodo	integer not null," + _
-			"cnpjEmit	bigint not null," + _
-			"ufEmit		bigint not null," + _
-			"serie		integer not null," + _
-			"numero		integer not null," + _
-			"modelo		integer not null," + _
-			"dataEmit	integer not null," + _
-			"valorOp	real not null," + _
-			"chave		char(44) null," + _
-			"PRIMARY KEY (" + _
-				"periodo," + _
-				"cnpjEmit," + _
-				"ufEmit," + _
-				"serie," + _
-				"numero," + _
-				"modelo" + _
-			")" + _
-		")" _
-	)
-	
-	db->execNonQuery( _
-		"CREATE INDEX cnpjUfSerieNumeroLREIdx ON LRE (" + _
-			"cnpjEmit," + _
-			"ufEmit," + _
-			"serie," + _
-			"numero," + _
-			"modelo" + _
-		")" _
-	)
-
-	db->execNonQuery( _
-		"CREATE INDEX chaveLREIdx ON LRE (" + _
-			"chave" + _
-		")" _
-	)
-
-	db->execNonQuery( _
-		"CREATE INDEX cnpjEmitIdx ON LRE (" + _
-			"cnpjEmit," + _
-			"ufEmit" + _
-		")" _
-	)
-
-	db->execNonQuery( _
-		"CREATE INDEX ufEmitIdx ON LRE (" + _
-			"ufEmit" + _
-		")" _
-	)
-	
-	db_LREInsertStmt = db->prepare("insert into LRE (periodo, cnpjEmit, ufEmit, serie, numero, modelo, chave, dataEmit, valorOp) values (?,?,?,?,?,?,?,?,?)")
-
-	'' itens de NF da LRE
-	db->execNonQuery( _
-		"create table itensNfLRE( " + _
-			"periodo	integer not null," + _
-			"cnpjEmit	bigint not null," + _
-			"ufEmit		bigint not null," + _
-			"serie		integer not null," + _
-			"numero		integer not null," + _
-			"modelo		integer not null," + _
-			"cfop		integer not null," + _
-			"valorProd	real not null," + _
-			"valorDesc	real not null," + _
-			"bc			real not null," + _
-			"aliq		real not null," + _
-			"icms		real not null," + _
-			"bcIcmsST	real not null," + _
-			"PRIMARY KEY (" + _
-				"periodo," + _
-				"cnpjEmit," + _
-				"ufEmit," + _
-				"serie," + _
-				"numero," + _
-				"modelo" + _
-			")" + _
-		")" _
-	)
-
-	db->execNonQuery( _
-		"CREATE INDEX cnpjItensNfLRECfop ON itensNfLRE (" + _
-			"cfop" + _
-		")" _
-	)
-
-	db->execNonQuery( _
-		"CREATE INDEX cnpjItensNfLREAliq ON itensNfLRE (" + _
-			"aliq" + _
-		")" _
-	)
-	
-	db_itensNfLREInsertStmt = db->prepare("insert into itensNfLRE (periodo, cnpjEmit, ufEmit, serie, numero, modelo, cfop, valorProd, valorDesc, bc, aliq, icms, bcIcmsST) values (?,?,?,?,?,?,?,?,?,?,?,?,?)")
-
-	'' LRS
-	db->execNonQuery( _
-		"create table LRS( " + _
-			"periodo	integer not null," + _
-			"serie		integer not null," + _
-			"numero		integer not null," + _
-			"modelo		integer not null," + _
-			"dataEmit	integer not null," + _
-			"valorOp	real not null," + _
-			"chave		char(44) null," + _
-			"cnpjDest	bigint not null," + _
-			"ufDest		bigint not null," + _
-			"PRIMARY KEY (" + _
-				"periodo," + _
-				"cnpjDest," + _
-				"ufDest," + _
-				"serie," + _
-				"numero," + _
-				"modelo" + _
-			")" + _
-		")" _
-	)
-	
-	db->execNonQuery( _
-		"CREATE INDEX cnpjUfSerieNumeroLRSIdx ON LRS (" + _
-			"cnpjDest," + _
-			"ufDest," + _
-			"serie," + _
-			"numero," + _
-			"modelo" + _
-		")" _
-	)
-	
-	db->execNonQuery( _
-		"CREATE INDEX chaveLRSIdx ON LRS (" + _
-			"chave" + _
-		")" _
-	)
-	
-	db->execNonQuery( _
-		"CREATE INDEX cnpjDestLRSIdx ON LRS (" + _
-			"cnpjDest," + _
-			"ufDest" + _
-		")" _
-	)
-	
-	db_LRSInsertStmt = db->prepare("insert into LRS (periodo, cnpjDest, ufDest, serie, numero, modelo, chave, dataEmit, valorOp) values (?,?,?,?,?,?,?,?,?)")
+	db_LRSInsertStmt = lua_criarTabela(lua, db, "LRS")
 
 end sub   
   
@@ -334,8 +158,11 @@ sub Efd.iniciarExtracao(nomeArquivo as String)
 	nomeArquivoSaida = nomeArquivo
 	
 	''
-	configurarDB()
+	configurarScripting()
 
+	''
+	configurarDB()
+	
 end sub
 
 ''''''''
@@ -349,6 +176,9 @@ sub Efd.finalizarExtracao(mostrarProgresso as ProgressoCB)
    
 	''
 	delete db
+	
+	''
+	lua_close( lua )
 	
 end sub
 
@@ -391,8 +221,12 @@ private function lerLinha(bf as bfile) as string
 end function
 
 ''''''''
-private function lerTipo(bf as bfile) as TipoRegistro
+function Efd.lerTipo(bf as bfile) as TipoRegistro
 
+	if bf.peek1 <> asc("|") then
+		print "Erro: fora de sincronia na linha:"; nroLinha
+	end if
+	
 	bf.char1 ' pular |
 	
 	var tipo = bf.char4
@@ -443,7 +277,7 @@ private function lerTipo(bf as bfile) as TipoRegistro
 	case asc("9")
 		select case tipo
 		case "9999"
-			function = EOF_
+			function = FIM_DO_ARQUIVO
 		end select
 	end select
 
@@ -526,13 +360,11 @@ private function lerRegDocNF(bf as bfile, reg as TRegistro ptr) as Boolean
 	reg->nf.dataEmi			= ddMmYyyy2YyyyMmDd(bf.varchar)
 	reg->nf.dataEntSaida	= ddMmYyyy2YyyyMmDd(bf.varchar)
 	reg->nf.valorTotal		= bf.vardbl
-	reg->nf.pagamento		= bf.int1
-	bf.char1		'pular |
+	reg->nf.pagamento		= bf.varint
 	reg->nf.valorDesconto	= bf.vardbl
 	reg->nf.valorAbatimento	= bf.vardbl
 	reg->nf.valorMerc		= bf.vardbl
-	reg->nf.frete			= bf.int1
-	bf.char1		'pular |
+	reg->nf.frete			= bf.varint
 	reg->nf.valorFrete		= bf.vardbl
 	reg->nf.valorSeguro		= bf.vardbl
 	reg->nf.valorAcessorias	= bf.vardbl
@@ -676,13 +508,11 @@ private function lerRegDocCT(bf as bfile, reg as TRegistro ptr) as Boolean
 	reg->ct.chave			= bf.varchar
 	reg->ct.dataEmi			= ddMmYyyy2YyyyMmDd(bf.varchar)
 	reg->ct.dataEntSaida	= ddMmYyyy2YyyyMmDd(bf.varchar)
-	reg->ct.tipoCTe			= bf.int1
-	bf.char1		'pular |
+	reg->ct.tipoCTe			= bf.varint
 	reg->ct.chaveRef		= bf.varchar
 	reg->ct.valorTotal		= bf.vardbl
 	reg->ct.valorDesconto	= bf.vardbl
-	reg->ct.frete			= bf.int1
-	bf.char1		'pular |
+	reg->ct.frete			= bf.varint
 	reg->ct.valorServico	= bf.vardbl
 	reg->ct.bcICMS			= bf.vardbl
 	reg->ct.ICMS			= bf.vardbl
@@ -1003,7 +833,7 @@ private function Efd.lerRegistro(bf as bfile, reg as TRegistro ptr) as Boolean
 			return false
 		end if
 
-	case EOF_
+	case FIM_DO_ARQUIVO
 		pularLinha(bf)
 		
 		lerAssinatura(bf)
@@ -1416,6 +1246,7 @@ function Efd.carregarTxt(nomeArquivo as String, mostrarProgresso as ProgressoCB)
 	else
 		tipoArquivo = TIPO_ARQUIVO_EFD
 		var fsize = bf.tamanho - 6500 			'' descontar certificado digital no final do arquivo
+		nroLinha = 1
 
 		do while bf.temProximo()		 
 			var reg = new TRegistro
@@ -1426,7 +1257,7 @@ function Efd.carregarTxt(nomeArquivo as String, mostrarProgresso as ProgressoCB)
 				if reg->tipo <> DESCONHECIDO then
 					select case reg->tipo
 					'' fim de arquivo?
-					case EOF_
+					case FIM_DO_ARQUIVO
 						delete reg
 						mostrarProgresso(null, 1)
 						exit do
@@ -1451,6 +1282,7 @@ function Efd.carregarTxt(nomeArquivo as String, mostrarProgresso as ProgressoCB)
 					delete reg
 				end if
 			 
+				nroLinha += 1
 			else
 				exit do
 			end if
@@ -1557,7 +1389,6 @@ function Efd.carregarCsvNFeEmit(bf as bfile) as TDFe ptr
 		dfe = new TDFe
 	end if
 	
-	dfe->operacao			= SAIDA
 	dfe->chave				= chave
 	dfe->dataEmi			= csvDate2YYYYMMDD(bf.charCsv)
 	dfe->cnpjEmit			= bf.charCsv
@@ -1572,10 +1403,17 @@ function Efd.carregarCsvNFeEmit(bf as bfile) as TDFe ptr
 	dfe->nfe.bcICMSSTTotal	= bf.dblCsv
 	dfe->nfe.ICMSSTTotal	= bf.dblCsv
 	dfe->valorOperacao		= bf.dblCsv
-	bf.charCsv		'' pular "Saída"
+	var op = bf.charCsv
+	dfe->operacao			= iif(op[0] = asc("S"), SAIDA, ENTRADA)
 	dfe->numero				= bf.intCsv
 	dfe->serie				= bf.intCsv
 	dfe->modelo				= bf.intCsv
+	
+	'' devolução? inverter emit <-> dest
+	if dfe->operacao = ENTRADA then
+		swap dfe->cnpjEmit, dfe->cnpjDest
+		swap dfe->ufEmit, dfe->ufDest
+	end if
 	
 	dfe->nfe.itemListHead	= null
 	dfe->nfe.itemListTail	= null
@@ -2149,7 +1987,7 @@ sub Efd.gerarPlanilhas(nomeArquivo as string, mostrarProgresso as ProgressoCB)
 			case REGULAR, EXTEMPORANEO
 				'' NOTA: não existe itemDoc para saídas, só temos informação básica do DF-e, 
 				'' 	     a não ser que sejam carregados os relatórios .csv do SAFI vindos do infoview
-				if reg->nf.operacao = SAIDA then
+				if reg->nf.operacao = SAIDA or (reg->nf.operacao = ENTRADA and reg->nf.nroItens = 0) then
 					dim as TDFe_NFeItem ptr item = null
 					if itemNFeSafiFornecido then
 						if len(reg->nf.chave) > 0 then
@@ -2163,7 +2001,13 @@ sub Efd.gerarPlanilhas(nomeArquivo as string, mostrarProgresso as ProgressoCB)
 					var part = cast( TParticipante ptr, participanteDict[reg->nf.idParticipante] )
 
 					do
-						var row = saidas->AddRow()
+						dim as ExcelRow ptr row
+						if reg->nf.operacao = SAIDA then
+							row = saidas->AddRow()
+						else
+							row = entradas->AddRow()
+						end if
+						
 						if part <> null then
 							row->addCell(part->cnpj)
 							row->addCell(part->ie)
@@ -2183,7 +2027,7 @@ sub Efd.gerarPlanilhas(nomeArquivo as string, mostrarProgresso as ProgressoCB)
 						row->addCell(reg->nf.chave)
 						row->addCell(codSituacao2Str(reg->nf.situacao))
 
-						if itemNFeSafiFornecido then
+						if itemNFeSafiFornecido or cbool(reg->nf.operacao = ENTRADA) then
 							if item <> null then
 								row->addCell(item->bcICMS)
 								row->addCell(item->aliqICMS)
@@ -2216,9 +2060,11 @@ sub Efd.gerarPlanilhas(nomeArquivo as string, mostrarProgresso as ProgressoCB)
 							row->addCell(reg->nf.valorTotal)
 						end if
 
-						row->addCell(reg->nf.difal.fcp)
-						row->addCell(reg->nf.difal.icmsOrigem)
-						row->addCell(reg->nf.difal.icmsDest)
+						if reg->nf.operacao = SAIDA then
+							row->addCell(reg->nf.difal.fcp)
+							row->addCell(reg->nf.difal.icmsOrigem)
+							row->addCell(reg->nf.difal.icmsDest)
+						end if
 						
 						if item = null then
 							exit do
@@ -2226,6 +2072,7 @@ sub Efd.gerarPlanilhas(nomeArquivo as string, mostrarProgresso as ProgressoCB)
 
 						item = item->next_
 					loop while item <> null
+				
 				end if
 		   
 			case CANCELADO, CANCELADO_EXT, DENEGADO, INUTILIZADO

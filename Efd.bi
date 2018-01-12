@@ -4,6 +4,7 @@
 #include once "ExcelWriter.bi"
 #include once "DocxFactoryDyn.bi"
 #include once "DB.bi"
+#include once "Lua/lualib.bi"
 
 enum TTipoArquivo
 	TIPO_ARQUIVO_EFD
@@ -27,7 +28,7 @@ enum TipoRegistro
 	APURACAO_ICMS_PROPRIO_OBRIG	= &hE116
 	APURACAO_ICMS_ST_PERIODO	= &hE200
 	APURACAO_ICMS_ST			= &hE210
-	EOF_   						= &h9999		'' NOTA: anterior à assinatura digital que fica no final no arquivo
+	FIM_DO_ARQUIVO				= &h9999		'' NOTA: anterior à assinatura digital que fica no final no arquivo
 	DESCONHECIDO   				= &h8888
 	SINTEGRA_DOCUMENTO 			= 50			'' NOTA: códigos do Sintegra não conflitam com outros tipos de registros na EFD
 	SINTEGRA_DOCUMENTO_IPI 		= 51
@@ -495,16 +496,16 @@ end enum
 
 enum TipoRegime
 	TR_RPA				= 2
-	TR_DESC1			= 3			'244488367115
-	TR_DESC5			= 4			'110704837000
+	TR_ESTIMATIVA		= 3
+	TR_SIMPLIFICADO		= 4
 	TR_MICROEMPRESA		= 5
 	TR_RPA_DECENDIAL	= asc("A")
 	TR_SN				= asc("N")
-	TR_DESC2			= asc("G")	'633315594110
-	TR_DESC3			= asc("H") 	'165123446118
-	TR_DESC4			= asc("M") 	'105789990116
-	TR_DESC6			= asc("O") 	'140132283116
-	TR_DESC7			= asc("P") 	'566053808112
+	TR_SN_MEI			= asc("O") 
+	TR_EPP				= asc("M")
+	TR_EPP_A			= asc("G")
+	TR_EPP_B			= asc("H")
+	TR_RURAL_PF			= asc("P")
 end enum
 
 type Efd
@@ -520,9 +521,11 @@ public:
    
 private:
 	declare sub configurarDB()
+	declare sub configurarScripting()
 	
 	declare function lerRegistro(bf as bfile, reg as TRegistro ptr) as Boolean
 	declare function lerRegistroSintegra(bf as bfile, reg as TRegistro ptr) as Boolean
+	declare function lerTipo(bf as bfile) as TipoRegistro
 	declare sub lerAssinatura(bf as bfile)
 	declare function carregarSintegra(bf as bfile, mostrarProgresso as ProgressoCB) as Boolean
 	declare function carregarCsvNFeDest(bf as bfile, emModoOutrasUFs as boolean) as TDFe ptr
@@ -565,6 +568,7 @@ private:
 	itemIdDict          	as TDict
 	sintegraDict			as TDict
 	ultimoReg   			as TRegistro ptr
+	nroLinha				as integer
 
 	'' planilhas que serão geradas (mantidos do início ao fim da extração)
 	ew                  	as ExcelWriter ptr
@@ -611,6 +615,9 @@ private:
 	''
 	assinaturaP7K_DER(any)	as byte
 	infAssinatura			as InfoAssinatura ptr
+	
+	'' scripting
+	lua						as lua_State ptr
 end type
 
 ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''

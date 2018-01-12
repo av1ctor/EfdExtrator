@@ -127,7 +127,7 @@ sub Efd.analisarInconsistenciasLRE(mostrarProgresso as ProgressoCB)
 		loop
 	end scope
 
-	'' docs escriturados com crédito de fornecedor SN acima do permitido
+	'' docs escriturados com crédito de fornecedor SN/SN_MEI acima do permitido
 	scope
 		const aliqMaxSN = str(9)
 		var ds = db->exec( _
@@ -139,17 +139,19 @@ sub Efd.analisarInconsistenciasLRE(mostrarProgresso as ProgressoCB)
 				"inner join cdb.Contribuinte c " + _
 					"on c.cnpj = l.cnpjEmit and l.ufEmit = 35 and c.dataIni <= l.dataEmit and c.dataFim > l.dataEmit " + _
 				"inner join cdb.Regimes r " + _
-					"on r.ie = c.ie and r.tipo = 'N' and r.dataIni <= cast(substr(l.dataEmit,1,6) as integer) and r.dataFim > cast(substr(l.dataEmit,1,6) as integer) " + _
+					"on r.ie = c.ie and r.tipo in ('N', 'O') and r.dataIni <= cast(substr(l.dataEmit,1,6) as integer) and r.dataFim > cast(substr(l.dataEmit,1,6) as integer) " + _
 				"where it.aliq > " + aliqMaxSN + " " + _
 				"order by l.dataEmit asc" _
 		)
 		
-		do while ds->hasNext()
-			var row = ds->row
-			var aliq = *(*row)["aliq"]
-			inconsistenciaAddRow( ws->AddRow(), *row, TI_ALIQ, "Credito de SN acima do permitido: " & aliq & "%" )
-			ds->next_()
-		loop
+		if ds <> null then
+			do while ds->hasNext()
+				var row = ds->row
+				var aliq = *(*row)["aliq"]
+				inconsistenciaAddRow( ws->AddRow(), *row, TI_ALIQ, "Credito de SN acima do permitido: " & aliq & "%" )
+				ds->next_()
+			loop
+		end if
 	end scope
 	
 	'' entradas não escrituradas
@@ -181,6 +183,24 @@ sub Efd.analisarInconsistenciasLRS(mostrarProgresso as ProgressoCB)
 	inconsistenciaAddHeader(ws)
 	
 	mostrarProgresso(wstr(!"\tInconsistências nas saídas"), 0)
+
+	'' docs escriturados, mas não encontrados no BO
+	scope
+		var ds = db->exec( _
+			"select " + _
+					"l.chave, l.dataEmit, l.modelo, l.serie, l.numero, l.valorOp " + _
+				"from LRS l " + _
+				"left join dfeSaida d " + _
+					"on l.cnpjDest = d.cnpjDest and l.ufDest = d.ufDest and l.serie = d.serie and l.numero = d.numero and l.modelo = d.modelo " + _
+				"where d.cnpjDest is null and l.modelo >= 55 " + _
+				"order by l.dataEmit asc" _
+		)
+		
+		do while ds->hasNext()
+			inconsistenciaAddRow( ws->AddRow(), *ds->row, TI_ESCRIT_FANTASMA, "DF-e nao encontrado no BO" )
+			ds->next_()
+		loop
+	end scope
 
 	'' saídas não escrituradas
 	scope
