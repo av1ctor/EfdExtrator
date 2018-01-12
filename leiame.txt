@@ -1,32 +1,35 @@
 Extrator de EFD/Sintegra para Excel/Word
-Copyleft 2017 by André Vicentini (avtvicentini)
+Copyleft 2017-2018 by André Vicentini (avtvicentini)
 
 Modo de usar:
-EfdExtrator.exe [-gerarRelatorios] arquivo.txt [arquivo.csv]
+
+	EfdExtrator.exe [-gerarRelatorios] arquivo.txt [arquivo.csv]
 
 	Notas:
-			1. No lugar do nome dos arquivos, podem ser usadas máscaras,
-			   como por exemplo: *.txt e *.csv
-			2. O(s) arquivo(s) .txt pode(m) ser em formato Sintegra ou EFD
-			3. Os arquivos .csv do SAFI devem manter o padrão de nome dado pelo
-			   Infoview BO, mas podem ser usados prefixos e sufixos no nome,
-			   como por exemplo: "2017 SAFI_NFe_Emitente_Itens parte 1.csv"
-			4. No final da extração será gerado um arquivo .xml que deve ser
-			   aberto no Excel 2003 ou superior
-			5. A opção -gerarRelatorios gera os relatórios do EFD-ICMS-IPI
-		    no formato Word/docx. Para converter em lote esses arquivos para 
-			PDF, copie o arquivo doc2pdf.ps1 para a pasta onde se encontram
-		    os relatórios e o execute - essa conversão é feita pelo Word e 
-			costuma ser demorada
+		1. No lugar do nome dos arquivos, podem ser usadas máscaras,
+		   como por exemplo: *.txt e *.csv
+		2. O(s) arquivo(s) .txt pode(m) ser em formato Sintegra ou EFD
+		3. Os arquivos .csv do SAFI devem manter o padrão de nome dado pelo
+		   Infoview BO, mas podem ser usados prefixos e sufixos no nome,
+		   como por exemplo: "2017 SAFI_NFe_Emitente_Itens parte 1.csv"
+		4. No final da extração será gerado um arquivo .xml que deve ser
+		   aberto no Excel 2003 ou superior
+		5. A opção -gerarRelatorios gera os relatórios do EFD-ICMS-IPI
+		   no formato Word/docx. Para converter em lote esses arquivos para 
+		   PDF, copie o arquivo doc2pdf.ps1 para a pasta onde se encontram
+		   os relatórios e o execute - essa conversão é feita pelo Word e 
+		   costuma ser demorada
+        6. A opção -complementarDados inclui dados complementares na planilha
+           (aba saídas) que será gerada e que não constam na EFD, caso os
+           arquivos .csv do SAFI sejam fornecidos
 
-Para fazer as análises completas é necessário baixar os DBs (> 2GB) contendo 
-os dados de contribuintes utilizados no SAFI:
-	1. baixe o arquivo ....
-	2. extraia esse arquivo (senha: sefazsp) para o diretório onde estiver 
-           instalado o EfdExtrator
+Sobre as análises e cruzamentos:
 
-As análises e cruzamentos são realizadas em Lua scripting (ver 
-scripts/analises.lua). Assim é possível realizar novos cruzamentos apenas
-atualizando os scripts, sem necessidade de recompilar o aplicativo. A sintaxe 
-SQL utilizada nas queries deve ser a do SQLite. O formato das tabelas
-criadas internamente pode ser visto em scripts/config.lua.
+	Para que sejam feitas análises e cruzamentos por completo (ver TODO.txt para saber o que falta implementar) é necessário baixar os DBs (> 2GB) contendo os dados de contribuintes (os dados são os mesmos carregados no SAFI e fornecidos pela DEAT).
+	Baixe o arquivo no SharePoint (EFDExtrator_DB.rar) e o extraia para o diretório onde estiver instalado o EfdExtrator (senha do RAR: sefazsp)
+
+	As análises e os cruzamentos são realizados em Lua scripting (ver scripts/analises.lua). 
+	Com isso, é possível realizar novos cruzamentos apenas atualizando os scripts, sem necessidade de recompilar o aplicativo. 
+	A sintaxe SQL utilizada nas queries deve ser a do SQLite. 
+	O formato das tabelas criadas internamente pode ser visto em scripts/config.lua.
+

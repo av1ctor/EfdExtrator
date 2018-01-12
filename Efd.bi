@@ -574,7 +574,7 @@ public:
 	declare sub finalizarExtracao(mostrarProgresso as ProgressoCB)
 	declare function carregarTxt(nomeArquivo as String, mostrarProgresso as ProgressoCB) as Boolean
 	declare function carregarCsv(nomeArquivo as String, mostrarProgresso as ProgressoCB) as Boolean
-	declare function processar(nomeArquivo as string, mostrarProgresso as ProgressoCB, gerarRelatorios as boolean) as Boolean
+	declare function processar(nomeArquivo as string, mostrarProgresso as ProgressoCB, gerarRelatorios as boolean, acrescentarDadosSAFI as boolean) as Boolean
 	declare sub analisar(mostrarProgresso as ProgressoCB)
    
 private:
@@ -601,7 +601,7 @@ private:
 	declare sub addRegistroOrdenadoPorData(reg as TRegistro ptr)
 	
 	declare sub criarPlanilhas()
-	declare sub gerarPlanilhas(nomeArquivo as string, mostrarProgresso as ProgressoCB)
+	declare sub gerarPlanilhas(nomeArquivo as string, mostrarProgresso as ProgressoCB, acrescentarDadosSAFI as boolean)
 	
 	declare sub gerarRelatorios(nomeArquivo as string, mostrarProgresso as ProgressoCB)
 	declare sub gerarRelatorioApuracaoICMS(nomeArquivo as string, reg as TRegistro ptr)

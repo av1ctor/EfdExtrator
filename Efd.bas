@@ -106,9 +106,13 @@ private function luacb_db_exec cdecl(byval L as lua_State ptr) as long
 	
 		var ds = db->exec(query)
 		
-		lua_pushlightuserdata(L, ds)
+		if ds = null then
+			lua_pushnil(L)
+		else
+			lua_pushlightuserdata(L, ds)
+		end if
 	else
-		lua_pushlightuserdata(L, null)
+		 lua_pushnil(L)
 	end if
 	
 	function = 1
@@ -169,7 +173,7 @@ private function luacb_ds_row_getColValue cdecl(byval L as lua_State ptr) as lon
 
 		lua_pushstring(L, (*ds->row)[colName])
 	else
-		lua_pushnumber(L, null)
+		 lua_pushnil(L)
 	end if
 	
 	function = 1
@@ -2178,9 +2182,9 @@ function lerInfoAssinatura(nomeArquivo as string, assinaturaP7K_DER() as byte) a
 end function
 
 ''''''''
-function Efd.processar(nomeArquivo as string, mostrarProgresso as ProgressoCB, gerarRelatorios_ as boolean) as Boolean
+function Efd.processar(nomeArquivo as string, mostrarProgresso as ProgressoCB, gerarRelatorios_ as boolean, acrescentarDadosSAFI as boolean) as Boolean
    
-	gerarPlanilhas(nomeArquivo, mostrarProgresso)
+	gerarPlanilhas(nomeArquivo, mostrarProgresso, acrescentarDadosSAFI)
 	
 	if gerarRelatorios_ then
 		if tipoArquivo = TIPO_ARQUIVO_EFD then
@@ -2211,7 +2215,7 @@ function Efd.processar(nomeArquivo as string, mostrarProgresso as ProgressoCB, g
 end function
 
 ''''''''
-sub Efd.gerarPlanilhas(nomeArquivo as string, mostrarProgresso as ProgressoCB)
+sub Efd.gerarPlanilhas(nomeArquivo as string, mostrarProgresso as ProgressoCB, acrescentarDadosSAFI as boolean)
 	
 	if entradas = null then
 		criarPlanilhas
@@ -2278,11 +2282,11 @@ sub Efd.gerarPlanilhas(nomeArquivo as string, mostrarProgresso as ProgressoCB)
 		case DOC_NF
 			select case as const reg->nf.situacao
 			case REGULAR, EXTEMPORANEO
-				'' NOTA: não existe itemDoc para saídas, só temos informação básica do DF-e, 
+				'' NOTA: não existe itemDoc para saídas, só temos informações básicas do DF-e, 
 				'' 	     a não ser que sejam carregados os relatórios .csv do SAFI vindos do infoview
 				if reg->nf.operacao = SAIDA or (reg->nf.operacao = ENTRADA and reg->nf.nroItens = 0) then
 					dim as TDFe_NFeItem ptr item = null
-					if itemNFeSafiFornecido then
+					if itemNFeSafiFornecido and acrescentarDadosSAFI then
 						if len(reg->nf.chave) > 0 then
 							var dfe = cast( TDFe ptr, chaveDFeDict[reg->nf.chave] )
 							if dfe <> null then
@@ -2320,7 +2324,7 @@ sub Efd.gerarPlanilhas(nomeArquivo as string, mostrarProgresso as ProgressoCB)
 						row->addCell(reg->nf.chave)
 						row->addCell(codSituacao2Str(reg->nf.situacao))
 
-						if itemNFeSafiFornecido or cbool(reg->nf.operacao = ENTRADA) then
+						if (itemNFeSafiFornecido and acrescentarDadosSAFI) or cbool(reg->nf.operacao = ENTRADA) then
 							if item <> null then
 								row->addCell(item->bcICMS)
 								row->addCell(item->aliqICMS)
@@ -2609,7 +2613,7 @@ sub Efd.gerarPlanilhas(nomeArquivo as string, mostrarProgresso as ProgressoCB)
 					  
 					row->addCell(reg->docSint.cnpj)
 					row->addCell(reg->docSint.ie)
-					row->addCell(reg->docSint.uf)
+					row->addCell(ufCod2Sigla(reg->docSint.uf))
 					row->addCell("")
 					row->addCell(reg->docSint.modelo)
 					row->addCell(reg->docSint.serie)
