@@ -28,16 +28,21 @@ private:
 	stmt			as sqlite3_stmt ptr = null
 end type
 
+type TDbColumn
+	name			as zstring ptr
+	value			as zstring ptr
+end type
+
 type TDataSetRow
 	declare constructor(cols as integer = 0)
 	declare destructor()
 	declare sub newColumn(name as const zstring ptr, value as const zstring ptr)
 	declare operator [](index as const zstring ptr) as zstring ptr
 	declare operator [](index as integer) as zstring ptr
+	cols(any)		as TDbColumn
+	cnt				as integer
 private:
-	columns			as TDict
-	colList(any)	as zstring ptr
-	colCnt			as integer
+	dict			as TDict
 end type
 
 type TDataSet
@@ -48,9 +53,9 @@ type TDataSet
 	declare sub next_()
 	declare property row as TDataSetRow ptr
 	
+	currRow			as TDataSetRow ptr
 private:
 	rows			as TList		'' list of TDataSetRow
-	currRow			as TDataSetRow ptr
 end type
 
 type TDb

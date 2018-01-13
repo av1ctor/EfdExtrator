@@ -576,6 +576,7 @@ public:
 	declare function carregarCsv(nomeArquivo as String, mostrarProgresso as ProgressoCB) as Boolean
 	declare function processar(nomeArquivo as string, mostrarProgresso as ProgressoCB, gerarRelatorios as boolean, acrescentarDadosSAFI as boolean) as Boolean
 	declare sub analisar(mostrarProgresso as ProgressoCB)
+	declare function getPlanilha(nome as const zstring ptr) as ExcelWorksheet ptr
    
 private:
 	declare sub configurarDB()
@@ -617,6 +618,8 @@ private:
 	
 	declare sub analisarInconsistenciasLRE(mostrarProgresso as ProgressoCB)
 	declare sub analisarInconsistenciasLRS(mostrarProgresso as ProgressoCB)
+	
+	declare sub exportAPI(L as lua_State ptr)
 
 	tipoArquivo				as TTipoArquivo
 	
@@ -638,6 +641,8 @@ private:
 	saidas              	as ExcelWorksheet ptr
 	apuracaoIcms			as ExcelWorksheet ptr
 	apuracaoIcmsST			as ExcelWorksheet ptr
+	inconsistenciasLRE		as ExcelWorksheet ptr
+	inconsistenciasLRS		as ExcelWorksheet ptr
 	nomeArquivoSaida		as string
 
 	'' registros das NF-e's e CT-e's retirados dos relatórios do Infoview (mantidos do início ao fim da extração)

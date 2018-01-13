@@ -31,13 +31,7 @@ private sub inconsistenciaAddRow(xrow as ExcelRow ptr, byref drow as TDataSetRow
 end sub
 
 ''''''''
-private sub lua_setarGlobal(lua as lua_State ptr, varName as const zstring ptr, value as integer)
-	lua_pushnumber(lua, value)
-	lua_setglobal(lua, varName)
-end sub
-
-''''''''
-private function luacb_inconsistencia_AddRow cdecl(byval L as lua_State ptr) as long
+private function luacb_efd_plan_inconsistencias_AddRow cdecl(byval L as lua_State ptr) as long
 	var args = lua_gettop(L)
 	
 	if args = 4 then
@@ -57,13 +51,7 @@ end function
 sub Efd.analisar(mostrarProgresso as ProgressoCB) 
 
 	'' configurar lua
-	lua_setarGlobal(lua, "TI_ESCRIT_FALTA", TI_ESCRIT_FALTA)
-	lua_setarGlobal(lua, "TI_ESCRIT_FANTASMA", TI_ESCRIT_FANTASMA)
-	lua_setarGlobal(lua, "TI_ALIQ", TI_ALIQ)
-	lua_setarGlobal(lua, "TI_DUP", TI_DUP)
-	lua_setarGlobal(lua, "TI_DIF", TI_DIF)
-	
-	lua_register(lua, "inconsistencia_AddRow", @luacb_inconsistencia_AddRow)
+	lua_register(lua, "efd_plan_inconsistencias_AddRow", @luacb_efd_plan_inconsistencias_AddRow)
 	
 	luaL_dofile(lua, ExePath + "\scripts\analises.lua")
 	
@@ -80,14 +68,13 @@ end sub
 ''''''''
 sub Efd.analisarInconsistenciasLRE(mostrarProgresso as ProgressoCB)
 
-	var ws = ew->AddWorksheet("Inconsistencias LRE")
-	inconsistenciaAddHeader(ws)
+	inconsistenciaAddHeader(inconsistenciasLRE)
 	
 	mostrarProgresso(wstr(!"\tInconsistências nas entradas"), 0)
 	
 	lua_getglobal(lua, "analisarInconsistenciasLRE")
 	lua_pushlightuserdata(lua, db)
-	lua_pushlightuserdata(lua, ws)
+	lua_pushlightuserdata(lua, inconsistenciasLRE)
 	lua_call(lua, 2, 0)
 	
 	mostrarProgresso(null, 1)
@@ -97,14 +84,13 @@ end sub
 ''''''''
 sub Efd.analisarInconsistenciasLRS(mostrarProgresso as ProgressoCB)
 	
-	var ws = ew->AddWorksheet("Inconsistencias LRS")
-	inconsistenciaAddHeader(ws)
+	inconsistenciaAddHeader(inconsistenciasLRS)
 	
 	mostrarProgresso(wstr(!"\tInconsistências nas saídas"), 0)
 
 	lua_getglobal(lua, "analisarInconsistenciasLRS")
 	lua_pushlightuserdata(lua, db)
-	lua_pushlightuserdata(lua, ws)
+	lua_pushlightuserdata(lua, inconsistenciasLRS)
 	lua_call(lua, 2, 0)
 	
 	mostrarProgresso(null, 1)

@@ -16,6 +16,7 @@
 	bool = ds_hasNext(ds)					-- retorna se ainda há linhas para processar
 	ds_next(ds)								-- vai para a próxima linha
 	str = ds_row_getColValue(ds, colname)	-- retorna o valor (string) da coluna 'colname' na linha atual do dataset
+	row = ds_row(ds)						-- retorna uma array com as colunas da linha atual do dataset
 	
 	
 -- ExcelWriter:
@@ -32,3 +33,7 @@
 -- ExcelWriter Row:
 	ec = er_addCell(er, contents)			-- adiciona uma célula à linha da planilha; 'contents' pode ser string ou número
 	
+	
+-- efd	
+	ws = efd_plan_get(nome)					-- retorna uma planilha interna, pesquisando pelo nome (entradas, saidas, inconsistenciasLRE, inconsistenciasLRS)
+	efd_plan_inconsistencias_AddRow(ws, ds, tipoInconsistencia, descricao)	-- tipo in (TI_ESCRIT_FALTA,TI_ESCRIT_FANTASMA,TI_ALIQ,TI_DUP,TI_DIF)
