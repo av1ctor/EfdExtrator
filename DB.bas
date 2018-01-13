@@ -1,5 +1,4 @@
 #include once "DB.bi" 
-#include once "list.bi" 
 
 ''''''''
 function TDb.open(fileName as const zstring ptr) as boolean
@@ -47,7 +46,7 @@ private function callback cdecl _
 	
 	var ds = cast(TDataSet ptr, dset)
 	
-	var row = ds->newRow()
+	var row = ds->newRow(argc)
   
 	for i as integer = 0 to argc - 1
 		dim as zstring ptr text = null
@@ -94,9 +93,9 @@ function TDb.exec(stmt as TDbStmt ptr) as TDataSet ptr
 			exit do
 		end if
 		
-		var row = ds->newRow()
-		
 		var nCols = stmt->colCount()
+		var row = ds->newRow(nCols)
+		
 		for i as integer = 0 to nCols - 1
 			row->newColumn( stmt->colName( i ), stmt->colValue( i ) )
 		next
@@ -260,9 +259,9 @@ property TDataSet.row() as TDataSetRow ptr
 end property
 
 ''''''''
-function TDataSet.newRow() as TDataSetRow ptr
+function TDataSet.newRow(cols as integer) as TDataSetRow ptr
 	var p = rows.add()
-	var r = new (p) TDataSetRow()
+	var r = new (p) TDataSetRow(cols)
 	if currRow = null then
 		currRow = r
 	end if
@@ -272,9 +271,12 @@ end function
 ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
 ''''''''
-constructor TDataSetRow()
-	columns.init(16, true, true, true)
-	redim colList(0 to 15)
+constructor TDataSetRow(cols as integer)
+	if cols = 0 then
+		cols = 16
+	end if
+	columns.init(cols, true, true, true)
+	redim colList(0 to cols-1)
 	colCnt = 0
 end constructor	
 	
@@ -405,3 +407,210 @@ end function
 function TDbStmt.colValue(index as integer) as const zstring ptr
 	function = sqlite3_column_text(stmt, index)
 end function
+
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+
+''''''''
+private function luacb_db_new cdecl(byval L as lua_State ptr) as long
+	var args = lua_gettop(L)
+	
+	var db = new TDb()
+	lua_pushlightuserdata(L, db)
+	
+	function = 1
+	
+end function
+
+''''''''
+private function luacb_db_del cdecl(byval L as lua_State ptr) as long
+	var args = lua_gettop(L)
+	
+	if args = 1 then
+		var db = cast(TDb ptr, lua_touserdata(L, 1))
+		delete db
+	end if
+	
+	function = 0
+	
+end function
+
+''''''''
+private function luacb_db_open cdecl(byval L as lua_State ptr) as long
+	var args = lua_gettop(L)
+	
+	if args < 1 or args > 2 then
+		lua_pushboolean(L, false)
+	else
+		var db = cast(TDb ptr, lua_touserdata(L, 1))
+		if args > 1 then
+			var fname = lua_tostring(L, 2)
+			lua_pushboolean(L, db->open(fname))
+		else
+			lua_pushboolean(L, db->open())
+		end if
+	end if
+	
+	function = 1
+	
+end function
+
+''''''''
+private function luacb_db_close cdecl(byval L as lua_State ptr) as long
+	var args = lua_gettop(L)
+	
+	if args = 1 then
+		var db = cast(TDb ptr, lua_touserdata(L, 1))
+		db->close()
+	end if
+	
+	function = 0
+	
+end function
+
+''''''''
+private function luacb_db_execNonQuery cdecl(byval L as lua_State ptr) as long
+	var args = lua_gettop(L)
+	
+	if args = 2 then
+		var db = cast(TDb ptr, lua_touserdata(L, 1))
+		if lua_isstring(L, 2) then
+			var query = lua_tostring(L, 2)
+			db->execNonQuery(query)
+		else
+			var query = cast(TDbStmt ptr, lua_touserdata(L, 2))
+			db->execNonQuery(query)
+		end if
+	end if
+	
+	function = 0
+	
+end function
+
+''''''''
+private function luacb_db_exec cdecl(byval L as lua_State ptr) as long
+	var args = lua_gettop(L)
+	
+	if args = 2 then
+		var db = cast(TDb ptr, lua_touserdata(L, 1))
+		
+		dim as TDataSet ptr ds = null
+		if lua_isstring(L, 2) then
+			var query = lua_tostring(L, 2)
+			ds = db->exec(query)
+		else
+			var query = cast(TDbStmt ptr, lua_touserdata(L, 2))
+			ds = db->exec(query)
+		end if
+		
+		if ds = null then
+			lua_pushnil(L)
+		else
+			lua_pushlightuserdata(L, ds)
+		end if
+	else
+		 lua_pushnil(L)
+	end if
+	
+	function = 1
+	
+end function
+
+''''''''
+private function luacb_db_prepare cdecl(byval L as lua_State ptr) as long
+	var args = lua_gettop(L)
+	
+	if args = 2 then
+		var db = cast(TDb ptr, lua_touserdata(L, 1))
+		var query = lua_tostring(L, 2)
+		var stmt = db->prepare(query)
+		if stmt <> null then
+			lua_pushlightuserdata(L, stmt)
+		else
+			lua_pushnil(L)
+		end if
+	else
+		lua_pushnil(L)
+	end if
+	
+	function = 1
+	
+end function
+
+''''''''
+private function luacb_ds_hasNext cdecl(byval L as lua_State ptr) as long
+	var args = lua_gettop(L)
+	
+	if args = 1 then
+		var ds = cast(TDataSet ptr, lua_touserdata(L, 1))
+		
+		lua_pushboolean(L, ds->hasNext())
+	else
+		lua_pushboolean(L, false)
+	end if
+	
+	function = 1
+	
+end function
+
+''''''''
+private function luacb_ds_next cdecl(byval L as lua_State ptr) as long
+	var args = lua_gettop(L)
+	
+	if args = 1 then
+		var ds = cast(TDataSet ptr, lua_touserdata(L, 1))
+		
+		ds->next_()
+	end if
+	
+	function = 0
+	
+end function
+
+''''''''
+private function luacb_ds_del cdecl(byval L as lua_State ptr) as long
+	var args = lua_gettop(L)
+	
+	if args = 1 then
+		var ds = cast(TDataSet ptr, lua_touserdata(L, 1))
+		
+		delete ds
+	end if
+	
+	function = 0
+	
+end function
+
+''''''''
+private function luacb_ds_row_getColValue cdecl(byval L as lua_State ptr) as long
+	var args = lua_gettop(L)
+	
+	if args = 2 then
+		var ds = cast(TDataSet ptr, lua_touserdata(L, 1))
+		var colName = lua_tostring(L, 2)
+
+		lua_pushstring(L, (*ds->row)[colName])
+	else
+		 lua_pushnil(L)
+	end if
+	
+	function = 1
+	
+end function
+
+''''''''
+static sub TDb.exportAPI(L as lua_State ptr)
+	
+	lua_register(L, "db_new", @luacb_db_new)
+	lua_register(L, "db_del", @luacb_db_del)
+	lua_register(L, "db_open", @luacb_db_open)
+	lua_register(L, "db_close", @luacb_db_close)
+	lua_register(L, "db_execNonQuery", @luacb_db_execNonQuery)
+	lua_register(L, "db_exec", @luacb_db_exec)
+	lua_register(L, "db_prepare", @luacb_db_prepare)
+	
+	lua_register(L, "ds_hasNext", @luacb_ds_hasNext)
+	lua_register(L, "ds_next", @luacb_ds_next)
+	lua_register(L, "ds_row_getColValue", @luacb_ds_row_getColValue)
+	lua_register(L, "ds_del", @luacb_ds_del)
+	
+end sub

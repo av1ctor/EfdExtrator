@@ -2,6 +2,8 @@
 #include once "list.bi" 
 #include once "Dict.bi" 
 #include once "VarBox.bi"
+#include once "Lua/lualib.bi"
+#include once "Lua/lauxlib.bi"
 
 type TDB_ as TDB
 
@@ -27,7 +29,7 @@ private:
 end type
 
 type TDataSetRow
-	declare constructor()
+	declare constructor(cols as integer = 0)
 	declare destructor()
 	declare sub newColumn(name as const zstring ptr, value as const zstring ptr)
 	declare operator [](index as const zstring ptr) as zstring ptr
@@ -41,7 +43,7 @@ end type
 type TDataSet
 	declare constructor()
 	declare destructor()
-	declare function newRow() as TDataSetRow ptr
+	declare function newRow(cols as integer = 0) as TDataSetRow ptr
 	declare function hasNext() as boolean
 	declare sub next_()
 	declare property row as TDataSetRow ptr
@@ -63,7 +65,7 @@ type TDb
 	declare function execScalar(query as const zstring ptr) as zstring ptr
 	declare sub execNonQuery(query as const zstring ptr) 
 	declare sub execNonQuery(stmt as TDbStmt ptr)
-	
+	declare static sub exportAPI(L as lua_State ptr)
 
 private:
 	instance 		as sqlite3 ptr 

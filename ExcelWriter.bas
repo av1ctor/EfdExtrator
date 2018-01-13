@@ -328,3 +328,158 @@ end destructor
 constructor ExcelCell(content as const zstring ptr)
 	this.content = *content
 end constructor
+
+
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+
+''''''''
+private function luacb_ew_new cdecl(byval L as lua_State ptr) as long
+	var args = lua_gettop(L)
+	
+	var ew = new ExcelWriter()
+	lua_pushlightuserdata(L, ew)
+	
+	function = 1
+	
+end function
+
+''''''''
+private function luacb_ew_del cdecl(byval L as lua_State ptr) as long
+	var args = lua_gettop(L)
+	
+	if args = 1 then
+		var ew = cast(ExcelWriter ptr, lua_touserdata(L, 1))
+		delete ew
+	end if
+	
+	function = 0
+	
+end function
+
+''''''''
+private function luacb_ew_create cdecl(byval L as lua_State ptr) as long
+	var args = lua_gettop(L)
+	
+	if args = 2 then
+		var ew = cast(ExcelWriter ptr, lua_touserdata(L, 1))
+		var fName = cast(zstring ptr, lua_tostring(L, 2))
+		
+		lua_pushboolean(L, ew->create(*fName))
+	else
+		lua_pushboolean(L, false)
+	end if
+	
+	function = 1
+	
+end function
+
+''''''''
+private function luacb_ew_close cdecl(byval L as lua_State ptr) as long
+	var args = lua_gettop(L)
+	
+	if args = 1 then
+		var ew = cast(ExcelWriter ptr, lua_touserdata(L, 1))
+		
+		ew->close()
+	end if
+	
+	function = 1
+	
+end function
+
+''''''''
+private function luacb_ew_addWorksheet cdecl(byval L as lua_State ptr) as long
+	var args = lua_gettop(L)
+	
+	if args = 2 then
+		var ew = cast(ExcelWriter ptr, lua_touserdata(L, 1))
+		var wsName = cast(zstring ptr, lua_tostring(L, 2))
+		
+		lua_pushlightuserdata(L, ew->addWorksheet(*wsName))
+	else
+		lua_pushnil(L)
+	end if
+	
+	function = 1
+	
+end function
+
+''''''''
+private function luacb_ws_addRow cdecl(byval L as lua_State ptr) as long
+	var args = lua_gettop(L)
+	
+	if args = 1 then
+		var ws = cast(ExcelWorksheet ptr, lua_touserdata(L, 1))
+		
+		lua_pushlightuserdata(L, ws->addRow())
+	else
+		lua_pushnil(L)
+	end if
+	
+	function = 1
+	
+end function
+
+''''''''
+private function luacb_ws_addCellType cdecl(byval L as lua_State ptr) as long
+	var args = lua_gettop(L)
+	
+	if args = 3 then
+		var ws = cast(ExcelWorksheet ptr, lua_touserdata(L, 1))
+		var type_ = lua_tointeger(L, 2)
+		var ctname = cast(zstring ptr, lua_tostring(L, 3))
+		
+		ws->addCellType(type_, *ctname)
+	end if
+	
+	function = 0
+	
+end function
+
+''''''''
+private function luacb_er_addCell cdecl(byval L as lua_State ptr) as long
+	var args = lua_gettop(L)
+	
+	if args = 2 then
+		var er = cast(ExcelRow ptr, lua_touserdata(L, 1))
+		
+		dim as ExcelCell ptr ec = null
+		if lua_isstring(L, 2) then
+			ec = er->addCell(lua_tostring(L, 2))
+		else
+			ec = er->addCell(lua_tonumber(L, 2))
+		end if
+		
+		lua_pushlightuserdata(L, ec)
+	else
+		lua_pushnil(L)
+	end if
+	
+	function = 1
+	
+end function
+
+''''''''
+#define lua_defGlobal(L, varName, value) lua_pushnumber(L, cint(value)): lua_setglobal(L, varName)
+
+''''''''
+static sub ExcelWriter.exportAPI(L as lua_State ptr)
+	
+	lua_defGlobal(L, "CT_STRING", CT_STRING)
+	lua_defGlobal(L, "CT_NUMBER", CT_NUMBER)
+	lua_defGlobal(L, "CT_INTNUMBER", CT_INTNUMBER)
+	lua_defGlobal(L, "CT_DATE", CT_DATE)
+	lua_defGlobal(L, "CT_MONEY", CT_MONEY)
+	
+	lua_register(L, "ew_new", @luacb_ew_new)
+	lua_register(L, "ew_del", @luacb_ew_del)
+	lua_register(L, "ew_create", @luacb_ew_create)
+	lua_register(L, "ew_close", @luacb_ew_close)
+	lua_register(L, "ew_addWorksheet", @luacb_ew_addWorksheet)
+	
+	lua_register(L, "ws_addRow", @luacb_ws_addRow)
+	lua_register(L, "ws_addCellType", @luacb_ws_addCellType)
+	
+	lua_register(L, "er_addCell", @luacb_er_addCell)
+	
+end sub

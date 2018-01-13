@@ -1,4 +1,6 @@
 
+#include once "Lua/lualib.bi"
+#include once "Lua/lauxlib.bi"
 #define NULL 0
 
 enum CellType
@@ -69,6 +71,7 @@ type ExcelWriter
 	declare function create(fileName as string) as boolean
 	declare function flush(showProgress as ProgressCB) as boolean
 	declare sub close
+	declare static sub exportAPI(L as lua_State ptr)
 	
 private:
 	fnum				   	as integer = 0
