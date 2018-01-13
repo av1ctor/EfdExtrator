@@ -271,55 +271,55 @@ end function
 ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
 ''''''''
-constructor TDataSetRow(cols as integer)
-	if cols = 0 then
-		cols = 16
+constructor TDataSetRow(numCols as integer)
+	if numCols = 0 then
+		numCols = 16
 	end if
-	columns.init(cols, true, true, true)
-	redim colList(0 to cols-1)
-	colCnt = 0
+	dict.init(numCols, true, true, true)
+	redim cols(0 to numCols-1)
+	cnt = 0
 end constructor	
 	
 ''''''''
 destructor TDataSetRow()
-	colCnt = 0
-	columns.end_()
+	cnt = 0
+	dict.end_()
 end destructor
 
 ''''''''
 sub TDataSetRow.newColumn(name_ as const zstring ptr, value as const zstring ptr)
-	if columns.lookup(name_) = null then
+	if dict.lookup(name_) = null then
 		dim as zstring ptr value2 = null
 		if value <> null then
 			value2 = cast(zstring ptr, allocate(len(*value)+1))	
 			*value2 = *value
 		end if
 		
-		columns.add( name_, value2 )
+		var node = dict.add( name_, value2 )
 		
-		colCnt += 1
-		if colCnt-1 > ubound(colList) then
-			redim preserve colList(0 to colCnt-1+8)
+		cnt += 1
+		if cnt-1 > ubound(cols) then
+			redim preserve cols(0 to cnt-1+8)
 		end if
 
-		colList(colCnt-1) = value2
+		cols(cnt-1).name = cast(zstring ptr, node->key)
+		cols(cnt-1).value = value2
 	end if
 end sub
 
 ''''''''
 operator TDataSetRow.[](index as const zstring ptr) as zstring ptr
-	return columns.lookup( index )
+	return dict.lookup( index )
 end operator
 
 ''''''''
 operator TDataSetRow.[](index as integer) as zstring ptr
-	if index <= colCnt-1 then
-		return colList(index)
+	if index >= 0 and index <= cnt-1 then
+		return cols(index).value
 	else
 		return null
 	end if
 end operator
-
 
 ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
@@ -598,6 +598,28 @@ private function luacb_ds_row_getColValue cdecl(byval L as lua_State ptr) as lon
 end function
 
 ''''''''
+private function luacb_ds_row cdecl(byval L as lua_State ptr) as long
+	var args = lua_gettop(L)
+	
+	if args = 1 then
+		var ds = cast(TDataSet ptr, lua_touserdata(L, 1))
+
+		var row = ds->currRow
+		lua_createtable(L, row->cnt, 0)
+		for i as integer = 0 to row->cnt-1
+			lua_pushstring(L, row->cols(i).name)
+			lua_pushstring(L, row->cols(i).value)
+			lua_settable(L, -3)
+		next 
+	else
+		 lua_pushnil(L)
+	end if
+	
+	function = 1
+	
+end function
+
+''''''''
 static sub TDb.exportAPI(L as lua_State ptr)
 	
 	lua_register(L, "db_new", @luacb_db_new)
@@ -612,5 +634,6 @@ static sub TDb.exportAPI(L as lua_State ptr)
 	lua_register(L, "ds_next", @luacb_ds_next)
 	lua_register(L, "ds_row_getColValue", @luacb_ds_row_getColValue)
 	lua_register(L, "ds_del", @luacb_ds_del)
+	lua_register(L, "ds_row", @luacb_ds_row)
 	
 end sub

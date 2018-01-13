@@ -90,6 +90,7 @@ sub EFd.configurarScripting()
 	
 	TDb.exportAPI(lua)
 	ExcelWriter.exportAPI(lua)
+	exportAPI(lua)
 
 	luaL_dofile(lua, ExePath + "\scripts\config.lua")
 	
@@ -2007,7 +2008,13 @@ sub Efd.criarPlanilhas()
 	apuracaoIcmsST->AddCellType(CT_MONEY, "ICMS a Recolher")
 	apuracaoIcmsST->AddCellType(CT_MONEY, "Saldo Credor a Transportar")
 	apuracaoIcmsST->AddCellType(CT_MONEY, "Deb Extra Apuracao")
-			
+	
+	'' Inconsistencias LRE
+	inconsistenciasLRE = ew->AddWorksheet("Inconsistencias LRE")
+
+	'' Inconsistencias LRS
+	inconsistenciasLRS = ew->AddWorksheet("Inconsistencias LRS")
+	
 end sub
 
 ''''''''
@@ -2557,3 +2564,69 @@ sub Efd.gerarPlanilhas(nomeArquivo as string, mostrarProgresso as ProgressoCB, a
 	
 end sub
 
+''''''''
+function EFd.getPlanilha(nome as const zstring ptr) as ExcelWorksheet ptr
+		dim as ExcelWorksheet ptr plan = null
+		select case lcase(*nome)
+		case "entradas"
+			plan = entradas
+		case "saidas"
+			plan = saidas
+		case "inconsistencias LRE"
+			plan = inconsistenciasLRE
+		case "inconsistencias LRS"
+			plan = inconsistenciasLRS
+		end select
+		function = plan
+end function
+
+''''''''
+private function luacb_efd_plan_get cdecl(byval L as lua_State ptr) as long
+	var args = lua_gettop(L)
+	
+	lua_getglobal(L, "efd")
+	var g_efd = cast(Efd ptr, lua_touserdata(L, -1))
+	lua_pop(L, 1)
+	
+	if args = 1 then
+		var planName = lua_tostring(L, 1)
+
+		var plan = g_efd->getPlanilha(planName)
+		if plan <> null then
+			lua_pushlightuserdata(L, plan)
+		else
+			lua_pushnil(L)
+		end if
+	else
+		 lua_pushnil(L)
+	end if
+	
+	function = 1
+	
+end function
+
+''''''''
+private sub lua_setarGlobal overload (lua as lua_State ptr, varName as const zstring ptr, value as integer)
+	lua_pushnumber(lua, value)
+	lua_setglobal(lua, varName)
+end sub
+
+''''''''
+private sub lua_setarGlobal overload (lua as lua_State ptr, varName as const zstring ptr, value as any ptr)
+	lua_pushlightuserdata(lua, value)
+	lua_setglobal(lua, varName)
+end sub
+
+''''''''
+sub Efd.exportAPI(L as lua_State ptr)
+	
+	lua_setarGlobal(L, "TI_ESCRIT_FALTA", TI_ESCRIT_FALTA)
+	lua_setarGlobal(L, "TI_ESCRIT_FANTASMA", TI_ESCRIT_FANTASMA)
+	lua_setarGlobal(L, "TI_ALIQ", TI_ALIQ)
+	lua_setarGlobal(L, "TI_DUP", TI_DUP)
+	lua_setarGlobal(L, "TI_DIF", TI_DIF)
+	lua_setarGlobal(L, "efd", @this)
+	
+	lua_register(L, "efd_plan_get", @luacb_efd_plan_get)
+	
+end sub
