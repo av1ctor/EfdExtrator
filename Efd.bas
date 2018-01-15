@@ -30,6 +30,13 @@ private function my_lua_Alloc cdecl _
 end function
 
 ''''''''
+private function dupstr(s as const zstring ptr) as zstring ptr
+	dim as zstring ptr d = allocate(len(*s)+1)
+	*d = *s
+	function = d
+end function
+
+''''''''
 constructor Efd()
 	''
 	chaveDFeDict.init(2^20)
@@ -81,7 +88,38 @@ destructor Efd()
 	loop
 end destructor
 
+''''''''
+private sub lua_carregarCustoms(d as TDict ptr, L as lua_State ptr) 
 
+	d->init(16, true, true, true)
+	
+	lua_getglobal(L, "getCustomCallbacks")
+	lua_call(L, 0, 1)
+	lua_pushnil(L)
+	do while lua_next(L, -2) <> 0
+		var key = lua_tostring(L, -2)
+		
+		var lcb = new CustomLuaCb
+		lua_pushnil(L)
+		do while lua_next(L, -2) <> 0
+			
+			var funct = dupstr(lua_tostring(L, -1)) 
+			select case *lua_tostring(L, -2)
+			case "reader"
+				lcb->reader = funct
+			case "writer"
+				lcb->writer = funct
+			end select
+			
+			d->add(key, lcb)
+			lua_pop(L, 1)
+		loop
+			
+		lua_pop(L, 1)
+	loop
+	lua_pop(L, lua_gettop(L))
+
+end sub
 
 ''''''''
 sub EFd.configurarScripting()
@@ -90,12 +128,16 @@ sub EFd.configurarScripting()
 	
 	TDb.exportAPI(lua)
 	ExcelWriter.exportAPI(lua)
+	bfile.exportAPI(lua)
 	exportAPI(lua)
 
 	luaL_dofile(lua, ExePath + "\scripts\config.lua")
+	luaL_dofile(lua, ExePath + "\scripts\customizacao.lua")	
 	
+	lua_carregarCustoms(@customLuaCbDict, lua)
 end sub
 
+''''''''
 private function lua_criarTabela(lua as lua_State ptr, db as TDb ptr, tabela as const zstring ptr) as TDbStmt ptr
 
 	lua_getglobal(lua, "criarTabela_" + *tabela)
@@ -210,75 +252,84 @@ private function lerLinha(bf as bfile) as string
 end function
 
 ''''''''
-function Efd.lerTipo(bf as bfile) as TipoRegistro
+function Efd.lerTipo(bf as bfile, tipo as zstring ptr) as TipoRegistro
 
 	if bf.peek1 <> asc("|") then
 		print "Erro: fora de sincronia na linha:"; nroLinha
+	else
+		bf.char1 ' pular |
 	end if
 	
-	bf.char1 ' pular |
-	
-	var tipo = bf.char4
+	*tipo = bf.char4
+	var subtipo = valint(right(*tipo, 3))
 
-	function = DESCONHECIDO
+	var tp = DESCONHECIDO
 	
 	select case as const tipo[0]
 	case asc("0")
-		select case tipo
-		case "0150"
-			function = PARTICIPANTE
-		case "0200"
-			function = ITEM_ID
-		case "0000"
-			function = MESTRE
+		select case subtipo
+		case 150
+			tp =  PARTICIPANTE
+		case 200
+			tp =  ITEM_ID
+		case 000
+			tp =  MESTRE
 		end select
 	case asc("C")
-		select case tipo
-		case "C100"
-			function = DOC_NF
-		case "C170"
-			function = DOC_NF_ITEM
-		case "C190"
-			function = DOC_NF_ANAL
-		case "C101"
-			function = DOC_NF_DIFAL
-		case "C460"
-			function = DOC_ECF
-		case "C470"
-			function = DOC_ECF_ITEM
-		case "C490"
-			function = DOC_ECF_ANAL
-		case "C400"
-			function = EQUIP_ECF
-		case "C405"
-			function = ECF_REDUCAO_Z
+		select case subtipo
+		case 100
+			tp =  DOC_NF
+		case 170
+			tp =  DOC_NF_ITEM
+		case 190
+			tp =  DOC_NF_ANAL
+		case 101
+			tp =  DOC_NF_DIFAL
+		case 460
+			tp =  DOC_ECF
+		case 470
+			tp =  DOC_ECF_ITEM
+		case 490
+			tp =  DOC_ECF_ANAL
+		case 400
+			tp =  EQUIP_ECF
+		case 405
+			tp =  ECF_REDUCAO_Z
 		end select
 	case asc("D")
-		select case tipo
-		case "D100"
-			function = DOC_CT
-		case "D190"
-			function = DOC_CT_ANAL
-		case "D101"
-			function = DOC_CT_DIFAL
+		select case subtipo
+		case 100
+			tp =  DOC_CT
+		case 190
+			tp =  DOC_CT_ANAL
+		case 101
+			tp =  DOC_CT_DIFAL
 		end select
 	case asc("E")	
-		select case tipo
-		case "E100"
-			function = APURACAO_ICMS_PERIODO
-		case "E110"
-			function = APURACAO_ICMS_PROPRIO
-		case "E200"
-			function = APURACAO_ICMS_ST_PERIODO
-		case "E210"
-			function = APURACAO_ICMS_ST
+		select case subtipo
+		case 100
+			tp =  APURACAO_ICMS_PERIODO
+		case 110
+			tp =  APURACAO_ICMS_PROPRIO
+		case 200
+			tp =  APURACAO_ICMS_ST_PERIODO
+		case 210
+			tp =  APURACAO_ICMS_ST
 		end select
 	case asc("9")
-		select case tipo
-		case "9999"
-			function = FIM_DO_ARQUIVO
+		select case subtipo
+		case 999
+			tp = FIM_DO_ARQUIVO
 		end select
 	end select
+	
+	if tp = DESCONHECIDO then
+		if customLuaCbDict[*tipo] <> null then
+			tp = LUA_CUSTOM
+		end if
+	end if
+	
+	function = tp
 
 end function
 
@@ -840,10 +891,11 @@ end sub
 
 ''''''''
 private function Efd.lerRegistro(bf as bfile, reg as TRegistro ptr) as Boolean
+	static as zstring * 4+1 tipo
+	
+	reg->tipo = lerTipo(bf, @tipo)
 
-	reg->tipo = lerTipo(bf)
-
-	select case reg->tipo
+	select case as const reg->tipo
 	case DOC_NF
 		if not lerRegDocNF(bf, reg) then
 			return false
@@ -1011,6 +1063,38 @@ private function Efd.lerRegistro(bf as bfile, reg as TRegistro ptr) as Boolean
 		
 		lerAssinatura(bf)
 	
+	case LUA_CUSTOM
+		
+		var luaFunc = cast(customLuaCb ptr, customLuaCbDict[tipo])->reader
+		
+		if luaFunc <> null then
+			lua_getglobal(lua, luaFunc)
+			lua_pushlightuserdata(lua, @bf)
+			lua_call(lua, 1, 2)
+
+			var campos = lua_tointeger(lua, -2)
+		
+			reg->tipo = LUA_CUSTOM
+			reg->lua.tipo = tipo
+			reg->lua.campos = campos
+			reg->lua.keys = allocate(campos * len(zstring ptr))
+			reg->lua.vals = allocate(campos * len(zstring ptr))
+			
+			lua_pushnil(lua)
+			var i = 0
+			do while lua_next(lua, -2) <> 0
+				reg->lua.keys[i] = dupstr(lua_tostring(lua, -2))
+				reg->lua.vals[i] = dupstr(lua_tostring(lua, -1))
+				i += 1
+				if i > campos then
+					print "Erro: numero de campos e maior que o retornado por " + *luafunc
+					exit do
+				end if
+				
+				lua_pop(lua, 1)
+			loop
+		end if
+	
 	case else
 		pularLinha(bf)
 	end select
@@ -1145,7 +1229,7 @@ private function Efd.lerRegistroSintegra(bf as bfile, reg as TRegistro ptr) as B
 
 	var tipo = bf.int2
 
-	select case tipo
+	select case as const tipo
 	case SINTEGRA_DOCUMENTO
 		reg->tipo = SINTEGRA_DOCUMENTO
 		if not lerRegSintegraDocumento(bf, reg) then
@@ -1362,7 +1446,7 @@ end sub
 ''''''''
 sub Efd.addRegistroOrdenadoPorData(reg as TRegistro ptr)
 
-	select case reg->tipo
+	select case as const reg->tipo
 	case DOC_NF
 		adicionarDocEscriturado(@reg->nf)
 	case DOC_NF_ITEM
@@ -1379,7 +1463,7 @@ sub Efd.addRegistroOrdenadoPorData(reg as TRegistro ptr)
 
 	dim as zstring ptr demi
 	
-	select case reg->tipo
+	select case as const reg->tipo
 	case DOC_NF
 		demi = @reg->nf.dataEmi
 	case DOC_CT
@@ -1394,7 +1478,7 @@ sub Efd.addRegistroOrdenadoPorData(reg as TRegistro ptr)
 	dim as TRegistro ptr p = null
 	dim as zstring ptr n_demi
 	do 
-		select case n->tipo
+		select case as const n->tipo
 		case DOC_NF
 			n_demi = @n->nf.dataEmi
 		case DOC_CT
@@ -1464,7 +1548,7 @@ function Efd.carregarTxt(nomeArquivo as String, mostrarProgresso as ProgressoCB)
 				
 			if lerRegistro( bf, reg ) then 
 				if reg->tipo <> DESCONHECIDO then
-					select case reg->tipo
+					select case as const reg->tipo
 					'' fim de arquivo?
 					case FIM_DO_ARQUIVO
 						delete reg
@@ -2015,6 +2099,10 @@ sub Efd.criarPlanilhas()
 	'' Inconsistencias LRS
 	inconsistenciasLRS = ew->AddWorksheet("Inconsistencias LRS")
 	
+	''
+	lua_getglobal(lua, "criarPlanilhas")
+	lua_call(lua, 0, 0)
+	
 end sub
 
 ''''''''
@@ -2133,7 +2221,7 @@ sub Efd.gerarPlanilhas(nomeArquivo as string, mostrarProgresso as ProgressoCB, a
 	var reg = regListHead
 	do while reg <> null
 		'para cada registro..
-		select case reg->tipo
+		select case as const reg->tipo
 		'item de NF-e?
 		case DOC_NF_ITEM
 			var doc = reg->itemNF.documentoPai
@@ -2552,6 +2640,23 @@ sub Efd.gerarPlanilhas(nomeArquivo as string, mostrarProgresso as ProgressoCB, a
 				end select
 			end if
 
+		case LUA_CUSTOM
+			
+			var luaFunc = cast(customLuaCb ptr, customLuaCbDict[reg->lua.tipo])->writer
+			
+			if luaFunc <> null then
+				lua_getglobal(lua, luaFunc)
+				
+				lua_createtable(lua, reg->lua.campos, 0)
+				for i as integer = 0 to reg->lua.campos-1
+					lua_pushstring(lua, reg->lua.keys[i])
+					lua_pushstring(lua, reg->lua.vals[i])
+					lua_settable(lua, -3)
+				next 
+				
+				lua_call(lua, 1, 0)
+			end if
+		
 		end select
 
 		regCnt =+ 1
@@ -2625,7 +2730,10 @@ sub Efd.exportAPI(L as lua_State ptr)
 	lua_setarGlobal(L, "TI_ALIQ", TI_ALIQ)
 	lua_setarGlobal(L, "TI_DUP", TI_DUP)
 	lua_setarGlobal(L, "TI_DIF", TI_DIF)
+	
 	lua_setarGlobal(L, "efd", @this)
+	lua_setarGlobal(L, "efd_plan_saidas", entradas)
+	lua_setarGlobal(L, "efd_plan_saidas", saidas)
 	
 	lua_register(L, "efd_plan_get", @luacb_efd_plan_get)
 	

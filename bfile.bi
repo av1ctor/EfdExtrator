@@ -1,7 +1,8 @@
 
-const MAX_BUFFER_SIZE = 8192
-
+#include once "Lua/lualib.bi"
 #define NULL 0
+
+const MAX_BUFFER_SIZE = 8192
 
 type bfile
 public:
@@ -42,6 +43,7 @@ public:
    declare function charCsv(separador as uInteger = asc(","), qualificador as uInteger = asc("""")) as string
    declare function intCsv(separador as uInteger = asc(","), qualificador as uInteger = asc("""")) as longint
    declare function dblCsv(separador as uInteger = asc(","), qualificador as uInteger = asc("""")) as double
+   declare static sub exportAPI(L as lua_State ptr)
 
 private:
    fnum as integer = 0

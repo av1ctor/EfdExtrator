@@ -12,32 +12,34 @@ enum TTipoArquivo
 end enum
 
 enum TipoRegistro
-	MESTRE         				= &h0000
-	PARTICIPANTE   				= &h0150
-	ITEM_ID        				= &h0200
-	DOC_NF      				= &hC100		'' NF, NF-e, NFC-e
-	DOC_NF_ITEM    				= &hC170		'' item de NF-e (só informado para entradas)
-	DOC_NF_ANAL					= &hC190
-	DOC_NF_DIFAL				= &hC101
-	DOC_CT     					= &hD100		'' CT, CT-e, CT-e OS, BP-e
-	DOC_CT_DIFAL				= &hD101
-	DOC_CT_ANAL					= &hD190
-	EQUIP_ECF					= &hC400
-	ECF_REDUCAO_Z				= &hC405
-	DOC_ECF						= &hC460
-	DOC_ECF_ITEM				= &hC470
-	DOC_ECF_ANAL				= &hC490
-	APURACAO_ICMS_PERIODO		= &hE100
-	APURACAO_ICMS_PROPRIO		= &hE110
-	APURACAO_ICMS_AJUSTE		= &hE111
-	APURACAO_ICMS_PROPRIO_OBRIG	= &hE116
-	APURACAO_ICMS_ST_PERIODO	= &hE200
-	APURACAO_ICMS_ST			= &hE210
-	FIM_DO_ARQUIVO				= &h9999		'' NOTA: anterior à assinatura digital que fica no final no arquivo
-	DESCONHECIDO   				= &h8888
-	SINTEGRA_DOCUMENTO 			= 50			'' NOTA: códigos do Sintegra não conflitam com outros tipos de registros na EFD
-	SINTEGRA_DOCUMENTO_IPI 		= 51
-	SINTEGRA_DOCUMENTO_ST		= 53
+	MESTRE
+	PARTICIPANTE
+	ITEM_ID
+	DOC_NF										'' NF, NF-e, NFC-e
+	DOC_NF_ITEM    								'' item de NF-e (só informado para entradas)
+	DOC_NF_ANAL					
+	DOC_NF_DIFAL				
+	DOC_CT     									'' CT, CT-e, CT-e OS, BP-e
+	DOC_CT_DIFAL				
+	DOC_CT_ANAL					
+	EQUIP_ECF					
+	ECF_REDUCAO_Z				
+	DOC_ECF						
+	DOC_ECF_ITEM				
+	DOC_ECF_ANAL				
+	APURACAO_ICMS_PERIODO		
+	APURACAO_ICMS_PROPRIO		
+	APURACAO_ICMS_AJUSTE		
+	APURACAO_ICMS_PROPRIO_OBRIG	
+	APURACAO_ICMS_ST_PERIODO	
+	APURACAO_ICMS_ST			
+	FIM_DO_ARQUIVO								'' NOTA: anterior à assinatura digital que fica no final no arquivo
+	DESCONHECIDO   				
+	LUA_CUSTOM									'' tratado no script Lua
+	SINTEGRA_DOCUMENTO 			
+	SINTEGRA_DOCUMENTO_IPI 		
+	SINTEGRA_DOCUMENTO_ST		
+	__TipoRegistro__LEN__
 end enum
 
 enum TipoAtividade
@@ -410,25 +412,33 @@ type TECFReducaoZ
 	itemAnalListTail 		as TDocItemAnal ptr
 end type
 
+type TLuaReg
+	tipo					as zstring * 4+1
+	campos					as integer
+	keys					as zstring ptr ptr
+	vals					as zstring ptr ptr
+end type
+
 type TRegistro
-	tipo           	as TipoRegistro
+	tipo           			as TipoRegistro
 	union
-		mestre      as TMestre
-		part        as TParticipante
-		nf         	as TDocNF
-		itemNF     	as TDocNFItem
-		ct         	as TDocCT
-		ecf         as TDocECF
-		itemECF     as TDocECFItem
-		docSint	  	as TDocumentoSintegra
-		itemId      as TItemId
-		apuIcms	  	as TApuracaoIcmsPeriodo
-		apuIcmsST  	as TApuracaoIcmsSTPeriodo
-		itemAnal	as TDocItemAnal
-		equipECF	as TEquipECF
-		ecfRedZ		as TECFReducaoZ
+		mestre      		as TMestre
+		part        		as TParticipante
+		nf         			as TDocNF
+		itemNF     			as TDocNFItem
+		ct         			as TDocCT
+		ecf         		as TDocECF
+		itemECF     		as TDocECFItem
+		docSint	  			as TDocumentoSintegra
+		itemId      		as TItemId
+		apuIcms	  			as TApuracaoIcmsPeriodo
+		apuIcmsST  			as TApuracaoIcmsSTPeriodo
+		itemAnal			as TDocItemAnal
+		equipECF			as TEquipECF
+		ecfRedZ				as TECFReducaoZ
+		lua					as TLuaReg
 	end union
-	next_          	as TRegistro ptr
+	next_          			as TRegistro ptr
 end type
 
 enum SAFI_TipoArquivo
@@ -566,6 +576,11 @@ enum TipoRegime
 	TR_RURAL_PF			= asc("P")
 end enum
 
+type CustomLuaCb
+	reader			as zstring ptr
+	writer			as zstring ptr
+end type
+
 type Efd
 public:
 	declare constructor ()
@@ -584,7 +599,7 @@ private:
 	
 	declare function lerRegistro(bf as bfile, reg as TRegistro ptr) as Boolean
 	declare function lerRegistroSintegra(bf as bfile, reg as TRegistro ptr) as Boolean
-	declare function lerTipo(bf as bfile) as TipoRegistro
+	declare function lerTipo(bf as bfile, tipo as zstring ptr) as TipoRegistro
 	declare sub lerAssinatura(bf as bfile)
 	declare function carregarSintegra(bf as bfile, mostrarProgresso as ProgressoCB) as Boolean
 	declare function carregarCsvNFeDest(bf as bfile, emModoOutrasUFs as boolean) as TDFe ptr
@@ -685,7 +700,9 @@ private:
 	
 	'' scripting
 	lua						as lua_State ptr
+	customLuaCbDict			as TDict			'' de CustomLuaCb
 end type
+
 
 ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 

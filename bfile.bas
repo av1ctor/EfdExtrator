@@ -481,3 +481,116 @@ function bfile.dblCsv(separador as uInteger, qualificador as uInteger) as double
 	end if
   
 end function
+
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+
+''''''''
+private function luacb_bf_char1 cdecl(byval L as lua_State ptr) as long
+	var args = lua_gettop(L)
+	
+	if args = 1 then
+		var bf = cast(bfile ptr, lua_touserdata(L, 1))
+
+		lua_pushinteger(L, cuint(bf->char1))
+	else
+		 lua_pushnil(L)
+	end if
+	
+	function = 1
+	
+end function
+
+''''''''
+private function luacb_bf_int1 cdecl(byval L as lua_State ptr) as long
+	var args = lua_gettop(L)
+	
+	if args = 1 then
+		var bf = cast(bfile ptr, lua_touserdata(L, 1))
+
+		lua_pushinteger(L, bf->int1)
+	else
+		 lua_pushnil(L)
+	end if
+	
+	function = 1
+	
+end function
+
+''''''''
+private function luacb_bf_int2 cdecl(byval L as lua_State ptr) as long
+	var args = lua_gettop(L)
+	
+	if args = 1 then
+		var bf = cast(bfile ptr, lua_touserdata(L, 1))
+
+		lua_pushinteger(L, bf->int2)
+	else
+		 lua_pushnil(L)
+	end if
+	
+	function = 1
+	
+end function
+
+''''''''
+private function luacb_bf_varchar cdecl(byval L as lua_State ptr) as long
+	var args = lua_gettop(L)
+	
+	if args < 1 or args > 2 then
+		lua_pushnil(L)
+	else
+		var bf = cast(bfile ptr, lua_touserdata(L, 1))
+		var separador = iif(args = 2, cuint(lua_tointeger(L, 2)), asc("|"))
+
+		lua_pushstring(L, bf->varchar(separador))
+	end if
+	
+	function = 1
+	
+end function
+
+''''''''
+private function luacb_bf_vardbl cdecl(byval L as lua_State ptr) as long
+	var args = lua_gettop(L)
+	
+	if args < 1 or args > 2 then
+		lua_pushnil(L)
+	else
+		var bf = cast(bfile ptr, lua_touserdata(L, 1))
+		var separador = iif(args = 2, cuint(lua_tointeger(L, 2)), asc("|"))
+
+		lua_pushnumber(L, bf->vardbl(separador))
+	end if
+	
+	function = 1
+	
+end function
+
+''''''''
+private function luacb_bf_varint cdecl(byval L as lua_State ptr) as long
+	var args = lua_gettop(L)
+	
+	if args < 1 or args > 2 then
+		lua_pushnil(L)
+	else
+		var bf = cast(bfile ptr, lua_touserdata(L, 1))
+		var separador = iif(args = 2, cuint(lua_tointeger(L, 2)), asc("|"))
+
+		lua_pushinteger(L, bf->varint(separador))
+	end if
+	
+	function = 1
+	
+end function
+
+''''''''
+static sub bfile.exportAPI(L as lua_State ptr)
+	
+	lua_register(L, "bf_char1", @luacb_bf_char1)
+	lua_register(L, "bf_int1", @luacb_bf_int1)
+	lua_register(L, "bf_int2", @luacb_bf_int2)
+	lua_register(L, "bf_varchar", @luacb_bf_varchar)
+	lua_register(L, "bf_varint", @luacb_bf_varint)
+	lua_register(L, "bf_vardbl", @luacb_bf_vardbl)
+	
+end sub
