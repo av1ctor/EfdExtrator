@@ -18,7 +18,7 @@
 	str = ds_row_getColValue(ds, colname)	-- retorna o valor (string) da coluna 'colname' na linha atual do dataset
 	row = ds_row(ds)						-- retorna uma array com as colunas da linha atual do dataset
 	
-	
+
 -- ExcelWriter:
 	ew = ew_new()							-- construtor
 	ew_del(ew)								-- destrutor
@@ -33,7 +33,17 @@
 -- ExcelWriter Row:
 	ec = er_addCell(er, contents)			-- adiciona uma célula à linha da planilha; 'contents' pode ser string ou número
 	
-	
+
 -- efd	
 	ws = efd_plan_get(nome)					-- retorna uma planilha interna, pesquisando pelo nome (entradas, saidas, inconsistenciasLRE, inconsistenciasLRS)
+	efd_plan_entradas						-- planilha de entradas (variável global)
+	efd_plan_saidas							-- planilha de saidas (variável global)
 	efd_plan_inconsistencias_AddRow(ws, ds, tipoInconsistencia, descricao)	-- tipo in (TI_ESCRIT_FALTA,TI_ESCRIT_FANTASMA,TI_ALIQ,TI_DUP,TI_DIF)
+	
+
+-- bfile
+	char = bf_char1(bf)
+	int = bf_int1(bf)
+	int = bf_varint(bf, separador)			-- separador padrão = asc("|")
+	dbl = bf_vardbl(bf, separador)
+	str = bf_varchar(bf, separador)

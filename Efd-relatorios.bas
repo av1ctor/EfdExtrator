@@ -21,7 +21,7 @@ sub Efd.gerarRelatorios(nomeArquivo as string, mostrarProgresso as ProgressoCB)
 	var reg = regListHead
 	do while reg <> null
 		'para cada registro..
-		select case reg->tipo
+		select case as const reg->tipo
 		'NF-e?
 		case DOC_NF
 			if reg->nf.operacao = ENTRADA then
@@ -48,7 +48,7 @@ sub Efd.gerarRelatorios(nomeArquivo as string, mostrarProgresso as ProgressoCB)
 	reg = regListHead
 	do while reg <> null
 		'para cada registro..
-		select case reg->tipo
+		select case as const reg->tipo
 		'NF-e?
 		case DOC_NF
 			if reg->nf.operacao = SAIDA then
@@ -77,7 +77,7 @@ sub Efd.gerarRelatorios(nomeArquivo as string, mostrarProgresso as ProgressoCB)
 	reg = regListHead
 	do while reg <> null
 		'para cada registro..
-		select case reg->tipo
+		select case as const reg->tipo
 		case APURACAO_ICMS_PERIODO
 			gerarRelatorioApuracaoICMS(nomeArquivo, reg)
 
