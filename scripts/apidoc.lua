@@ -39,11 +39,17 @@
 	efd_plan_entradas						-- planilha de entradas (variável global)
 	efd_plan_saidas							-- planilha de saidas (variável global)
 	efd_plan_inconsistencias_AddRow(ws, ds, tipoInconsistencia, descricao)	-- tipo in (TI_ESCRIT_FALTA,TI_ESCRIT_FANTASMA,TI_ALIQ,TI_DUP,TI_DIF)
+	part = efd_participante_get(id, formatar) -- retorna o objeto participante { cnpj, ie, nome, uf, municip }; formatar = true formatará os campos cnpj, ie etc
 	
 
 -- bfile
 	char = bf_char1(bf)						-- ler um char (1 byte)
 	int = bf_int1(bf)						-- ler um char e converter para inteiro
-	int = bf_varint(bf[, separador])			-- ler um inteiro até encontrar o separador; separador padrão = asc("|")
-	dbl = bf_vardbl(bf[, separador])			-- ler um double até encontrar o separador; separador padrão = asc("|")
-	str = bf_varchar(bf[, separador])			-- ler uma string até encontrar o separador; separador padrão = asc("|")
+	int = bf_varint(bf[, separador])		-- ler um inteiro até encontrar o separador; separador padrão = asc("|")
+	dbl = bf_vardbl(bf[, separador])		-- ler um double até encontrar o separador; separador padrão = asc("|")
+	str = bf_varchar(bf[, separador])		-- ler uma string até encontrar o separador; separador padrão = asc("|")
+	
+	
+-- DocxFactory
+	dfw_setClipboardValueByStr(dfw, item, campo, valor) -- troca o valor de um campo dentro de um item do template
+	dfw_paste(dfw, item)					-- faz um paste no relatório do conteúdo do item

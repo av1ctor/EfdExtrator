@@ -94,10 +94,10 @@ private function luacb_dfw_setClipboardValueByStr cdecl(byval L as lua_State ptr
 	if args = 4 then
 		var dfwd = cast(DocxFactoryDyn ptr, lua_touserdata(L, 1))
 		var item = lua_tostring(L, 2)
-		var field = lua_tostring(L, 3)
+		var fld = lua_tostring(L, 3)
 		var value = lua_tostring(L, 4)
 		
-		dfwd->setClipboardValueByStr(item, field, value)
+		dfwd->setClipboardValueByStr(item, fld, value)
 	end if
 	
 	function = 0
@@ -123,6 +123,6 @@ end function
 static sub DocxFactoryDyn.exportAPI(L as lua_State ptr)
 	
 	lua_register(L, "dfw_setClipboardValueByStr", @luacb_dfw_setClipboardValueByStr)
-	lua_register(L, "dfw_paste", @dfw_paste)
+	lua_register(L, "dfw_paste", @luacb_dfw_paste)
 	
 end sub

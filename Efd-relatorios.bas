@@ -37,27 +37,13 @@ sub Efd.gerarRelatorios(nomeArquivo as string, mostrarProgresso as ProgressoCB)
 			end if
 
 		case LUA_CUSTOM
-			
-			var luaFunc = cast(customLuaCb ptr, customLuaCbDict[reg->lua.tipo])->rel
+			var luaFunc = cast(customLuaCb ptr, customLuaCbDict[reg->lua.tipo])->rel_entradas
 			
 			if luaFunc <> null then
 				lua_getglobal(lua, luaFunc)
-				
-				lua_pushlightuserdata(lua, @dfwd)
-				lua_pushinteger(lua, 0)
-				
-				lua_createtable(lua, reg->lua.numCampos, 0)
-				for i as integer = 0 to reg->lua.numCampos-1
-					lua_pushstring(lua, reg->lua.campos[i].key)
-					if reg->lua.campos[i].typ = LUA_TSTRING then
-						lua_pushstring(lua, reg->lua.campos[i].val)
-					else
-						lua_pushnumber(lua, val(*reg->lua.campos[i].val))
-					end if
-					lua_settable(lua, -3)
-				next 
-				
-				lua_call(lua, 3, 0)
+				lua_pushlightuserdata(lua, dfwd)
+				lua_rawgeti(lua, LUA_REGISTRYINDEX, reg->lua.table)
+				lua_call(lua, 2, 0)
 			end if
 		end select
 		
@@ -90,6 +76,16 @@ sub Efd.gerarRelatorios(nomeArquivo as string, mostrarProgresso as ProgressoCB)
 		'ECF Redução Z?
 		case ECF_REDUCAO_Z
 			adicionarDocRelatorioSaidas(@reg->ecfRedZ)
+		
+		case LUA_CUSTOM
+			var luaFunc = cast(customLuaCb ptr, customLuaCbDict[reg->lua.tipo])->rel_saidas
+			
+			if luaFunc <> null then
+				lua_getglobal(lua, luaFunc)
+				lua_pushlightuserdata(lua, dfwd)
+				lua_rawgeti(lua, LUA_REGISTRYINDEX, reg->lua.table)
+				lua_call(lua, 2, 0)
+			end if
 		end select
 
 		reg = reg->next_
@@ -108,6 +104,15 @@ sub Efd.gerarRelatorios(nomeArquivo as string, mostrarProgresso as ProgressoCB)
 		case APURACAO_ICMS_ST_PERIODO
 			gerarRelatorioApuracaoICMSST(nomeArquivo, reg)
 			
+		case LUA_CUSTOM
+			var luaFunc = cast(customLuaCb ptr, customLuaCbDict[reg->lua.tipo])->rel_outros
+			
+			if luaFunc <> null then
+				lua_getglobal(lua, luaFunc)
+				lua_pushlightuserdata(lua, dfwd)
+				lua_rawgeti(lua, LUA_REGISTRYINDEX, reg->lua.table)
+				lua_call(lua, 2, 0)
+			end if
 		end select
 
 		reg = reg->next_
@@ -181,24 +186,6 @@ sub Efd.gerarRelatorioApuracaoICMSST(nomeArquivo as string, reg as TRegistro ptr
 	finalizarRelatorio()
 	
 end sub
-
-''''''''
-function EFd.codMunicipio2Nome(cod as integer) as string
-	
-	var nome = cast(zstring ptr, municipDict[cod])
-	if nome <> null then
-		return *nome
-	end if
-	
-	var nomedb = dbConfig->execScalar("select Nome || ' - ' || uf nome from Municipio where Codigo = " & cod)
-	if nomedb = null then
-		return ""
-	end if
-	
-	municipDict.add(cod, nomedb)
-	
-	function = *nomedb
-end function
 
 ''''''''
 sub Efd.iniciarRelatorio(relatorio as TipoRelatorio, nomeRelatorio as string, sufixo as string)
@@ -292,7 +279,7 @@ sub Efd.adicionarDocRelatorioItemAnal(sit as TipoSituacao, anal as TDocItemAnal 
 end sub
 
 ''''''''
-static sub Efd.luacb_efd_rel_addItemAnalitico cdecl(byval L as lua_State ptr) as long
+static function Efd.luacb_efd_rel_addItemAnalitico cdecl(L as lua_State ptr) as long
 	var args = lua_gettop(L)
 	
 	lua_getglobal(L, "efd")
@@ -305,7 +292,6 @@ static sub Efd.luacb_efd_rel_addItemAnalitico cdecl(byval L as lua_State ptr) as
 		dim as TDocItemAnal anal
 		
 		lua_pushnil(L)
-		var i = 0
 		do while lua_next(L, -2) <> 0
 			var value = lua_tonumber(L, -1)
 			
@@ -335,8 +321,8 @@ static sub Efd.luacb_efd_rel_addItemAnalitico cdecl(byval L as lua_State ptr) as
 			lua_pop(L, 1)
 		loop
 
-		anal->next_ = null
-		g_efd->adicionarDocRelatorioItemAnal(sit, anal)
+		anal.next_ = null
+		g_efd->adicionarDocRelatorioItemAnal(sit, @anal)
 	end if
 	
 	function = 0

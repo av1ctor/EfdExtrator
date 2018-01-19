@@ -30,13 +30,6 @@ private function my_lua_Alloc cdecl _
 end function
 
 ''''''''
-private function dupstr(s as const zstring ptr) as zstring ptr
-	dim as zstring ptr d = allocate(len(*s)+1)
-	*d = *s
-	function = d
-end function
-
-''''''''
 constructor Efd()
 	''
 	chaveDFeDict.init(2^20)
@@ -109,8 +102,12 @@ private sub lua_carregarCustoms(d as TDict ptr, L as lua_State ptr)
 				lcb->reader = funct
 			case "writer"
 				lcb->writer = funct
-			case "rel"
-				lcb->rel = funct
+			case "rel_entradas"
+				lcb->rel_entradas = funct
+			case "rel_saidas"
+				lcb->rel_saidas = funct
+			case "rel_outros"
+				lcb->rel_outros = funct
 			end select
 			
 			d->add(key, lcb)
@@ -131,7 +128,7 @@ sub EFd.configurarScripting()
 	TDb.exportAPI(lua)
 	ExcelWriter.exportAPI(lua)
 	bfile.exportAPI(lua)
-	dfwd.exportAPI(lua)
+	DocxFactoryDyn.exportAPI(lua)
 	exportAPI(lua)
 
 	luaL_dofile(lua, ExePath + "\scripts\config.lua")
@@ -1073,29 +1070,14 @@ private function Efd.lerRegistro(bf as bfile, reg as TRegistro ptr) as Boolean
 		if luaFunc <> null then
 			lua_getglobal(lua, luaFunc)
 			lua_pushlightuserdata(lua, @bf)
-			lua_call(lua, 1, 2)
+			lua_newtable(lua)
+			reg->lua.table = luaL_ref(lua, LUA_REGISTRYINDEX)
+			lua_rawgeti(lua, LUA_REGISTRYINDEX, reg->lua.table)
+			lua_call(lua, 2, 1)
 
-			var campos = lua_tointeger(lua, -2)
-		
 			reg->tipo = LUA_CUSTOM
 			reg->lua.tipo = tipo
-			reg->lua.numCampos = campos
-			reg->lua.campos = allocate(campos * len(TLuaRegField))
 			
-			lua_pushnil(lua)
-			var i = 0
-			do while lua_next(lua, -2) <> 0
-				reg->lua.campos[i].typ = lua_type(lua, -1)
-				reg->lua.campos[i].key = dupstr(lua_tostring(lua, -2))
-				reg->lua.campos[i].val = dupstr(lua_tostring(lua, -1))
-				i += 1
-				if i > campos then
-					print "Erro: numero de campos eh maior que o retornado por " + *luafunc
-					exit do
-				end if
-				
-				lua_pop(lua, 1)
-			loop
 		end if
 	
 	case else
@@ -2664,18 +2646,7 @@ sub Efd.gerarPlanilhas(nomeArquivo as string, mostrarProgresso as ProgressoCB, a
 			
 			if luaFunc <> null then
 				lua_getglobal(lua, luaFunc)
-				
-				lua_createtable(lua, reg->lua.numCampos, 0)
-				for i as integer = 0 to reg->lua.numCampos-1
-					lua_pushstring(lua, reg->lua.campos[i].key)
-					if reg->lua.campos[i].typ = LUA_TSTRING then
-						lua_pushstring(lua, reg->lua.campos[i].val)
-					else
-						lua_pushnumber(lua, val(*reg->lua.campos[i].val))
-					end if
-					lua_settable(lua, -3)
-				next 
-				
+				lua_rawgeti(lua, LUA_REGISTRYINDEX, reg->lua.table)
 				lua_call(lua, 1, 0)
 			end if
 		
@@ -2733,6 +2704,47 @@ private function luacb_efd_plan_get cdecl(byval L as lua_State ptr) as long
 end function
 
 ''''''''
+static function Efd.luacb_efd_participante_get cdecl(byval L as lua_State ptr) as long
+	var args = lua_gettop(L)
+
+	lua_getglobal(L, "efd")
+	var g_efd = cast(Efd ptr, lua_touserdata(L, -1))
+	lua_pop(L, 1)
+	
+	if args = 2 then
+		var idParticipante = lua_tostring(L, 1)
+		var formatar = lua_toboolean(L, 2) <> 0
+
+		var part = cast( TParticipante ptr, g_efd->participanteDict[idParticipante] )
+		if part <> null then
+			lua_newtable(L)
+			lua_pushstring(L, "cnpj")
+			lua_pushstring(L, iif(formatar, STR2CNPJ(part->cnpj), part->cnpj))
+			lua_settable(L, -3)
+			lua_pushstring(L, "ie")
+			lua_pushstring(L, iif(formatar, STR2IE(part->ie), part->ie))
+			lua_settable(L, -3)
+			lua_pushstring(L, "uf")
+			lua_pushstring(L, MUNICIPIO2SIGLA(part->municip))
+			lua_settable(L, -3)
+			lua_pushstring(L, "municip")
+			lua_pushstring(L, g_efd->codMunicipio2Nome(part->municip))
+			lua_settable(L, -3)			
+			lua_pushstring(L, "nome")
+			lua_pushstring(L, iif(formatar, left(part->nome, 64), part->nome))
+			lua_settable(L, -3)
+		else
+			lua_pushnil(L)
+		end if
+	else
+		 lua_pushnil(L)
+	end if
+	
+	function = 1
+	
+end function
+
+''''''''
 sub Efd.exportAPI(L as lua_State ptr)
 	
 	lua_setarGlobal(L, "TI_ESCRIT_FALTA", TI_ESCRIT_FALTA)
@@ -2744,6 +2756,7 @@ sub Efd.exportAPI(L as lua_State ptr)
 	lua_setarGlobal(L, "efd", @this)
 	
 	lua_register(L, "efd_plan_get", @luacb_efd_plan_get)
+	lua_register(L, "efd_participante_get", @luacb_efd_participante_get)
 	lua_register(L, "efd_rel_addItemAnalitico", @luacb_efd_rel_addItemAnalitico)
 	
 end sub
