@@ -122,3 +122,27 @@ function STR2IE(ie as string) as string
 	function = left(ie2,3) + "." + mid(ie2,4,3) + "." + mid(ie2,4+3,3) + "." + right(ie2,3)
 end function
 
+''''''''
+function EFd.codMunicipio2Nome(cod as integer) as string
+	
+	var nome = cast(zstring ptr, municipDict[cod])
+	if nome <> null then
+		return *nome
+	end if
+	
+	var nomedb = dbConfig->execScalar("select Nome || ' - ' || uf nome from Municipio where Codigo = " & cod)
+	if nomedb = null then
+		return ""
+	end if
+	
+	municipDict.add(cod, nomedb)
+	
+	function = *nomedb
+end function
+
+''''''''
+function dupstr(s as const zstring ptr) as zstring ptr
+	dim as zstring ptr d = allocate(len(*s)+1)
+	*d = *s
+	function = d
+end function

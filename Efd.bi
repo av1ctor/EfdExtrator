@@ -412,15 +412,9 @@ type TECFReducaoZ
 	itemAnalListTail 		as TDocItemAnal ptr
 end type
 
-type TLuaRegField
-	key						as zstring ptr
-	val						as zstring ptr
-	typ						as integer
-end type
 type TLuaReg
 	tipo					as zstring * 4+1
-	numCampos				as integer
-	campos					as TLuaRegField ptr
+	table					as integer
 end type
 
 type TRegistro
@@ -583,7 +577,9 @@ end enum
 type CustomLuaCb
 	reader			as zstring ptr
 	writer			as zstring ptr
-	rel				as zstring ptr
+	rel_entradas	as zstring ptr
+	rel_saidas		as zstring ptr
+	rel_outros		as zstring ptr
 end type
 
 type Efd
@@ -640,7 +636,8 @@ private:
 	declare sub analisarInconsistenciasLRS(mostrarProgresso as ProgressoCB)
 	
 	declare sub exportAPI(L as lua_State ptr)
-	declare static sub luacb_efd_rel_addItemAnalitico cdecl(byval L as lua_State ptr) as long
+	declare static function luacb_efd_rel_addItemAnalitico cdecl(L as lua_State ptr) as long
+	declare static function luacb_efd_participante_get cdecl(L as lua_State ptr) as long
 
 	tipoArquivo				as TTipoArquivo
 	
@@ -728,6 +725,7 @@ declare function ddMmYyyy2YyyyMmDd(s as const zstring ptr) as string
 declare function yyyyMmDd2Datetime(s as const zstring ptr) as string 
 declare function YyyyMmDd2DatetimeBR(s as const zstring ptr) as string 
 declare function STR2IE(ie as string) as string
+declare function dupstr(s as const zstring ptr) as zstring ptr
 
 extern as string ufCod2Sigla(11 to 53)
 extern as TDict ufSigla2CodDict
