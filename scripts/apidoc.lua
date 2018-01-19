@@ -42,8 +42,8 @@
 	
 
 -- bfile
-	char = bf_char1(bf)
-	int = bf_int1(bf)
-	int = bf_varint(bf, separador)			-- separador padrão = asc("|")
-	dbl = bf_vardbl(bf, separador)
-	str = bf_varchar(bf, separador)
+	char = bf_char1(bf)						-- ler um char (1 byte)
+	int = bf_int1(bf)						-- ler um char e converter para inteiro
+	int = bf_varint(bf[, separador])			-- ler um inteiro até encontrar o separador; separador padrão = asc("|")
+	dbl = bf_vardbl(bf[, separador])			-- ler um double até encontrar o separador; separador padrão = asc("|")
+	str = bf_varchar(bf[, separador])			-- ler uma string até encontrar o separador; separador padrão = asc("|")

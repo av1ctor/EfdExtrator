@@ -412,11 +412,15 @@ type TECFReducaoZ
 	itemAnalListTail 		as TDocItemAnal ptr
 end type
 
+type TLuaRegField
+	key						as zstring ptr
+	val						as zstring ptr
+	typ						as integer
+end type
 type TLuaReg
 	tipo					as zstring * 4+1
-	campos					as integer
-	keys					as zstring ptr ptr
-	vals					as zstring ptr ptr
+	numCampos				as integer
+	campos					as TLuaRegField ptr
 end type
 
 type TRegistro
@@ -579,6 +583,7 @@ end enum
 type CustomLuaCb
 	reader			as zstring ptr
 	writer			as zstring ptr
+	rel				as zstring ptr
 end type
 
 type Efd
@@ -635,6 +640,7 @@ private:
 	declare sub analisarInconsistenciasLRS(mostrarProgresso as ProgressoCB)
 	
 	declare sub exportAPI(L as lua_State ptr)
+	declare static sub luacb_efd_rel_addItemAnalitico cdecl(byval L as lua_State ptr) as long
 
 	tipoArquivo				as TTipoArquivo
 	

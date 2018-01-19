@@ -86,3 +86,43 @@ sub DocxFactoryDyn.setClipboardValueByStrW(byval p_itemName as const wstring ptr
 	
 	setClipboardValueByStrW_p(p_itemName, p_fieldName, p_value)
 end sub
+
+''''''''
+private function luacb_dfw_setClipboardValueByStr cdecl(byval L as lua_State ptr) as long
+	var args = lua_gettop(L)
+	
+	if args = 4 then
+		var dfwd = cast(DocxFactoryDyn ptr, lua_touserdata(L, 1))
+		var item = lua_tostring(L, 2)
+		var field = lua_tostring(L, 3)
+		var value = lua_tostring(L, 4)
+		
+		dfwd->setClipboardValueByStr(item, field, value)
+	end if
+	
+	function = 0
+	
+end function
+
+''''''''
+private function luacb_dfw_paste cdecl(byval L as lua_State ptr) as long
+	var args = lua_gettop(L)
+	
+	if args = 2 then
+		var dfwd = cast(DocxFactoryDyn ptr, lua_touserdata(L, 1))
+		var item = lua_tostring(L, 2)
+		
+		dfwd->paste(item)
+	end if
+	
+	function = 0
+	
+end function
+
+''''''''
+static sub DocxFactoryDyn.exportAPI(L as lua_State ptr)
+	
+	lua_register(L, "dfw_setClipboardValueByStr", @luacb_dfw_setClipboardValueByStr)
+	lua_register(L, "dfw_paste", @dfw_paste)
+	
+end sub

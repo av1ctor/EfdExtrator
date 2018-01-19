@@ -109,6 +109,8 @@ private sub lua_carregarCustoms(d as TDict ptr, L as lua_State ptr)
 				lcb->reader = funct
 			case "writer"
 				lcb->writer = funct
+			case "rel"
+				lcb->rel = funct
 			end select
 			
 			d->add(key, lcb)
@@ -129,6 +131,7 @@ sub EFd.configurarScripting()
 	TDb.exportAPI(lua)
 	ExcelWriter.exportAPI(lua)
 	bfile.exportAPI(lua)
+	dfwd.exportAPI(lua)
 	exportAPI(lua)
 
 	luaL_dofile(lua, ExePath + "\scripts\config.lua")
@@ -1076,18 +1079,18 @@ private function Efd.lerRegistro(bf as bfile, reg as TRegistro ptr) as Boolean
 		
 			reg->tipo = LUA_CUSTOM
 			reg->lua.tipo = tipo
-			reg->lua.campos = campos
-			reg->lua.keys = allocate(campos * len(zstring ptr))
-			reg->lua.vals = allocate(campos * len(zstring ptr))
+			reg->lua.numCampos = campos
+			reg->lua.campos = allocate(campos * len(TLuaRegField))
 			
 			lua_pushnil(lua)
 			var i = 0
 			do while lua_next(lua, -2) <> 0
-				reg->lua.keys[i] = dupstr(lua_tostring(lua, -2))
-				reg->lua.vals[i] = dupstr(lua_tostring(lua, -1))
+				reg->lua.campos[i].typ = lua_type(lua, -1)
+				reg->lua.campos[i].key = dupstr(lua_tostring(lua, -2))
+				reg->lua.campos[i].val = dupstr(lua_tostring(lua, -1))
 				i += 1
 				if i > campos then
-					print "Erro: numero de campos e maior que o retornado por " + *luafunc
+					print "Erro: numero de campos eh maior que o retornado por " + *luafunc
 					exit do
 				end if
 				
@@ -2045,6 +2048,18 @@ private sub adicionarColunasComuns(sheet as ExcelWorksheet ptr, ehEntrada as Boo
 end sub
    
 ''''''''
+private sub lua_setarGlobal overload (lua as lua_State ptr, varName as const zstring ptr, value as integer)
+	lua_pushnumber(lua, value)
+	lua_setglobal(lua, varName)
+end sub
+
+''''''''
+private sub lua_setarGlobal overload (lua as lua_State ptr, varName as const zstring ptr, value as any ptr)
+	lua_pushlightuserdata(lua, value)
+	lua_setglobal(lua, varName)
+end sub
+
+''''''''
 sub Efd.criarPlanilhas()
 	'' planilha de entradas
 	entradas = ew->AddWorksheet("Entradas")
@@ -2102,6 +2117,9 @@ sub Efd.criarPlanilhas()
 	''
 	lua_getglobal(lua, "criarPlanilhas")
 	lua_call(lua, 0, 0)
+
+	lua_setarGlobal(lua, "efd_plan_entradas", entradas)
+	lua_setarGlobal(lua, "efd_plan_saidas", saidas)
 	
 end sub
 
@@ -2647,10 +2665,14 @@ sub Efd.gerarPlanilhas(nomeArquivo as string, mostrarProgresso as ProgressoCB, a
 			if luaFunc <> null then
 				lua_getglobal(lua, luaFunc)
 				
-				lua_createtable(lua, reg->lua.campos, 0)
-				for i as integer = 0 to reg->lua.campos-1
-					lua_pushstring(lua, reg->lua.keys[i])
-					lua_pushstring(lua, reg->lua.vals[i])
+				lua_createtable(lua, reg->lua.numCampos, 0)
+				for i as integer = 0 to reg->lua.numCampos-1
+					lua_pushstring(lua, reg->lua.campos[i].key)
+					if reg->lua.campos[i].typ = LUA_TSTRING then
+						lua_pushstring(lua, reg->lua.campos[i].val)
+					else
+						lua_pushnumber(lua, val(*reg->lua.campos[i].val))
+					end if
 					lua_settable(lua, -3)
 				next 
 				
@@ -2711,18 +2733,6 @@ private function luacb_efd_plan_get cdecl(byval L as lua_State ptr) as long
 end function
 
 ''''''''
-private sub lua_setarGlobal overload (lua as lua_State ptr, varName as const zstring ptr, value as integer)
-	lua_pushnumber(lua, value)
-	lua_setglobal(lua, varName)
-end sub
-
-''''''''
-private sub lua_setarGlobal overload (lua as lua_State ptr, varName as const zstring ptr, value as any ptr)
-	lua_pushlightuserdata(lua, value)
-	lua_setglobal(lua, varName)
-end sub
-
-''''''''
 sub Efd.exportAPI(L as lua_State ptr)
 	
 	lua_setarGlobal(L, "TI_ESCRIT_FALTA", TI_ESCRIT_FALTA)
@@ -2732,9 +2742,8 @@ sub Efd.exportAPI(L as lua_State ptr)
 	lua_setarGlobal(L, "TI_DIF", TI_DIF)
 	
 	lua_setarGlobal(L, "efd", @this)
-	lua_setarGlobal(L, "efd_plan_saidas", entradas)
-	lua_setarGlobal(L, "efd_plan_saidas", saidas)
 	
 	lua_register(L, "efd_plan_get", @luacb_efd_plan_get)
+	lua_register(L, "efd_rel_addItemAnalitico", @luacb_efd_rel_addItemAnalitico)
 	
 end sub
