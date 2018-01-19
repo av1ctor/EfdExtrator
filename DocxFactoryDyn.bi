@@ -1,4 +1,5 @@
-
+#include once "Lua/lualib.bi"
+#include once "Lua/lauxlib.bi"
 
 type DocxFactoryDyn
 	declare	constructor
@@ -12,6 +13,7 @@ type DocxFactoryDyn
 	declare sub setClipboardValueByStr(byval p_itemName as const zstring ptr, byval p_fieldName as const zstring ptr, byval p_value as integer)
 	declare sub setClipboardValueByStr(byval p_itemName as const zstring ptr, byval p_fieldName as const zstring ptr, byval p_value as double)
 	declare sub setClipboardValueByStrW(byval p_itemName as const wstring ptr, byval p_fieldName as const wstring ptr, byval p_value as const wstring ptr)
+	declare static sub exportAPI(L as lua_State ptr)
 
 private:
 	libh		as long

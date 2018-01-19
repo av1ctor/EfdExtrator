@@ -35,6 +35,30 @@ sub Efd.gerarRelatorios(nomeArquivo as string, mostrarProgresso as ProgressoCB)
 				var part = cast( TParticipante ptr, participanteDict[reg->ct.idParticipante] )
 				adicionarDocRelatorioEntradas(@reg->ct, part)
 			end if
+
+		case LUA_CUSTOM
+			
+			var luaFunc = cast(customLuaCb ptr, customLuaCbDict[reg->lua.tipo])->rel
+			
+			if luaFunc <> null then
+				lua_getglobal(lua, luaFunc)
+				
+				lua_pushlightuserdata(lua, @dfwd)
+				lua_pushinteger(lua, 0)
+				
+				lua_createtable(lua, reg->lua.numCampos, 0)
+				for i as integer = 0 to reg->lua.numCampos-1
+					lua_pushstring(lua, reg->lua.campos[i].key)
+					if reg->lua.campos[i].typ = LUA_TSTRING then
+						lua_pushstring(lua, reg->lua.campos[i].val)
+					else
+						lua_pushnumber(lua, val(*reg->lua.campos[i].val))
+					end if
+					lua_settable(lua, -3)
+				next 
+				
+				lua_call(lua, 3, 0)
+			end if
 		end select
 		
 		reg = reg->next_
@@ -266,6 +290,58 @@ sub Efd.adicionarDocRelatorioItemAnal(sit as TipoSituacao, anal as TDocItemAnal 
 		anal = anal->next_
 	loop
 end sub
+
+''''''''
+static sub Efd.luacb_efd_rel_addItemAnalitico cdecl(byval L as lua_State ptr) as long
+	var args = lua_gettop(L)
+	
+	lua_getglobal(L, "efd")
+	var g_efd = cast(Efd ptr, lua_touserdata(L, -1))
+	lua_pop(L, 1)
+	
+	if args = 2 then
+		var sit = lua_tointeger(L, 1)
+		
+		dim as TDocItemAnal anal
+		
+		lua_pushnil(L)
+		var i = 0
+		do while lua_next(L, -2) <> 0
+			var value = lua_tonumber(L, -1)
+			
+			select case lcase(*lua_tostring(L, -2))
+			case "cst"
+				anal.cst = cint(value)
+			case "cfop"
+				anal.cfop = cint(value)
+			case "aliq"
+				anal.aliq = value
+			case "valorop"
+				anal.valorOp = value
+			case "bc"
+				anal.bc = value
+			case "icms"
+				anal.ICMS = value
+			case "bcst"
+				anal.bcST = value
+			case "icmsst"
+				anal.ICMSST = value
+			case "redbc"
+				anal.redBC = value
+			case "ipi"
+				anal.IPI = value
+			end select
+			
+			lua_pop(L, 1)
+		loop
+
+		anal->next_ = null
+		g_efd->adicionarDocRelatorioItemAnal(sit, anal)
+	end if
+	
+	function = 0
+	
+end function
 
 ''''''''
 sub Efd.adicionarDocRelatorioSaidas(doc as TDocDF ptr, part as TParticipante ptr)
