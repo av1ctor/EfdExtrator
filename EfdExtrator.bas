@@ -1,4 +1,4 @@
-'' para compilar: fbc.exe EfdExtrator.bas Efd.bas Efd-analises.bas Efd-relatorios.bas Efd-misc.bas bfile.bas ExcelWriter.bas list.bas Dict.bas DocxFactoryDyn.bas DB.bas VarBox.bas -exx
+'' para compilar: fbc.exe EfdExtrator.bas Efd.bas Efd-analises.bas Efd-relatorios.bas Efd-misc.bas bfile.bas ExcelWriter.bas list.bas Dict.bas DocxFactoryDyn.bas DB.bas VarBox.bas trycatch.bas
 
 #include once "EFD.bi"
 
@@ -12,7 +12,7 @@ on error goto exceptionReport
 '''''''''''
 sub mostrarUso()
 	print wstr("Modo de usar:")
-	print wstr("EfdExtrator.exe [-gerarRelatorios] [-complementarDados] arquivo.txt [arquivo.csv]")
+	print wstr("EfdExtrator.exe [-gerarRelatorios] [-complementarDados] [-filtrarCnpj cnpj1,cnpj2,...] arquivo.txt [arquivo.csv]")
 	print wstr("Notas:")
 	print wstr(!"\t1. No lugar do nome dos arquivos, podem ser usadas máscaras,")
 	print wstr(!"\t   como por exemplo: *.txt e *.csv")
@@ -30,6 +30,9 @@ sub mostrarUso()
 	print wstr(!"\t6. A opção -complementarDados inclui dados complementares na planilha")
 	print wstr(!"\t   (aba saídas) que será gerada e que não constam na EFD, caso os")
 	print wstr(!"\t   arquivos .csv do SAFI sejam fornecidos")
+	print wstr(!"\t7. A opção -filtrarCnpj fará com que só sejam extraídos os registros")
+	print wstr(!"\t   com os mesmos CNPJs (de emitentes ou destinatários) dos contidos")
+	print wstr(!"\t   na lista de CNPJs informada (separada por vírgula; zeros à esq)")
 	print 
 end sub
 
@@ -68,6 +71,7 @@ end sub
 sub main()
 	var gerarRelatorios = false
 	var acrescentarDados = false
+	var listaCnpj = ""
 	
 	mostrarCopyright()
    
@@ -90,6 +94,10 @@ sub main()
 			case "-gerarrelatorios"
 				gerarRelatorios = true
 				nroOpcoes += 1
+			case "-filtrarcnpj"
+				i += 1
+				listaCnpj = command(i)
+				nroOpcoes += 2
 			case "-complementardados"
 				acrescentarDados = true
 				nroOpcoes += 1
@@ -116,7 +124,7 @@ sub main()
 	'' 
 	var arquivoSaida = iif( len(command(nroOpcoes+2)) > 0, "__efd__", command(nroOpcoes+1))
    
-	e.iniciarExtracao(arquivoSaida + ".xml")
+	e.iniciarExtracao(arquivoSaida + ".xml", listaCnpj)
    
 	'' mais de um arquivo informado?
 	if len(command(nroOpcoes+2)) > 0 then

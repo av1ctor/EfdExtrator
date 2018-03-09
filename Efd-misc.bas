@@ -146,3 +146,41 @@ function dupstr(s as const zstring ptr) as zstring ptr
 	*d = *s
 	function = d
 end function
+
+''''''''
+sub splitstr(Text as string, Delim as string, Ret() as string)
+
+	var items = 10
+	redim RetVal(0 to items-1) as integer
+	
+	var x = 0
+	var p = 0
+	do 
+		x = InStr(x + 1, Text, Delim)
+		if( x > 0 ) then
+			if( p >= items ) then
+				items += 10
+				redim preserve RetVal(0 to items-1)
+			end if
+			RetVal(p) = x
+		end if
+		p += 1
+	loop until x = 0
+	
+	var cnt = p - 1
+	if( cnt = 0 ) then
+		redim Ret(0 to 0)
+		ret(0) = text
+		return
+	end if
+	
+	redim Ret(0 to cnt)
+	Ret(0) = Left(Text, RetVal(0) - 1 )
+	p = 1
+	do until p = cnt
+		Ret(p) = mid(Text, RetVal(p - 1) + 1, RetVal(p) - RetVal(p - 1) - 1 )
+		p += 1
+	loop
+	Ret(cnt) = mid(Text, RetVal(cnt - 1) + 1)
+   
+end sub
