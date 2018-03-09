@@ -1,17 +1,19 @@
 
 function getCustomCallbacks()
-	return {
+	return nil
+	
+	--return {
 		-- registro D500 (NOTA FISCAL DE SERVIÇO DE COMUNICAÇÃO (CÓDIGO 21) E NOTA FISCAL DE SERVIÇO DE TELECOMUNICAÇÃO)
-		D500 = {
-			reader = "NFSCT_ler", 
-			writer = "NFSCT_gravar",
-			rel_entradas = "NFSCT_rel_entradas"
-		},
+		--D500 = {
+			--reader = "NFSCT_ler", 
+			--writer = "NFSCT_gravar",
+			--rel_entradas = "NFSCT_rel_entradas"
+		--},
 		-- registro analítico do D500
-		D590 = {
-			reader = "NFSCT_RegAnalitico_ler"
-		}
-	}
+		--D590 = {
+			--reader = "NFSCT_RegAnalitico_ler"
+		--}
+	--}
 end
 
 -- readers (EFD)
@@ -30,7 +32,7 @@ function NFSCT_ler(f, reg)
 	bf_char1(f) -- pular |
 	reg.emitente = bf_int1(f)
 	bf_char1(f) -- pular |
-	reg.idParticipante = bf_varint(f)
+	reg.idParticipante = bf_varchar(f)
 	reg.modelo = bf_int2(f)
 	bf_char1(f) -- pular |
 	reg.situacao = bf_int2(f)
@@ -102,10 +104,17 @@ function NFSCT_gravar(reg)
 	
 	part = efd_participante_get(reg.idParticipante, false)
 	
-	er_addCell(row, part.cnpj)
-	er_addCell(row, part.ie)
-	er_addCell(row, part.uf)
-	er_addCell(row, part.nome)
+	if part ~= nil then
+		er_addCell(row, part.cnpj)
+		er_addCell(row, part.ie)
+		er_addCell(row, part.uf)
+		er_addCell(row, part.nome)
+	else
+		er_addCell(row, "")
+		er_addCell(row, "")
+		er_addCell(row, "")
+		er_addCell(row, "")
+	end
 	er_addCell(row, reg.modelo)
 	er_addCell(row, reg.subserie)
 	er_addCell(row, reg.numero)
@@ -132,22 +141,24 @@ end
 
 function NFSCT_rel_entradas(dfw, reg)
 	
-	part = efd_participante_get(reg.idParticipante, true)
+	--part = efd_participante_get(reg.idParticipante, true)
 	
-	dfw_setClipboardValueByStr(dfw, "linha", "demi", YyyyMmDd2DatetimeBR(reg.dataEmi))
-	dfw_setClipboardValueByStr(dfw, "linha", "dent", YyyyMmDd2DatetimeBR(reg.dataEntSaida))
-	dfw_setClipboardValueByStr(dfw, "linha", "nro", reg.numero)
-	dfw_setClipboardValueByStr(dfw, "linha", "mod", reg.modelo)
-	dfw_setClipboardValueByStr(dfw, "linha", "ser", reg.serie)
-	dfw_setClipboardValueByStr(dfw, "linha", "subser", reg.subserie)
-	dfw_setClipboardValueByStr(dfw, "linha", "sit", string.sub("00" .. reg.situacao, -2))
-	dfw_setClipboardValueByStr(dfw, "linha", "cnpj", part.cnpj)
-	dfw_setClipboardValueByStr(dfw, "linha", "ie", part.ie)
-	dfw_setClipboardValueByStr(dfw, "linha", "uf", part.uf)
-	dfw_setClipboardValueByStr(dfw, "linha", "municip", part.municip)
-	dfw_setClipboardValueByStr(dfw, "linha", "razao", part.nome)
+	-- !!!FIXME!!! está dando segfault por alqum motivo dentro do LUA quando os métodos do dfw_ são chamados....
 	
-	dfw_paste(dfw, "linha")
+	--dfw_setClipboardValueByStr(dfw, "linha", "demi", YyyyMmDd2DatetimeBR(reg.dataEmi))
+	--dfw_setClipboardValueByStr(dfw, "linha", "dent", YyyyMmDd2DatetimeBR(reg.dataEntSaida))
+	--dfw_setClipboardValueByStr(dfw, "linha", "nro", reg.numero)
+	--dfw_setClipboardValueByStr(dfw, "linha", "mod", reg.modelo)
+	--dfw_setClipboardValueByStr(dfw, "linha", "ser", reg.serie)
+	--dfw_setClipboardValueByStr(dfw, "linha", "subser", reg.subserie)
+	--dfw_setClipboardValueByStr(dfw, "linha", "sit", string.sub("00" .. reg.situacao, -2))
+	--dfw_setClipboardValueByStr(dfw, "linha", "cnpj", part.cnpj)
+	--dfw_setClipboardValueByStr(dfw, "linha", "ie", part.ie)
+	--dfw_setClipboardValueByStr(dfw, "linha", "uf", part.uf)
+	--dfw_setClipboardValueByStr(dfw, "linha", "municip", part.municip)
+	--dfw_setClipboardValueByStr(dfw, "linha", "razao", part.nome)
 	
-	efd_rel_addItemAnalitico(reg.situacao, reg.analitico)
+	--dfw_paste(dfw, "linha")
+	
+	--efd_rel_addItemAnalitico(reg.situacao, reg.analitico)
 end 

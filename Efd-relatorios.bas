@@ -3,6 +3,7 @@
 #include once "vbcompat.bi"
 #include once "DocxFactoryDyn.bi"
 #include once "DB.bi"
+#include once "trycatch.bi"
 
 ''''''''
 sub Efd.gerarRelatorios(nomeArquivo as string, mostrarProgresso as ProgressoCB)
@@ -19,36 +20,40 @@ sub Efd.gerarRelatorios(nomeArquivo as string, mostrarProgresso as ProgressoCB)
 	iniciarRelatorio(REL_LRE, "entradas", "LRE")
 	
 	var reg = regListHead
-	do while reg <> null
-		'para cada registro..
-		select case as const reg->tipo
-		'NF-e?
-		case DOC_NF
-			if reg->nf.operacao = ENTRADA then
-				var part = cast( TParticipante ptr, participanteDict[reg->nf.idParticipante] )
-				adicionarDocRelatorioEntradas(@reg->nf, part)
-			end if
-		
-		'CT-e?
-		case DOC_CT
-			if reg->ct.operacao = ENTRADA then
-				var part = cast( TParticipante ptr, participanteDict[reg->ct.idParticipante] )
-				adicionarDocRelatorioEntradas(@reg->ct, part)
-			end if
-
-		case LUA_CUSTOM
-			var luaFunc = cast(customLuaCb ptr, customLuaCbDict[reg->lua.tipo])->rel_entradas
+	try
+		do while reg <> null
+			'para cada registro..
+			select case as const reg->tipo
+			'NF-e?
+			case DOC_NF, DOC_NFSCT
+				if reg->nf.operacao = ENTRADA then
+					var part = cast( TParticipante ptr, participanteDict[reg->nf.idParticipante] )
+					adicionarDocRelatorioEntradas(@reg->nf, part)
+				end if
 			
-			if luaFunc <> null then
-				lua_getglobal(lua, luaFunc)
-				lua_pushlightuserdata(lua, dfwd)
-				lua_rawgeti(lua, LUA_REGISTRYINDEX, reg->lua.table)
-				lua_call(lua, 2, 0)
-			end if
-		end select
-		
-		reg = reg->next_
-	loop
+			'CT-e?
+			case DOC_CT
+				if reg->ct.operacao = ENTRADA then
+					var part = cast( TParticipante ptr, participanteDict[reg->ct.idParticipante] )
+					adicionarDocRelatorioEntradas(@reg->ct, part)
+				end if
+
+			case LUA_CUSTOM
+				var luaFunc = cast(customLuaCb ptr, customLuaCbDict[reg->lua.tipo])->rel_entradas
+				
+				if luaFunc <> null then
+					lua_getglobal(lua, luaFunc)
+					lua_pushlightuserdata(lua, dfwd)
+					lua_rawgeti(lua, LUA_REGISTRYINDEX, reg->lua.table)
+					lua_call(lua, 2, 0)
+				end if
+			end select
+			
+			reg = reg->next_
+		loop
+	catch
+		print !"\r\nErro ao tratar o registro de tipo (" & reg->tipo & !") carregado na linha (" & reg->linha & !")\r\n"
+	endtry
 	
 	finalizarRelatorio()
 	
@@ -56,67 +61,75 @@ sub Efd.gerarRelatorios(nomeArquivo as string, mostrarProgresso as ProgressoCB)
 	iniciarRelatorio(REL_LRS, "saidas", "LRS")
 	
 	reg = regListHead
-	do while reg <> null
-		'para cada registro..
-		select case as const reg->tipo
-		'NF-e?
-		case DOC_NF
-			if reg->nf.operacao = SAIDA then
-				var part = cast( TParticipante ptr, participanteDict[reg->nf.idParticipante] )
-				adicionarDocRelatorioSaidas(@reg->nf, part)
-			end if
+	try
+		do while reg <> null
+			'para cada registro..
+			select case as const reg->tipo
+			'NF-e?
+			case DOC_NF, DOC_NFSCT
+				if reg->nf.operacao = SAIDA then
+					var part = cast( TParticipante ptr, participanteDict[reg->nf.idParticipante] )
+					adicionarDocRelatorioSaidas(@reg->nf, part)
+				end if
 
-		'CT-e?
-		case DOC_CT
-			if reg->ct.operacao = SAIDA then
-				var part = cast( TParticipante ptr, participanteDict[reg->ct.idParticipante] )
-				adicionarDocRelatorioSaidas(@reg->ct, part)
-			end if
+			'CT-e?
+			case DOC_CT
+				if reg->ct.operacao = SAIDA then
+					var part = cast( TParticipante ptr, participanteDict[reg->ct.idParticipante] )
+					adicionarDocRelatorioSaidas(@reg->ct, part)
+				end if
+				
+			'ECF Redução Z?
+			case ECF_REDUCAO_Z
+				adicionarDocRelatorioSaidas(@reg->ecfRedZ)
 			
-		'ECF Redução Z?
-		case ECF_REDUCAO_Z
-			adicionarDocRelatorioSaidas(@reg->ecfRedZ)
-		
-		case LUA_CUSTOM
-			var luaFunc = cast(customLuaCb ptr, customLuaCbDict[reg->lua.tipo])->rel_saidas
-			
-			if luaFunc <> null then
-				lua_getglobal(lua, luaFunc)
-				lua_pushlightuserdata(lua, dfwd)
-				lua_rawgeti(lua, LUA_REGISTRYINDEX, reg->lua.table)
-				lua_call(lua, 2, 0)
-			end if
-		end select
+			case LUA_CUSTOM
+				var luaFunc = cast(customLuaCb ptr, customLuaCbDict[reg->lua.tipo])->rel_saidas
+				
+				if luaFunc <> null then
+					lua_getglobal(lua, luaFunc)
+					lua_pushlightuserdata(lua, dfwd)
+					lua_rawgeti(lua, LUA_REGISTRYINDEX, reg->lua.table)
+					lua_call(lua, 2, 0)
+				end if
+			end select
 
-		reg = reg->next_
-	loop
+			reg = reg->next_
+		loop
+	catch
+		print !"\r\nErro ao tratar o registro de tipo (" & reg->tipo & !") carregado na linha (" & reg->linha & !")\r\n"
+	endtry
 	
 	finalizarRelatorio()
 	
 	'' outros livros..
 	reg = regListHead
-	do while reg <> null
-		'para cada registro..
-		select case as const reg->tipo
-		case APURACAO_ICMS_PERIODO
-			gerarRelatorioApuracaoICMS(nomeArquivo, reg)
+	try
+		do while reg <> null
+			'para cada registro..
+			select case as const reg->tipo
+			case APURACAO_ICMS_PERIODO
+				gerarRelatorioApuracaoICMS(nomeArquivo, reg)
 
-		case APURACAO_ICMS_ST_PERIODO
-			gerarRelatorioApuracaoICMSST(nomeArquivo, reg)
-			
-		case LUA_CUSTOM
-			var luaFunc = cast(customLuaCb ptr, customLuaCbDict[reg->lua.tipo])->rel_outros
-			
-			if luaFunc <> null then
-				lua_getglobal(lua, luaFunc)
-				lua_pushlightuserdata(lua, dfwd)
-				lua_rawgeti(lua, LUA_REGISTRYINDEX, reg->lua.table)
-				lua_call(lua, 2, 0)
-			end if
-		end select
+			case APURACAO_ICMS_ST_PERIODO
+				gerarRelatorioApuracaoICMSST(nomeArquivo, reg)
+				
+			case LUA_CUSTOM
+				var luaFunc = cast(customLuaCb ptr, customLuaCbDict[reg->lua.tipo])->rel_outros
+				
+				if luaFunc <> null then
+					lua_getglobal(lua, luaFunc)
+					lua_pushlightuserdata(lua, dfwd)
+					lua_rawgeti(lua, LUA_REGISTRYINDEX, reg->lua.table)
+					lua_call(lua, 2, 0)
+				end if
+			end select
 
-		reg = reg->next_
-	loop
+			reg = reg->next_
+		loop
+	catch
+		print !"\r\nErro ao tratar o registro de tipo (" & reg->tipo & !") carregado na linha (" & reg->linha & !")\r\n"
+	endtry
 	
 	mostrarProgresso(null, 1)
 
@@ -341,15 +354,24 @@ sub Efd.adicionarDocRelatorioSaidas(doc as TDocDF ptr, part as TParticipante ptr
 	dfwd->setClipboardValueByStr("linha", "nrini", doc->numero)
 	dfwd->setClipboardValueByStr("linha", "md", doc->modelo)
 	dfwd->setClipboardValueByStr("linha", "sr", doc->serie)
+	dfwd->setClipboardValueByStr("linha", "sub", doc->subserie)
 	dfwd->setClipboardValueByStr("linha", "sit", format(cdbl(doc->situacao), "00"))
 	
 	select case doc->situacao
 	case REGULAR, EXTEMPORANEO
-		dfwd->setClipboardValueByStr("linha", "cnpjdest", STR2CNPJ(part->cnpj))
-		dfwd->setClipboardValueByStr("linha", "iedest", STR2IE(part->ie))
-		dfwd->setClipboardValueByStr("linha", "uf", MUNICIPIO2SIGLA(part->municip))
-		dfwd->setClipboardValueByStr("linha", "mundest", part->municip)
-		dfwd->setClipboardValueByStrW("linha", "razaodest", left(part->nome, 64))
+		if part <> null then
+			dfwd->setClipboardValueByStr("linha", "cnpjdest", STR2CNPJ(part->cnpj))
+			dfwd->setClipboardValueByStr("linha", "iedest", STR2IE(part->ie))
+			dfwd->setClipboardValueByStr("linha", "uf", MUNICIPIO2SIGLA(part->municip))
+			dfwd->setClipboardValueByStr("linha", "mundest", str(part->municip))
+			dfwd->setClipboardValueByStrW("linha", "razaodest", left(part->nome, 64))
+		else
+			dfwd->setClipboardValueByStr("linha", "cnpjdest", "")
+			dfwd->setClipboardValueByStr("linha", "iedest", "")
+			dfwd->setClipboardValueByStr("linha", "uf", "")
+			dfwd->setClipboardValueByStr("linha", "mundest", "")
+			dfwd->setClipboardValueByStr("linha", "razaodest", "")
+		end if
 	end select
 	
 	dfwd->paste("linha")
@@ -368,12 +390,21 @@ sub Efd.adicionarDocRelatorioEntradas(doc as TDocDF ptr, part as TParticipante p
 	dfwd->setClipboardValueByStr("linha", "nro", doc->numero)
 	dfwd->setClipboardValueByStr("linha", "mod", doc->modelo)
 	dfwd->setClipboardValueByStr("linha", "ser", doc->serie)
+	dfwd->setClipboardValueByStr("linha", "subser", doc->subserie)
 	dfwd->setClipboardValueByStr("linha", "sit", format(cdbl(doc->situacao), "00"))
-	dfwd->setClipboardValueByStr("linha", "cnpj", STR2CNPJ(part->cnpj))
-	dfwd->setClipboardValueByStr("linha", "ie", STR2IE(part->ie))
-	dfwd->setClipboardValueByStr("linha", "uf", MUNICIPIO2SIGLA(part->municip))
-	dfwd->setClipboardValueByStr("linha", "municip", codMunicipio2Nome(part->municip))
-	dfwd->setClipboardValueByStrW("linha", "razao", left(part->nome, 64))
+	if part <> null then
+		dfwd->setClipboardValueByStr("linha", "cnpj", STR2CNPJ(part->cnpj))
+		dfwd->setClipboardValueByStr("linha", "ie", STR2IE(part->ie))
+		dfwd->setClipboardValueByStr("linha", "uf", MUNICIPIO2SIGLA(part->municip))
+		dfwd->setClipboardValueByStr("linha", "municip", codMunicipio2Nome(part->municip))
+		dfwd->setClipboardValueByStrW("linha", "razao", left(part->nome, 64))
+	else
+		dfwd->setClipboardValueByStr("linha", "cnpj", "")
+		dfwd->setClipboardValueByStr("linha", "ie", "")
+		dfwd->setClipboardValueByStr("linha", "uf", "")
+		dfwd->setClipboardValueByStr("linha", "municip", "")
+		dfwd->setClipboardValueByStr("linha", "razao", "")
+	end if
 	
 	dfwd->paste("linha")
 	
@@ -420,9 +451,15 @@ sub Efd.finalizarRelatorio()
 		bookmark = "ass"
 	end select
 	
-	dfwd->setClipboardValueByStr(bookmark, "nome_ass", infAssinatura->assinante)
-	dfwd->setClipboardValueByStr(bookmark, "cpf_ass", STR2CPF(infAssinatura->cpf))
-	dfwd->setClipboardValueByStr(bookmark, "hash_ass", infAssinatura->hashDoArquivo)
+	if infAssinatura <> null then
+		dfwd->setClipboardValueByStr(bookmark, "nome_ass", infAssinatura->assinante)
+		dfwd->setClipboardValueByStr(bookmark, "cpf_ass", STR2CPF(infAssinatura->cpf))
+		dfwd->setClipboardValueByStr(bookmark, "hash_ass", infAssinatura->hashDoArquivo)
+	else
+		dfwd->setClipboardValueByStr(bookmark, "nome_ass", "")
+		dfwd->setClipboardValueByStr(bookmark, "cpf_ass", "")
+		dfwd->setClipboardValueByStr(bookmark, "hash_ass", "")
+	end if
 
 	select case ultimoRelatorio
 	case REL_LRE, REL_LRS

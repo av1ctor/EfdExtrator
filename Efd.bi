@@ -27,6 +27,8 @@ enum TipoRegistro
 	DOC_ECF						
 	DOC_ECF_ITEM				
 	DOC_ECF_ANAL				
+	DOC_NFSCT									'' NF de comunicação e telecomunicação
+	DOC_NFSCT_ANAL
 	APURACAO_ICMS_PERIODO		
 	APURACAO_ICMS_PROPRIO		
 	APURACAO_ICMS_AJUSTE		
@@ -272,7 +274,8 @@ type TDocDF
 	modelo			as TipoModelo
 	dataEmi			as zstring * 8+1		'AAAAMMDD
 	dataEntSaida	as zstring * 8+1
-	serie			as integer
+	serie			as zstring * 4+1
+	subserie		as zstring * 8+1
 	numero			as longint
 	chave			as zstring * 44+1
 	valorTotal		as double
@@ -417,8 +420,14 @@ type TLuaReg
 	table					as integer
 end type
 
+type TArquivoInfo
+	nome			as zstring * 256+1
+end type
+
 type TRegistro
 	tipo           			as TipoRegistro
+	arquivo					as TArquivoInfo ptr
+	linha					as integer
 	union
 		mestre      		as TMestre
 		part        		as TParticipante
@@ -586,7 +595,7 @@ type Efd
 public:
 	declare constructor ()
 	declare destructor ()
-	declare sub iniciarExtracao(nomeArquivo as String)
+	declare sub iniciarExtracao(nomeArquivo as String, listaCnpj as String)
 	declare sub finalizarExtracao(mostrarProgresso as ProgressoCB)
 	declare function carregarTxt(nomeArquivo as String, mostrarProgresso as ProgressoCB) as Boolean
 	declare function carregarCsv(nomeArquivo as String, mostrarProgresso as ProgressoCB) as Boolean
@@ -614,6 +623,7 @@ private:
 	declare sub adicionarDocEscriturado(doc as TDocDF ptr)
 	declare sub adicionarDocEscriturado(doc as TDocECF ptr)
 	declare sub adicionarItemNFEscriturado(item as TDocNFItem ptr)
+	declare function filtrarPorCnpj(idParticipante as const zstring ptr) as boolean
 	
 	declare sub addRegistroOrdenadoPorData(reg as TRegistro ptr)
 	
@@ -639,7 +649,12 @@ private:
 	declare static function luacb_efd_rel_addItemAnalitico cdecl(L as lua_State ptr) as long
 	declare static function luacb_efd_participante_get cdecl(L as lua_State ptr) as long
 
+	arquivos				as TList 		'' de TArquivoInfo
 	tipoArquivo				as TTipoArquivo
+	
+	'' filtros
+	filtrarCnpj				as boolean
+	listaCnpj(any)			as string
 	
 	'' registros das EFD's e do Sintegra (reiniciados a cada novo .txt carregado)
 	regListHead         	as TRegistro ptr = null
@@ -726,6 +741,7 @@ declare function yyyyMmDd2Datetime(s as const zstring ptr) as string
 declare function YyyyMmDd2DatetimeBR(s as const zstring ptr) as string 
 declare function STR2IE(ie as string) as string
 declare function dupstr(s as const zstring ptr) as zstring ptr
+declare sub splitstr(Text As String, Delim As String = ",", Ret() As String)
 
 extern as string ufCod2Sigla(11 to 53)
 extern as TDict ufSigla2CodDict

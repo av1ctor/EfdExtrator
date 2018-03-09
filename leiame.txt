@@ -3,7 +3,7 @@ Copyleft 2017-2018 by André Vicentini (avtvicentini)
 
 Modo de usar:
 
-    EfdExtrator.exe [-gerarRelatorios] [-complementarDados] arquivo.txt [arquivo.csv]
+    EfdExtrator.exe [-gerarRelatorios] [-complementarDados] [-filtrarCnpj cnpj1,cnpj2,...] arquivo.txt [arquivo.csv]
 
     Notas:
         1. No lugar do nome dos arquivos, podem ser usadas máscaras,
@@ -20,8 +20,11 @@ Modo de usar:
            os relatórios e o execute - essa conversão é feita pelo Word e 
            costuma ser demorada
         6. A opção -complementarDados inclui dados complementares na planilha
-           (aba saídas) que será gerada e que não constam na EFD, caso os
+           (aba Saídas) que será gerada e que não constam na EFD, caso os
            arquivos .csv do SAFI sejam fornecidos
+		7. A opção -filtrarCnpj fará com que só sejam extraídos os registros 
+		   com os mesmos CNPJs (de emitentes ou destinatários) dos contidos
+		   na lista de CNPJs informada (separada por vírgula, com zeros à esq.) 
 
 Sobre as análises e cruzamentos:
 
