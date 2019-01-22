@@ -68,12 +68,14 @@ type ExcelWriter
 	declare constructor
 	declare destructor
 	declare function AddWorksheet(name as string) as ExcelWorksheet ptr
-	declare function create(fileName as string) as boolean
+	declare function create(fileName as string, generateCSV as boolean) as boolean
 	declare function flush(showProgress as ProgressCB) as boolean
 	declare sub close
 	declare static sub exportAPI(L as lua_State ptr)
 	
 private:
+	isCSV					as boolean = false
+	fileName				as string
 	fnum				   	as integer = 0
 	workbook 				as ExcelWorkbook ptr = null
 	CellType2String(0 to __CT_LEN__-1) as string

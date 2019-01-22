@@ -1,0 +1,5 @@
+versão 0.2 beta:
+- adicionado: extração do bloco H (Livro de Inventário)
+- corrigido: ordenação das datas no relatório Word/docx agora segue a ordem do EFD-ICMS-IPI
+- melhoria: aplicativo foi portado para 64-bit, permitindo extrair e processar EFDs de mais de 500MB de tamanho
+- melhoria: extração de EFDs grandes (> 100MB) ficou muito mais rápida com novo algoritmo de ordenação

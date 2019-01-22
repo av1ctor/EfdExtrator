@@ -151,11 +151,19 @@ end sub
 ''''''''
 private function lua_criarTabela(lua as lua_State ptr, db as TDb ptr, tabela as const zstring ptr) as TDbStmt ptr
 
-	lua_getglobal(lua, "criarTabela_" + *tabela)
-	lua_pushlightuserdata(lua, db)
-	lua_call(lua, 1, 1)
-	function = db->prepare(lua_tostring(lua, -1))
-	lua_pop(lua, 1)
+	try
+		lua_getglobal(lua, "criarTabela_" + *tabela)
+		lua_pushlightuserdata(lua, db)
+		lua_call(lua, 1, 1)
+		var res = db->prepare(lua_tostring(lua, -1))
+		if res = null then
+			print wstr("Erro ao executar script lua de criação de tabela" + "criarTabela_" + *tabela + ": " + *db->getErrorMsg())
+		end if
+		function = res
+		lua_pop(lua, 1)
+	catch
+		print wstr("Erro ao executar script lua de criação de tabela" + "criarTabela_" + *tabela + ". Verifique erros de sintaxe")
+	endtry
 
 end function
 
@@ -163,49 +171,66 @@ end function
 sub Efd.configurarDB()
 
 	db = new TDb
-	db->open()
+	if not opcoes.dbEmDisco then
+		db->open()
+	else
+		kill nomeArquivoSaida + ".db"
+		db->open(nomeArquivoSaida + ".db")
+		db->execNonQuery("PRAGMA JOURNAL_MODE=OFF")
+		db->execNonQuery("PRAGMA SYNCHRONOUS=0")
+		db->execNonQuery("PRAGMA LOCKING_MODE=EXCLUSIVE")
+	end if
 
 	var dbPath = ExePath + "\db\"
 	
-	'' chamar configurarDB()
-	lua_getglobal(lua, "configurarDB")
-	lua_pushlightuserdata(lua, db)
-	lua_pushstring(lua, dbPath)
-	lua_call(lua, 2, 0)
+	try
+		'' chamar configurarDB()
+		lua_getglobal(lua, "configurarDB")
+		lua_pushlightuserdata(lua, db)
+		lua_pushstring(lua, dbPath)
+		lua_call(lua, 2, 0)
 
-	'' criar tabelas
-	db_dfeEntradaInsertStmt = lua_criarTabela(lua, db, "dfeEntrada")
+		'' criar tabelas
+		db_dfeEntradaInsertStmt = lua_criarTabela(lua, db, "dfeEntrada")
 
-	db_dfeSaidaInsertStmt = lua_criarTabela(lua, db, "dfeSaida")
-	
-	db_itensDfeSaidaInsertStmt = lua_criarTabela(lua, db, "itensDfeSaida")
-	
-	db_LREInsertStmt = lua_criarTabela(lua, db, "LRE")
+		db_dfeSaidaInsertStmt = lua_criarTabela(lua, db, "dfeSaida")
+		
+		db_itensDfeSaidaInsertStmt = lua_criarTabela(lua, db, "itensDfeSaida")
+		
+		db_LREInsertStmt = lua_criarTabela(lua, db, "LRE")
 
-	db_itensNfLREInsertStmt = lua_criarTabela(lua, db, "itensNfLRE")
+		db_itensNfLREInsertStmt = lua_criarTabela(lua, db, "itensNfLRE")
 
-	db_LRSInsertStmt = lua_criarTabela(lua, db, "LRS")
+		db_LRSInsertStmt = lua_criarTabela(lua, db, "LRS")
+
+		db_ressarcStItensNfLRSInsertStmt = lua_criarTabela(lua, db, "ressarcStItensNfLRS")
+		
+		if db_dfeEntradaInsertStmt = null or _
+			db_dfeSaidaInsertStmt = null or _
+			 db_itensDfeSaidaInsertStmt = null or _
+			  db_LREInsertStmt = null or _
+			   db_itensNfLREInsertStmt = null or _
+			    db_LRSInsertStmt = null or _
+				 db_ressarcStItensNfLRSInsertStmt = null then
+			
+		end if
+	catch
+		print wstr("Erro ao executar script lua de criação de DB. Verifique erros de sintaxe")
+	endtry
 
 end sub   
   
 ''''''''
-sub Efd.iniciarExtracao(nomeArquivo as String, listaCnpj as string)
+sub Efd.iniciarExtracao(nomeArquivo as String, opcoes as OpcoesExtracao)
 	
 	''
 	ew = new ExcelWriter
-	ew->create(nomeArquivo)
+	ew->create(nomeArquivo, opcoes.formatoDeSaida = SAIDA_CSV)
 
 	entradas = null
 	saidas = null
 	nomeArquivoSaida = nomeArquivo
-	
-	''
-	if( len(listaCnpj) > 0 ) then
-		splitstr(listaCnpj, ",", this.listaCnpj())
-		filtrarCnpj = true
-	else
-		filtrarCnpj = false
-	end if
+	this.opcoes = opcoes
 	
 	''
 	configurarScripting()
@@ -226,6 +251,11 @@ sub Efd.finalizarExtracao(mostrarProgresso as ProgressoCB)
    
 	''
 	delete db
+	if opcoes.dbEmDisco then
+		if not opcoes.manterDb then
+			kill nomeArquivoSaida + ".db"
+		end if
+	end if
 	
 	''
 	lua_close( lua )
@@ -237,13 +267,17 @@ private sub pularLinha(bf as bfile)
 
 	'ler até \r
 	do
-	  if bf.char1 = 13 then
+		var c = bf.char1
+		
+		if c = 13 or c = 10 then
 			exit do
 		end if
 	loop
-	
+
 	'pular \n
-	bf.char1 
+	if bf.peek1 = 10 then
+		bf.char1 
+	end if
 	
 end sub
 
@@ -251,20 +285,22 @@ end sub
 private function lerLinha(bf as bfile) as string
 
 	var res = ""
-	var c1 = " "
+	var c = " "
 	
 	'ler até \r
 	do
-		c1[0] = bf.char1
-		if c1[0] = 13 then
+		c[0] = bf.char1
+		if c[0] = 13 or c[0] = 10 then
 			exit do
 		end if
 		
-		res += c1
+		res += c
 	loop
 	
 	'pular \n
-	bf.char1
+	if bf.peek1 = 10 then
+		bf.char1 
+	end if
 
 	function = res
 	
@@ -300,6 +336,8 @@ function Efd.lerTipo(bf as bfile, tipo as zstring ptr) as TipoRegistro
 			tp =  DOC_NF
 		case 170
 			tp =  DOC_NF_ITEM
+		case 176
+			tp =  DOC_NF_ITEM_RESSARC_ST
 		case 190
 			tp =  DOC_NF_ANAL
 		case 101
@@ -338,6 +376,13 @@ function Efd.lerTipo(bf as bfile, tipo as zstring ptr) as TipoRegistro
 			tp =  APURACAO_ICMS_ST_PERIODO
 		case 210
 			tp =  APURACAO_ICMS_ST
+		end select
+	case asc("H")	
+		select case subtipo
+		case 005
+			tp =  INVENTARIO_TOTAIS
+		case 010
+			tp =  INVENTARIO_ITEM
 		end select
 	case asc("9")
 		select case subtipo
@@ -380,9 +425,15 @@ private function lerRegMestre(bf as bfile, reg as TRegistro ptr) as Boolean
 	bf.char1		'pular |
 
 	'pular \r\n
-	bf.char1
-	bf.char1
-
+	if bf.peek1 = 13 then
+		bf.char1
+	end if
+	if bf.peek1 <> 10 then
+		print "Erro: esperado \n, encontrado "; bf.peek1
+	else
+		bf.char1
+	end if
+	
 	function = true
 
 end function
@@ -406,8 +457,14 @@ private function lerRegParticipante(bf as bfile, reg as TRegistro ptr) as Boolea
 	reg->part.bairro	= bf.varchar
    
 	'pular \r\n
-	bf.char1
-	bf.char1
+	if bf.peek1 = 13 then
+		bf.char1
+	end if
+	if bf.peek1 <> 10 then
+		print "Erro: esperado \n, encontrado "; bf.peek1
+	else
+		bf.char1
+	end if
 
 	function = true
 
@@ -456,8 +513,14 @@ private function lerRegDocNF(bf as bfile, reg as TRegistro ptr) as Boolean
 	reg->nf.itemAnalListTail = null
 
 	'pular \r\n
-	bf.char1
-	bf.char1
+	if bf.peek1 = 13 then
+		bf.char1
+	end if
+	if bf.peek1 <> 10 then
+		print "Erro: esperado \n, encontrado "; bf.peek1
+	else
+		bf.char1
+	end if
 
 	function = true
 
@@ -508,10 +571,19 @@ private function lerRegDocNFItem(bf as bfile, reg as TRegistro ptr, documentoPai
 	bf.varchar					'' pular código da conta
 
 	documentoPai->nroItens 		+= 1
+	
+	reg->itemNF.itemRessarcStListHead = null
+	reg->itemNF.itemRessarcStListTail = null
 
 	'pular \r\n
-	bf.char1
-	bf.char1
+	if bf.peek1 = 13 then
+		bf.char1
+	end if
+	if bf.peek1 <> 10 then
+		print "Erro: esperado \n, encontrado "; bf.peek1
+	else
+		bf.char1
+	end if
 
 	function = true
 
@@ -537,8 +609,68 @@ private function lerRegDocNFItemAnal(bf as bfile, reg as TRegistro ptr, document
 	bf.varchar					'' pular código de observação
 
 	'pular \r\n
-	bf.char1
-	bf.char1
+	if bf.peek1 = 13 then
+		bf.char1
+	end if
+	if bf.peek1 <> 10 then
+		print "Erro: esperado \n, encontrado "; bf.peek1
+	else
+		bf.char1
+	end if
+	
+	function = true
+
+end function
+
+''''''''
+private function lerRegDocNFItemRessarcSt(bf as bfile, reg as TRegistro ptr, documentoPai as TDocNFItem ptr) as Boolean
+
+	bf.char1		'pular |
+
+	reg->itemRessarcSt.documentoPai	= documentoPai
+	
+	reg->itemRessarcSt.modeloUlt 			= bf.int2
+	bf.char1		'pular |
+	reg->itemRessarcSt.numeroUlt 			= bf.varint
+	reg->itemRessarcSt.serieUlt  			= bf.varchar
+	reg->itemRessarcSt.dataUlt				= ddMmYyyy2YyyyMmDd(bf.varchar)
+	reg->itemRessarcSt.idParticipanteUlt	= bf.varchar
+	reg->itemRessarcSt.qtdUlt				= bf.vardbl
+	reg->itemRessarcSt.valorUlt				= bf.vardbl
+	reg->itemRessarcSt.valorBcST			= bf.vardbl
+	
+	if bf.peek1 <> 13 then
+		reg->itemRessarcSt.chaveNFeUlt		= bf.varchar
+		reg->itemRessarcSt.numItemNFeUlt	= bf.varint
+		reg->itemRessarcSt.bcIcmsUlt		= bf.vardbl
+		reg->itemRessarcSt.aliqIcmsUlt		= bf.vardbl
+		reg->itemRessarcSt.limiteBcIcmsUlt	= bf.vardbl
+		reg->itemRessarcSt.icmsUlt			= bf.vardbl
+		reg->itemRessarcSt.aliqIcmsStUlt	= bf.vardbl
+		reg->itemRessarcSt.res				= bf.vardbl
+		reg->itemRessarcSt.responsavelRet	= bf.int1
+		bf.char1		'pular |
+		reg->itemRessarcSt.motivo			= bf.int1
+		bf.char1		'pular |
+		reg->itemRessarcSt.chaveNFeRet		= bf.varchar
+		reg->itemRessarcSt.idParticipanteRet= bf.varchar
+		reg->itemRessarcSt.serieRet			= bf.varchar
+		reg->itemRessarcSt.numeroRet		= bf.varint
+		reg->itemRessarcSt.numItemNFeRet 	= bf.varint
+		reg->itemRessarcSt.tipDocArrecadacao= bf.int1
+		bf.char1		'pular |
+		reg->itemRessarcSt.numDocArrecadacao= bf.varchar
+	end if
+   
+	'pular \r\n
+	if bf.peek1 = 13 then
+		bf.char1
+	end if
+	if bf.peek1 <> 10 then
+		print "Erro: esperado \n, encontrado "; bf.peek1
+	else
+		bf.char1
+	end if
 	
 	function = true
 
@@ -554,8 +686,14 @@ private function lerRegDocNFDifal(bf as bfile, reg as TRegistro ptr, documentoPa
 	documentoPai->difal.icmsOrigem	= bf.vardbl
 
 	'pular \r\n
-	bf.char1
-	bf.char1
+	if bf.peek1 = 13 then
+		bf.char1
+	end if
+	if bf.peek1 <> 10 then
+		print "Erro: esperado \n, encontrado "; bf.peek1
+	else
+		bf.char1
+	end if
 
 	function = true
 
@@ -594,7 +732,7 @@ private function lerRegDocCT(bf as bfile, reg as TRegistro ptr) as Boolean
 	bf.varchar		'pular código Conta Analitica
 	
 	'' códigos dos municípios de origem e de destino não aparecem em layouts antigos
-	if bf.peek1 <> 13 then 
+	if bf.peek1 <> 13 and bf.peek1 <> 10 then 
 		reg->ct.municipioOrigem	= bf.varint
 		reg->ct.municipioDestino= bf.varint
 	end if
@@ -603,8 +741,14 @@ private function lerRegDocCT(bf as bfile, reg as TRegistro ptr) as Boolean
 	reg->ct.itemAnalListTail = null
 
 	'pular \r\n
-	bf.char1
-	bf.char1
+	if bf.peek1 = 13 then
+		bf.char1
+	end if
+	if bf.peek1 <> 10 then
+		print "Erro: esperado \n, encontrado "; bf.peek1
+	else
+		bf.char1
+	end if
 
 	function = true
 
@@ -627,8 +771,14 @@ private function lerRegDocCTItemAnal(bf as bfile, reg as TRegistro ptr, docPai a
 	bf.varchar					'' pular cod obs
 	
 	'pular \r\n
-	bf.char1
-	bf.char1
+	if bf.peek1 = 13 then
+		bf.char1
+	end if
+	if bf.peek1 <> 10 then
+		print "Erro: esperado \n, encontrado "; bf.peek1
+	else
+		bf.char1
+	end if
 
 	function = true
 
@@ -644,8 +794,14 @@ private function lerRegDocCTDifal(bf as bfile, reg as TRegistro ptr, docPai as T
 	docPai->difal.icmsOrigem= bf.vardbl
 
 	'pular \r\n
-	bf.char1
-	bf.char1
+	if bf.peek1 = 13 then
+		bf.char1
+	end if
+	if bf.peek1 <> 10 then
+		print "Erro: esperado \n, encontrado "; bf.peek1
+	else
+		bf.char1
+	end if
 
 	function = true
 
@@ -663,8 +819,14 @@ private function lerRegEquipECF(bf as bfile, reg as TRegistro ptr) as Boolean
 	reg->equipECF.numCaixa	= bf.varint
 
 	'pular \r\n
-	bf.char1
-	bf.char1
+	if bf.peek1 = 13 then
+		bf.char1
+	end if
+	if bf.peek1 <> 10 then
+		print "Erro: esperado \n, encontrado "; bf.peek1
+	else
+		bf.char1
+	end if
 
 	function = true
 
@@ -692,8 +854,14 @@ private function lerRegDocECF(bf as bfile, reg as TRegistro ptr, equipECF as TEq
 	reg->ecf.nroItens		= 0
 
 	'pular \r\n
-	bf.char1
-	bf.char1
+	if bf.peek1 = 13 then
+		bf.char1
+	end if
+	if bf.peek1 <> 10 then
+		print "Erro: esperado \n, encontrado "; bf.peek1
+	else
+		bf.char1
+	end if
 
 	function = true
 
@@ -718,8 +886,14 @@ private function lerRegECFReducaoZ(bf as bfile, reg as TRegistro ptr, equipECF a
 	reg->ecfRedZ.itemAnalListTail = null
 
 	'pular \r\n
-	bf.char1
-	bf.char1
+	if bf.peek1 = 13 then
+		bf.char1
+	end if
+	if bf.peek1 <> 10 then
+		print "Erro: esperado \n, encontrado "; bf.peek1
+	else
+		bf.char1
+	end if
 
 	function = true
 
@@ -747,8 +921,14 @@ private function lerRegDocECFItem(bf as bfile, reg as TRegistro ptr, documentoPa
 	reg->itemECF.COFINS			= bf.vardbl
 
 	'pular \r\n
-	bf.char1
-	bf.char1
+	if bf.peek1 = 13 then
+		bf.char1
+	end if
+	if bf.peek1 <> 10 then
+		print "Erro: esperado \n, encontrado "; bf.peek1
+	else
+		bf.char1
+	end if
 
 	function = true
 
@@ -770,8 +950,14 @@ private function lerRegDocECFItemAnal(bf as bfile, reg as TRegistro ptr, documen
 	bf.varchar					'' pular código de observação
 
 	'pular \r\n
-	bf.char1
-	bf.char1
+	if bf.peek1 = 13 then
+		bf.char1
+	end if
+	if bf.peek1 <> 10 then
+		print "Erro: esperado \n, encontrado "; bf.peek1
+	else
+		bf.char1
+	end if
 	
 	function = true
 
@@ -815,8 +1001,14 @@ private function lerRegDocNFSCT(bf as bfile, reg as TRegistro ptr) as Boolean
 	reg->nf.itemAnalListTail = null
 
 	'pular \r\n
-	bf.char1
-	bf.char1
+	if bf.peek1 = 13 then
+		bf.char1
+	end if
+	if bf.peek1 <> 10 then
+		print "Erro: esperado \n, encontrado "; bf.peek1
+	else
+		bf.char1
+	end if
 
 	function = true
 
@@ -841,8 +1033,14 @@ private function lerRegDocNFSCTItemAnal(bf as bfile, reg as TRegistro ptr, docum
 	bf.varchar		'pular COD_OBS
 
 	'pular \r\n
-	bf.char1
-	bf.char1
+	if bf.peek1 = 13 then
+		bf.char1
+	end if
+	if bf.peek1 <> 10 then
+		print "Erro: esperado \n, encontrado "; bf.peek1
+	else
+		bf.char1
+	end if
 	
 	function = true
 
@@ -865,13 +1063,19 @@ private function lerRegItemId(bf as bfile, reg as TRegistro ptr) as Boolean
 	reg->itemId.codServico	  	= bf.varchar
 	reg->itemId.aliqICMSInt	  	= bf.vardbl
 	'CEST só é obrigatório a partir de 2017
-	if bf.peek1 <> 13 then 
+	if bf.peek1 <> 13 and bf.peek1 <> 10 then 
 	  reg->itemId.CEST		  	= bf.varint
 	end if
 
 	'pular \r\n
-	bf.char1
-	bf.char1
+	if bf.peek1 = 13 then
+		bf.char1
+	end if
+	if bf.peek1 <> 10 then
+		print "Erro: esperado \n, encontrado "; bf.peek1
+	else
+		bf.char1
+	end if
 
 	function = true
 
@@ -886,8 +1090,14 @@ private function lerRegApuIcmsPeriodo(bf as bfile, reg as TRegistro ptr) as Bool
    reg->apuIcms.dataFim		  = ddMmYyyy2YyyyMmDd(bf.varchar)
 
    'pular \r\n
-   bf.char1
-   bf.char1
+	if bf.peek1 = 13 then
+		bf.char1
+	end if
+	if bf.peek1 <> 10 then
+		print "Erro: esperado \n, encontrado "; bf.peek1
+	else
+		bf.char1
+	end if
 
    function = true
 
@@ -914,8 +1124,14 @@ private function lerRegApuIcmsProprio(bf as bfile, reg as TRegistro ptr) as Bool
 	reg->apuIcms.debExtraApuracao		= bf.vardbl
 
 	'pular \r\n
-	bf.char1
-	bf.char1
+	if bf.peek1 = 13 then
+		bf.char1
+	end if
+	if bf.peek1 <> 10 then
+		print "Erro: esperado \n, encontrado "; bf.peek1
+	else
+		bf.char1
+	end if
 
 	function = true
 
@@ -924,17 +1140,23 @@ end function
 ''''''''
 private function lerRegApuIcmsSTPeriodo(bf as bfile, reg as TRegistro ptr) as Boolean
 
-   bf.char1		'pular |
+	bf.char1		'pular |
 
-   reg->apuIcmsST.UF		 	 = bf.varchar
-   reg->apuIcmsST.dataIni		 = ddMmYyyy2YyyyMmDd(bf.varchar)
-   reg->apuIcmsST.dataFim		 = ddMmYyyy2YyyyMmDd(bf.varchar)
+	reg->apuIcmsST.UF		 	 = bf.varchar
+	reg->apuIcmsST.dataIni		 = ddMmYyyy2YyyyMmDd(bf.varchar)
+	reg->apuIcmsST.dataFim		 = ddMmYyyy2YyyyMmDd(bf.varchar)
 
-   'pular \r\n
-   bf.char1
-   bf.char1
+	'pular \r\n
+	if bf.peek1 = 13 then
+		bf.char1
+	end if
+	if bf.peek1 <> 10 then
+		print "Erro: esperado \n, encontrado "; bf.peek1
+	else
+		bf.char1
+	end if
 
-   function = true
+	function = true
 
 end function
 
@@ -959,8 +1181,68 @@ private function lerRegApuIcmsST(bf as bfile, reg as TRegistro ptr) as Boolean
 	reg->apuIcmsST.debExtraApuracao			= bf.vardbl
 
 	'pular \r\n
-	bf.char1
-	bf.char1
+	if bf.peek1 = 13 then
+		bf.char1
+	end if
+	if bf.peek1 <> 10 then
+		print "Erro: esperado \n, encontrado "; bf.peek1
+	else
+		bf.char1
+	end if
+
+	function = true
+
+end function
+
+''''''''
+private function lerRegInventarioTotais(bf as bfile, reg as TRegistro ptr) as Boolean
+
+	bf.char1		'pular |
+
+	reg->invTotais.dataInventario 	 = ddMmYyyy2YyyyMmDd(bf.varchar)
+	reg->invTotais.valorTotalEstoque = bf.vardbl
+	reg->invTotais.motivoInventario	 = bf.varint
+
+	'pular \r\n
+	if bf.peek1 = 13 then
+		bf.char1
+	end if
+	if bf.peek1 <> 10 then
+		print "Erro: esperado \n, encontrado "; bf.peek1
+	else
+		bf.char1
+	end if
+
+	function = true
+
+end function
+
+''''''''
+private function lerRegInventarioItem(bf as bfile, reg as TRegistro ptr, inventarioPai as TInventarioTotais ptr) as Boolean
+
+	bf.char1		'pular |
+
+	reg->invItem.dataInventario 	= inventarioPai->dataInventario
+	reg->invItem.itemId 	 		= bf.varchar
+	reg->invItem.unidade 			= bf.varchar
+	reg->invItem.qtd	 			= bf.vardbl
+	reg->invItem.valorUnitario		= bf.vardbl
+	reg->invItem.valorItem			= bf.vardbl
+	reg->invItem.indPropriedade		= bf.varint
+	reg->invItem.idParticipante		= bf.varchar
+	reg->invItem.txtComplementar	= bf.varchar
+	reg->invItem.codConta			= bf.varchar
+	reg->invItem.valorItemIR		= bf.vardbl
+
+	'pular \r\n
+	if bf.peek1 = 13 then
+		bf.char1
+	end if
+	if bf.peek1 <> 10 then
+		print "Erro: esperado \n, encontrado "; bf.peek1
+	else
+		bf.char1
+	end if
 
 	function = true
 
@@ -984,16 +1266,13 @@ private sub Efd.lerAssinatura(bf as bfile)
 end sub
 
 ''''''''
-private function Efd.filtrarPorCnpj(idParticipante as const zstring ptr) as boolean
+function Efd.filtrarPorCnpj(cnpj as const zstring ptr) as boolean
 	
-	var part = cast( TParticipante ptr, participanteDict[idParticipante] )
-	if( part <> null ) then
-		for i as integer = 0 to ubound(listaCnpj)
-			if(part->cnpj = listaCnpj(i)) then
-				return true
-			end if
-		next
-	end if
+	for i as integer = 0 to ubound(opcoes.listaCnpj)
+		if(*cnpj = opcoes.listaCnpj(i)) then
+			return true
+		end if
+	next
 	
 	function = false
 	
@@ -1012,14 +1291,6 @@ private function Efd.lerRegistro(bf as bfile, reg as TRegistro ptr) as Boolean
 			return false
 		end if
 		
-		if filtrarCnpj then
-			if not filtrarPorCnpj(reg->nf.idParticipante) then
-				ultimoReg = null
-				reg->tipo = DESCONHECIDO
-				return true
-			end if
-		end if
-
 		ultimoReg = reg
 
 	case DOC_NF_ITEM
@@ -1027,6 +1298,8 @@ private function Efd.lerRegistro(bf as bfile, reg as TRegistro ptr) as Boolean
 			if not lerRegDocNFItem(bf, reg, @ultimoReg->nf) then
 				return false
 			end if
+			
+			ultimoDocNFItem = @reg->itemNF
 		else
 			pularLinha(bf)
 			reg->tipo = DESCONHECIDO
@@ -1062,20 +1335,31 @@ private function Efd.lerRegistro(bf as bfile, reg as TRegistro ptr) as Boolean
 			pularLinha(bf)
 			reg->tipo = DESCONHECIDO
 		end if
+		
+	case DOC_NF_ITEM_RESSARC_ST
+		if( ultimoDocNFItem <> null ) then
+			if not lerRegDocNFItemRessarcSt(bf, reg, ultimoDocNFItem) then
+				return false
+			end if
+			
+			if ultimoDocNFItem->itemRessarcStListHead = null then
+				ultimoDocNFItem->itemRessarcStListHead = @reg->itemRessarcSt
+			else
+				ultimoDocNFItem->itemRessarcStListTail->next_ = @reg->itemRessarcSt
+			end if
+			
+			ultimoDocNFItem->itemRessarcStListTail = @reg->itemRessarcSt
+			reg->itemRessarcSt.next_ = null
+		else
+			pularLinha(bf)
+			reg->tipo = DESCONHECIDO
+		end if
 
 	case DOC_CT
 		if not lerRegDocCT(bf, reg) then
 			return false
 		end if
 
-		if filtrarCnpj then
-			if not filtrarPorCnpj(reg->ct.idParticipante) then
-				ultimoReg = null
-				reg->tipo = DESCONHECIDO
-				return true
-			end if
-		end if
-		
 		ultimoReg = reg
 
 	case DOC_CT_ANAL
@@ -1176,14 +1460,6 @@ private function Efd.lerRegistro(bf as bfile, reg as TRegistro ptr) as Boolean
 			return false
 		end if
 		
-		if filtrarCnpj then
-			if not filtrarPorCnpj(reg->ecf.idParticipante) then
-				ultimoEquipECF = null
-				reg->tipo = DESCONHECIDO
-				return true
-			end if
-		end if
-		
 		ultimoEquipECF = @reg->equipECF
 
 	case DOC_NFSCT
@@ -1191,14 +1467,6 @@ private function Efd.lerRegistro(bf as bfile, reg as TRegistro ptr) as Boolean
 			return false
 		end if
 
-		if filtrarCnpj then
-			if not filtrarPorCnpj(reg->nf.idParticipante) then
-				ultimoReg = null
-				reg->tipo = DESCONHECIDO
-				return true
-			end if
-		end if
-		
 		ultimoReg = reg
 
 	case DOC_NFSCT_ANAL
@@ -1268,10 +1536,24 @@ private function Efd.lerRegistro(bf as bfile, reg as TRegistro ptr) as Boolean
 		
 		reg->tipo = DESCONHECIDO			'' deletar registro, já que vamos reusar o registro pai
 
+	case INVENTARIO_TOTAIS
+		if not lerRegInventarioTotais(bf, reg) then
+			return false
+		end if
+		
+		ultimoInventario = @reg->invTotais
+	
+	case INVENTARIO_ITEM
+		if not lerRegInventarioItem(bf, reg, ultimoInventario) then
+			return false
+		end if
+	
 	case MESTRE
 		if not lerRegMestre(bf, reg) then
 			return false
 		end if
+		
+		regMestre = reg
 
 	case FIM_DO_ARQUIVO
 		pularLinha(bf)
@@ -1501,6 +1783,8 @@ end function
 function Efd.carregarSintegra(bf as bfile, mostrarProgresso as ProgressoCB) as Boolean
 	
 	var fsize = bf.tamanho
+	
+	dim as TRegistro ptr tail = null
 
 	do while bf.temProximo()		 
 		var reg = new TRegistro
@@ -1509,12 +1793,12 @@ function Efd.carregarSintegra(bf as bfile, mostrarProgresso as ProgressoCB) as B
 			mostrarProgresso(null, bf.posicao / fsize)
 			
 			if reg->tipo <> DESCONHECIDO then
-				if regListHead = null then
+				if tail = null then
 				   regListHead = reg
-				   regListTail = reg
+				   tail = reg
 				else
-				   regListTail->next_ = reg
-				   regListTail = reg
+				   tail->next_ = reg
+				   tail = reg
 				end if
 
 				nroRegs += 1
@@ -1542,9 +1826,9 @@ sub Efd.adicionarDocEscriturado(doc as TDocDF ptr)
 		
 		'' adicionar ao db
 		if doc->operacao = ENTRADA then
-			'' (periodo, cnpjEmit, ufEmit, serie, numero, modelo, chave, dataEmit, valorOp)
+			'' (periodo, cnpjEmit, ufEmit, serie, numero, modelo, chave, dataEmit, valorOp, IE)
 			db_LREInsertStmt->reset()
-			db_LREInsertStmt->bind(1, valint(regListHead->mestre.dataIni))
+			db_LREInsertStmt->bind(1, valint(regMestre->mestre.dataIni))
 			db_LREInsertStmt->bind(2, part->cnpj)
 			db_LREInsertStmt->bind(3, uf)
 			db_LREInsertStmt->bind(4, doc->serie)
@@ -1553,12 +1837,19 @@ sub Efd.adicionarDocEscriturado(doc as TDocDF ptr)
 			db_LREInsertStmt->bind(7, doc->chave)
 			db_LREInsertStmt->bind(8, doc->dataEmi)
 			db_LREInsertStmt->bind(9, doc->valorTotal)
+			if len(part->ie) > 0 then
+				db_LREInsertStmt->bind(10, trim(part->ie))
+			else
+				db_LREInsertStmt->bindNull(10)
+			end if
 			
-			db->execNonQuery(db_LREInsertStmt)
+			if not db->execNonQuery(db_LREInsertStmt) then
+				print "Erro ao inserir registro na LRE: "; *db->getErrorMsg()
+			end if
 		else
-			'' (periodo, cnpjDest, ufDest, serie, numero, modelo, chave, dataEmit, valorOp)
+			'' (periodo, cnpjDest, ufDest, serie, numero, modelo, chave, dataEmit, valorOp, IE)
 			db_LRSInsertStmt->reset()
-			db_LRSInsertStmt->bind(1, valint(regListHead->mestre.dataIni))
+			db_LRSInsertStmt->bind(1, valint(regMestre->mestre.dataIni))
 			db_LRSInsertStmt->bind(2, part->cnpj)
 			db_LRSInsertStmt->bind(3, uf)
 			db_LRSInsertStmt->bind(4, doc->serie)
@@ -1567,8 +1858,15 @@ sub Efd.adicionarDocEscriturado(doc as TDocDF ptr)
 			db_LRSInsertStmt->bind(7, doc->chave)
 			db_LRSInsertStmt->bind(8, doc->dataEmi)
 			db_LRSInsertStmt->bind(9, doc->valorTotal)
+			if len(part->ie) > 0 then
+				db_LRSInsertStmt->bind(10, trim(part->ie))
+			else
+				db_LRSInsertStmt->bindNull(10)
+			end if
 		
-			db->execNonQuery(db_LRSInsertStmt)
+			if not db->execNonQuery(db_LRSInsertStmt) then
+				print "Erro ao inserir registro na LRS: "; *db->getErrorMsg()
+			end if
 		end if
 	
 	case CANCELADO, CANCELADO_EXT, DENEGADO, INUTILIZADO
@@ -1590,7 +1888,7 @@ sub Efd.adicionarDocEscriturado(doc as TDocECF ptr)
 		if doc->operacao = SAIDA then
 			'' (periodo, cnpjDest, ufDest, serie, numero, modelo, chave, dataEmit, valorOp)
 			db_LRSInsertStmt->reset()
-			db_LRSInsertStmt->bind(1, valint(regListHead->mestre.dataIni))
+			db_LRSInsertStmt->bind(1, valint(regMestre->mestre.dataIni))
 			db_LRSInsertStmt->bind(2, doc->cpfCnpjAdquirente)
 			db_LRSInsertStmt->bind(3, 35)
 			db_LRSInsertStmt->bind(4, 0)
@@ -1600,7 +1898,9 @@ sub Efd.adicionarDocEscriturado(doc as TDocECF ptr)
 			db_LRSInsertStmt->bind(8, doc->dataEmi)
 			db_LRSInsertStmt->bind(9, doc->valorTotal)
 		
-			db->execNonQuery(db_LRSInsertStmt)
+			if not db->execNonQuery(db_LRSInsertStmt) then
+				print "Erro ao inserir registro na LRS: "; *db->getErrorMsg()
+			end if
 		end if
 	
 	case CANCELADO, CANCELADO_EXT, DENEGADO, INUTILIZADO
@@ -1622,29 +1922,73 @@ sub Efd.adicionarItemNFEscriturado(item as TDocNFItem ptr)
 		
 		var uf = iif(part->municip >= 1100000 and part->municip <= 5399999, part->municip \ 100000, 99)
 
-		'' (periodo, cnpjEmit, ufEmit, serie, numero, modelo, cfop, valorProd, valorDesc, bc, aliq, icms, bcIcmsST)
+		'' (periodo, cnpjEmit, ufEmit, serie, numero, modelo, numItem, cst_origem, cst_tribut, cfop, qtd, valorProd, valorDesc, bc, aliq, icms, bcIcmsST, aliqIcmsST, icmsST)
 		db_itensNfLREInsertStmt->reset()
-		db_itensNfLREInsertStmt->bind(1, valint(regListHead->mestre.dataIni))
+		db_itensNfLREInsertStmt->bind(1, valint(regMestre->mestre.dataIni))
 		db_itensNfLREInsertStmt->bind(2, part->cnpj)
 		db_itensNfLREInsertStmt->bind(3, uf)
 		db_itensNfLREInsertStmt->bind(4, doc->serie)
 		db_itensNfLREInsertStmt->bind(5, doc->numero)
 		db_itensNfLREInsertStmt->bind(6, doc->modelo)
-		db_itensNfLREInsertStmt->bind(7, item->cfop)
-		db_itensNfLREInsertStmt->bind(8, item->valor)
-		db_itensNfLREInsertStmt->bind(9, item->desconto)
-		db_itensNfLREInsertStmt->bind(10, item->bcICMS)
-		db_itensNfLREInsertStmt->bind(11, item->aliqICMS)
-		db_itensNfLREInsertStmt->bind(12, item->icms)
-		db_itensNfLREInsertStmt->bind(13, item->bcICMSST)
+		db_itensNfLREInsertStmt->bind(7, item->numItem)
+		db_itensNfLREInsertStmt->bind(8, item->cstIcms \ 100)
+		db_itensNfLREInsertStmt->bind(9, item->cstIcms mod 100)
+		db_itensNfLREInsertStmt->bind(10, item->cfop)
+		db_itensNfLREInsertStmt->bind(11, item->qtd)
+		db_itensNfLREInsertStmt->bind(12, item->valor)
+		db_itensNfLREInsertStmt->bind(13, item->desconto)
+		db_itensNfLREInsertStmt->bind(14, item->bcICMS)
+		db_itensNfLREInsertStmt->bind(15, item->aliqICMS)
+		db_itensNfLREInsertStmt->bind(16, item->icms)
+		db_itensNfLREInsertStmt->bind(17, item->bcICMSST)
+		db_itensNfLREInsertStmt->bind(18, item->aliqICMSST)
+		db_itensNfLREInsertStmt->bind(19, item->icmsST)
 		
-		db->execNonQuery(db_itensNfLREInsertStmt)
+		if not db->execNonQuery(db_itensNfLREInsertStmt) then
+			print "Erro ao inserir registro na Item NFe: "; *db->getErrorMsg()
+		end if
 	end select
 	
 end sub
 
 ''''''''
-sub Efd.addRegistroOrdenadoPorData(reg as TRegistro ptr)
+sub Efd.adicionarRessarcStEscriturado(doc as TDocNFItemRessarcSt ptr)
+	
+	var part = cast( TParticipante ptr, participanteDict[doc->idParticipanteUlt] )
+	
+	var uf = iif(part->municip >= 1100000 and part->municip <= 5399999, part->municip \ 100000, 99)
+	
+	'' (periodo, cnpjUlt, ufUlt, serieUlt, numeroUlt, modeloUlt, chaveUlt, dataUlt, valorUlt, bcSTUlt, qtdUlt, nroItemUlt)
+	db_ressarcStItensNfLRSInsertStmt->reset()
+	db_ressarcStItensNfLRSInsertStmt->bind(1, valint(regMestre->mestre.dataIni))
+	db_ressarcStItensNfLRSInsertStmt->bind(2, part->cnpj)
+	db_ressarcStItensNfLRSInsertStmt->bind(3, uf)
+	db_ressarcStItensNfLRSInsertStmt->bind(4, doc->serieUlt)
+	db_ressarcStItensNfLRSInsertStmt->bind(5, doc->numeroUlt)
+	db_ressarcStItensNfLRSInsertStmt->bind(6, doc->modeloUlt)
+	if len(doc->chaveNFeUlt) > 0 then
+		db_ressarcStItensNfLRSInsertStmt->bind(7, doc->chaveNFeUlt)
+	else
+		db_ressarcStItensNfLRSInsertStmt->bindNull(7)
+	end if
+	db_ressarcStItensNfLRSInsertStmt->bind(8, doc->dataUlt)
+	db_ressarcStItensNfLRSInsertStmt->bind(9, doc->valorUlt)
+	db_ressarcStItensNfLRSInsertStmt->bind(10, doc->valorBcST)
+	db_ressarcStItensNfLRSInsertStmt->bind(11, doc->qtdUlt)
+	if doc->numItemNFeUlt > 0 then
+		db_ressarcStItensNfLRSInsertStmt->bind(12, doc->numItemNFeUlt)
+	else
+		db_ressarcStItensNfLRSInsertStmt->bindNull(12)
+	end if
+
+	if not db->execNonQuery(db_ressarcStItensNfLRSInsertStmt) then
+		print "Erro ao inserir registro na Item Ressarcimento ST: "; *db->getErrorMsg()
+	end if
+	
+end sub
+
+''''''''
+sub Efd.addRegistroAoDB(reg as TRegistro ptr)
 
 	select case as const reg->tipo
 	case DOC_NF
@@ -1653,66 +1997,147 @@ sub Efd.addRegistroOrdenadoPorData(reg as TRegistro ptr)
 		adicionarItemNFEscriturado(@reg->itemNF)
 	case DOC_CT
 		adicionarDocEscriturado(@reg->ct)
+	case DOC_NF_ITEM_RESSARC_ST
+		adicionarRessarcStEscriturado(@reg->itemRessarcSt)
 	end select
 	
-	if regListHead = null then
-		regListHead = reg
-		regListTail = reg
-		return
-	end if
+end sub
 
-	dim as zstring ptr demi
+''''''''
+private function yyyyMmDd2Days(d as const zstring ptr) as integer
+
+	if d = null then
+		d = @"19000101"
+	end if
 	
-	select case as const reg->tipo
-	case DOC_NF
-		demi = @reg->nf.dataEmi
-	case DOC_CT
-		demi = @reg->ct.dataEmi
-	case DOC_NF_ITEM
-		demi = @reg->itemNF.documentoPai->dataEmi
-	case ECF_REDUCAO_Z
-		demi = @reg->ecfRedZ.dataMov
-	end select
+	var days = (cint(d[0] - asc("0")) * 1000 + _
+				cint(d[1] - asc("0")) * 0100 + _
+				cint(d[2] - asc("0")) * 0010 + _
+				cint(d[3] - asc("0")) * 0001) * (31*12)
 	
-	var n = regListHead
-	dim as TRegistro ptr p = null
-	dim as zstring ptr n_demi
-	do 
-		select case as const n->tipo
+	days = days + _
+			   ((cint(d[4] - asc("0")) * 10 + _
+				 cint(d[5] - asc("0")) * 01) - 1) * 31
+
+	days = days + _
+			   (cint(d[6] - asc("0")) * 10 + _
+				cint(d[7] - asc("0")) * 01) 
+				
+	function = days
+
+end function
+
+''''''''
+private function mergeLists(pSrc1 as TRegistro ptr, pSrc2 as TRegistro ptr) as TRegistro ptr
+	dim as TRegistro ptr pDst = NULL
+	dim as TRegistro ptr ptr ppDst = @pDst
+    if pSrc1 = NULL then
+        return pSrc2
+	end if
+    if pSrc2 = NULL then
+        return pSrc1
+	end if
+    
+	dim as zstring ptr dEmi, dReg
+
+	do while true
+		select case as const pSrc1->tipo
 		case DOC_NF
-			n_demi = @n->nf.dataEmi
+			dReg = @pSrc1->nf.dataEntSaida
+			dEmi = @pSrc1->nf.dataEmi
 		case DOC_CT
-			n_demi = @n->ct.dataEmi
+			dReg = @pSrc1->ct.dataEntSaida
+			dEmi = @pSrc1->ct.dataEmi
 		case DOC_NF_ITEM
-			n_demi = @n->itemNF.documentoPai->dataEmi
+			dReg = @pSrc1->itemNF.documentoPai->dataEntSaida
+			dEmi = @pSrc1->itemNF.documentoPai->dataEmi
 		case ECF_REDUCAO_Z
-			n_demi = @n->ecfRedZ.dataMov
+			dReg = @pSrc1->ecfRedZ.dataMov
+			dEmi = dReg
 		case else
-			n_demi = null
+			dReg = null
+			dEmi = null
 		end select
 		
-		if n_demi <> null then
-			if *n_demi > *demi then
-				reg->next_ = n
-				if p <> null then
-					p->next_ = reg
-				else
-					regListHead = reg
-				end if
+		var date1 = yyyyMmDd2Days(dReg) + yyyyMmDd2Days(dEmi)
+
+		select case as const pSrc2->tipo
+		case DOC_NF
+			dReg = @pSrc2->nf.dataEntSaida
+			dEmi = @pSrc2->nf.dataEmi
+		case DOC_CT
+			dReg = @pSrc2->ct.dataEntSaida
+			dEmi = @pSrc2->ct.dataEmi
+		case DOC_NF_ITEM
+			dReg = @pSrc2->itemNF.documentoPai->dataEntSaida
+			dEmi = @pSrc2->itemNF.documentoPai->dataEmi
+		case ECF_REDUCAO_Z
+			dReg = @pSrc2->ecfRedZ.dataMov
+			dEmi = dReg
+		case else
+			dReg = null
+			dEmi = null
+		end select
+
+		var date2 = yyyyMmDd2Days(dReg) + yyyyMmDd2Days(dEmi)
+
+		if date2 < date1 then
+			*ppDst = pSrc2
+			ppDst = @pSrc2->next_
+			pSrc2 = *ppDst
+			if pSrc2 = NULL then
+				*ppDst = pSrc1
+				exit do
+			end if
+		else
+			*ppDst = pSrc1
+			ppDst = @pSrc1->next_
+			pSrc1 = *ppDst
+			if pSrc1 = NULL then
+				*ppDst = pSrc2
 				exit do
 			end if
 		end if
-		
-		p = n
-		n = n->next_
-	loop until n = null
+    loop
 	
-	if n = null then
-		regListTail->next_ = reg
-		regListTail = reg
-	end if
+    function = pDst
+end function
 
-end sub
+''''''''
+private function ordenarRegistrosPorData(head as TRegistro ptr) as TRegistro ptr
+
+	const NUMLISTS = 1000
+	dim as TRegistro ptr aList(0 to NUMLISTS-1)
+    
+	if head = NULL then
+        return NULL
+	end if
+    
+	var n = head
+	do while n <> NULL
+        var nn = n->next_
+        n->next_ = NULL
+		var i = 0
+        do while (i < NUMLISTS) and (aList(i) <> NULL)
+            n = mergeLists(aList(i), n)
+            aList(i) = NULL
+			i += 1
+        loop
+        if i = NUMLISTS then
+            i -= 1
+		end if
+        aList(i) = n
+        n = nn
+    loop
+	
+    n = NULL
+    for i as integer = 0 to NUMLISTS-1
+        n = mergeLists(aList(i), n)
+	next
+    
+	function = n
+	
+end function
 
 ''''''''
 function Efd.carregarTxt(nomeArquivo as String, mostrarProgresso as ProgressoCB) as Boolean
@@ -1728,7 +2153,6 @@ function Efd.carregarTxt(nomeArquivo as String, mostrarProgresso as ProgressoCB)
 	sintegraDict.init(2^20)
 
 	regListHead = null
-	regListTail = null
 	nroRegs = 0
 	
 	dim as TArquivoInfo ptr arquivo = arquivos.add()
@@ -1744,13 +2168,15 @@ function Efd.carregarTxt(nomeArquivo as String, mostrarProgresso as ProgressoCB)
 			tipoArquivo = TIPO_ARQUIVO_EFD
 			var fsize = bf.tamanho - 6500 			'' descontar certificado digital no final do arquivo
 			nroLinha = 1
+			
+			dim as TRegistro ptr tail = null
 
 			do while bf.temProximo()		 
 				var reg = new TRegistro
 				reg->arquivo = arquivo
 
-				mostrarProgresso(null, bf.posicao / fsize)
-					
+				mostrarProgresso(null, (bf.posicao / fsize) * 0.66)
+				
 				if lerRegistro( bf, reg ) then 
 					if reg->tipo <> DESCONHECIDO then
 						select case as const reg->tipo
@@ -1760,23 +2186,23 @@ function Efd.carregarTxt(nomeArquivo as String, mostrarProgresso as ProgressoCB)
 							mostrarProgresso(null, 1)
 							exit do
 
-						'' ordernar por data emi
+						'' adicionar ao DB
 						case DOC_NF, _
 							 DOC_NF_ITEM, _
 							 DOC_CT, _
-							 ECF_REDUCAO_Z
-							addRegistroOrdenadoPorData(reg)
-						
-						'' registro sem data, adicionar ao fim da fila
-						case else
-							if regListHead = null then
-								regListHead = reg
-								regListTail = reg
-							else
-								regListTail->next_ = reg
-								regListTail = reg
-							end if
+							 ECF_REDUCAO_Z, _
+							 DOC_NF_ITEM_RESSARC_ST
+							addRegistroAoDB(reg)
 						end select
+						
+						'' adicionar ao fim da lista
+						if tail = null then
+							regListHead = reg
+							tail = reg
+						else
+							tail->next_ = reg
+							tail = reg
+						end if
 
 						nroRegs += 1
 					else
@@ -1792,6 +2218,10 @@ function Efd.carregarTxt(nomeArquivo as String, mostrarProgresso as ProgressoCB)
 		catch
 			print !"\r\nErro ao carregar o registro da linha (" & nroLinha & !") do arquivo\r\n"
 		endtry
+		
+		regListHead = ordenarRegistrosPorData(regListHead)
+		
+		mostrarProgresso(null, 1)
 
 		function = true
 	  
@@ -2047,7 +2477,7 @@ sub Efd.adicionarDFe(dfe as TDFe ptr)
 	'' adicionar ao db
 	select case dfe->operacao
 	case ENTRADA
-		'' (cnpjEmit, ufEmit, serie, numero, modelo, chave, dataEmit, valorOp)
+		'' (cnpjEmit, ufEmit, serie, numero, modelo, chave, dataEmit, valorOp, ieEmit)
 		db_dfeEntradaInsertStmt->reset()
 		db_dfeEntradaInsertStmt->bind(1, dfe->cnpjEmit)
 		db_dfeEntradaInsertStmt->bind(2, dfe->ufEmit)
@@ -2057,10 +2487,18 @@ sub Efd.adicionarDFe(dfe as TDFe ptr)
 		db_dfeEntradaInsertStmt->bind(6, dfe->chave)
 		db_dfeEntradaInsertStmt->bind(7, dfe->dataEmi)
 		db_dfeEntradaInsertStmt->bind(8, dfe->valorOperacao)
+		if len(dfe->nfe.ieEmit) > 0 then
+			db_dfeEntradaInsertStmt->bind(9, trim(dfe->nfe.ieEmit))
+		else
+			db_dfeEntradaInsertStmt->bindNull(9)
+		end if
 		
-		db->execNonQuery(db_dfeEntradaInsertStmt)
+		if not db->execNonQuery(db_dfeEntradaInsertStmt) then
+			print "Erro ao inserir DFe de entrada: "; *db->getErrorMsg()
+		end if
+	
 	case SAIDA
-		'' (cnpjDest, ufDest, serie, numero, modelo, chave, dataEmit, valorOp)
+		'' (cnpjDest, ufDest, serie, numero, modelo, chave, dataEmit, valorOp, ieDest)
 		db_dfeSaidaInsertStmt->reset()
 		db_dfeSaidaInsertStmt->bind(1, dfe->cnpjDest)
 		db_dfeSaidaInsertStmt->bind(2, dfe->ufDest)
@@ -2070,8 +2508,15 @@ sub Efd.adicionarDFe(dfe as TDFe ptr)
 		db_dfeSaidaInsertStmt->bind(6, dfe->chave)
 		db_dfeSaidaInsertStmt->bind(7, dfe->dataEmi)
 		db_dfeSaidaInsertStmt->bind(8, dfe->valorOperacao)
+		if len(dfe->nfe.ieEmit) > 0 then
+			db_dfeSaidaInsertStmt->bind(9, trim(dfe->nfe.ieEmit))
+		else
+			db_dfeSaidaInsertStmt->bindNull(9)
+		end if
 	
-		db->execNonQuery(db_dfeSaidaInsertStmt)
+		if not db->execNonQuery(db_dfeSaidaInsertStmt) then
+			print "Erro ao inserir DFe de saída: "; *db->getErrorMsg()
+		end if
 	end select
 	
 	nroDfe =+ 1
@@ -2092,7 +2537,9 @@ sub Efd.adicionarItemDFe(chave as const zstring ptr, item as TDFe_NFeItem ptr)
 		db_itensDfeSaidaInsertStmt->bind(8, item->icms)
 		db_itensDfeSaidaInsertStmt->bind(9, item->bcIcmsST)
 	
-		db->execNonQuery(db_itensDfeSaidaInsertStmt)
+		if not db->execNonQuery(db_itensDfeSaidaInsertStmt) then
+			print "Erro ao inserir Item DFe de entrada: "; *db->getErrorMsg()
+		end if
 end sub
 
 ''''''''
@@ -2129,88 +2576,102 @@ function Efd.carregarCsv(nomeArquivo as String, mostrarProgresso as ProgressoCB)
 		return false
 	end if
 
-	var fsize = bf.tamanho
+	var nroLinha = 1
+		
+	try
+		var fsize = bf.tamanho
 
-	'' pular header
-	pularLinha(bf)
-	
-	var emModoOutrasUFs = false
-	
-	do while bf.temProximo()		 
-		mostrarProgresso(null, bf.posicao / fsize)
+		'' pular header
+		pularLinha(bf)
+		nroLinha += 1
 		
-		'' outro header?
-		if bf.peek1 <> asc("""") then
-			'' final de arquivo?
-			if lcase(left(lerLinha(bf), 22)) = "cnpj base contribuinte" then
-				mostrarProgresso(null, 1)
-				
-				'' se for CT-e, temos que ler o CNPJ base do contribuinte para fazer um 
-				'' patch em todos os tipos de operação (saída ou entrada)
-				if tipoArquivo = SAFI_CTe then
-					var cnpjBase = bf.charCsv
-					var cte = cteListHead
-					do while cte <> null 
-						if left(cte->parent->cnpjEmit,8) = cnpjBase then
-							cte->parent->operacao = SAIDA
-						elseif left(cte->cnpjToma,8) = cnpjBase then
-							cte->parent->operacao = ENTRADA
-						end if
-						adicionarDFe(cte->parent)
-						cte = cte->next_
-					loop
-				end if
-				exit do
-			else
-				emModoOutrasUFs = true
-			end if
-		end if
-	
-		select case as const tipoArquivo  
-		case SAFI_NFe_Dest
-			var dfe = carregarCsvNFeDest( bf, emModoOutrasUFs )
-			if dfe <> null then
-				adicionarDFe(dfe)
-			end if
+		var emModoOutrasUFs = false
 		
-		case SAFI_NFe_Emit
-			var dfe = carregarCsvNFeEmit( bf )
-			if dfe <> null then
-				adicionarDFe(dfe)
-			end if
+		do while bf.temProximo()		 
+			mostrarProgresso(null, bf.posicao / fsize)
 			
-		case SAFI_NFe_Emit_Itens
-			var chave = ""
-			var nfeItem = carregarCsvNFeEmitItens( bf, chave )
-			if nfeItem <> null then
-				adicionarItemDFe(chave, nfeItem)
-
-				var dfe = cast(TDFe ptr, chaveDFeDict[chave])
-				'' nf-e não encontrada? pode acontecer se processarmos o csv de itens antes do csv de nf-e
-				if dfe = null then
-					dfe = new TDFe
-					'' só adicionar ao dicionário, depois será adicionado por adicionarDFe() no case acima
-					dfe->chave = chave
-					chaveDFeDict.add(dfe->chave, dfe)
-				end if
+			'' outro header?
+			if bf.peek1 <> asc("""") then
+				'' final de arquivo?
 				
-				if dfe->nfe.itemListHead = null then
-					dfe->nfe.itemListHead = nfeItem
+				var linha = lcase(lerLinha(bf))
+				if left(linha, 22) = "cnpj base contribuinte" or left(linha, 26) = "cnpj/cpf base contribuinte" then
+					mostrarProgresso(null, 1)
+					nroLinha += 1
+					
+					'' se for CT-e, temos que ler o CNPJ base do contribuinte para fazer um 
+					'' patch em todos os tipos de operação (saída ou entrada)
+					if tipoArquivo = SAFI_CTe then
+						var cnpjBase = bf.charCsv
+						var cte = cteListHead
+						do while cte <> null 
+							if left(cte->parent->cnpjEmit,8) = cnpjBase then
+								cte->parent->operacao = SAIDA
+							elseif left(cte->cnpjToma,8) = cnpjBase then
+								cte->parent->operacao = ENTRADA
+							end if
+							adicionarDFe(cte->parent)
+							cte = cte->next_
+						loop
+					end if
+					exit do
 				else
-					dfe->nfe.itemListTail->next_ = nfeItem
+					emModoOutrasUFs = true
 				end if
-				
-				dfe->nfe.itemListTail = nfeItem
 			end if
 		
-		case SAFI_CTe
-			var dfe = carregarCsvCTe( bf, emModoOutrasUFs )
-		end select
-	loop
-   
-	bf.fechar()
+			select case as const tipoArquivo  
+			case SAFI_NFe_Dest
+				var dfe = carregarCsvNFeDest( bf, emModoOutrasUFs )
+				if dfe <> null then
+					adicionarDFe(dfe)
+				end if
+			
+			case SAFI_NFe_Emit
+				var dfe = carregarCsvNFeEmit( bf )
+				if dfe <> null then
+					adicionarDFe(dfe)
+				end if
+				
+			case SAFI_NFe_Emit_Itens
+				var chave = ""
+				var nfeItem = carregarCsvNFeEmitItens( bf, chave )
+				if nfeItem <> null then
+					adicionarItemDFe(chave, nfeItem)
+
+					var dfe = cast(TDFe ptr, chaveDFeDict[chave])
+					'' nf-e não encontrada? pode acontecer se processarmos o csv de itens antes do csv de nf-e
+					if dfe = null then
+						dfe = new TDFe
+						'' só adicionar ao dicionário, depois será adicionado por adicionarDFe() no case acima
+						dfe->chave = chave
+						chaveDFeDict.add(dfe->chave, dfe)
+					end if
+					
+					if dfe->nfe.itemListHead = null then
+						dfe->nfe.itemListHead = nfeItem
+					else
+						dfe->nfe.itemListTail->next_ = nfeItem
+					end if
+					
+					dfe->nfe.itemListTail = nfeItem
+				end if
+			
+			case SAFI_CTe
+				var dfe = carregarCsvCTe( bf, emModoOutrasUFs )
+			end select
+			
+			nroLinha += 1
+		loop
+		
+		function = true
 	
-	function = true
+	catch
+		print !"\r\n\tErro ao carregar linha " & nroLinha & !"\r\n"
+		function = false
+	endtry
+	   
+	bf.fechar()
 	
 end function
 
@@ -2314,6 +2775,52 @@ sub Efd.criarPlanilhas()
 	apuracaoIcmsST->AddCellType(CT_MONEY, "Saldo Credor a Transportar")
 	apuracaoIcmsST->AddCellType(CT_MONEY, "Deb Extra Apuracao")
 	
+	'' Inventário
+	inventario = ew->AddWorksheet("Inventario")
+	inventario->AddCellType(CT_DATE, "Data Inventario")
+	inventario->AddCellType(CT_STRING, "Codigo")
+	inventario->AddCellType(CT_INTNUMBER, "NCM")
+	inventario->AddCellType(CT_INTNUMBER, "Tipo")
+	inventario->AddCellType(CT_STRING, "Tipo (Descricao)")
+	inventario->AddCellType(CT_STRING, "Descricao")
+	inventario->AddCellType(CT_STRING, "Unidade")
+	inventario->AddCellType(CT_NUMBER, "Qtd")
+	inventario->AddCellType(CT_MONEY, "Valor Unitario")
+	inventario->AddCellType(CT_MONEY, "Valor Item")
+	inventario->AddCellType(CT_INTNUMBER, "Ind. Propriedade")
+	inventario->AddCellType(CT_STRING, "CNPJ Proprietario")
+	inventario->AddCellType(CT_STRING, "Texto Complementar")
+	inventario->AddCellType(CT_STRING, "Codigo Conta Contabil")
+	inventario->AddCellType(CT_MONEY, "Valor Item IR")
+
+	'' Ressarcimento ST
+	ressarcST = ew->AddWorksheet("Ressarcimento ST")
+	ressarcST->AddCellType(CT_STRING, "CNPJ Emitente Ult NF-e Ent")
+	ressarcST->AddCellType(CT_STRING, "IE Emitente Ult NF-e Ent")
+	ressarcST->AddCellType(CT_STRING, "UF Emitente Ult NF-e Ent")
+	ressarcST->AddCellType(CT_STRING, "Razao Social Emitente Ult NF-e Ent")
+	ressarcST->AddCellType(CT_STRING, "Modelo Ult NF-e Ent")
+	ressarcST->AddCellType(CT_STRING, "Serie Ult NF-e Ent")
+	ressarcST->AddCellType(CT_INTNUMBER, "Numero Ult NF-e Ent")
+	ressarcST->AddCellType(CT_DATE, "Data Emissao Ult NF-e Ent")
+	ressarcST->AddCellType(CT_NUMBER, "Qtd Ult Ent")
+	ressarcST->AddCellType(CT_MONEY, "Valor Ult Ent")
+	ressarcST->AddCellType(CT_MONEY, "BC ICMS ST")
+	ressarcST->AddCellType(CT_STRING, "Chave Ult NF-e Ent")
+	ressarcST->AddCellType(CT_INTNUMBER, "Num Item Ult NF-e Ent")
+	ressarcST->AddCellType(CT_MONEY, "BC ICMS")
+	ressarcST->AddCellType(CT_NUMBER, "Aliq ICMS")
+	ressarcST->AddCellType(CT_MONEY, "Lim BC ICMS")
+	ressarcST->AddCellType(CT_MONEY, "ICMS")
+	ressarcST->AddCellType(CT_NUMBER, "Aliq ICMS ST")
+	ressarcST->AddCellType(CT_MONEY, "Ressarcimento")
+	ressarcST->AddCellType(CT_STRING, "Responsavel")
+	ressarcST->AddCellType(CT_STRING, "Motivo")
+	ressarcST->AddCellType(CT_STRING, "Tipo Doc Arrecad")
+	ressarcST->AddCellType(CT_STRING, "Num Doc Arrecad")
+	ressarcST->AddCellType(CT_STRING, "Chave NF-e Saida")
+	ressarcST->AddCellType(CT_INTNUMBER, "Num Item NF-e Saida")
+	
 	'' Inconsistencias LRE
 	inconsistenciasLRE = ew->AddWorksheet("Inconsistencias LRE")
 
@@ -2336,7 +2843,7 @@ type HashCtx
 	bytesLidosTotal	as longint
 end type
 
-private function HashReadCB cdecl(ctx_ as any ptr, buffer as ubyte ptr, maxLen as integer) as integer
+private function HashReadCB cdecl(ctx_ as any ptr, buffer as ubyte ptr, maxLen as long) as long
 	var ctx = cast(HashCtx ptr, ctx_)
 	
 	if ctx->bytesLidosTotal + maxLen > ctx->tamanhoSemSign then
@@ -2405,11 +2912,11 @@ function lerInfoAssinatura(nomeArquivo as string, assinaturaP7K_DER() as byte) a
 end function
 
 ''''''''
-function Efd.processar(nomeArquivo as string, mostrarProgresso as ProgressoCB, gerarRelatorios_ as boolean, acrescentarDadosSAFI as boolean) as Boolean
+function Efd.processar(nomeArquivo as string, mostrarProgresso as ProgressoCB) as Boolean
    
-	gerarPlanilhas(nomeArquivo, mostrarProgresso, acrescentarDadosSAFI)
+	gerarPlanilhas(nomeArquivo, mostrarProgresso)
 	
-	if gerarRelatorios_ then
+	if opcoes.gerarRelatorios then
 		if tipoArquivo = TIPO_ARQUIVO_EFD then
 			infAssinatura = lerInfoAssinatura(nomeArquivo, assinaturaP7K_DER())
 		
@@ -2428,7 +2935,6 @@ function Efd.processar(nomeArquivo as string, mostrarProgresso as ProgressoCB, g
 	loop
 
 	regListHead = null
-	regListTail = null
 
 	sintegraDict.end_()
 	itemIdDict.end_()
@@ -2438,7 +2944,7 @@ function Efd.processar(nomeArquivo as string, mostrarProgresso as ProgressoCB, g
 end function
 
 ''''''''
-sub Efd.gerarPlanilhas(nomeArquivo as string, mostrarProgresso as ProgressoCB, acrescentarDadosSAFI as boolean)
+sub Efd.gerarPlanilhas(nomeArquivo as string, mostrarProgresso as ProgressoCB)
 	
 	if entradas = null then
 		criarPlanilhas
@@ -2458,11 +2964,28 @@ sub Efd.gerarPlanilhas(nomeArquivo as string, mostrarProgresso as ProgressoCB, a
 				var doc = reg->itemNF.documentoPai
 				select case as const doc->situacao
 				case REGULAR, EXTEMPORANEO
-					'só existe item para entradas
-					if doc->operacao = ENTRADA then
-						var row = entradas->AddRow()
+					var part = cast( TParticipante ptr, participanteDict[doc->idParticipante] )
 
-						var part = cast( TParticipante ptr, participanteDict[doc->idParticipante] )
+					var emitirLinha = true
+					if opcoes.filtrarCnpj then
+						if part <> null then
+							emitirLinha = filtrarPorCnpj(part->cnpj)
+						end if
+					end if
+					
+					if opcoes.somenteRessarcimentoST then
+						emitirLinha = reg->itemNF.itemRessarcStListHead <> null
+					end if
+					
+					if emitirLinha then
+						'só existe item para entradas (exceto quando há ressarcimento ST)
+						dim as ExcelRow ptr row
+						if doc->operacao = ENTRADA then
+							row = entradas->AddRow()
+						else
+							row = saidas->AddRow()
+						end if
+
 						if part <> null then
 							row->addCell(part->cnpj)
 							row->addCell(part->ie)
@@ -2507,11 +3030,11 @@ sub Efd.gerarPlanilhas(nomeArquivo as string, mostrarProgresso as ProgressoCB, a
 			case DOC_NF, DOC_NFSCT
 				select case as const reg->nf.situacao
 				case REGULAR, EXTEMPORANEO
-					'' NOTA: não existe itemDoc para saídas, só temos informações básicas do DF-e, 
+					'' NOTA: não existe itemDoc para saídas (exceto quando há ressarcimento ST), só temos informações básicas do DF-e, 
 					'' 	     a não ser que sejam carregados os relatórios .csv do SAFI vindos do infoview
 					if reg->nf.operacao = SAIDA or (reg->nf.operacao = ENTRADA and reg->nf.nroItens = 0) or reg->tipo = DOC_NFSCT then
 						dim as TDFe_NFeItem ptr item = null
-						if itemNFeSafiFornecido and acrescentarDadosSAFI then
+						if itemNFeSafiFornecido and opcoes.acrescentarDados then
 							if len(reg->nf.chave) > 0 then
 								var dfe = cast( TDFe ptr, chaveDFeDict[reg->nf.chave] )
 								if dfe <> null then
@@ -2522,9 +3045,205 @@ sub Efd.gerarPlanilhas(nomeArquivo as string, mostrarProgresso as ProgressoCB, a
 
 						var part = cast( TParticipante ptr, participanteDict[reg->nf.idParticipante] )
 
+						var emitirLinhas = (opcoes.somenteRessarcimentoST = false)
+						if opcoes.filtrarCnpj then
+							if part <> null then
+								if emitirLinhas then
+									emitirLinhas = filtrarPorCnpj(part->cnpj)
+								end if
+							end if
+						end if
+
+						if emitirLinhas then
+							do
+								dim as ExcelRow ptr row
+								if reg->nf.operacao = SAIDA then
+									row = saidas->AddRow()
+								else
+									row = entradas->AddRow()
+								end if
+							
+								if part <> null then
+									row->addCell(part->cnpj)
+									row->addCell(part->ie)
+									row->addCell(MUNICIPIO2SIGLA(part->municip))
+									row->addCell(part->nome)
+								else
+									row->addCell("")
+									row->addCell("")
+									row->addCell("")
+									row->addCell("")
+								end if
+								row->addCell(reg->nf.modelo)
+								row->addCell(reg->nf.serie)
+								row->addCell(reg->nf.numero)
+								row->addCell(YyyyMmDd2Datetime(reg->nf.dataEmi))
+								row->addCell(YyyyMmDd2Datetime(reg->nf.dataEntSaida))
+								row->addCell(reg->nf.chave)
+								row->addCell(codSituacao2Str(reg->nf.situacao))
+
+								if (itemNFeSafiFornecido and opcoes.acrescentarDados) or _
+								   cbool((reg->nf.operacao = ENTRADA) and (not reg->tipo = DOC_NFSCT)) then
+									if item <> null then
+										row->addCell(item->bcICMS)
+										row->addCell(item->aliqICMS)
+										row->addCell(item->ICMS)
+										row->addCell(item->bcICMSST)
+										row->addCell("")
+										row->addCell("")
+										row->addCell(item->IPI)
+										row->addCell(item->valorProduto)
+										row->addCell(item->nroItem)
+										row->addCell(item->qtd)
+										row->addCell(item->unidade)
+										row->addCell(item->cfop)
+										row->addCell("")
+										row->addCell("")
+										row->addCell(item->codProduto)
+										row->addCell(item->descricao)
+									else
+										for cell as integer = 1 to 16
+											row->addCell("")
+										next
+									end if
+
+								else
+									row->addCell(reg->nf.bcICMS)
+									row->addCell("")
+									row->addCell(reg->nf.ICMS)
+									row->addCell(reg->nf.bcICMSST)
+									row->addCell(reg->nf.ICMSST)
+									row->addCell("")
+									row->addCell(reg->nf.IPI)
+									row->addCell(reg->nf.valorTotal)
+									for cell as integer = 1 to 16-8
+										row->addCell("")
+									next
+								end if
+
+								if reg->nf.operacao = SAIDA then
+									row->addCell(reg->nf.difal.fcp)
+									row->addCell(reg->nf.difal.icmsOrigem)
+									row->addCell(reg->nf.difal.icmsDest)
+								end if
+							
+								if item = null then
+									exit do
+								end if
+
+								item = item->next_
+							loop while item <> null
+						end if
+					
+					end if
+			   
+				case CANCELADO, CANCELADO_EXT, DENEGADO, INUTILIZADO
+					if reg->nf.operacao = SAIDA then
+						if opcoes.somenteRessarcimentoST = false then
+							var row = saidas->AddRow()
+
+							row->addCell("")
+							row->addCell("")
+							row->addCell("")
+							row->addCell("")
+							row->addCell(reg->nf.modelo)
+							row->addCell(reg->nf.serie)
+							row->addCell(reg->nf.numero)
+							'' NOTA: cancelados e inutilizados não vêm com a data preenchida, então retiramos a data da chave ou do registro mestre
+							var dataEmi = iif( len(reg->nf.chave) = 44, "20" + mid(reg->nf.chave,3,2) + mid(reg->nf.chave,5,2) + "01", regMestre->mestre.dataIni )
+							row->addCell(YyyyMmDd2Datetime(dataEmi))
+							row->addCell("")
+							row->addCell(reg->nf.chave)
+							row->addCell(codSituacao2Str(reg->nf.situacao))
+						end if
+					end if
+
+				end select
+				
+			'ressarcimento st?
+			case DOC_NF_ITEM_RESSARC_ST
+				var doc = @reg->itemRessarcSt
+				var part = cast( TParticipante ptr, participanteDict[doc->idParticipanteUlt] )
+
+				var emitirLinha = true
+				if opcoes.filtrarCnpj then
+					if part <> null then
+						emitirLinha = filtrarPorCnpj(part->cnpj)
+					end if
+				end if
+				
+				if emitirLinha then
+					var row = ressarcST->AddRow()
+
+					if part <> null then
+						row->addCell(part->cnpj)
+						row->addCell(part->ie)
+						row->addCell(MUNICIPIO2SIGLA(part->municip))
+						row->addCell(part->nome)
+					else
+						row->addCell("")
+						row->addCell("")
+						row->addCell("")
+						row->addCell("")
+					end if
+					row->addCell(doc->modeloUlt)
+					row->addCell(doc->serieUlt)
+					row->addCell(doc->numeroUlt)
+					row->addCell(YyyyMmDd2Datetime(doc->dataUlt))
+					row->addCell(doc->qtdUlt)
+					row->addCell(doc->valorUlt)
+					row->addCell(doc->valorBcST)
+					row->addCell(doc->chaveNFeUlt)
+					row->addCell(doc->numItemNFeUlt)
+					row->addCell(doc->bcIcmsUlt)
+					row->addCell(doc->aliqIcmsUlt)
+					row->addCell(doc->limiteBcIcmsUlt)
+					row->addCell(doc->icmsUlt)
+					row->addCell(doc->aliqIcmsStUlt)
+					row->addCell(doc->res)
+					row->addCell(doc->responsavelRet)
+					row->addCell(doc->motivo)
+					row->addCell(doc->tipDocArrecadacao)
+					row->addCell(doc->numDocArrecadacao)
+					row->addCell(doc->documentoPai->documentoPai->chave)
+					row->addCell(doc->documentoPai->numItem)
+				end if
+
+			'CT-e?
+			case DOC_CT
+				select case as const reg->ct.situacao
+				case REGULAR, EXTEMPORANEO
+					var part = cast( TParticipante ptr, participanteDict[reg->ct.idParticipante] )
+
+					var emitirLinhas = (opcoes.somenteRessarcimentoST = false)
+					if opcoes.filtrarCnpj then
+						if part <> null then
+							if emitirLinhas then
+								emitirLinhas = filtrarPorCnpj(part->cnpj)
+							end if
+						end if
+					end if
+						
+					if emitirLinhas then
+						dim as TDFe_CTe ptr cte = null
+						if cteSafiFornecido then
+							if len(reg->ct.chave) > 0 then
+								var dfe = cast( TDFe ptr, chaveDFeDict[reg->ct.chave] )
+								if dfe <> null then
+									cte = @dfe->cte
+								end if
+							end if
+						end if
+						
+						dim as TDocItemAnal ptr item = null
+						if reg->ct.operacao = ENTRADA then
+							item = reg->ct.itemAnalListHead
+						end if
+						
+						var itemCnt = 1
 						do
-							dim as ExcelRow ptr row
-							if reg->nf.operacao = SAIDA then
+							dim as ExcelRow ptr row 
+							if reg->ct.operacao = SAIDA then
 								row = saidas->AddRow()
 							else
 								row = entradas->AddRow()
@@ -2541,203 +3260,82 @@ sub Efd.gerarPlanilhas(nomeArquivo as string, mostrarProgresso as ProgressoCB, a
 								row->addCell("")
 								row->addCell("")
 							end if
-							row->addCell(reg->nf.modelo)
-							row->addCell(reg->nf.serie)
-							row->addCell(reg->nf.numero)
-							row->addCell(YyyyMmDd2Datetime(reg->nf.dataEmi))
-							row->addCell(YyyyMmDd2Datetime(reg->nf.dataEntSaida))
-							row->addCell(reg->nf.chave)
-							row->addCell(codSituacao2Str(reg->nf.situacao))
-
-							if (itemNFeSafiFornecido and acrescentarDadosSAFI) or _
-							   cbool((reg->nf.operacao = ENTRADA) and (not reg->tipo = DOC_NFSCT)) then
-								if item <> null then
-									row->addCell(item->bcICMS)
-									row->addCell(item->aliqICMS)
-									row->addCell(item->ICMS)
-									row->addCell(item->bcICMSST)
-									row->addCell("")
-									row->addCell("")
-									row->addCell(item->IPI)
-									row->addCell(item->valorProduto)
-									row->addCell(item->nroItem)
-									row->addCell(item->qtd)
-									row->addCell(item->unidade)
-									row->addCell(item->cfop)
-									row->addCell("")
-									row->addCell("")
-									row->addCell(item->codProduto)
-									row->addCell(item->descricao)
-								else
-									for cell as integer = 1 to 16
-										row->addCell("")
-									next
-								end if
-
+							row->addCell(reg->ct.modelo)
+							row->addCell(reg->ct.serie)
+							row->addCell(reg->ct.numero)
+							row->addCell(YyyyMmDd2Datetime(reg->ct.dataEmi))
+							row->addCell(YyyyMmDd2Datetime(reg->ct.dataEntSaida))
+							row->addCell(reg->ct.chave)
+							row->addCell(codSituacao2Str(reg->ct.situacao))
+							
+							if item <> null then
+								row->addCell(item->bc)
+								row->addCell(item->aliq)
+								row->addCell(item->ICMS)
+								row->addCell("")
+								row->addCell("")
+								row->addCell("")
+								row->addCell("")
+								row->addCell(item->valorOp)
+								row->addCell(itemCnt)
+								row->addCell("")
+								row->addCell("")
+								row->addCell(item->cfop)
+								row->addCell(item->cst)
+								row->addCell("")
+								row->addCell("")
+								row->addCell("")
+								
+								item = item->next_
+								itemCnt += 1
 							else
-								row->addCell(reg->nf.bcICMS)
+								row->addCell(reg->ct.bcICMS)
 								row->addCell("")
-								row->addCell(reg->nf.ICMS)
-								row->addCell(reg->nf.bcICMSST)
-								row->addCell(reg->nf.ICMSST)
+								row->addCell(reg->ct.ICMS)
 								row->addCell("")
-								row->addCell(reg->nf.IPI)
-								row->addCell(reg->nf.valorTotal)
-								for cell as integer = 1 to 16-8
-									row->addCell("")
-								next
+								row->addCell("")
+								row->addCell("")
+								row->addCell("")
+								row->addCell(reg->ct.valorServico)
+								row->addCell(1)
+								row->addCell("")
+								row->addCell("")
+								row->addCell("")
+								row->addCell("")
+								row->addCell("")
+								row->addCell("")
+								row->addCell("")
+								
 							end if
 
-							if reg->nf.operacao = SAIDA then
-								row->addCell(reg->nf.difal.fcp)
-								row->addCell(reg->nf.difal.icmsOrigem)
-								row->addCell(reg->nf.difal.icmsDest)
+							if reg->ct.operacao = SAIDA then
+								row->addCell(reg->ct.difal.fcp)
+								row->addCell(reg->ct.difal.icmsOrigem)
+								row->addCell(reg->ct.difal.icmsDest)
 							end if
 							
-							if item = null then
-								exit do
-							end if
-
-							item = item->next_
 						loop while item <> null
-					
 					end if
-			   
-				case CANCELADO, CANCELADO_EXT, DENEGADO, INUTILIZADO
-					if reg->nf.operacao = SAIDA then
-						var row = saidas->AddRow()
-
-						row->addCell("")
-						row->addCell("")
-						row->addCell("")
-						row->addCell("")
-						row->addCell(reg->nf.modelo)
-						row->addCell(reg->nf.serie)
-						row->addCell(reg->nf.numero)
-						'' NOTA: cancelados e inutilizados não vêm com a data preenchida, então retiramos a data da chave ou do registro mestre
-						var dataEmi = iif( len(reg->nf.chave) = 44, "20" + mid(reg->nf.chave,3,2) + mid(reg->nf.chave,5,2) + "01", regListHead->mestre.dataIni )
-						row->addCell(YyyyMmDd2Datetime(dataEmi))
-						row->addCell("")
-						row->addCell(reg->nf.chave)
-						row->addCell(codSituacao2Str(reg->nf.situacao))
-					end if
-
-				end select
-
-			'CT-e?
-			case DOC_CT
-				select case as const reg->ct.situacao
-				case REGULAR, EXTEMPORANEO
-					var part = cast( TParticipante ptr, participanteDict[reg->ct.idParticipante] )
-
-					dim as TDFe_CTe ptr cte = null
-					if cteSafiFornecido then
-						if len(reg->ct.chave) > 0 then
-							var dfe = cast( TDFe ptr, chaveDFeDict[reg->ct.chave] )
-							if dfe <> null then
-								cte = @dfe->cte
-							end if
-						end if
-					end if
-					
-					dim as TDocItemAnal ptr item = null
-					if reg->ct.operacao = ENTRADA then
-						item = reg->ct.itemAnalListHead
-					end if
-					
-					var itemCnt = 1
-					do
-						dim as ExcelRow ptr row 
-						if reg->ct.operacao = SAIDA then
-							row = saidas->AddRow()
-						else
-							row = entradas->AddRow()
-						end if
-						
-						if part <> null then
-							row->addCell(part->cnpj)
-							row->addCell(part->ie)
-							row->addCell(MUNICIPIO2SIGLA(part->municip))
-							row->addCell(part->nome)
-						else
-							row->addCell("")
-							row->addCell("")
-							row->addCell("")
-							row->addCell("")
-						end if
-						row->addCell(reg->ct.modelo)
-						row->addCell(reg->ct.serie)
-						row->addCell(reg->ct.numero)
-						row->addCell(YyyyMmDd2Datetime(reg->ct.dataEmi))
-						row->addCell(YyyyMmDd2Datetime(reg->ct.dataEntSaida))
-						row->addCell(reg->ct.chave)
-						row->addCell(codSituacao2Str(reg->ct.situacao))
-						
-						if item <> null then
-							row->addCell(item->bc)
-							row->addCell(item->aliq)
-							row->addCell(item->ICMS)
-							row->addCell("")
-							row->addCell("")
-							row->addCell("")
-							row->addCell("")
-							row->addCell(item->valorOp)
-							row->addCell(itemCnt)
-							row->addCell("")
-							row->addCell("")
-							row->addCell(item->cfop)
-							row->addCell(item->cst)
-							row->addCell("")
-							row->addCell("")
-							row->addCell("")
-							
-							item = item->next_
-							itemCnt += 1
-						else
-							row->addCell(reg->ct.bcICMS)
-							row->addCell("")
-							row->addCell(reg->ct.ICMS)
-							row->addCell("")
-							row->addCell("")
-							row->addCell("")
-							row->addCell("")
-							row->addCell(reg->ct.valorServico)
-							row->addCell(1)
-							row->addCell("")
-							row->addCell("")
-							row->addCell("")
-							row->addCell("")
-							row->addCell("")
-							row->addCell("")
-							row->addCell("")
-							
-						end if
-
-						if reg->ct.operacao = SAIDA then
-							row->addCell(reg->ct.difal.fcp)
-							row->addCell(reg->ct.difal.icmsOrigem)
-							row->addCell(reg->ct.difal.icmsDest)
-						end if
-						
-					loop while item <> null
 				
 				case CANCELADO, CANCELADO_EXT, DENEGADO, INUTILIZADO
 					if reg->ct.operacao = SAIDA then
-						var row = saidas->AddRow()
+						if opcoes.somenteRessarcimentoST = false then
+							var row = saidas->AddRow()
 
-						row->addCell("")
-						row->addCell("")
-						row->addCell("")
-						row->addCell("")
-						row->addCell(reg->ct.modelo)
-						row->addCell(reg->ct.serie)
-						row->addCell(reg->ct.numero)
-						'' NOTA: cancelados e inutilizados não vêm com a data preenchida, então retiramos a data da chave ou do registro mestre
-						var dataEmi = iif( len(reg->ct.chave) = 44, "20" + mid(reg->ct.chave,3,2) + mid(reg->ct.chave,5,2) + "01", regListHead->mestre.dataIni )
-						row->addCell(YyyyMmDd2Datetime(dataEmi))
-						row->addCell("")
-						row->addCell(reg->ct.chave)
-						row->addCell(codSituacao2Str(reg->ct.situacao))
+							row->addCell("")
+							row->addCell("")
+							row->addCell("")
+							row->addCell("")
+							row->addCell(reg->ct.modelo)
+							row->addCell(reg->ct.serie)
+							row->addCell(reg->ct.numero)
+							'' NOTA: cancelados e inutilizados não vêm com a data preenchida, então retiramos a data da chave ou do registro mestre
+							var dataEmi = iif( len(reg->ct.chave) = 44, "20" + mid(reg->ct.chave,3,2) + mid(reg->ct.chave,5,2) + "01", regMestre->mestre.dataIni )
+							row->addCell(YyyyMmDd2Datetime(dataEmi))
+							row->addCell("")
+							row->addCell(reg->ct.chave)
+							row->addCell(codSituacao2Str(reg->ct.situacao))
+						end if
 					end if
 				
 				end select
@@ -2749,37 +3347,46 @@ sub Efd.gerarPlanilhas(nomeArquivo as string, mostrarProgresso as ProgressoCB, a
 				case REGULAR, EXTEMPORANEO
 					'só existe cupom para saída
 					if doc->operacao = SAIDA then
-						var row = saidas->AddRow()
+						var emitirLinha = (opcoes.somenteRessarcimentoST = false)
+						if opcoes.filtrarCnpj then
+							if emitirLinha then
+								emitirLinha = filtrarPorCnpj(doc->cpfCnpjAdquirente)
+							end if
+						end if
+						
+						if emitirLinha then
+							var row = saidas->AddRow()
 
-						row->addCell(doc->cpfCnpjAdquirente)
-						row->addCell("")
-						row->addCell("SP")
-						row->addCell(doc->nomeAdquirente)
-						row->addCell(iif(doc->modelo = &h2D, "2D", str(doc->modelo)))
-						row->addCell("")
-						row->addCell(doc->numero)
-						row->addCell(YyyyMmDd2Datetime(doc->dataEmi))
-						row->addCell(YyyyMmDd2Datetime(doc->dataEntSaida))
-						row->addCell(doc->chave)
-						row->addCell(codSituacao2Str(doc->situacao))
-						row->addCell("")
-						row->addCell(reg->itemECF.aliqICMS)
-						row->addCell("")
-						row->addCell("")
-						row->addCell("")
-						row->addCell("")
-						row->addCell("")
-						row->addCell(reg->itemECF.valor)
-						row->addCell(reg->itemECF.numItem)
-						row->addCell(reg->itemECF.qtd)
-						row->addCell(reg->itemECF.unidade)
-						row->addCell(reg->itemECF.cfop)
-						row->addCell(reg->itemECF.cstICMS)
-						var itemId = cast( TItemId ptr, itemIdDict[reg->itemECF.itemId] )
-						if itemId <> null then 
-							row->addCell(itemId->ncm)
-							row->addCell(itemId->id)
-							row->addCell(itemId->descricao)
+							row->addCell(doc->cpfCnpjAdquirente)
+							row->addCell("")
+							row->addCell("SP")
+							row->addCell(doc->nomeAdquirente)
+							row->addCell(iif(doc->modelo = &h2D, "2D", str(doc->modelo)))
+							row->addCell("")
+							row->addCell(doc->numero)
+							row->addCell(YyyyMmDd2Datetime(doc->dataEmi))
+							row->addCell(YyyyMmDd2Datetime(doc->dataEntSaida))
+							row->addCell(doc->chave)
+							row->addCell(codSituacao2Str(doc->situacao))
+							row->addCell("")
+							row->addCell(reg->itemECF.aliqICMS)
+							row->addCell("")
+							row->addCell("")
+							row->addCell("")
+							row->addCell("")
+							row->addCell("")
+							row->addCell(reg->itemECF.valor)
+							row->addCell(reg->itemECF.numItem)
+							row->addCell(reg->itemECF.qtd)
+							row->addCell(reg->itemECF.unidade)
+							row->addCell(reg->itemECF.cfop)
+							row->addCell(reg->itemECF.cstICMS)
+							var itemId = cast( TItemId ptr, itemIdDict[reg->itemECF.itemId] )
+							if itemId <> null then 
+								row->addCell(itemId->ncm)
+								row->addCell(itemId->id)
+								row->addCell(itemId->descricao)
+							end if
 						end if
 					end if
 				end select
@@ -2825,6 +3432,41 @@ sub Efd.gerarPlanilhas(nomeArquivo as string, mostrarProgresso as ProgressoCB, a
 				row->addCell(reg->apuIcmsST.saldoCredTransportar)
 				row->addCell(reg->apuIcmsST.debExtraApuracao)
 
+			case INVENTARIO_ITEM
+				var row = inventario->AddRow()
+				
+				row->addCell(YyyyMmDd2Datetime(reg->invItem.dataInventario))
+
+				var itemId = cast( TItemId ptr, itemIdDict[reg->invItem.itemId] )
+				if itemId <> null then 
+					row->addCell(itemId->id)
+					row->addCell(itemId->ncm)
+					row->addCell(itemId->tipoItem)
+					row->addCell(tipoItem2Str(itemId->tipoItem))
+					row->addCell(itemId->descricao)
+				else
+					row->addCell(reg->invItem.itemId)
+					row->addCell("")
+					row->addCell("")
+					row->addCell("")
+					row->addCell("")
+				end if
+				
+				row->addCell(reg->invItem.unidade)
+				row->addCell(reg->invItem.qtd)
+				row->addCell(reg->invItem.valorUnitario)
+				row->addCell(reg->invItem.valorItem)
+				row->addCell(reg->invItem.indPropriedade)
+				var part = cast( TParticipante ptr, participanteDict[reg->invItem.idParticipante] )
+				if part <> null then
+					row->addCell(part->cnpj)
+				else
+					row->addCell("")
+				end if
+				row->addCell(reg->invItem.txtComplementar)
+				row->addCell(reg->invItem.codConta)
+				row->addCell(reg->invItem.valorItemIR)
+				
 			'documento do sintegra?
 			case SINTEGRA_DOCUMENTO
 				if reg->docSint.modelo = 55 then 
@@ -2989,6 +3631,14 @@ sub Efd.exportAPI(L as lua_State ptr)
 	lua_setarGlobal(L, "TI_ALIQ", TI_ALIQ)
 	lua_setarGlobal(L, "TI_DUP", TI_DUP)
 	lua_setarGlobal(L, "TI_DIF", TI_DIF)
+	lua_setarGlobal(L, "TI_RESSARC_ST", TI_RESSARC_ST)
+	lua_setarGlobal(L, "TI_CRED", TI_CRED)
+	lua_setarGlobal(L, "TI_SEL", TI_SEL)
+	
+	lua_setarGlobal(L, "DFE_NFE_DEST_FORNECIDO", MASK_SAFI_NFE_DEST_FORNECIDO)
+	lua_setarGlobal(L, "DFE_NFE_EMIT_FORNECIDO", MASK_SAFI_NFE_EMIT_FORNECIDO)
+	lua_setarGlobal(L, "DFE_ITEM_NFE_FORNECIDO", MASK_SAFI_ITEM_NFE_FORNECIDO)
+	lua_setarGlobal(L, "DFE_CTE_FORNECIDO", MASK_SAFI_CTE_FORNECIDO)
 	
 	lua_setarGlobal(L, "efd", @this)
 	

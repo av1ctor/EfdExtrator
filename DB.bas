@@ -39,10 +39,10 @@ end function
 private function callback cdecl _
 	( _
 		byval dset as any ptr, _
-		byval argc as integer, _
+		byval argc as long, _
 		byval argv as zstring ptr ptr, _
 		byval colName as zstring ptr ptr _
-	) as integer
+	) as long
 	
 	var ds = cast(TDataSet ptr, dset)
 	
@@ -134,31 +134,35 @@ function TDb.execScalar(query as const zstring ptr) as zstring ptr
 end function
 
 ''''''''	
-sub TDb.execNonQuery(query as const zstring ptr) 
+function TDb.execNonQuery(query as const zstring ptr) as boolean
 
 	var ds = new TDataSet
 	
 	dim as zstring ptr errMsg_ = null
 	if sqlite3_exec( instance, query, null, ds, @errMsg_ ) <> SQLITE_OK then 
 		errMsg = *errMsg_
+		function = false
 	else
 		errMsg = ""
+		function = true
 	end if 
 	
 	delete ds
 
-end sub
+end function
 
 ''''''''	
-sub TDb.execNonQuery(stmt as TDbStmt ptr) 
+function TDb.execNonQuery(stmt as TDbStmt ptr) as boolean
 
 	do
 		if stmt->step_() <> SQLITE_ROW then
 			exit do
 		end if
 	loop
+	
+	function = true
 
-end sub
+end function
 	
 ''''''''	
 function TDb.prepare(query as const zstring ptr) as TDBStmt ptr
@@ -177,6 +181,7 @@ function TDb.prepare(query as const zstring ptr) as TDBStmt ptr
 end function
 
 ''''''''
+/'
 function TDb.format cdecl(fmt as string, ...) as string
 
 	dim as string args_v(0 to 9)
@@ -219,7 +224,7 @@ function TDb.format cdecl(fmt as string, ...) as string
 	function = res
 	
 end function
-
+'/
 
 ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
@@ -475,10 +480,14 @@ private function luacb_db_execNonQuery cdecl(byval L as lua_State ptr) as long
 		var db = cast(TDb ptr, lua_touserdata(L, 1))
 		if lua_isstring(L, 2) then
 			var query = lua_tostring(L, 2)
-			db->execNonQuery(query)
+			if not db->execNonQuery(query) then
+				print "SQL error: "; *db->getErrorMsg()
+			end if
 		else
 			var query = cast(TDbStmt ptr, lua_touserdata(L, 2))
-			db->execNonQuery(query)
+			if not db->execNonQuery(query) then
+				print "SQL error: "; *db->getErrorMsg()
+			end if
 		end if
 	end if
 	
@@ -504,6 +513,7 @@ private function luacb_db_exec cdecl(byval L as lua_State ptr) as long
 		
 		if ds = null then
 			lua_pushnil(L)
+			print "SQL error: "; *db->getErrorMsg()
 		else
 			lua_pushlightuserdata(L, ds)
 		end if
@@ -527,6 +537,7 @@ private function luacb_db_prepare cdecl(byval L as lua_State ptr) as long
 			lua_pushlightuserdata(L, stmt)
 		else
 			lua_pushnil(L)
+			print "SQL error: "; *db->getErrorMsg()
 		end if
 	else
 		lua_pushnil(L)
