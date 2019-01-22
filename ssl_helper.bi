@@ -22,12 +22,12 @@ public:
 	declare constructor( )
 	declare destructor( )
 	declare function Load_P7K(fileName as const zstring ptr) as PKCS7 ptr
-	declare function Load_P7K(buffer as ubyte ptr, lgt as integer) as PKCS7 ptr
+	declare function Load_P7K(buffer as ubyte ptr, lgt as long) as PKCS7 ptr
 	declare sub Free(p7 as PKCS7 ptr)
 	declare function Get_CommonName(p7 as PKCS7 ptr) as zstring ptr
 	declare function Get_AttributeFromAltName(p7 as PKCS7 ptr, attrib as ALTNAME_ATTRIBUTES) as zstring ptr
-	declare function Compute_SHA1(src as const byte ptr, lgt as integer) as zstring ptr
-	declare function Compute_SHA1(readCb as function(ctx as any ptr, buffer as ubyte ptr, maxLen as integer) as integer, ctx as any ptr) as zstring ptr
+	declare function Compute_SHA1(src as const byte ptr, lgt as long) as zstring ptr
+	declare function Compute_SHA1(readCb as function(ctx as any ptr, buffer as ubyte ptr, maxLen as long) as long, ctx as any ptr) as zstring ptr
 private:
 	unused__ as byte
 end type

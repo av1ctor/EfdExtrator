@@ -3,7 +3,7 @@ Copyleft 2017-2018 by André Vicentini (avtvicentini)
 
 Modo de usar:
 
-    EfdExtrator.exe [-gerarRelatorios] [-complementarDados] [-filtrarCnpj cnpj1,cnpj2,...] arquivo.txt [arquivo.csv]
+    EfdExtrator.exe [-gerarRelatorios] [-complementarDados] [-filtrarCnpj cnpj1,cnpj2,...] -formatoDeSaida xml|csv -somenteRessarcimentoST -dbEmDisco arquivo.txt [arquivo.csv]
 
     Notas:
         1. No lugar do nome dos arquivos, podem ser usadas máscaras,
@@ -22,13 +22,20 @@ Modo de usar:
         6. A opção -complementarDados inclui dados complementares na planilha
            (aba Saídas) que será gerada e que não constam na EFD, caso os
            arquivos .csv do SAFI sejam fornecidos
-		7. A opção -filtrarCnpj fará com que só sejam extraídos os registros 
-		   com os mesmos CNPJs (de emitentes ou destinatários) dos contidos
-		   na lista de CNPJs informada (separada por vírgula, com zeros à esq.) 
+        7. A opção -filtrarCnpj fará com que só sejam extraídos os registros 
+           com os mesmos CNPJs (de emitentes ou destinatários) dos contidos
+           na lista de CNPJs informada (separada por vírgula, com zeros à esq. 
+        8. A opção -formatoDeSaida permite trocar o formato de saída do
+           padrão (xml - Excel) para csv
+        9. A opção -somenteRessarcimentoST extrairá somente documentos do LRS
+           que contenham o registro C176 relativo ao ressarcimento ST
+        A. A opção -dbEmDisco gravará os dados intermediários em disco,
+           poupando memória (utilize -manterDB para preservar o arquivo)
 
-Sobre as análises e cruzamentos:
+   Sobre as análises e cruzamentos:
 
-    Para que sejam feitas análises e cruzamentos por completo (ver TODO.txt para saber o que falta implementar) é necessário baixar os DBs (> 2GB) contendo os dados de contribuintes (os dados são os mesmos carregados no SAFI e fornecidos pela DEAT).
+    Para que sejam feitas análises e cruzamentos por completo (ver TODO.txt para saber o que falta implementar) é necessário baixar os DBs (> 2GB) contendo os dados de 
+	contribuintes (os dados são os mesmos carregados no SAFI e fornecidos pela DEAT).
     Baixe o arquivo no Google Drive (EFDExtrator_DB.rar) e o extraia para o diretório onde estiver instalado o EfdExtrator (senha do RAR: sefazsp)
 
     As análises e os cruzamentos são realizados em Lua scripting (ver scripts/analises.lua). 

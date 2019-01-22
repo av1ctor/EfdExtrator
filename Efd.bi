@@ -6,10 +6,26 @@
 #include once "DB.bi"
 #include once "Lua/lualib.bi"
 
+enum TipoFormatoSaida
+	SAIDA_XML
+	SAIDA_CSV
+end enum
+
 enum TTipoArquivo
 	TIPO_ARQUIVO_EFD
 	TIPO_ARQUIVO_SINTEGRA
 end enum
+
+type OpcoesExtracao
+	gerarRelatorios 		as boolean = false
+	acrescentarDados		as boolean = false
+	formatoDeSaida 			as TTipoArquivo = SAIDA_XML
+	somenteRessarcimentoST 	as boolean = false
+	dbEmDisco 				as boolean = false
+	manterDb				as boolean = false
+	filtrarCnpj				as boolean = false
+	listaCnpj(any)			as string
+end type
 
 enum TipoRegistro
 	MESTRE
@@ -17,8 +33,9 @@ enum TipoRegistro
 	ITEM_ID
 	DOC_NF										'' NF, NF-e, NFC-e
 	DOC_NF_ITEM    								'' item de NF-e (só informado para entradas)
-	DOC_NF_ANAL					
-	DOC_NF_DIFAL				
+	DOC_NF_ITEM_RESSARC_ST						'' ressarcimento ST
+	DOC_NF_ANAL									'' analítico
+	DOC_NF_DIFAL								'' diferencial de alíquota
 	DOC_CT     									'' CT, CT-e, CT-e OS, BP-e
 	DOC_CT_DIFAL				
 	DOC_CT_ANAL					
@@ -35,6 +52,8 @@ enum TipoRegistro
 	APURACAO_ICMS_PROPRIO_OBRIG	
 	APURACAO_ICMS_ST_PERIODO	
 	APURACAO_ICMS_ST			
+	INVENTARIO_TOTAIS
+	INVENTARIO_ITEM
 	FIM_DO_ARQUIVO								'' NOTA: anterior à assinatura digital que fica no final no arquivo
 	DESCONHECIDO   				
 	LUA_CUSTOM									'' tratado no script Lua
@@ -170,6 +189,8 @@ enum TipoItemId
 	TI_Outras 					= 99
 end enum
 
+type TRegistro_ as TRegistro ptr
+
 type TItemId
 	id             as zstring * 60+1
 	descricao      as zstring * 256+1
@@ -185,45 +206,99 @@ type TItemId
 	CEST           as integer
 end type
 
+enum TipoResponsavelRetencaoRessarcST
+	REMETENTE_DIRETO = 1
+	REMETENTE_INDIRETO = 2
+	PROPRIO_DECLARANTE = 3
+end enum
+
+enum TipoMotivoRessarcST
+	RES_VENDA_OUTRA_UF = 1
+	RES_SAIDA_COM_ISENCAO = 2
+	RES_PERDA_OU_DETERIORACAo = 3
+	RES_FURTO_OU_ROUBO = 4
+	RES_EXPORTACAO = 5
+	RES_OUTROS = 9
+end enum
+
+enum TipoDocArrecadacao
+	ARRECADA_GIA = 1
+	ARRECADA_GNRE = 2
+end enum
+
+type TDocNFItem_ as TDocNFItem ptr
+
+type TDocNFItemRessarcSt
+	documentoPai   			as TDocNFItem_
+	modeloUlt				as TipoModelo
+	numeroUlt				as longint
+	serieUlt				as zstring * 4+1
+	dataUlt					as zstring * 8+1		'AAAAMMDD
+	idParticipanteUlt		as zstring * 60+1
+	qtdUlt					as double
+	valorUlt				as double
+	valorBcST				as double
+	chaveNFeUlt				as zstring * 44+1
+	numItemNFeUlt			as short
+	bcIcmsUlt				as double
+	aliqIcmsUlt				as double
+	limiteBcIcmsUlt			as double
+	icmsUlt					as double
+	aliqIcmsStUlt			as double
+	res						as double
+	responsavelRet			as TipoResponsavelRetencaoRessarcST
+	motivo					as TipoMotivoRessarcST
+	chaveNFeRet				as zstring * 44+1
+	idParticipanteRet		as zstring * 60+1
+	serieRet				as zstring * 4+1
+	numeroRet				as longint
+	numItemNFeRet			as short
+	tipDocArrecadacao		as TipoDocArrecadacao
+	numDocArrecadacao		as zstring * 32+1
+	next_					as TDocNFItemRessarcSt ptr
+end type
+
 type TDocNF_ as TDocNF ptr
 
 type TDocNFItem                       ' nota: só é obrigatório para entradas!!!
-	documentoPai   as TDocNF_
-	numItem        as Integer
-	itemId         as zstring * 60+1
-	descricao      as zstring * 256+1
-	qtd            as double
-	unidade        as zstring * 6+1
-	valor          as Double
-	desconto       as double
-	indMovFisica   as byte
-	cstICMS        as integer
-	cfop           as Integer
-	codNatureza    as zstring * 10+1
-	bcICMS         as Double
-	aliqICMS       as double
-	ICMS           as Double
-	bcICMSST       as Double
-	aliqICMSST     as Double
-	ICMSST         as Double
-	indApuracao    as Byte
-	cstIPI         as Integer
-	codEnqIPI      as zstring * 2+1
-	bcIPI          as double
-	aliqIPI        as Double
-	IPI            as Double
-	cstPIS         as integer
-	bcPIS          as Double
-	aliqPISPerc    as Double
-	qtdBcPIS       as double
-	aliqPISMoed    as Double
-	PIS            as Double
-	cstCOFINS      as Integer
-	bcCOFINS       as Double
-	aliqCOFINSPerc as Double
-	qtdBcCOFINS    as double
-	aliqCOFINSMoed as Double
-	COFINS         as Double
+	documentoPai   			as TDocNF_
+	numItem        			as Integer
+	itemId         			as zstring * 60+1
+	descricao      			as zstring * 256+1
+	qtd            			as double
+	unidade        			as zstring * 6+1
+	valor          			as Double
+	desconto       			as double
+	indMovFisica   			as byte
+	cstICMS        			as integer
+	cfop           			as Integer
+	codNatureza    			as zstring * 10+1
+	bcICMS         			as Double
+	aliqICMS       			as double
+	ICMS           			as Double
+	bcICMSST       			as Double
+	aliqICMSST     			as Double
+	ICMSST         			as Double
+	indApuracao    			as Byte
+	cstIPI         			as Integer
+	codEnqIPI      			as zstring * 2+1
+	bcIPI          			as double
+	aliqIPI        			as Double
+	IPI            			as Double
+	cstPIS         			as integer
+	bcPIS          			as Double
+	aliqPISPerc    			as Double
+	qtdBcPIS       			as double
+	aliqPISMoed    			as Double
+	PIS            			as Double
+	cstCOFINS      			as Integer
+	bcCOFINS       			as Double
+	aliqCOFINSPerc 			as Double
+	qtdBcCOFINS    			as double
+	aliqCOFINSMoed 			as Double
+	COFINS         			as Double
+	itemRessarcStListHead 	as TDocNFItemRessarcSt ptr
+	itemRessarcStListTail 	as TDocNFItemRessarcSt ptr
 end type
 
 type TDocECF_ as TDocECF ptr
@@ -249,41 +324,39 @@ type TDocDifAliq
 	icmsOrigem		as double
 end type
 
-type TRegistro_ as TRegistro ptr
-
 type TDocItemAnal
-	documentoPai   	as TRegistro_
-	cst				as integer
-	cfop			as integer
-	aliq			as double
-	valorOp			as double
-	bc				as double
-	ICMS			as double
-	bcST			as double
-	ICMSST			as double
-	redBC			as double
-	IPI				as double
-	next_			as TDocItemAnal ptr
+	documentoPai   			as TRegistro_
+	cst						as integer
+	cfop					as integer
+	aliq					as double
+	valorOp					as double
+	bc						as double
+	ICMS					as double
+	bcST					as double
+	ICMSST					as double
+	redBC					as double
+	IPI						as double
+	next_					as TDocItemAnal ptr
 end type
 
 type TDocDF
-	operacao		as TipoOperacao
-	situacao		as TipoSituacao
-	emitente		as TipoEmitente
-	idParticipante	as zstring * 60+1
-	modelo			as TipoModelo
-	dataEmi			as zstring * 8+1		'AAAAMMDD
-	dataEntSaida	as zstring * 8+1
-	serie			as zstring * 4+1
-	subserie		as zstring * 8+1
-	numero			as longint
-	chave			as zstring * 44+1
-	valorTotal		as double
-	bcICMS			as double
-	ICMS			as double
-	difal			as TDocDifAliq
-	itemAnalListHead as TDocItemAnal ptr
-	itemAnalListTail as TDocItemAnal ptr
+	operacao				as TipoOperacao
+	situacao				as TipoSituacao
+	emitente				as TipoEmitente
+	idParticipante			as zstring * 60+1
+	modelo					as TipoModelo
+	dataEmi					as zstring * 8+1		'AAAAMMDD
+	dataEntSaida			as zstring * 8+1
+	serie					as zstring * 4+1
+	subserie				as zstring * 8+1
+	numero					as longint
+	chave					as zstring * 44+1
+	valorTotal				as double
+	bcICMS					as double
+	ICMS					as double
+	difal					as TDocDifAliq
+	itemAnalListHead 		as TDocItemAnal ptr
+	itemAnalListTail 		as TDocItemAnal ptr
 end type
 
 type TDocNF extends TDocDF
@@ -415,6 +488,26 @@ type TECFReducaoZ
 	itemAnalListTail 		as TDocItemAnal ptr
 end type
 
+type TInventarioTotais
+	dataInventario			as zstring * 8+1
+	valorTotalEstoque		as double
+	motivoInventario		as integer
+end type
+
+type TInventarioItem
+	dataInventario			as zstring * 8+1
+	itemId         			as zstring * 60+1
+	unidade					as zstring * 6+1
+	qtd						as double
+	valorUnitario			as double
+	valorItem				as double
+	indPropriedade			as integer
+	idParticipante			as zstring * 60+1
+	txtComplementar			as zstring * 99+1
+	codConta				as zstring * 32+1
+	valorItemIR				as double
+end type
+
 type TLuaReg
 	tipo					as zstring * 4+1
 	table					as integer
@@ -441,8 +534,11 @@ type TRegistro
 		apuIcms	  			as TApuracaoIcmsPeriodo
 		apuIcmsST  			as TApuracaoIcmsSTPeriodo
 		itemAnal			as TDocItemAnal
+		itemRessarcSt		as TDocNFItemRessarcSt
 		equipECF			as TEquipECF
 		ecfRedZ				as TECFReducaoZ
+		invTotais			as TInventarioTotais
+		invItem				as TInventarioItem
 		lua					as TLuaReg
 	end union
 	next_          			as TRegistro ptr
@@ -453,6 +549,13 @@ enum SAFI_TipoArquivo
 	SAFI_NFe_Emit
 	SAFI_NFe_Emit_Itens
 	SAFI_CTe
+end enum
+
+enum SAFI_Dfe_Fornecido
+	MASK_SAFI_NFE_DEST_FORNECIDO = &b00000001
+	MASK_SAFI_NFE_EMIT_FORNECIDO = &b00000010
+	MASK_SAFI_ITEM_NFE_FORNECIDO = &b00000100
+	MASK_SAFI_CTE_FORNECIDO 	 = &b00001000
 end enum
 
 type TDFe_NFeItem									'' Nota: só existe para NF-e emitidas, já que para as recebidas os itens constam na EFD
@@ -559,6 +662,36 @@ type RelSomatorioLR
 	ipi 			as double
 end type
 
+enum RelLinhaTipo
+	REL_LIN_DF_ENTRADA
+	REL_LIN_DF_SAIDA
+	REL_LIN_DF_ITEM_ANAL
+	REL_LIN_DF_REDZ
+end enum
+
+type RelLinhaDF
+	doc 			as TDocDF ptr
+	part 			as TParticipante ptr
+end type
+
+type RelLinhaAnal
+	sit 			as TipoSituacao
+	item 			as TDocItemAnal ptr
+end type
+
+type RelLinhaRedZ
+	doc 			as TECFReducaoZ ptr
+end type
+
+type RelLinha
+	tipo			as RelLinhaTipo
+	union
+		df			as RelLinhaDF
+		anal		as RelLinhaAnal
+		redZ		as RelLinhaRedZ
+	end union
+end type
+
 type ProgressoCB as sub(estagio as const wstring ptr, porCompleto as double)
 
 enum TipoInconsistencia
@@ -567,6 +700,9 @@ enum TipoInconsistencia
 	TI_ALIQ
 	TI_DUP
 	TI_DIF
+	TI_RESSARC_ST
+	TI_CRED
+	TI_SEL
 end enum
 
 enum TipoRegime
@@ -595,11 +731,11 @@ type Efd
 public:
 	declare constructor ()
 	declare destructor ()
-	declare sub iniciarExtracao(nomeArquivo as String, listaCnpj as String)
+	declare sub iniciarExtracao(nomeArquivo as String, opcoes as OpcoesExtracao)
 	declare sub finalizarExtracao(mostrarProgresso as ProgressoCB)
 	declare function carregarTxt(nomeArquivo as String, mostrarProgresso as ProgressoCB) as Boolean
 	declare function carregarCsv(nomeArquivo as String, mostrarProgresso as ProgressoCB) as Boolean
-	declare function processar(nomeArquivo as string, mostrarProgresso as ProgressoCB, gerarRelatorios as boolean, acrescentarDadosSAFI as boolean) as Boolean
+	declare function processar(nomeArquivo as string, mostrarProgresso as ProgressoCB) as Boolean
 	declare sub analisar(mostrarProgresso as ProgressoCB)
 	declare function getPlanilha(nome as const zstring ptr) as ExcelWorksheet ptr
    
@@ -623,12 +759,13 @@ private:
 	declare sub adicionarDocEscriturado(doc as TDocDF ptr)
 	declare sub adicionarDocEscriturado(doc as TDocECF ptr)
 	declare sub adicionarItemNFEscriturado(item as TDocNFItem ptr)
+	declare sub adicionarRessarcStEscriturado(doc as TDocNFItemRessarcSt ptr)
 	declare function filtrarPorCnpj(idParticipante as const zstring ptr) as boolean
 	
-	declare sub addRegistroOrdenadoPorData(reg as TRegistro ptr)
+	declare sub addRegistroAoDB(reg as TRegistro ptr)
 	
 	declare sub criarPlanilhas()
-	declare sub gerarPlanilhas(nomeArquivo as string, mostrarProgresso as ProgressoCB, acrescentarDadosSAFI as boolean)
+	declare sub gerarPlanilhas(nomeArquivo as string, mostrarProgresso as ProgressoCB)
 	
 	declare sub gerarRelatorios(nomeArquivo as string, mostrarProgresso as ProgressoCB)
 	declare sub gerarRelatorioApuracaoICMS(nomeArquivo as string, reg as TRegistro ptr)
@@ -641,6 +778,7 @@ private:
 	declare sub finalizarRelatorio()
 	declare sub relatorioSomarLR(sit as TipoSituacao, anal as TDocItemAnal ptr)
 	declare function codMunicipio2Nome(cod as integer) as string
+	declare sub gerarPaginaRelatorio()
 	
 	declare sub analisarInconsistenciasLRE(mostrarProgresso as ProgressoCB)
 	declare sub analisarInconsistenciasLRS(mostrarProgresso as ProgressoCB)
@@ -652,21 +790,19 @@ private:
 	arquivos				as TList 		'' de TArquivoInfo
 	tipoArquivo				as TTipoArquivo
 	
-	'' filtros
-	filtrarCnpj				as boolean
-	listaCnpj(any)			as string
-	
 	'' registros das EFD's e do Sintegra (reiniciados a cada novo .txt carregado)
 	regListHead         	as TRegistro ptr = null
-	regListTail         	as TRegistro ptr = null
 	nroRegs             	as integer = 0
 	participanteDict    	as TDict
 	itemIdDict          	as TDict
 	sintegraDict			as TDict
 	ultimoReg   			as TRegistro ptr
+	ultimoDocNFItem  		as TDocNFItem ptr
 	ultimoEquipECF			as TEquipECF ptr
 	ultimoECFRedZ			as TRegistro ptr
+	ultimoInventario		as TInventarioTotais ptr
 	nroLinha				as integer
+	regMestre				as TRegistro ptr
 
 	'' planilhas que serão geradas (mantidos do início ao fim da extração)
 	ew                  	as ExcelWriter ptr
@@ -674,9 +810,12 @@ private:
 	saidas              	as ExcelWorksheet ptr
 	apuracaoIcms			as ExcelWorksheet ptr
 	apuracaoIcmsST			as ExcelWorksheet ptr
+	inventario				as ExcelWorksheet ptr
+	ressarcST				as ExcelWorksheet ptr
 	inconsistenciasLRE		as ExcelWorksheet ptr
 	inconsistenciasLRS		as ExcelWorksheet ptr
 	nomeArquivoSaida		as string
+	opcoes					as OpcoesExtracao
 
 	'' registros das NF-e's e CT-e's retirados dos relatórios do Infoview (mantidos do início ao fim da extração)
 	chaveDFeDict			as TDict
@@ -701,6 +840,7 @@ private:
 	db_LREInsertStmt		as TDbStmt ptr
 	db_itensNfLREInsertStmt	as TDbStmt ptr
 	db_LRSInsertStmt		as TDbStmt ptr
+	db_ressarcStItensNfLRSInsertStmt as TDbStmt ptr
 	
 	'' geração de relatórios em formato PDF com o layout do programa EFD-ICMS-IPI da RFB
 	baseTemplatesDir		as string
@@ -711,6 +851,8 @@ private:
 	relSomaLRList			as TList			'' de RelSomatorioLR
 	nroRegistrosRel			as integer
 	municipDict				as TDict
+	relLinhasList			as TList			'' de RelLinha
+	relNroLinhas			as integer
 	
 	''
 	assinaturaP7K_DER(any)	as byte
@@ -740,6 +882,7 @@ declare function ddMmYyyy2YyyyMmDd(s as const zstring ptr) as string
 declare function yyyyMmDd2Datetime(s as const zstring ptr) as string 
 declare function YyyyMmDd2DatetimeBR(s as const zstring ptr) as string 
 declare function STR2IE(ie as string) as string
+declare function tipoItem2Str(tipo as TipoItemId) as string
 declare function dupstr(s as const zstring ptr) as zstring ptr
 declare sub splitstr(Text As String, Delim As String = ",", Ret() As String)
 

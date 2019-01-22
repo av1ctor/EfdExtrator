@@ -1,0 +1,7 @@
+/DB/
+/testes/
+*.dll
+*.a
+*.pdf
+*.csv
+*.exe

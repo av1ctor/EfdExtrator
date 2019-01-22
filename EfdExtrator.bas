@@ -12,7 +12,7 @@ on error goto exceptionReport
 '''''''''''
 sub mostrarUso()
 	print wstr("Modo de usar:")
-	print wstr("EfdExtrator.exe [-gerarRelatorios] [-complementarDados] [-filtrarCnpj cnpj1,cnpj2,...] arquivo.txt [arquivo.csv]")
+	print wstr("EfdExtrator.exe [-gerarRelatorios] [-complementarDados] [-filtrarCnpj cnpj1,cnpj2,...] -formatoDeSaida xml|csv -somenteRessarcimentoST -dbEmDisco arquivo.txt [arquivo.csv]")
 	print wstr("Notas:")
 	print wstr(!"\t1. No lugar do nome dos arquivos, podem ser usadas máscaras,")
 	print wstr(!"\t   como por exemplo: *.txt e *.csv")
@@ -33,13 +33,19 @@ sub mostrarUso()
 	print wstr(!"\t7. A opção -filtrarCnpj fará com que só sejam extraídos os registros")
 	print wstr(!"\t   com os mesmos CNPJs (de emitentes ou destinatários) dos contidos")
 	print wstr(!"\t   na lista de CNPJs informada (separada por vírgula; zeros à esq)")
+	print wstr(!"\t8. A opção -formatoDeSaida permite trocar o formato de saída do")
+	print wstr(!"\t   padrão (xml - Excel) para csv")
+	print wstr(!"\t9. A opção -somenteRessarcimentoST extrairá somente documentos do LRS")
+	print wstr(!"\t   que contenham o registro C176 relativo ao ressarcimento ST")
+	print wstr(!"\tA. A opção -dbEmDisco gravará os dados intermediários em disco,")
+	print wstr(!"\t   poupando memória (utilize -manterDB para preservar o arquivo)")
 	print 
 end sub
 
 '''''''''''   
 sub mostrarCopyright()
-	print "Extrator de EFD/Sintegra para Excel"
-	print wstr("Copyleft 2017-2018 by André Vicentini (avtvicentini)")
+	print wstr("Extrator de EFD/Sintegra para Excel, versão 0.3 beta")
+	print wstr("Copyleft 2017-2019 by André Vicentini (avtvicentini)")
 	print
 end sub
 
@@ -69,9 +75,7 @@ end sub
 
 '''''''''''
 sub main()
-	var gerarRelatorios = false
-	var acrescentarDados = false
-	var listaCnpj = ""
+	dim as OpcoesExtracao opcoes
 	
 	mostrarCopyright()
    
@@ -92,14 +96,20 @@ sub main()
 		if arg[0] = asc("-") then
 			select case lcase(arg)
 			case "-gerarrelatorios"
-				gerarRelatorios = true
+				opcoes.gerarRelatorios = true
 				nroOpcoes += 1
 			case "-filtrarcnpj"
 				i += 1
-				listaCnpj = command(i)
+				var listaCnpj = command(i)
+				if( len(listaCnpj) > 0 ) then
+					splitstr(listaCnpj, ",", opcoes.listaCnpj())
+					opcoes.filtrarCnpj = true
+				else
+					opcoes.filtrarCnpj = false
+				end if
 				nroOpcoes += 2
 			case "-complementardados"
-				acrescentarDados = true
+				opcoes.acrescentarDados = true
 				nroOpcoes += 1
 			case "-importargia"
 				importarGia()
@@ -110,8 +120,30 @@ sub main()
 			case "-importarcadregime"
 				importarCadContribuinteRegime()
 				exit sub
+			case "-formatodesaida"
+				i += 1
+				select case command(i)
+				case "xml" 
+					opcoes.formatoDeSaida = SAIDA_XML
+				case "csv"
+					opcoes.formatoDeSaida = SAIDA_CSV
+				case else
+					print wstr("Erro: formato de saída inválido")
+					exit sub
+				end select
+				nroOpcoes += 2
+			case "-somenteressarcimentost"
+				opcoes.somenteRessarcimentoST = true
+				nroOpcoes += 1
+			case "-dbemdisco"
+				opcoes.dbEmDisco = true
+				nroOpcoes += 1
+			case "-manterdb"
+				opcoes.manterDb = true
+				opcoes.dbEmDisco = true
+				nroOpcoes += 1
 			case else
-				mostrarUso()
+				print wstr("Erro: opção inválida: " + arg)
 				exit sub
 			end select
 		end if
@@ -124,7 +156,7 @@ sub main()
 	'' 
 	var arquivoSaida = iif( len(command(nroOpcoes+2)) > 0, "__efd__", command(nroOpcoes+1))
    
-	e.iniciarExtracao(arquivoSaida + ".xml", listaCnpj)
+	e.iniciarExtracao(arquivoSaida, opcoes)
    
 	'' mais de um arquivo informado?
 	if len(command(nroOpcoes+2)) > 0 then
@@ -154,7 +186,7 @@ sub main()
 				end if
 				
 				print "Processando:"
-				if not e.processar( arquivoEntrada, @mostrarProgresso, gerarRelatorios, acrescentarDados ) then
+				if not e.processar( arquivoEntrada, @mostrarProgresso ) then
 					print !"\r\nErro ao extrair arquivo: "; arquivoEntrada
 					end -1
 				end if
@@ -173,7 +205,7 @@ sub main()
 		end if
 	
 		print "Processando:"
-		if not e.processar( arquivoEntrada, @mostrarProgresso, gerarRelatorios, acrescentarDados ) then
+		if not e.processar( arquivoEntrada, @mostrarProgresso ) then
 			print !"\r\nErro ao extrair arquivo: "; arquivoEntrada
 			end -1
 		end if
@@ -222,7 +254,7 @@ sub importarGia()
 		mostrarProgresso("Carregando GIA(" & arquivo & ")", 0)
 		
 		'' remover todos os registros desse ano
-		db->execNonQuery(db->format("delete from GIA where ano = {0}", VB(ano)))
+		db->execNonQuery("delete from GIA where ano = " & ano)
 		
 		var arqTamanho = inf.tamanho
 		var l = 0

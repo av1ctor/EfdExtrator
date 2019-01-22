@@ -5,13 +5,14 @@
 #include once "DB.bi"
 #include once "Lua/lualib.bi"
 #include once "Lua/lauxlib.bi"
+#include once "trycatch.bi"
 
 ''''''''
 private sub inconsistenciaAddHeader(ws as ExcelWorksheet ptr)
 	ws->AddCellType(CT_STRING, "Chave")
 	ws->AddCellType(CT_DATE, "Data")
 	ws->AddCellType(CT_INTNUMBER, "Modelo")
-	ws->AddCellType(CT_INTNUMBER, "Serie")
+	ws->AddCellType(CT_STRING, "Serie")
 	ws->AddCellType(CT_INTNUMBER, "Numero")
 	ws->AddCellType(CT_MONEY, "Valor Operacao")
 	ws->AddCellType(CT_INTNUMBER, "Tipo Inconsistencia")
@@ -39,7 +40,7 @@ private function luacb_efd_plan_inconsistencias_AddRow cdecl(byval L as lua_Stat
 		var ds = cast(TDataSet ptr, lua_touserdata(L, 2))
 		var tipo = lua_tointeger(L, 3)
 		var descricao = lua_tostring(L, 4)
-		
+
 		inconsistenciaAddRow(ws->AddRow(), *ds->row, tipo, descricao)
 	end if
 	
@@ -56,12 +57,17 @@ sub Efd.analisar(mostrarProgresso as ProgressoCB)
 	luaL_dofile(lua, ExePath + "\scripts\analises.lua")
 	
 	''
-	if not (nfeDestSafiFornecido or nfeEmitSafiFornecido or itemNFeSafiFornecido or cteSafiFornecido) then
-		print wstr(!"\tNão será possivel realizar análises e cruzamentos porque os relatórios Infoview BO do SAFI não foram fornecidos")
-	else
-		analisarInconsistenciasLRE(mostrarProgresso)
-		analisarInconsistenciasLRS(mostrarProgresso)
-	end if
+	var safiFornecidoMask = iif(nfeDestSafiFornecido, MASK_SAFI_NFE_DEST_FORNECIDO, 0)
+	safiFornecidoMask or= iif(nfeEmitSafiFornecido, MASK_SAFI_NFE_EMIT_FORNECIDO, 0)
+	safiFornecidoMask or= iif(itemNFeSafiFornecido, MASK_SAFI_ITEM_NFE_FORNECIDO, 0)
+	safiFornecidoMask or= iif(cteSafiFornecido, MASK_SAFI_CTE_FORNECIDO, 0)
+	
+	lua_pushnumber(lua, safiFornecidoMask)
+	lua_setglobal(lua, "dfeFornecidoMask")
+	
+	''
+	analisarInconsistenciasLRE(mostrarProgresso)
+	analisarInconsistenciasLRS(mostrarProgresso)
 	
 end sub
 
@@ -72,10 +78,14 @@ sub Efd.analisarInconsistenciasLRE(mostrarProgresso as ProgressoCB)
 	
 	mostrarProgresso(wstr(!"\tInconsistências nas entradas"), 0)
 	
-	lua_getglobal(lua, "analisarInconsistenciasLRE")
-	lua_pushlightuserdata(lua, db)
-	lua_pushlightuserdata(lua, inconsistenciasLRE)
-	lua_call(lua, 2, 0)
+	try
+		lua_getglobal(lua, "analisarInconsistenciasLRE")
+		lua_pushlightuserdata(lua, db)
+		lua_pushlightuserdata(lua, inconsistenciasLRE)
+		lua_call(lua, 2, 0)
+	catch
+		print "Erro no script lua!"
+	endtry
 	
 	mostrarProgresso(null, 1)
 
@@ -88,10 +98,14 @@ sub Efd.analisarInconsistenciasLRS(mostrarProgresso as ProgressoCB)
 	
 	mostrarProgresso(wstr(!"\tInconsistências nas saídas"), 0)
 
-	lua_getglobal(lua, "analisarInconsistenciasLRS")
-	lua_pushlightuserdata(lua, db)
-	lua_pushlightuserdata(lua, inconsistenciasLRS)
-	lua_call(lua, 2, 0)
+	try
+		lua_getglobal(lua, "analisarInconsistenciasLRS")
+		lua_pushlightuserdata(lua, db)
+		lua_pushlightuserdata(lua, inconsistenciasLRS)
+		lua_call(lua, 2, 0)
+	catch
+		print "Erro no script lua!"
+	endtry
 	
 	mostrarProgresso(null, 1)
 end sub

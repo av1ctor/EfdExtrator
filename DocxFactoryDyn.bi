@@ -16,7 +16,7 @@ type DocxFactoryDyn
 	declare static sub exportAPI(L as lua_State ptr)
 
 private:
-	libh		as long
+	libh		as any ptr
 	load_p		as sub (byval p_fileName as const zstring ptr)
 	save_p		as sub (byval p_fileName as const zstring ptr)
 	close_p		as sub ()

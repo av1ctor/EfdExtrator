@@ -68,8 +68,8 @@ type TDb
 	declare function exec(query as const zstring ptr) as TDataSet ptr
 	declare function exec(stmt as TDbStmt ptr) as TDataSet ptr
 	declare function execScalar(query as const zstring ptr) as zstring ptr
-	declare sub execNonQuery(query as const zstring ptr) 
-	declare sub execNonQuery(stmt as TDbStmt ptr)
+	declare function execNonQuery(query as const zstring ptr) as boolean
+	declare function execNonQuery(stmt as TDbStmt ptr) as boolean
 	declare static sub exportAPI(L as lua_State ptr)
 
 private:

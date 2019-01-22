@@ -113,6 +113,10 @@ function YyyyMmDd2DatetimeBR(s as const zstring ptr) as string
 		res[9] = s[3]
 	end if
 	
+	if res = "01/01/1900" then
+		res = ""
+	end if
+	
 	function = res
 end function
 
@@ -138,6 +142,36 @@ function EFd.codMunicipio2Nome(cod as integer) as string
 	municipDict.add(cod, nomedb)
 	
 	function = *nomedb
+end function
+
+''''''''
+function tipoItem2Str(tipo as TipoItemId) as string
+	select case as const tipo
+	case TI_Mercadoria_para_Revenda
+		return "Mercadoria para Revenda"
+	case TI_Materia_Prima
+		return "Materia Prima"
+	case TI_Embalagem
+		return "Embalagem"
+	case TI_Produto_em_Processo
+		return "Produto em Processo"
+	case TI_Produto_Acabado
+		return "Produto Acabado"
+	case TI_Subproduto
+		return "Subproduto"
+	case TI_Produto_Intermediario
+		return "Produto Intermediario"
+	case TI_Material_de_Uso_e_Consumo
+		return "Material de Uso e Consumo"
+	case TI_Ativo_Imobilizado
+		return "Ativo Imobilizado"
+	case TI_Servicos
+		return "Servicos"
+	case TI_Outros_insumos
+		return "Outros_insumos"
+	case else
+		return "Outras"
+	end select
 end function
 
 ''''''''

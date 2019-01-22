@@ -35,21 +35,30 @@ function ExcelWriter.AddWorksheet(name_ as string) as ExcelWorksheet ptr
 end function
 
 ''
-function ExcelWriter.Create(fileName as string) as boolean
-	fnum = FreeFile
+function ExcelWriter.Create(fileName as string, generateCSV as boolean) as boolean
+	
+	isCSV = generateCSV
+	this.fileName = fileName
+	
+	if not isCSV then
+		fnum = FreeFile
 
-	var res = open(fileName for output as #fnum) = 0
+		var res = open(fileName + ".xml" for output as #fnum) = 0
 
-	' header
-	if res then 
-		print #fnum, !"<?xml version=\"1.0\" encoding=\"iso-8859-1\"?>"
-		print #fnum, !"<?mso-application progid=\"Excel.Sheet\"?>"
-		print #fnum, !"<Workbook xmlns=\"urn:schemas-microsoft-com:office:spreadsheet\" xmlns:x=\"urn:schemas-microsoft-com:office:excel\" xmlns:ss=\"urn:schemas-microsoft-com:office:spreadsheet\" xmlns:html=\"http://www.w3.org/TR/REC-html40\">"
+		' header
+		if res then 
+			print #fnum, !"<?xml version=\"1.0\" encoding=\"iso-8859-1\"?>"
+			print #fnum, !"<?mso-application progid=\"Excel.Sheet\"?>"
+			print #fnum, !"<Workbook xmlns=\"urn:schemas-microsoft-com:office:spreadsheet\" xmlns:x=\"urn:schemas-microsoft-com:office:excel\" xmlns:ss=\"urn:schemas-microsoft-com:office:spreadsheet\" xmlns:html=\"http://www.w3.org/TR/REC-html40\">"
+		else
+			fnum = 0
+		end if
+		function = res
+
 	else
 		fnum = 0
+		function = true
 	end if
-
-	function = res
 
 end function
 
@@ -59,7 +68,9 @@ function ExcelWriter.Flush(showProgress as ProgressCB) as boolean
 	var sheet = workbook->worksheetListHead
 	var p = 1
 
-	print #fnum, !"<Styles>"
+	if not isCSV then
+		print #fnum, !"<Styles>"
+	end if
 
 	var totalRows = 0
    
@@ -68,31 +79,35 @@ function ExcelWriter.Flush(showProgress as ProgressCB) as boolean
    
 		totalRows += sheet->nRows
 	
-		'' para cada cell type..
-		if sheet->cellTypeListHead <> null then
-			var ct = sheet->cellTypeListHead
-			var i = 1
-			do while ct <> null
-				print #fnum, !"<Style ss:ID=\"colStyle_" & p & "_" & i & !"\">"
-				select case as const ct->type_
-				case CT_DATE
-					print #fnum, !"<NumberFormat ss:Format=\"Short Date\"/>"
-				case CT_INTNUMBER
-					print #fnum, !"<NumberFormat ss:Format=\"0\"/>"
-				case CT_MONEY
-					print #fnum, !"<NumberFormat ss:Format=\"_-&quot;R$&quot;\\ * #,##0.00_-;\\-&quot;R$&quot;\\ * #,##0.00_-;_-&quot;R$&quot;\\ * &quot;-&quot;??_-;_-@_-\"/>"
-				end select
-				print #fnum, !"</Style>"
-				ct = ct->next_
-				i += 1
-			loop
+		if not isCSV then
+			'' para cada cell type..
+			if sheet->cellTypeListHead <> null then
+				var ct = sheet->cellTypeListHead
+				var i = 1
+				do while ct <> null
+					print #fnum, !"<Style ss:ID=\"colStyle_" & p & "_" & i & !"\">"
+					select case as const ct->type_
+					case CT_DATE
+						print #fnum, !"<NumberFormat ss:Format=\"Short Date\"/>"
+					case CT_INTNUMBER
+						print #fnum, !"<NumberFormat ss:Format=\"0\"/>"
+					case CT_MONEY
+						print #fnum, !"<NumberFormat ss:Format=\"_-&quot;R$&quot;\\ * #,##0.00_-;\\-&quot;R$&quot;\\ * #,##0.00_-;_-&quot;R$&quot;\\ * &quot;-&quot;??_-;_-@_-\"/>"
+					end select
+					print #fnum, !"</Style>"
+					ct = ct->next_
+					i += 1
+				loop
+			end if
 		end if
       
 		sheet = sheet->next_
 		p += 1
 	loop
 
-	print #fnum, !"</Styles>"
+	if not isCSV then
+		print #fnum, !"</Styles>"
+	end if
       
 	' para cada planilha..
 	sheet = workbook->worksheetListHead
@@ -100,28 +115,50 @@ function ExcelWriter.Flush(showProgress as ProgressCB) as boolean
 	var curRow = 0
 	do while sheet <> null
 	
-		print #fnum, !"<Worksheet ss:Name=\"" + sheet->name + !"\">"
-		print #fnum, !"<Table>"
+		if not isCSV then
+			print #fnum, !"<Worksheet ss:Name=\"" + sheet->name + !"\">"
+			print #fnum, !"<Table>"
 
-		if sheet->cellTypeListHead <> null then
-			var ct = sheet->cellTypeListHead
-			var i = 1
-			 do while ct <> null
-				print #fnum, !"<Column ss:Index=\"" & i & !"\" ss:StyleID=\"colStyle_" & p & "_" & i & !"\" ss:AutoFitWidth=\"1\" />"
-				ct = ct->next_
-				i += 1
-			 loop
-		end if
-		
-		'' para cada cell type..
-		if sheet->cellTypeListHead <> null then
-			print #fnum, !"<Row>"
-			var ct = sheet->cellTypeListHead
-			do while ct <> null
-				print #fnum, !"<Cell><Data ss:Type=\"String\">" + ct->name + "</Data></Cell>"
-				ct = ct->next_
-			loop
-			print #fnum, !"</Row>"
+			if sheet->cellTypeListHead <> null then
+				var ct = sheet->cellTypeListHead
+				var i = 1
+				 do while ct <> null
+					print #fnum, !"<Column ss:Index=\"" & i & !"\" ss:StyleID=\"colStyle_" & p & "_" & i & !"\" ss:AutoFitWidth=\"1\" />"
+					ct = ct->next_
+					i += 1
+				 loop
+			end if
+			
+			'' para cada cell type..
+			if sheet->cellTypeListHead <> null then
+				print #fnum, !"<Row>"
+				var ct = sheet->cellTypeListHead
+				do while ct <> null
+					print #fnum, !"<Cell><Data ss:Type=\"String\">" + ct->name + "</Data></Cell>"
+					ct = ct->next_
+				loop
+				print #fnum, !"</Row>"
+			end if
+			
+		else
+			fnum = FreeFile
+
+			var csvName = fileName + "_" + sheet->name + ".csv"
+			var res = open(csvName for output as #fnum) = 0
+			if not res then
+				print wstr("Erro: não foi possível criar arquivo " + csvName)
+				return false
+			end if
+
+			'' para cada cell type..
+			if sheet->cellTypeListHead <> null then
+				var ct = sheet->cellTypeListHead
+				do while ct <> null
+					print #fnum, ct->name + ";";
+					ct = ct->next_
+				loop
+				print #fnum, chr(13, 10);
+			end if
 		end if
 
 		'' para cada linha..
@@ -134,25 +171,56 @@ function ExcelWriter.Flush(showProgress as ProgressCB) as boolean
 					showProgress(null, curRow / totalRows)
 				end if
 				
-				print #fnum, !"<Row>"
-				'' para cada cÃ©lula da linha..
-				var cell = row->cellListHead
-				var ct = sheet->cellTypeListHead
-				do while cell <> null
-					print #fnum, !"<Cell><Data ss:Type=\"" + CellType2String(iif(ct <> null, ct->type_, CT_STRING)) + !"\">" + cell->content + "</Data></Cell>"
-					cell = cell->next_
-					if ct <> null then
-						ct = ct->next_
-					end if
-				loop
+				if not isCSV then
+					print #fnum, !"<Row>"
+					'' para cada cÃ©lula da linha..
+					var cell = row->cellListHead
+					var ct = sheet->cellTypeListHead
+					do while cell <> null
+						if ct->type_ = CT_STRING then
+							for i as integer = 0 to len(cell->content) - 1
+								select case as const cell->content[i]
+								case asc("&")
+									cell->content[i] = asc("e")
+								case asc("<")
+									cell->content[i] = asc("_")
+								end select
+							next
+						end if
+						print #fnum, !"<Cell><Data ss:Type=\"" + CellType2String(iif(ct <> null, ct->type_, CT_STRING)) + !"\">" + cell->content + "</Data></Cell>"
+						cell = cell->next_
+						if ct <> null then
+							ct = ct->next_
+						end if
+					loop
+				
+					print #fnum, !"</Row>"
+
+				else
+					'' para cada cÃ©lula da linha..
+					var cell = row->cellListHead
+					var ct = sheet->cellTypeListHead
+					do while cell <> null
+						print #fnum, cell->content + ";";
+						cell = cell->next_
+						if ct <> null then
+							ct = ct->next_
+						end if
+					loop
+					print #fnum, chr(13, 10);
+				
+				end if
 				
 				row = row->next_
-				print #fnum, !"</Row>"
 			loop
 		end if
 		
-		print #fnum, !"</Table>"
-		print #fnum, !"</Worksheet>"
+		if not isCSV then
+			print #fnum, !"</Table>"
+			print #fnum, !"</Worksheet>"
+		else
+			..close #fnum
+		end if
 		
 		sheet = sheet->next_
 		p += 1
@@ -360,11 +428,12 @@ end function
 private function luacb_ew_create cdecl(byval L as lua_State ptr) as long
 	var args = lua_gettop(L)
 	
-	if args = 2 then
+	if args = 3 then
 		var ew = cast(ExcelWriter ptr, lua_touserdata(L, 1))
 		var fName = cast(zstring ptr, lua_tostring(L, 2))
+		var isCSV = lua_tointeger(L, 3)
 		
-		lua_pushboolean(L, ew->create(*fName))
+		lua_pushboolean(L, ew->create(*fName, isCSV))
 	else
 		lua_pushboolean(L, false)
 	end if
