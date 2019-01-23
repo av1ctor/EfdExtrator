@@ -481,7 +481,7 @@ private function luacb_db_execNonQuery cdecl(byval L as lua_State ptr) as long
 		if lua_isstring(L, 2) then
 			var query = lua_tostring(L, 2)
 			if not db->execNonQuery(query) then
-				print "SQL error: "; *db->getErrorMsg()
+				print "SQL error: "; *db->getErrorMsg(); " at query: "; *query
 			end if
 		else
 			var query = cast(TDbStmt ptr, lua_touserdata(L, 2))
@@ -506,6 +506,9 @@ private function luacb_db_exec cdecl(byval L as lua_State ptr) as long
 		if lua_isstring(L, 2) then
 			var query = lua_tostring(L, 2)
 			ds = db->exec(query)
+			if ds = null then
+				print "SQL error: "; *db->getErrorMsg(); " at query: "; *query
+			end if
 		else
 			var query = cast(TDbStmt ptr, lua_touserdata(L, 2))
 			ds = db->exec(query)
@@ -513,7 +516,6 @@ private function luacb_db_exec cdecl(byval L as lua_State ptr) as long
 		
 		if ds = null then
 			lua_pushnil(L)
-			print "SQL error: "; *db->getErrorMsg()
 		else
 			lua_pushlightuserdata(L, ds)
 		end if
@@ -537,7 +539,7 @@ private function luacb_db_prepare cdecl(byval L as lua_State ptr) as long
 			lua_pushlightuserdata(L, stmt)
 		else
 			lua_pushnil(L)
-			print "SQL error: "; *db->getErrorMsg()
+			print "SQL error: "; *db->getErrorMsg(); " at query: "; *query
 		end if
 	else
 		lua_pushnil(L)
