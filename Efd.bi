@@ -558,9 +558,14 @@ enum SAFI_Dfe_Fornecido
 	MASK_SAFI_CTE_FORNECIDO 	 = &b00001000
 end enum
 
+type TDFe_ as TDFe
+
 type TDFe_NFeItem									'' Nota: só existe para NF-e emitidas, já que para as recebidas os itens constam na EFD
-	cfop			as short
+	serie			as integer
+	numero			as integer
+	modelo			as TipoModelo
 	nroItem			as integer
+	cfop			as short
 	codProduto		as zstring * 60+1
 	descricao		as zstring * 256+1
 	qtd				as double
@@ -586,8 +591,6 @@ type TDFe_NFe
 	itemListHead	as TDFe_NFeItem ptr
 	itemListTail	as TDFe_NFeItem ptr
 end type
-
-type TDFe_ as TDFe
 
 type TDFe_CTe
 	cnpjToma		as zstring * 14+1
@@ -703,6 +706,7 @@ enum TipoInconsistencia
 	TI_RESSARC_ST
 	TI_CRED
 	TI_SEL
+	TI_DEB
 end enum
 
 enum TipoRegime
@@ -838,7 +842,7 @@ private:
 	db_dfeSaidaInsertStmt	as TDbStmt ptr
 	db_itensDfeSaidaInsertStmt as TDbStmt ptr
 	db_LREInsertStmt		as TDbStmt ptr
-	db_itensNfLREInsertStmt	as TDbStmt ptr
+	db_itensNfLRInsertStmt	as TDbStmt ptr
 	db_LRSInsertStmt		as TDbStmt ptr
 	db_ressarcStItensNfLRSInsertStmt as TDbStmt ptr
 	

@@ -199,7 +199,7 @@ sub Efd.configurarDB()
 		
 		db_LREInsertStmt = lua_criarTabela(lua, db, "LRE")
 
-		db_itensNfLREInsertStmt = lua_criarTabela(lua, db, "itensNfLRE")
+		db_itensNfLRInsertStmt = lua_criarTabela(lua, db, "itensNfLR")
 
 		db_LRSInsertStmt = lua_criarTabela(lua, db, "LRS")
 
@@ -209,7 +209,7 @@ sub Efd.configurarDB()
 			db_dfeSaidaInsertStmt = null or _
 			 db_itensDfeSaidaInsertStmt = null or _
 			  db_LREInsertStmt = null or _
-			   db_itensNfLREInsertStmt = null or _
+			   db_itensNfLRInsertStmt = null or _
 			    db_LRSInsertStmt = null or _
 				 db_ressarcStItensNfLRSInsertStmt = null then
 			
@@ -1923,28 +1923,28 @@ sub Efd.adicionarItemNFEscriturado(item as TDocNFItem ptr)
 		var uf = iif(part->municip >= 1100000 and part->municip <= 5399999, part->municip \ 100000, 99)
 
 		'' (periodo, cnpjEmit, ufEmit, serie, numero, modelo, numItem, cst_origem, cst_tribut, cfop, qtd, valorProd, valorDesc, bc, aliq, icms, bcIcmsST, aliqIcmsST, icmsST)
-		db_itensNfLREInsertStmt->reset()
-		db_itensNfLREInsertStmt->bind(1, valint(regMestre->mestre.dataIni))
-		db_itensNfLREInsertStmt->bind(2, part->cnpj)
-		db_itensNfLREInsertStmt->bind(3, uf)
-		db_itensNfLREInsertStmt->bind(4, doc->serie)
-		db_itensNfLREInsertStmt->bind(5, doc->numero)
-		db_itensNfLREInsertStmt->bind(6, doc->modelo)
-		db_itensNfLREInsertStmt->bind(7, item->numItem)
-		db_itensNfLREInsertStmt->bind(8, item->cstIcms \ 100)
-		db_itensNfLREInsertStmt->bind(9, item->cstIcms mod 100)
-		db_itensNfLREInsertStmt->bind(10, item->cfop)
-		db_itensNfLREInsertStmt->bind(11, item->qtd)
-		db_itensNfLREInsertStmt->bind(12, item->valor)
-		db_itensNfLREInsertStmt->bind(13, item->desconto)
-		db_itensNfLREInsertStmt->bind(14, item->bcICMS)
-		db_itensNfLREInsertStmt->bind(15, item->aliqICMS)
-		db_itensNfLREInsertStmt->bind(16, item->icms)
-		db_itensNfLREInsertStmt->bind(17, item->bcICMSST)
-		db_itensNfLREInsertStmt->bind(18, item->aliqICMSST)
-		db_itensNfLREInsertStmt->bind(19, item->icmsST)
+		db_itensNfLRInsertStmt->reset()
+		db_itensNfLRInsertStmt->bind(1, valint(regMestre->mestre.dataIni))
+		db_itensNfLRInsertStmt->bind(2, part->cnpj)
+		db_itensNfLRInsertStmt->bind(3, uf)
+		db_itensNfLRInsertStmt->bind(4, doc->serie)
+		db_itensNfLRInsertStmt->bind(5, doc->numero)
+		db_itensNfLRInsertStmt->bind(6, doc->modelo)
+		db_itensNfLRInsertStmt->bind(7, item->numItem)
+		db_itensNfLRInsertStmt->bind(8, item->cstIcms \ 100)
+		db_itensNfLRInsertStmt->bind(9, item->cstIcms mod 100)
+		db_itensNfLRInsertStmt->bind(10, item->cfop)
+		db_itensNfLRInsertStmt->bind(11, item->qtd)
+		db_itensNfLRInsertStmt->bind(12, item->valor)
+		db_itensNfLRInsertStmt->bind(13, item->desconto)
+		db_itensNfLRInsertStmt->bind(14, item->bcICMS)
+		db_itensNfLRInsertStmt->bind(15, item->aliqICMS)
+		db_itensNfLRInsertStmt->bind(16, item->icms)
+		db_itensNfLRInsertStmt->bind(17, item->bcICMSST)
+		db_itensNfLRInsertStmt->bind(18, item->aliqICMSST)
+		db_itensNfLRInsertStmt->bind(19, item->icmsST)
 		
-		if not db->execNonQuery(db_itensNfLREInsertStmt) then
+		if not db->execNonQuery(db_itensNfLRInsertStmt) then
 			print "Erro ao inserir registro na Item NFe: "; *db->getErrorMsg()
 		end if
 	end select
@@ -1953,32 +1953,43 @@ end sub
 
 ''''''''
 sub Efd.adicionarRessarcStEscriturado(doc as TDocNFItemRessarcSt ptr)
+
+	var docPai = doc->documentoPai
+	var docAvo = doc->documentoPai->documentoPai
 	
-	var part = cast( TParticipante ptr, participanteDict[doc->idParticipanteUlt] )
-	
+	var part = cast( TParticipante ptr, participanteDict[docAvo->idParticipante] )
 	var uf = iif(part->municip >= 1100000 and part->municip <= 5399999, part->municip \ 100000, 99)
 	
-	'' (periodo, cnpjUlt, ufUlt, serieUlt, numeroUlt, modeloUlt, chaveUlt, dataUlt, valorUlt, bcSTUlt, qtdUlt, nroItemUlt)
+	var partUlt = cast( TParticipante ptr, participanteDict[doc->idParticipanteUlt] )
+	var ufUlt = iif(partUlt->municip >= 1100000 and partUlt->municip <= 5399999, partUlt->municip \ 100000, 99)
+	
+	'' (periodo, cnpjEmit, ufEmit, serie, numero, modelo, nroItem, cnpjUlt, ufUlt, serieUlt, numeroUlt, modeloUlt, chaveUlt, dataUlt, valorUlt, bcSTUlt, qtdUlt, nroItemUlt)
 	db_ressarcStItensNfLRSInsertStmt->reset()
 	db_ressarcStItensNfLRSInsertStmt->bind(1, valint(regMestre->mestre.dataIni))
 	db_ressarcStItensNfLRSInsertStmt->bind(2, part->cnpj)
 	db_ressarcStItensNfLRSInsertStmt->bind(3, uf)
-	db_ressarcStItensNfLRSInsertStmt->bind(4, doc->serieUlt)
-	db_ressarcStItensNfLRSInsertStmt->bind(5, doc->numeroUlt)
-	db_ressarcStItensNfLRSInsertStmt->bind(6, doc->modeloUlt)
+	db_ressarcStItensNfLRSInsertStmt->bind(4, docAvo->serie)
+	db_ressarcStItensNfLRSInsertStmt->bind(5, docAvo->numero)
+	db_ressarcStItensNfLRSInsertStmt->bind(6, docAvo->modelo)
+	db_ressarcStItensNfLRSInsertStmt->bind(7, docPai->numItem)
+	db_ressarcStItensNfLRSInsertStmt->bind(8, partUlt->cnpj)
+	db_ressarcStItensNfLRSInsertStmt->bind(9, ufUlt)
+	db_ressarcStItensNfLRSInsertStmt->bind(10, doc->serieUlt)
+	db_ressarcStItensNfLRSInsertStmt->bind(11, doc->numeroUlt)
+	db_ressarcStItensNfLRSInsertStmt->bind(12, doc->modeloUlt)
 	if len(doc->chaveNFeUlt) > 0 then
-		db_ressarcStItensNfLRSInsertStmt->bind(7, doc->chaveNFeUlt)
+		db_ressarcStItensNfLRSInsertStmt->bind(13, doc->chaveNFeUlt)
 	else
-		db_ressarcStItensNfLRSInsertStmt->bindNull(7)
+		db_ressarcStItensNfLRSInsertStmt->bindNull(13)
 	end if
-	db_ressarcStItensNfLRSInsertStmt->bind(8, doc->dataUlt)
-	db_ressarcStItensNfLRSInsertStmt->bind(9, doc->valorUlt)
-	db_ressarcStItensNfLRSInsertStmt->bind(10, doc->valorBcST)
-	db_ressarcStItensNfLRSInsertStmt->bind(11, doc->qtdUlt)
+	db_ressarcStItensNfLRSInsertStmt->bind(14, doc->dataUlt)
+	db_ressarcStItensNfLRSInsertStmt->bind(15, doc->valorUlt)
+	db_ressarcStItensNfLRSInsertStmt->bind(16, doc->valorBcST)
+	db_ressarcStItensNfLRSInsertStmt->bind(17, doc->qtdUlt)
 	if doc->numItemNFeUlt > 0 then
-		db_ressarcStItensNfLRSInsertStmt->bind(12, doc->numItemNFeUlt)
+		db_ressarcStItensNfLRSInsertStmt->bind(18, doc->numItemNFeUlt)
 	else
-		db_ressarcStItensNfLRSInsertStmt->bindNull(12)
+		db_ressarcStItensNfLRSInsertStmt->bindNull(18)
 	end if
 
 	if not db->execNonQuery(db_ressarcStItensNfLRSInsertStmt) then
@@ -2370,9 +2381,9 @@ function Efd.carregarCsvNFeEmitItens(bf as bfile, chave as string) as TDFe_NFeIt
 	bf.charCsv				'' pular cnpj emitente
 	bf.charCsv				'' pular ie emitente
 	bf.charCsv				'' pular cnpj dest
-	bf.charCsv				'' pular modelo
-	bf.charCsv				'' pular serie
-	bf.charCsv				'' pular número
+	item->modelo 			= bf.intCsv
+	item->serie				= bf.intCsv
+	item->numero			= bf.intCsv
 	bf.charCsv				'' pular data emi
 	item->cfop				= bf.intCsv
 	item->nroItem			= bf.intCsv
@@ -2525,17 +2536,20 @@ end sub
 
 ''''''''
 sub Efd.adicionarItemDFe(chave as const zstring ptr, item as TDFe_NFeItem ptr)
-		'' (chave, cfop, valorProd, valorDesc, valorAcess, bc, aliq, icms, bcIcmsST)
+		'' (serie, numero, modelo, chave, cfop, valorProd, valorDesc, valorAcess, bc, aliq, icms, bcIcmsST) 
 		db_itensDfeSaidaInsertStmt->reset()
-		db_itensDfeSaidaInsertStmt->bind(1, chave)
-		db_itensDfeSaidaInsertStmt->bind(2, item->cfop)
-		db_itensDfeSaidaInsertStmt->bind(3, item->valorProduto)
-		db_itensDfeSaidaInsertStmt->bind(4, item->desconto)
-		db_itensDfeSaidaInsertStmt->bind(5, item->despesasAcess)
-		db_itensDfeSaidaInsertStmt->bind(6, item->bcICMS)
-		db_itensDfeSaidaInsertStmt->bind(7, item->aliqICMS)
-		db_itensDfeSaidaInsertStmt->bind(8, item->icms)
-		db_itensDfeSaidaInsertStmt->bind(9, item->bcIcmsST)
+		db_itensDfeSaidaInsertStmt->bind(1, item->serie)
+		db_itensDfeSaidaInsertStmt->bind(2, item->numero)
+		db_itensDfeSaidaInsertStmt->bind(3, item->modelo)
+		db_itensDfeSaidaInsertStmt->bind(4, chave)
+		db_itensDfeSaidaInsertStmt->bind(5, item->cfop)
+		db_itensDfeSaidaInsertStmt->bind(6, item->valorProduto)
+		db_itensDfeSaidaInsertStmt->bind(7, item->desconto)
+		db_itensDfeSaidaInsertStmt->bind(8, item->despesasAcess)
+		db_itensDfeSaidaInsertStmt->bind(9, item->bcICMS)
+		db_itensDfeSaidaInsertStmt->bind(10, item->aliqICMS)
+		db_itensDfeSaidaInsertStmt->bind(11, item->icms)
+		db_itensDfeSaidaInsertStmt->bind(12, item->bcIcmsST)
 	
 		if not db->execNonQuery(db_itensDfeSaidaInsertStmt) then
 			print "Erro ao inserir Item DFe de entrada: "; *db->getErrorMsg()
@@ -3634,6 +3648,7 @@ sub Efd.exportAPI(L as lua_State ptr)
 	lua_setarGlobal(L, "TI_RESSARC_ST", TI_RESSARC_ST)
 	lua_setarGlobal(L, "TI_CRED", TI_CRED)
 	lua_setarGlobal(L, "TI_SEL", TI_SEL)
+	lua_setarGlobal(L, "TI_DEB", TI_DEB)
 	
 	lua_setarGlobal(L, "DFE_NFE_DEST_FORNECIDO", MASK_SAFI_NFE_DEST_FORNECIDO)
 	lua_setarGlobal(L, "DFE_NFE_EMIT_FORNECIDO", MASK_SAFI_NFE_EMIT_FORNECIDO)

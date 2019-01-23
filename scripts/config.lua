@@ -1,6 +1,7 @@
 
 ----------------------------------------------------------------------
 function configurarDB(db, dbPath)
+	db_execNonQuery(db, "attach '" .. dbPath .. "config.db' as conf")
 	db_execNonQuery(db, "attach '" .. dbPath .. "CadContribuinte.db' as cdb")
 	db_execNonQuery(db, "attach '" .. dbPath .. "inidoneos.db' as idb")
 	db_execNonQuery(db, "attach '" .. dbPath .. "GIA.db' as gdb")
@@ -14,10 +15,10 @@ function criarTabela_dfeEntrada(db)
 		create table dfeEntrada(
 			chave		char(44) not null,
 			cnpjEmit	bigint not null,
-			ufEmit		bigint not null,
-			serie		integer not null,
+			ufEmit		short not null,
+			serie		short not null,
 			numero		integer not null,
-			modelo		integer not null,
+			modelo		short not null,
 			dataEmit	integer not null,
 			valorOp		real not null,
 			ieEmit		varchar(20) null,
@@ -65,28 +66,30 @@ function criarTabela_dfeSaida(db)
 
 	db_execNonQuery( db, [[
 		create table dfeSaida( 
-			chave		char(44) not null,
-			serie		integer not null,
+			serie		short not null,
 			numero		integer not null,
-			modelo		integer not null,
+			modelo		short not null,
+			chave		char(44) not null,
 			dataEmit	integer not null,
 			valorOp		real not null,
 			cnpjDest	bigint not null,
-			ufDest		bigint not null,
+			ufDest		short not null,
 			ieDest		varchar(20) null,
 			PRIMARY KEY (
-				chave
+				serie,
+				numero,
+				modelo
 			)
 		) 
 	]])
 	
 	db_execNonQuery( db, [[ 
 		CREATE INDEX chaveDfeSaidaIdx ON dfeSaida (
-			cnpjDest,
-			ufDest,
 			serie,
 			numero,
-			modelo
+			modelo,
+			cnpjDest,
+			ufDest
 		) 
 	]])
 	
@@ -118,6 +121,9 @@ function criarTabela_itensDfeSaida(db)
 
 	db_execNonQuery( db, [[
 		create table itensDfeSaida( 
+			serie		short not null,
+			numero		integer not null,
+			modelo		short not null,
 			chave		char(44) not null,
 			cfop		integer not null,
 			valorProd	real not null,
@@ -128,8 +134,16 @@ function criarTabela_itensDfeSaida(db)
 			icms		real not null,
 			bcIcmsST	real not null,
 			PRIMARY KEY (
-				chave
+				serie,
+				numero,
+				modelo
 			)
+		) 
+	]])
+
+	db_execNonQuery( db, [[
+		CREATE INDEX itensDfeSaidaChaveIdx ON itensDfeSaida (
+			chave
 		) 
 	]])
 
@@ -148,8 +162,8 @@ function criarTabela_itensDfeSaida(db)
 	-- retornar a query que será usada no insert
 	return [[
 		insert into itensDfeSaida 
-			(chave, cfop, valorProd, valorDesc, valorAcess, bc, aliq, icms, bcIcmsST) 
-			values (?,?,?,?,?,?,?,?,?)
+			(serie, numero, modelo, chave, cfop, valorProd, valorDesc, valorAcess, bc, aliq, icms, bcIcmsST) 
+			values (?,?,?,?,?,?,?,?,?,?,?,?)
 	]]
 
 end
@@ -162,10 +176,10 @@ function criarTabela_LRE(db)
 		create table LRE( 
 			periodo		integer not null,
 			cnpjEmit	bigint not null,
-			ufEmit		bigint not null,
-			serie		integer not null,
+			ufEmit		short not null,
+			serie		short not null,
 			numero		integer not null,
-			modelo		integer not null,
+			modelo		short not null,
 			dataEmit	integer not null,
 			valorOp		real not null,
 			chave		char(44) null,
@@ -226,21 +240,21 @@ function criarTabela_LRE(db)
 end
 
 ----------------------------------------------------------------------
--- criar tabela itens de NF da LRE
-function criarTabela_itensNfLRE(db)
+-- criar tabela itens de NF da LRE (ou LRS no caso de ressarcimento ST)
+function criarTabela_itensNfLR(db)
 
 	db_execNonQuery( db, [[
-		create table itensNfLRE( 
+		create table itensNfLR( 
 			periodo		integer not null,
 			cnpjEmit	bigint not null,
-			ufEmit		bigint not null,
-			serie		integer not null,
+			ufEmit		short not null,
+			serie		short not null,
 			numero		integer not null,
-			modelo		integer not null,
-			numItem		integer not null,
+			modelo		short not null,
+			numItem		short not null,
 			cst_origem	short not null,
 			cst_tribut	short not null,
-			cfop		integer not null,
+			cfop		short not null,
 			qtd			real not null,
 			valorProd	real not null,
 			valorDesc	real not null,
@@ -263,25 +277,25 @@ function criarTabela_itensNfLRE(db)
 	]])
 
 	db_execNonQuery( db, [[
-		CREATE INDEX itensNfLREIcmsIdx ON itensNfLRE (
+		CREATE INDEX itensNfLRIcmsIdx ON itensNfLR (
 			icms
 		) 
 	]])
 
 	db_execNonQuery( db, [[
-		CREATE INDEX itensNfLRECfopIdx ON itensNfLRE (
+		CREATE INDEX itensNfLRCfopIdx ON itensNfLR (
 			cfop
 		) 
 	]])
 
 	db_execNonQuery( db, [[
-		CREATE INDEX itensNfLREAliqIdx ON itensNfLRE (
+		CREATE INDEX itensNfLRAliqIdx ON itensNfLR (
 			aliq
 		) 
 	]])
 
 	db_execNonQuery( db, [[
-		CREATE INDEX itensNfLRECstIdx ON itensNfLRE (
+		CREATE INDEX itensNfLRCstIdx ON itensNfLR (
 			cst_origem,
 			cst_tribut
 		) 
@@ -289,7 +303,7 @@ function criarTabela_itensNfLRE(db)
 	
 	-- retornar a query que será usada no insert
 	return [[
-		insert into itensNfLRE 
+		insert into itensNfLR 
 		(periodo, cnpjEmit, ufEmit, serie, numero, modelo, numItem, cst_origem, cst_tribut, cfop, qtd, valorProd, valorDesc, bc, aliq, icms, bcIcmsST, aliqIcmsST, icmsST) 
 		values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
 	]]
@@ -303,19 +317,17 @@ function criarTabela_LRS(db)
 	db_execNonQuery( db, [[
 		create table LRS( 
 			periodo		integer not null,
-			serie		integer not null,
+			serie		short not null,
 			numero		integer not null,
-			modelo		integer not null,
+			modelo		short not null,
 			dataEmit	integer not null,
 			valorOp		real not null,
 			chave		char(44) null,
 			cnpjDest	bigint not null,
-			ufDest		bigint not null,
+			ufDest		short not null,
 			ieDest		varchar(20) null,
 			PRIMARY KEY (
 				periodo,
-				cnpjDest,
-				ufDest,
 				serie,
 				numero,
 				modelo
@@ -325,8 +337,16 @@ function criarTabela_LRS(db)
 	
 	db_execNonQuery( db, [[
 		CREATE INDEX cnpjUfSerieNumeroLRSIdx ON LRS (
+			serie,
+			numero,
+			modelo,
 			cnpjDest,
-			ufDest,
+			ufDest
+		) 
+	]])
+	
+	db_execNonQuery( db, [[
+		CREATE INDEX serieNumeroLRSIdx ON LRS (
 			serie,
 			numero,
 			modelo
@@ -347,6 +367,12 @@ function criarTabela_LRS(db)
 	]])
 
 	db_execNonQuery( db, [[
+		CREATE INDEX ufDestLRSIdx ON LRS (
+			ufDest
+		) 
+	]])
+
+	db_execNonQuery( db, [[
 		CREATE INDEX ieDestIdx ON LRS (
 			ieDest
 		) 
@@ -355,8 +381,8 @@ function criarTabela_LRS(db)
 	-- retornar a query que será usada no insert
 	return [[
 		insert into LRS 
-		(periodo, cnpjDest, ufDest, serie, numero, modelo, chave, dataEmit, valorOp, ieDest) 
-		values (?,?,?,?,?,?,?,?,?,?)
+			(periodo, cnpjDest, ufDest, serie, numero, modelo, chave, dataEmit, valorOp, ieDest) 
+			values (?,?,?,?,?,?,?,?,?,?)
 	]]
 	
 end
@@ -368,17 +394,32 @@ function criarTabela_ressarcStItensNfLRS(db)
 	db_execNonQuery( db, [[
 		create table ressarcStItensNfLRS( 
 			periodo		integer not null,
+			cnpjEmit	bigint not null,
+			ufEmit		short not null,
+			serie		short not null,
+			numero		integer not null,
+			modelo		short not null,
+			nroItem		short not null,
 			cnpjUlt		bigint not null,
-			ufUlt		bigint not null,
-			serieUlt	integer not null,
+			ufUlt		short not null,
+			serieUlt	short not null,
 			numeroUlt	integer not null,
-			modeloUlt	integer not null,
+			modeloUlt	short not null,
 			dataUlt		integer not null,
 			valorUlt	real not null,
 			bcSTUlt		real not null,
 			qtdUlt		real not null,
 			chaveUlt	char(44) null,
-			nroItemUlt	integer null
+			nroItemUlt	short null,
+			PRIMARY KEY (
+				periodo,
+				cnpjEmit,
+				ufEmit,
+				serie,
+				numero,
+				modelo,
+				nroItem
+			)
 		) 
 	]])
 	
@@ -394,16 +435,22 @@ function criarTabela_ressarcStItensNfLRS(db)
 	]])
 	
 	db_execNonQuery( db, [[
-		CREATE INDEX chaveItensNfLRSIdx ON ressarcStItensNfLRS (
+		CREATE INDEX chaveUltItensNfLRSIdx ON ressarcStItensNfLRS (
 			chaveUlt
+		) 
+	]])
+	
+	db_execNonQuery( db, [[
+		CREATE INDEX nroItemUltItensNfLRSIdx ON ressarcStItensNfLRS (
+			nroItemUlt
 		) 
 	]])
 	
 	-- retornar a query que será usada no insert
 	return [[
 		insert into ressarcStItensNfLRS 
-			(periodo, cnpjUlt, ufUlt, serieUlt, numeroUlt, modeloUlt, chaveUlt, dataUlt, valorUlt, bcSTUlt, qtdUlt, nroItemUlt) 
-			values (?,?,?,?,?,?,?,?,?,?,?,?)
+			(periodo, cnpjEmit, ufEmit, serie, numero, modelo, nroItem, cnpjUlt, ufUlt, serieUlt, numeroUlt, modeloUlt, chaveUlt, dataUlt, valorUlt, bcSTUlt, qtdUlt, nroItemUlt) 
+			values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
 	]]
 	
 end
