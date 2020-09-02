@@ -205,13 +205,16 @@ sub Efd.configurarDB()
 
 		db_ressarcStItensNfLRSInsertStmt = lua_criarTabela(lua, db, "ressarcStItensNfLRS")
 		
+		db_itensIdInsertStmt = lua_criarTabela(lua, db, "itensId")
+		
 		if db_dfeEntradaInsertStmt = null or _
 			db_dfeSaidaInsertStmt = null or _
 			 db_itensDfeSaidaInsertStmt = null or _
 			  db_LREInsertStmt = null or _
 			   db_itensNfLRInsertStmt = null or _
 			    db_LRSInsertStmt = null or _
-				 db_ressarcStItensNfLRSInsertStmt = null then
+				 db_ressarcStItensNfLRSInsertStmt = null or _
+					db_itensIdInsertStmt = null then
 			
 		end if
 	catch
@@ -225,7 +228,7 @@ sub Efd.iniciarExtracao(nomeArquivo as String, opcoes as OpcoesExtracao)
 	
 	''
 	ew = new ExcelWriter
-	ew->create(nomeArquivo, opcoes.formatoDeSaida = SAIDA_CSV)
+	ew->create(nomeArquivo, opcoes.formatoDeSaida)
 
 	entradas = null
 	saidas = null
@@ -324,58 +327,81 @@ function Efd.lerTipo(bf as bfile, tipo as zstring ptr) as TipoRegistro
 	case asc("0")
 		select case subtipo
 		case 150
-			tp =  PARTICIPANTE
+			tp = PARTICIPANTE
 		case 200
-			tp =  ITEM_ID
+			tp = ITEM_ID
+		case 300
+			tp = BEM_CIAP
+		case 450
+			tp = INFO_COMPL
 		case 000
-			tp =  MESTRE
+			tp = MESTRE
 		end select
 	case asc("C")
 		select case subtipo
 		case 100
-			tp =  DOC_NF
+			tp = DOC_NF
+		case 110
+			tp = DOC_NF_INFO
 		case 170
-			tp =  DOC_NF_ITEM
+			tp = DOC_NF_ITEM
 		case 176
-			tp =  DOC_NF_ITEM_RESSARC_ST
+			tp = DOC_NF_ITEM_RESSARC_ST
 		case 190
-			tp =  DOC_NF_ANAL
+			tp = DOC_NF_ANAL
 		case 101
-			tp =  DOC_NF_DIFAL
+			tp = DOC_NF_DIFAL
 		case 460
-			tp =  DOC_ECF
+			tp = DOC_ECF
 		case 470
-			tp =  DOC_ECF_ITEM
+			tp = DOC_ECF_ITEM
 		case 490
-			tp =  DOC_ECF_ANAL
+			tp = DOC_ECF_ANAL
 		case 400
-			tp =  EQUIP_ECF
+			tp = EQUIP_ECF
 		case 405
-			tp =  ECF_REDUCAO_Z
+			tp = ECF_REDUCAO_Z
+		case 500
+			tp = DOC_NF_ELETRIC
+		case 590
+			tp = DOC_NF_ELETRIC_ANAL
+		case 800
+			tp = DOC_SAT
+		case 850
+			tp = DOC_SAT_ANAL
 		end select
 	case asc("D")
 		select case subtipo
 		case 100
-			tp =  DOC_CT
+			tp = DOC_CT
 		case 190
-			tp =  DOC_CT_ANAL
+			tp = DOC_CT_ANAL
 		case 101
-			tp =  DOC_CT_DIFAL
+			tp = DOC_CT_DIFAL
 		case 500
-			tp =  DOC_NFSCT
+			tp = DOC_NFSCT
 		case 590
-			tp =  DOC_NFSCT_ANAL
+			tp = DOC_NFSCT_ANAL
 		end select
 	case asc("E")	
 		select case subtipo
 		case 100
-			tp =  APURACAO_ICMS_PERIODO
+			tp = APURACAO_ICMS_PERIODO
 		case 110
-			tp =  APURACAO_ICMS_PROPRIO
+			tp = APURACAO_ICMS_PROPRIO
 		case 200
-			tp =  APURACAO_ICMS_ST_PERIODO
+			tp = APURACAO_ICMS_ST_PERIODO
 		case 210
-			tp =  APURACAO_ICMS_ST
+			tp = APURACAO_ICMS_ST
+		end select
+	case asc("G")
+		select case subtipo
+		case 110
+			tp = CIAP_TOTAL
+		case 125
+			tp = CIAP_ITEM
+		case 130
+			tp = CIAP_ITEM_DOC
 		end select
 	case asc("H")	
 		select case subtipo
@@ -447,7 +473,7 @@ private function lerRegParticipante(bf as bfile, reg as TRegistro ptr) as Boolea
 	reg->part.nome		= bf.varchar
 	reg->part.pais	   	= bf.varint
 	reg->part.cnpj	   	= bf.varchar
-	reg->part.cpf	   	= bf.varint
+	reg->part.cpf	   	= bf.varchar
 	reg->part.ie		= bf.varchar
 	reg->part.municip	= bf.varint
 	reg->part.suframa  	= bf.varchar
@@ -511,6 +537,8 @@ private function lerRegDocNF(bf as bfile, reg as TRegistro ptr) as Boolean
 
 	reg->nf.itemAnalListHead = null
 	reg->nf.itemAnalListTail = null
+	reg->nf.infoComplListHead = null
+	reg->nf.infoComplListTail = null
 
 	'pular \r\n
 	if bf.peek1 = 13 then
@@ -527,7 +555,30 @@ private function lerRegDocNF(bf as bfile, reg as TRegistro ptr) as Boolean
 end function
 
 ''''''''
-private function lerRegDocNFItem(bf as bfile, reg as TRegistro ptr, documentoPai as TDocNF ptr) as Boolean
+private function lerRegDocNFInfo(bf as bfile, reg as TRegistro ptr, pai as TDocNF ptr) as Boolean
+
+	bf.char1		'pular |
+
+	reg->docInfoCompl.idCompl			= bf.varchar
+	reg->docInfoCompl.extra				= bf.varchar
+	reg->docInfoCompl.next_				= null
+	
+	'pular \r\n
+	if bf.peek1 = 13 then
+		bf.char1
+	end if
+	if bf.peek1 <> 10 then
+		print "Erro: esperado \n, encontrado "; bf.peek1
+	else
+		bf.char1
+	end if
+
+	function = true
+
+end function
+
+''''''''
+private function efd.lerRegDocNFItem(bf as bfile, reg as TRegistro ptr, documentoPai as TDocNF ptr) as Boolean
 
 	bf.char1		'pular |
 
@@ -569,6 +620,9 @@ private function lerRegDocNFItem(bf as bfile, reg as TRegistro ptr, documentoPai
 	reg->itemNF.aliqCOFINSMoed 	= bf.vardbl
 	reg->itemNF.COFINS			= bf.vardbl
 	bf.varchar					'' pular código da conta
+	if regMestre->mestre.versaoLayout >= 013 then
+		bf.vardbl				'' pular VL_ABAT_NT
+	end if
 
 	documentoPai->nroItens 		+= 1
 	
@@ -964,6 +1018,75 @@ private function lerRegDocECFItemAnal(bf as bfile, reg as TRegistro ptr, documen
 end function
 
 ''''''''
+private function lerRegDocSAT(bf as bfile, reg as TRegistro ptr) as Boolean
+
+	bf.char1		'pular |
+
+	reg->sat.operacao		= SAIDA
+	reg->sat.modelo			= valint(bf.varchar)
+	reg->sat.situacao		= bf.int2
+	bf.char1		'pular |
+	reg->sat.numero			= bf.varint
+	reg->sat.dataEmi		= ddMmYyyy2YyyyMmDd(bf.varchar)
+	reg->sat.valorTotal		= bf.vardbl
+	reg->sat.PIS			= bf.vardbl
+	reg->sat.COFINS			= bf.vardbl
+	reg->sat.cpfCnpjAdquirente = bf.varchar
+	reg->sat.serieEquip		= bf.varchar
+	reg->sat.chave 			= bf.varchar
+	reg->sat.descontos		= bf.vardbl
+	reg->sat.valorMerc 		= bf.vardbl
+	reg->sat.despesasAcess	= bf.vardbl
+	reg->sat.icms			= bf.vardbl
+	reg->sat.pisST			= bf.vardbl
+	reg->sat.cofinsST		= bf.vardbl
+	reg->sat.nroItens		= 0
+
+	'pular \r\n
+	if bf.peek1 = 13 then
+		bf.char1
+	end if
+	if bf.peek1 <> 10 then
+		print "Erro: esperado \n, encontrado "; bf.peek1
+	else
+		bf.char1
+	end if
+
+	function = true
+
+end function
+
+''''''''
+private function lerRegDocSATItemAnal(bf as bfile, reg as TRegistro ptr, documentoPai as TRegistro ptr) as Boolean
+
+	bf.char1		'pular |
+
+	reg->itemAnal.documentoPai	= documentoPai
+   
+	reg->itemAnal.cst		= bf.varint
+	reg->itemAnal.cfop		= bf.varint
+	reg->itemAnal.aliq		= bf.vardbl
+	reg->itemAnal.valorOp	= bf.vardbl
+	reg->itemAnal.bc		= bf.vardbl
+	reg->itemAnal.ICMS		= bf.vardbl
+	bf.varchar					'' pular código de observação
+
+	'pular \r\n
+	if bf.peek1 = 13 then
+		bf.char1
+	end if
+	if bf.peek1 <> 10 then
+		print "Erro: esperado \n, encontrado "; bf.peek1
+	else
+		bf.char1
+	end if
+	
+	function = true
+
+end function
+
+
+''''''''
 private function lerRegDocNFSCT(bf as bfile, reg as TRegistro ptr) as Boolean
 
 	bf.char1		'pular |
@@ -1047,6 +1170,100 @@ private function lerRegDocNFSCTItemAnal(bf as bfile, reg as TRegistro ptr, docum
 end function
 
 ''''''''
+private function efd.lerRegDocNFElet(bf as bfile, reg as TRegistro ptr) as Boolean
+
+	bf.char1		'pular |
+
+	reg->nf.operacao		= bf.int1
+	bf.char1		'pular |
+	reg->nf.emitente		= bf.int1
+	bf.char1		'pular |
+	reg->nf.idParticipante	= bf.varchar
+	reg->nf.modelo			= bf.int2
+	bf.char1		'pular |
+	reg->nf.situacao		= bf.int2
+	bf.char1		'pular |
+	reg->nf.serie			= bf.varchar
+	reg->nf.subserie		= bf.varchar
+	bf.varchar		'pular cod_cons
+	reg->nf.numero			= bf.varint
+	reg->nf.dataEmi			= ddMmYyyy2YyyyMmDd(bf.varchar)
+	reg->nf.dataEntSaida	= ddMmYyyy2YyyyMmDd(bf.varchar)
+	reg->nf.valorTotal		= bf.vardbl
+	reg->nf.valorDesconto	= bf.vardbl
+	bf.varchar		'pular vl_forn
+	bf.varchar 		'pular vl_serv_nt
+	bf.varchar		'pular vl_terc
+	bf.varchar		'pular vl_da
+	reg->nf.bcICMS			= bf.vardbl
+	reg->nf.ICMS			= bf.vardbl
+	reg->nf.bcICMSST		= bf.vardbl
+	reg->nf.ICMSST			= bf.vardbl
+	bf.varchar		'pular cod_inf
+	reg->nf.PIS				= bf.vardbl
+	reg->nf.COFINS			= bf.vardbl
+	bf.varchar		'pular tp_ligacao
+	bf.varchar		'pular cod_grupo_tensao
+	if regMestre->mestre.versaoLayout >= 014 then
+		reg->nf.chave		= bf.varchar		
+		bf.varchar		'pular fin_doce
+		bf.varchar		'pular chv_doce_ref
+		bf.varchar		'pular ind_dest
+		bf.varchar		'pular cod_mun_dest
+		bf.varchar		'pular cod_cta
+	end if
+	reg->nf.nroItens		= 0
+
+	reg->nf.itemAnalListHead = null
+	reg->nf.itemAnalListTail = null
+
+	'pular \r\n
+	if bf.peek1 = 13 then
+		bf.char1
+	end if
+	if bf.peek1 <> 10 then
+		print "Erro: esperado \n, encontrado "; bf.peek1
+	else
+		bf.char1
+	end if
+
+	function = true
+
+end function
+
+''''''''
+private function lerRegDocNFEletItemAnal(bf as bfile, reg as TRegistro ptr, documentoPai as TRegistro ptr) as Boolean
+
+	bf.char1		'pular |
+
+	reg->itemAnal.documentoPai	= documentoPai
+   
+	reg->itemAnal.cst		= bf.varint
+	reg->itemAnal.cfop		= bf.varint
+	reg->itemAnal.aliq		= bf.vardbl
+	reg->itemAnal.valorOp	= bf.vardbl
+	reg->itemAnal.bc		= bf.vardbl
+	reg->itemAnal.ICMS		= bf.vardbl
+	reg->itemAnal.bcST		= bf.vardbl
+	reg->itemAnal.ICMSST	= bf.vardbl
+	reg->itemAnal.redBC		= bf.vardbl
+	bf.varchar		'pular COD_OBS
+	
+	'pular \r\n
+	if bf.peek1 = 13 then
+		bf.char1
+	end if
+	if bf.peek1 <> 10 then
+		print "Erro: esperado \n, encontrado "; bf.peek1
+	else
+		bf.char1
+	end if
+	
+	function = true
+
+end function
+
+''''''''
 private function lerRegItemId(bf as bfile, reg as TRegistro ptr) as Boolean
 
 	bf.char1		'pular |
@@ -1066,6 +1283,54 @@ private function lerRegItemId(bf as bfile, reg as TRegistro ptr) as Boolean
 	if bf.peek1 <> 13 and bf.peek1 <> 10 then 
 	  reg->itemId.CEST		  	= bf.varint
 	end if
+
+	'pular \r\n
+	if bf.peek1 = 13 then
+		bf.char1
+	end if
+	if bf.peek1 <> 10 then
+		print "Erro: esperado \n, encontrado "; bf.peek1
+	else
+		bf.char1
+	end if
+
+	function = true
+
+end function
+
+''''''''
+private function lerRegBemCiap(bf as bfile, reg as TRegistro ptr) as Boolean
+
+	bf.char1		'pular |
+
+	reg->bemCiap.id			  	= bf.varchar
+	reg->bemCiap.tipoMerc		= bf.varint
+	reg->bemCiap.descricao	  	= bf.varchar
+	reg->bemCiap.principal		= bf.varchar
+	reg->bemCiap.codAnal	  	= bf.varchar
+	reg->bemCiap.parcelas		= bf.varint
+
+	'pular \r\n
+	if bf.peek1 = 13 then
+		bf.char1
+	end if
+	if bf.peek1 <> 10 then
+		print "Erro: esperado \n, encontrado "; bf.peek1
+	else
+		bf.char1
+	end if
+
+	function = true
+
+end function
+
+''''''''
+private function lerRegInfoCompl(bf as bfile, reg as TRegistro ptr) as Boolean
+
+	bf.char1		'pular |
+
+	reg->infoCompl.id				= bf.varchar
+	reg->infoCompl.descricao	  	= bf.varchar
 
 	'pular \r\n
 	if bf.peek1 = 13 then
@@ -1249,6 +1514,95 @@ private function lerRegInventarioItem(bf as bfile, reg as TRegistro ptr, inventa
 end function
 
 ''''''''
+private function lerRegCiapTotal(bf as bfile, reg as TRegistro ptr) as Boolean
+
+	bf.char1		'pular |
+
+	reg->ciapTotal.dataIni 	 		= ddMmYyyy2YyyyMmDd(bf.varchar)
+	reg->ciapTotal.dataFim 	 		= ddMmYyyy2YyyyMmDd(bf.varchar)
+	reg->ciapTotal.saldoInicialICMS = bf.vardbl
+	reg->ciapTotal.parcelasSoma 	= bf.vardbl
+	reg->ciapTotal.valorTributExpSoma = bf.vardbl
+	reg->ciapTotal.valorTotalSaidas = bf.vardbl
+	reg->ciapTotal.indicePercSaidas = bf.vardbl
+	reg->ciapTotal.valorIcmsAprop 	= bf.vardbl
+	reg->ciapTotal.valorOutrosCred 	= bf.vardbl
+
+	'pular \r\n
+	if bf.peek1 = 13 then
+		bf.char1
+	end if
+	if bf.peek1 <> 10 then
+		print "Erro: esperado \n, encontrado "; bf.peek1
+	else
+		bf.char1
+	end if
+
+	function = true
+
+end function
+
+''''''''
+private function lerRegCiapItem(bf as bfile, reg as TRegistro ptr, pai as TCiapTotal ptr) as Boolean
+
+	bf.char1		'pular |
+
+	reg->ciapItem.pai				= pai
+	reg->ciapItem.bemId 	 		= bf.varchar
+	reg->ciapItem.dataMov 			= ddMmYyyy2YyyyMmDd(bf.varchar)
+	reg->ciapItem.tipoMov 			= bf.varchar
+	reg->ciapItem.valorIcms	 		= bf.vardbl
+	reg->ciapItem.valorIcmsSt		= bf.vardbl
+	reg->ciapItem.valorIcmsFrete	= bf.vardbl
+	reg->ciapItem.valorIcmsDifal	= bf.vardbl
+	reg->ciapItem.parcela			= bf.varint
+	reg->ciapItem.valorParcela		= bf.vardbl
+	reg->ciapItem.docCnt			= 0
+
+	'pular \r\n
+	if bf.peek1 = 13 then
+		bf.char1
+	end if
+	if bf.peek1 <> 10 then
+		print "Erro: esperado \n, encontrado "; bf.peek1
+	else
+		bf.char1
+	end if
+
+	function = true
+
+end function
+
+''''''''
+private function lerRegCiapItemDoc(bf as bfile, reg as TRegistro ptr, pai as TCiapItem ptr) as Boolean
+
+	bf.char1		'pular |
+
+	reg->ciapItemDoc.pai			= pai
+	reg->ciapItemDoc.indEmi 		= bf.varint
+	reg->ciapItemDoc.idParticipante = bf.varchar
+	reg->ciapItemDoc.modelo			= bf.varint
+	reg->ciapItemDoc.serie			= bf.varchar
+	reg->ciapItemDoc.numero			= bf.varint
+	reg->ciapItemDoc.chaveNFe		= bf.varchar
+	reg->ciapItemDoc.dataEmi		= ddMmYyyy2YyyyMmDd(bf.varchar)
+	pai->docCnt += 1
+
+	'pular \r\n
+	if bf.peek1 = 13 then
+		bf.char1
+	end if
+	if bf.peek1 <> 10 then
+		print "Erro: esperado \n, encontrado "; bf.peek1
+	else
+		bf.char1
+	end if
+
+	function = true
+
+end function
+
+''''''''
 private sub Efd.lerAssinatura(bf as bfile)
 
 	'' verificar header
@@ -1279,6 +1633,19 @@ function Efd.filtrarPorCnpj(cnpj as const zstring ptr) as boolean
 end function
 
 ''''''''
+function Efd.filtrarPorChave(chave as const zstring ptr) as boolean
+	
+	for i as integer = 0 to ubound(opcoes.listaChaves)
+		if(*chave = opcoes.listaChaves(i)) then
+			return true
+		end if
+	next
+	
+	function = false
+	
+end function
+
+''''''''
 private function Efd.lerRegistro(bf as bfile, reg as TRegistro ptr) as Boolean
 	static as zstring * 4+1 tipo
 	
@@ -1293,6 +1660,25 @@ private function Efd.lerRegistro(bf as bfile, reg as TRegistro ptr) as Boolean
 		
 		ultimoReg = reg
 
+	case DOC_NF_INFO
+		if( ultimoReg <> null ) then
+			if not lerRegDocNFInfo(bf, reg, @ultimoReg->nf) then
+				return false
+			end if
+			
+			if ultimoReg->nf.infoComplListHead = null then
+				ultimoReg->nf.infoComplListHead = @reg->docInfoCompl
+			else
+				ultimoReg->nf.infoComplListTail->next_ = @reg->docInfoCompl
+			end if
+			
+			ultimoReg->nf.infoComplListTail = @reg->docInfoCompl
+			reg->docInfoCompl.next_ = null
+		else
+			pularLinha(bf)
+			reg->tipo = DESCONHECIDO
+		end if
+		
 	case DOC_NF_ITEM
 		if( ultimoReg <> null ) then
 			if not lerRegDocNFItem(bf, reg, @ultimoReg->nf) then
@@ -1462,6 +1848,32 @@ private function Efd.lerRegistro(bf as bfile, reg as TRegistro ptr) as Boolean
 		
 		ultimoEquipECF = @reg->equipECF
 
+	case DOC_SAT
+		if not lerRegDocSAT(bf, reg) then
+			return false
+		end if
+
+		ultimoReg = reg
+
+	case DOC_SAT_ANAL
+		if( ultimoReg <> null ) then
+			if not lerRegDocSATItemAnal(bf, reg, ultimoReg) then
+				return false
+			end if
+
+			if ultimoReg->sat.itemAnalListHead = null then
+				ultimoReg->sat.itemAnalListHead = @reg->itemAnal
+			else
+				ultimoReg->sat.itemAnalListTail->next_ = @reg->itemAnal
+			end if
+			
+			ultimoReg->sat.itemAnalListTail = @reg->itemAnal
+			reg->itemAnal.next_ = null
+		else
+			pularLinha(bf)
+			reg->tipo = DESCONHECIDO
+		end if
+
 	case DOC_NFSCT
 		if not lerRegDocNFSCT(bf, reg) then
 			return false
@@ -1488,6 +1900,32 @@ private function Efd.lerRegistro(bf as bfile, reg as TRegistro ptr) as Boolean
 			reg->tipo = DESCONHECIDO
 		end if
 	
+	case DOC_NF_ELETRIC
+		if not lerRegDocNFElet(bf, reg) then
+			return false
+		end if
+
+		ultimoReg = reg
+
+	case DOC_NF_ELETRIC_ANAL
+		if( ultimoReg <> null ) then
+			if not lerRegDocNFEletItemAnal(bf, reg, ultimoReg) then
+				return false
+			end if
+
+			if ultimoReg->nf.itemAnalListHead = null then
+				ultimoReg->nf.itemAnalListHead = @reg->itemAnal
+			else
+				ultimoReg->nf.itemAnalListTail->next_ = @reg->itemAnal
+			end if
+			
+			ultimoReg->nf.itemAnalListTail = @reg->itemAnal
+			reg->itemAnal.next_ = null
+		else
+			pularLinha(bf)
+			reg->tipo = DESCONHECIDO
+		end if
+	
 	case ITEM_ID
 		if not lerRegItemId(bf, reg) then
 			return false
@@ -1496,6 +1934,26 @@ private function Efd.lerRegistro(bf as bfile, reg as TRegistro ptr) as Boolean
 		'adicionar ao dicionário
 		if itemIdDict[reg->itemId.id] = null then
 			itemIdDict.add(reg->itemId.id, @reg->itemId)
+		end if
+
+	case BEM_CIAP
+		if not lerRegBemCiap(bf, reg) then
+			return false
+		end if
+
+		'adicionar ao dicionário
+		if bemCiapDict[reg->bemCiap.id] = null then
+			bemCiapDict.add(reg->bemCiap.id, @reg->bemCiap)
+		end if
+
+	case INFO_COMPL
+		if not lerRegInfoCompl(bf, reg) then
+			return false
+		end if
+
+		'adicionar ao dicionário
+		if infoComplDict[reg->infoCompl.id] = null then
+			infoComplDict.add(reg->infoCompl.id, @reg->infoCompl)
 		end if
 
 	case PARTICIPANTE
@@ -1548,6 +2006,25 @@ private function Efd.lerRegistro(bf as bfile, reg as TRegistro ptr) as Boolean
 			return false
 		end if
 	
+	case CIAP_TOTAL
+		if not lerRegCiapTotal(bf, reg) then
+			return false
+		end if
+		
+		ultimoCiap = @reg->ciapTotal
+	
+	case CIAP_ITEM
+		if not lerRegCiapItem(bf, reg, ultimoCiap) then
+			return false
+		end if
+	
+		ultimoCiapItem = @reg->ciapItem
+
+	case CIAP_ITEM_DOC
+		if not lerRegCiapItemDoc(bf, reg, ultimoCiapItem) then
+			return false
+		end if
+
 	case MESTRE
 		if not lerRegMestre(bf, reg) then
 			return false
@@ -1614,7 +2091,7 @@ private function lerRegSintegraDocumento(bf as bfile, reg as TRegistro ptr) as B
 	reg->docSint.dataEmi 	= bf.char8
 	reg->docSint.uf 		= UF_SIGLA2COD(bf.char2)
 	reg->docSint.modelo 	= bf.int2
-	reg->docSint.serie 		= valint(bf.nchar(3))
+	reg->docSint.serie 		= bf.nchar(3)
 	'' formato de numero estendido do SAFI?
 	if bf.peek1 = asc("¨") then
 		bf.char1
@@ -1652,7 +2129,7 @@ private function lerRegSintegraDocumentoST(bf as bfile, reg as TRegistro ptr) as
 	reg->docSint.dataEmi	= bf.char8
 	reg->docSint.uf 		= UF_SIGLA2COD(bf.char2)
 	reg->docSint.modelo 	= bf.int2
-	reg->docSint.serie 		= valint(bf.nchar(3))
+	reg->docSint.serie 		= bf.nchar(3)
 	'' formato de numero estendido do SAFI?
 	if bf.peek1 = asc("¨") then
 		bf.char1
@@ -1682,7 +2159,7 @@ private function lerRegSintegraDocumentoIPI(bf as bfile, reg as TRegistro ptr) a
 	reg->docSint.ie 		= bf.nchar(14)
 	reg->docSint.dataEmi 	= bf.char8
 	reg->docSint.uf 		= UF_SIGLA2COD(bf.char2)
-	reg->docSint.serie 		= valint(bf.nchar(3))
+	reg->docSint.serie 		= bf.nchar(3)
 	'' formato de numero estendido do SAFI?
 	if bf.peek1 = asc("¨") then
 		bf.char1
@@ -1704,7 +2181,59 @@ private function lerRegSintegraDocumentoIPI(bf as bfile, reg as TRegistro ptr) a
 	function = true
 end function
 
-#define GENSINTEGRAKEY(r) (r->docSint.cnpj + r->docSint.ie + r->docSint.dataEmi + str(r->docSint.uf) + str(r->docSint.serie) + str(r->docSint.numero))
+''''''''
+private function lerRegSintegraMercadoria(bf as bfile, reg as TRegistro ptr) as Boolean
+
+	bf.nchar(8+8)
+	reg->itemId.id			  	= bf.nchar(14)
+	reg->itemId.ncm			  	= vallng(bf.nchar(8))
+	reg->itemId.descricao	  	= bf.nchar(53)
+	reg->itemId.unidInventario 	= bf.nchar(6)
+	reg->itemId.aliqIPI		  	= bf.dbl5_2
+	reg->itemId.aliqICMSInt	  	= bf.dbl4_2
+	reg->itemId.redBcICMS	  	= bf.dbl5_2
+	reg->itemId.bcICMSST	  	= bf.dbl13_2
+
+	'pular \r\n
+	bf.char1
+	bf.char1
+
+	function = true
+end function
+
+''''''''
+private function lerRegSintegraDocumentoItem(bf as bfile, reg as TRegistro ptr) as Boolean
+	
+	reg->docItemSint.cnpj 		= bf.nchar(14)
+	bf.nchar(2)
+	reg->docItemSint.serie 		= bf.nchar(3)
+	'' formato de numero estendido do SAFI?
+	if bf.peek1 = asc("¨") then
+		bf.char1
+		reg->docItemSint.numero = bf.int9
+	else
+		reg->docItemSint.numero = bf.int6
+	end if
+	reg->docItemSint.cfop 		= bf.int4
+	reg->docItemSint.CST 		= bf.nchar(3)
+	reg->docItemSint.nroItem	= valint(bf.nchar(3))	
+	reg->docItemSint.codMercadoria = bf.nchar(14)
+	reg->docItemSint.qtd		= bf.dbl11_3
+	reg->docItemSint.valor		= bf.dbl12_2
+	reg->docItemSint.desconto	= bf.dbl12_2
+	reg->docItemSint.bcICMS		= bf.dbl12_2
+	reg->docItemSint.bcICMSST	= bf.dbl12_2
+	reg->docItemSint.valorIPI	= bf.dbl12_2
+	reg->docItemSint.aliqICMS	= bf.dbl4_2
+	
+	'pular \r\n
+	bf.char1
+	bf.char1
+
+	function = true
+end function
+
+#define GENSINTEGRAKEY(r) ((r)->cnpj + (r)->serie + str((r)->numero) + str((r)->cfop))
   
 ''''''''
 private function Efd.lerRegistroSintegra(bf as bfile, reg as TRegistro ptr) as Boolean
@@ -1719,17 +2248,17 @@ private function Efd.lerRegistroSintegra(bf as bfile, reg as TRegistro ptr) as B
 		end if
 
 		'adicionar ao dicionário
-		reg->docSint.chaveDict = GENSINTEGRAKEY(reg)
+		reg->docSint.chaveDict = GENSINTEGRAKEY(@reg->docSint)
 		var antReg = cast(TRegistro ptr, sintegraDict[reg->docSint.chaveDict])
 		if antReg = null then
 			sintegraDict.add(reg->docSint.chaveDict, reg)
 		else
 			'' para cada alíquota diferente há um novo registro 50, mas nós só queremos os valores totais
-			antReg->docSint.valorTotal	+= reg->docSint.valorTotal
-			antReg->docSint.bcICMS		+= reg->docSint.bcICMS
-			antReg->docSint.ICMS		+= reg->docSint.ICMS
-			antReg->docSint.valorIsento += reg->docSint.valorIsento
-			antReg->docSint.valorOutras += reg->docSint.valorOutras
+			''antReg->docSint.valorTotal	+= reg->docSint.valorTotal
+			''antReg->docSint.bcICMS		+= reg->docSint.bcICMS
+			''antReg->docSint.ICMS		+= reg->docSint.ICMS
+			''antReg->docSint.valorIsento += reg->docSint.valorIsento
+			''antReg->docSint.valorOutras += reg->docSint.valorOutras
 
 			reg->tipo = DESCONHECIDO 
 		end if
@@ -1740,15 +2269,15 @@ private function Efd.lerRegistroSintegra(bf as bfile, reg as TRegistro ptr) as B
 			return false
 		end if
 
-		reg->docSint.chaveDict = GENSINTEGRAKEY(reg)
+		reg->docSint.chaveDict = GENSINTEGRAKEY(@reg->docSint)
 		var antReg = cast(TRegistro ptr, sintegraDict[reg->docSint.chaveDict])
 		'' NOTA: pode existir registro 53 sem o correspondente 50, para quando só há ICMS ST, sem destaque ICMS próprio
 		if antReg = null then
 			sintegraDict.add(reg->docSint.chaveDict, reg)
 		else
-			antReg->docSint.bcICMSST		+= reg->docSint.bcICMSST
-			antReg->docSint.ICMSST			+= reg->docSint.ICMSST
-			antReg->docSint.despesasAcess	+= reg->docSint.despesasAcess
+			''antReg->docSint.bcICMSST		+= reg->docSint.bcICMSST
+			''antReg->docSint.ICMSST			+= reg->docSint.ICMSST
+			''antReg->docSint.despesasAcess	+= reg->docSint.despesasAcess
 			reg->tipo = DESCONHECIDO
 		end if
 	  
@@ -1758,7 +2287,7 @@ private function Efd.lerRegistroSintegra(bf as bfile, reg as TRegistro ptr) as B
 			return false
 		end if
 
-		reg->docSint.chaveDict = GENSINTEGRAKEY(reg)
+		reg->docSint.chaveDict = GENSINTEGRAKEY(@reg->docSint)
 		var antReg = cast(TRegistro ptr, sintegraDict[reg->docSint.chaveDict])
 		if antReg = null then
 			print "ERRO: Sintegra 53 sem 50: "; reg->docSint.chaveDict
@@ -1769,7 +2298,32 @@ private function Efd.lerRegistroSintegra(bf as bfile, reg as TRegistro ptr) as B
 		end if
 
 		reg->tipo = DESCONHECIDO 
+		
+	case SINTEGRA_DOCUMENTO_ITEM
+		reg->tipo = SINTEGRA_DOCUMENTO_ITEM
+		if not lerRegSintegraDocumentoItem(bf, reg) then
+			return false
+		end if
 
+		var chaveDict = GENSINTEGRAKEY(@reg->docItemSint)
+		var doc = cast(TRegistro ptr, sintegraDict[chaveDict])
+		if doc = null then
+			print "ERRO: Sintegra 54 sem 50: "; chaveDict
+		end if
+		
+		reg->docItemSint.doc = @(doc->docSint)
+		
+	case SINTEGRA_MERCADORIA
+		reg->tipo = ITEM_ID
+		if not lerRegSintegraMercadoria(bf, reg) then
+			return false
+		end if
+
+		'adicionar ao dicionário
+		if itemIdDict[reg->itemId.id] = null then
+			itemIdDict.add(reg->itemId.id, @reg->itemId)
+		end if
+		
 	case else
 		pularLinha(bf)
 		reg->tipo = DESCONHECIDO
@@ -1785,31 +2339,38 @@ function Efd.carregarSintegra(bf as bfile, mostrarProgresso as ProgressoCB) as B
 	var fsize = bf.tamanho
 	
 	dim as TRegistro ptr tail = null
+	var nroLinha = 0
 
-	do while bf.temProximo()		 
-		var reg = new TRegistro
-
-		if lerRegistroSintegra( bf, reg ) then 
-			mostrarProgresso(null, bf.posicao / fsize)
+	try
+		do while bf.temProximo()		 
+			var reg = new TRegistro
 			
-			if reg->tipo <> DESCONHECIDO then
-				if tail = null then
-				   regListHead = reg
-				   tail = reg
-				else
-				   tail->next_ = reg
-				   tail = reg
-				end if
+			nroLinha += 1
 
-				nroRegs += 1
+			if lerRegistroSintegra( bf, reg ) then 
+				mostrarProgresso(null, bf.posicao / fsize)
+				
+				if reg->tipo <> DESCONHECIDO then
+					if tail = null then
+					   regListHead = reg
+					   tail = reg
+					else
+					   tail->next_ = reg
+					   tail = reg
+					end if
+
+					nroRegs += 1
+				else
+					delete reg
+				end if
+			 
 			else
-				delete reg
+				exit do
 			end if
-		 
-		else
-			exit do
-		end if
-	loop
+		loop
+	catch
+		print !"\r\nErro ao carregar o registro da linha (" & nroLinha & !") do arquivo\r\n"
+	endtry
 	   
 	function = true
 
@@ -1829,7 +2390,11 @@ sub Efd.adicionarDocEscriturado(doc as TDocDF ptr)
 			'' (periodo, cnpjEmit, ufEmit, serie, numero, modelo, chave, dataEmit, valorOp, IE)
 			db_LREInsertStmt->reset()
 			db_LREInsertStmt->bind(1, valint(regMestre->mestre.dataIni))
-			db_LREInsertStmt->bind(2, part->cnpj)
+			if len(part->cpf) > 0 then 
+				db_LREInsertStmt->bind(2, part->cpf)
+			else
+				db_LREInsertStmt->bind(2, part->cnpj)
+			end if
 			db_LREInsertStmt->bind(3, uf)
 			db_LREInsertStmt->bind(4, doc->serie)
 			db_LREInsertStmt->bind(5, doc->numero)
@@ -1850,7 +2415,11 @@ sub Efd.adicionarDocEscriturado(doc as TDocDF ptr)
 			'' (periodo, cnpjDest, ufDest, serie, numero, modelo, chave, dataEmit, valorOp, IE)
 			db_LRSInsertStmt->reset()
 			db_LRSInsertStmt->bind(1, valint(regMestre->mestre.dataIni))
-			db_LRSInsertStmt->bind(2, part->cnpj)
+			if len(part->cpf) > 0 then 
+				db_LRSInsertStmt->bind(2, part->cpf)
+			else
+				db_LRSInsertStmt->bind(2, part->cnpj)
+			end if
 			db_LRSInsertStmt->bind(3, uf)
 			db_LRSInsertStmt->bind(4, doc->serie)
 			db_LRSInsertStmt->bind(5, doc->numero)
@@ -1897,6 +2466,42 @@ sub Efd.adicionarDocEscriturado(doc as TDocECF ptr)
 			db_LRSInsertStmt->bind(7, doc->chave)
 			db_LRSInsertStmt->bind(8, doc->dataEmi)
 			db_LRSInsertStmt->bind(9, doc->valorTotal)
+			db_dfeSaidaInsertStmt->bindNull(10)
+		
+			if not db->execNonQuery(db_LRSInsertStmt) then
+				print "Erro ao inserir registro na LRS: "; *db->getErrorMsg()
+			end if
+		end if
+	
+	case CANCELADO, CANCELADO_EXT, DENEGADO, INUTILIZADO
+		'' !!!TODO!!! inserir em outra tabela para fazermos análises posteriores
+	
+	case else
+		'' !!!TODO!!! como tratar outras situações? os dados vêm completos?
+	end select
+	
+end sub
+
+''''''''
+sub Efd.adicionarDocEscriturado(doc as TDocSAT ptr)
+	
+	select case as const doc->situacao
+	case REGULAR, EXTEMPORANEO
+	
+		'' só existe de saída para SAT
+		if doc->operacao = SAIDA then
+			'' (periodo, cnpjDest, ufDest, serie, numero, modelo, chave, dataEmit, valorOp)
+			db_LRSInsertStmt->reset()
+			db_LRSInsertStmt->bind(1, valint(regMestre->mestre.dataIni))
+			db_LRSInsertStmt->bind(2, 0) '' não é possível usar doc->cpfCnpjAdquirente, porque relatório do BO vem sem essa info
+			db_LRSInsertStmt->bind(3, 35)
+			db_LRSInsertStmt->bind(4, 0)
+			db_LRSInsertStmt->bind(5, doc->numero)
+			db_LRSInsertStmt->bind(6, doc->modelo)
+			db_LRSInsertStmt->bind(7, doc->chave)
+			db_LRSInsertStmt->bind(8, doc->dataEmi)
+			db_LRSInsertStmt->bind(9, doc->valorTotal)
+			db_dfeSaidaInsertStmt->bindNull(10)
 		
 			if not db->execNonQuery(db_LRSInsertStmt) then
 				print "Erro ao inserir registro na LRS: "; *db->getErrorMsg()
@@ -1922,10 +2527,10 @@ sub Efd.adicionarItemNFEscriturado(item as TDocNFItem ptr)
 		
 		var uf = iif(part->municip >= 1100000 and part->municip <= 5399999, part->municip \ 100000, 99)
 
-		'' (periodo, cnpjEmit, ufEmit, serie, numero, modelo, numItem, cst_origem, cst_tribut, cfop, qtd, valorProd, valorDesc, bc, aliq, icms, bcIcmsST, aliqIcmsST, icmsST)
+		'' (periodo, cnpjEmit, ufEmit, serie, numero, modelo, numItem, cst_origem, cst_tribut, cfop, qtd, valorProd, valorDesc, bc, aliq, icms, bcIcmsST, aliqIcmsST, icmsST, itemId)
 		db_itensNfLRInsertStmt->reset()
 		db_itensNfLRInsertStmt->bind(1, valint(regMestre->mestre.dataIni))
-		db_itensNfLRInsertStmt->bind(2, part->cnpj)
+		db_itensNfLRInsertStmt->bind(2, iif(len(part->cpf) > 0, part->cpf, part->cnpj))
 		db_itensNfLRInsertStmt->bind(3, uf)
 		db_itensNfLRInsertStmt->bind(4, doc->serie)
 		db_itensNfLRInsertStmt->bind(5, doc->numero)
@@ -1943,6 +2548,11 @@ sub Efd.adicionarItemNFEscriturado(item as TDocNFItem ptr)
 		db_itensNfLRInsertStmt->bind(17, item->bcICMSST)
 		db_itensNfLRInsertStmt->bind(18, item->aliqICMSST)
 		db_itensNfLRInsertStmt->bind(19, item->icmsST)
+		if opcoes.manterDb then
+			db_itensNfLRInsertStmt->bind(20, item->itemId)
+		else
+			db_itensNfLRInsertStmt->bind(20, null)
+		end if
 		
 		if not db->execNonQuery(db_itensNfLRInsertStmt) then
 			print "Erro ao inserir registro na Item NFe: "; *db->getErrorMsg()
@@ -1966,7 +2576,7 @@ sub Efd.adicionarRessarcStEscriturado(doc as TDocNFItemRessarcSt ptr)
 	'' (periodo, cnpjEmit, ufEmit, serie, numero, modelo, nroItem, cnpjUlt, ufUlt, serieUlt, numeroUlt, modeloUlt, chaveUlt, dataUlt, valorUlt, bcSTUlt, qtdUlt, nroItemUlt)
 	db_ressarcStItensNfLRSInsertStmt->reset()
 	db_ressarcStItensNfLRSInsertStmt->bind(1, valint(regMestre->mestre.dataIni))
-	db_ressarcStItensNfLRSInsertStmt->bind(2, part->cnpj)
+	db_ressarcStItensNfLRSInsertStmt->bind(2, iif(len(part->cpf) > 0, part->cpf, part->cnpj))
 	db_ressarcStItensNfLRSInsertStmt->bind(3, uf)
 	db_ressarcStItensNfLRSInsertStmt->bind(4, docAvo->serie)
 	db_ressarcStItensNfLRSInsertStmt->bind(5, docAvo->numero)
@@ -1999,6 +2609,23 @@ sub Efd.adicionarRessarcStEscriturado(doc as TDocNFItemRessarcSt ptr)
 end sub
 
 ''''''''
+sub Efd.adicionarItemEscriturado(item as TItemId ptr)
+
+	'' (id, descricao, ncm, cest, aliqInt)
+	db_itensIdInsertStmt->reset()
+	db_itensIdInsertStmt->bind(1, item->id)
+	db_itensIdInsertStmt->bind(2, item->descricao)
+	db_itensIdInsertStmt->bind(3, item->ncm)
+	db_itensIdInsertStmt->bind(4, item->CEST)
+	db_itensIdInsertStmt->bind(5, item->aliqICMSInt)
+	
+	if not db->execNonQuery(db_itensIdInsertStmt) then
+		print "Erro ao inserir registro na Item Id: "; *db->getErrorMsg()
+	end if
+
+end sub
+
+''''''''
 sub Efd.addRegistroAoDB(reg as TRegistro ptr)
 
 	select case as const reg->tipo
@@ -2008,8 +2635,16 @@ sub Efd.addRegistroAoDB(reg as TRegistro ptr)
 		adicionarItemNFEscriturado(@reg->itemNF)
 	case DOC_CT
 		adicionarDocEscriturado(@reg->ct)
+	case DOC_ECF
+		adicionarDocEscriturado(@reg->ecf)
+	case DOC_SAT
+		adicionarDocEscriturado(@reg->sat)
 	case DOC_NF_ITEM_RESSARC_ST
 		adicionarRessarcStEscriturado(@reg->itemRessarcSt)
+	case ITEM_ID
+		if opcoes.manterDb then
+			adicionarItemEscriturado(@reg->itemId)
+		end if
 	end select
 	
 end sub
@@ -2065,6 +2700,9 @@ private function mergeLists(pSrc1 as TRegistro ptr, pSrc2 as TRegistro ptr) as T
 		case ECF_REDUCAO_Z
 			dReg = @pSrc1->ecfRedZ.dataMov
 			dEmi = dReg
+		case DOC_SAT
+			dReg = @pSrc1->ct.dataEmi
+			dEmi = dReg
 		case else
 			dReg = null
 			dEmi = null
@@ -2084,6 +2722,9 @@ private function mergeLists(pSrc1 as TRegistro ptr, pSrc2 as TRegistro ptr) as T
 			dEmi = @pSrc2->itemNF.documentoPai->dataEmi
 		case ECF_REDUCAO_Z
 			dReg = @pSrc2->ecfRedZ.dataMov
+			dEmi = dReg
+		case DOC_SAT
+			dReg = @pSrc2->sat.dataEmi
 			dEmi = dReg
 		case else
 			dReg = null
@@ -2161,6 +2802,8 @@ function Efd.carregarTxt(nomeArquivo as String, mostrarProgresso as ProgressoCB)
 
 	participanteDict.init(2^20)
 	itemIdDict.init(2^20)	 
+	bemCiapDict.init(2^16)
+	infoComplDict.init(2^16)
 	sintegraDict.init(2^20)
 
 	regListHead = null
@@ -2202,7 +2845,9 @@ function Efd.carregarTxt(nomeArquivo as String, mostrarProgresso as ProgressoCB)
 							 DOC_NF_ITEM, _
 							 DOC_CT, _
 							 ECF_REDUCAO_Z, _
-							 DOC_NF_ITEM_RESSARC_ST
+							 DOC_SAT, _
+							 DOC_NF_ITEM_RESSARC_ST, _
+							 ITEM_ID
 							addRegistroAoDB(reg)
 						end select
 						
@@ -2275,7 +2920,7 @@ private function csvDate2YYYYMMDD(s as zstring ptr) as string
 end function
 
 ''''''''
-function Efd.carregarCsvNFeDest(bf as bfile, emModoOutrasUFs as boolean) as TDFe ptr
+function Efd.carregarCsvNFeDestSAFI(bf as bfile, emModoOutrasUFs as boolean) as TDFe ptr
 	
 	var dfe = new TDFe
 	
@@ -2286,7 +2931,7 @@ function Efd.carregarCsvNFeDest(bf as bfile, emModoOutrasUFs as boolean) as TDFe
 		dfe->dataEmi			= csvDate2YYYYMMDD(bf.charCsv)
 		dfe->cnpjEmit			= bf.charCsv
 		dfe->nomeEmit			= bf.charCsv
-		dfe->nfe.ieEmit			= bf.charCsv
+		dfe->nfe.ieEmit			= trim(bf.charCsv)
 		dfe->cnpjDest			= bf.charCsv
 		dfe->ufDest				= UF_SIGLA2COD(bf.charCsv)
 		dfe->nomeDest			= bf.charCsv
@@ -2327,7 +2972,7 @@ function Efd.carregarCsvNFeDest(bf as bfile, emModoOutrasUFs as boolean) as TDFe
 end function
 
 ''''''''
-function Efd.carregarCsvNFeEmit(bf as bfile) as TDFe ptr
+function Efd.carregarCsvNFeEmitSAFI(bf as bfile) as TDFe ptr
 	
 	var chave = bf.charCsv
 	var dfe = cast(TDFe ptr, chaveDFeDict[chave])	
@@ -2339,7 +2984,7 @@ function Efd.carregarCsvNFeEmit(bf as bfile) as TDFe ptr
 	dfe->dataEmi			= csvDate2YYYYMMDD(bf.charCsv)
 	dfe->cnpjEmit			= bf.charCsv
 	dfe->nomeEmit			= bf.charCsv
-	dfe->nfe.ieEmit			= bf.charCsv
+	dfe->nfe.ieEmit			= trim(bf.charCsv)
 	dfe->ufEmit				= 35
 	dfe->cnpjDest			= bf.charCsv
 	dfe->ufDest				= UF_SIGLA2COD(bf.charCsv)
@@ -2361,9 +3006,6 @@ function Efd.carregarCsvNFeEmit(bf as bfile) as TDFe ptr
 		swap dfe->ufEmit, dfe->ufDest
 	end if
 	
-	dfe->nfe.itemListHead	= null
-	dfe->nfe.itemListTail	= null
-
 	'' pular \r\n
 	bf.char1
 	bf.char1
@@ -2373,7 +3015,7 @@ function Efd.carregarCsvNFeEmit(bf as bfile) as TDFe ptr
 end function
 
 ''''''''
-function Efd.carregarCsvNFeEmitItens(bf as bfile, chave as string) as TDFe_NFeItem ptr
+function Efd.carregarCsvNFeEmitItensSAFI(bf as bfile, chave as string) as TDFe_NFeItem ptr
 	
 	var item = new TDFe_NFeItem
 	
@@ -2411,7 +3053,7 @@ function Efd.carregarCsvNFeEmitItens(bf as bfile, chave as string) as TDFe_NFeIt
 end function
 
 ''''''''
-function Efd.carregarCsvCTe(bf as bfile, emModoOutrasUFs as boolean) as TDFe ptr
+function Efd.carregarCsvCTeSAFI(bf as bfile, emModoOutrasUFs as boolean) as TDFe ptr
 	var dfe = new TDFe
 	
 	'' NOTA: só será possível saber se é operação de entrada ou saída quando pegarmos 
@@ -2442,7 +3084,7 @@ function Efd.carregarCsvCTe(bf as bfile, emModoOutrasUFs as boolean) as TDFe ptr
 	dfe->chave				= bf.charCsv
 	dfe->valorOperacao		= bf.dblCsv
 	dfe->cte.valorReceber	= bf.dblCsv
-	dfe->cte.qtdCTe			= bf.dblCsv
+	dfe->cte.qtdCCe			= bf.dblCsv
 	dfe->cte.cfop			= bf.intCsv
 	dfe->cte.nomeMunicIni	= bf.charCsv
 	dfe->cte.ufIni			= bf.charCsv
@@ -2469,6 +3111,87 @@ function Efd.carregarCsvCTe(bf as bfile, emModoOutrasUFs as boolean) as TDFe ptr
 	
 end function
 
+const BO_CSV_SEP = asc(!"\t")
+const BO_CSV_DIG = asc(".")
+
+''''''''
+function Efd.carregarCsvNFeEmitItens(bf as bfile, chave as string) as TDFe_NFeItem ptr
+	
+	var item = new TDFe_NFeItem
+	
+	'' chave_nfe	num_doc_fiscal	cod_serie_doc_fiscal	cod_modelo	ind_tipo_documento_fiscal	ind_situacao_doc_fiscal	data_emissao	
+	'' nome_rsocial_emit	num_cnpj_emit	num_ie_emit	cod_drt_emit	cod_est_emit	nome_rsocial_dest	num_cnpj_dest	num_cpf_dest	
+	'' num_ie_dest	cod_drt_dest	cod_est_dest	num_item	descr_prod	cod_prod_servico	cod_gtin	cod_ncm	cod_cfop	
+	'' cod_tributacao_icms	cod_csosn	perc_aliquota_icms	perc_aliquota_base_calc	perc_aliquota_icms_st	perc_reduc_icms_st	
+	'' quant_comercial	unid_comercial	valor_produto_servico	valor_base_calc_icms	valor_icms	valor_base_calc_icms_st	valor_icms_st	
+	'' valor_bc_icms_st_retido	valor_icms_st_retido	valor_ipi	valor_desconto	valor_frete	ind_modalidade_frete	valor_seguro	
+	'' valor_outras_desp	valor_pis	valor_cofins	num_docto_importacao	num_fci	data_desembaraco	cod_est_desembaraco	
+	'' descr_inf_adic_produto	ind_origem_mercadoria	cod_cnae
+
+	chave 					= bf.varchar(BO_CSV_SEP)
+
+	item->numero			= bf.varint(BO_CSV_SEP) ''vardbl(BO_CSV_SEP, BO_CSV_DIG)
+	item->serie				= bf.varint(BO_CSV_SEP)
+	item->modelo 			= bf.varint(BO_CSV_SEP)
+	bf.varchar(BO_CSV_SEP) '' tipo
+	bf.varchar(BO_CSV_SEP)	'' situação
+	bf.varchar(BO_CSV_SEP) '' data emi
+	bf.varchar(BO_CSV_SEP) '' razão social emi
+	bf.varchar(BO_CSV_SEP) '' cnpj emi
+	bf.varchar(BO_CSV_SEP) '' ie emi
+	bf.varchar(BO_CSV_SEP) '' drt emi
+	bf.varchar(BO_CSV_SEP)	'' uf emi
+	bf.varchar(BO_CSV_SEP)	'' razão social dest
+	bf.varchar(BO_CSV_SEP) '' cnpj dest
+	bf.varchar(BO_CSV_SEP) '' cpf dest
+	bf.varchar(BO_CSV_SEP) '' ie dest
+	bf.varchar(BO_CSV_SEP) '' drt dest
+	bf.varchar(BO_CSV_SEP)	'' uf dest
+	item->nroItem			= bf.varint(BO_CSV_SEP)
+	item->descricao			= bf.varchar(BO_CSV_SEP)
+	item->codProduto		= bf.varchar(BO_CSV_SEP)
+	bf.varchar(BO_CSV_SEP)	'' GTIN
+	item->ncm				= bf.varint(BO_CSV_SEP)
+	item->cfop				= bf.varint(BO_CSV_SEP)
+	item->cst				= bf.varint(BO_CSV_SEP)
+	bf.varchar(BO_CSV_SEP) '' CSOSN
+	item->aliqICMS			= bf.vardbl(BO_CSV_SEP, BO_CSV_DIG)
+	bf.varchar(BO_CSV_SEP) '' redução bc
+	bf.varchar(BO_CSV_SEP) '' alíq ICMS ST
+	bf.varchar(BO_CSV_SEP) '' redução bc ST
+	item->qtd				= bf.vardbl(BO_CSV_SEP, BO_CSV_DIG)
+	item->unidade			= bf.varchar(BO_CSV_SEP)
+	item->valorProduto		= bf.vardbl(BO_CSV_SEP, BO_CSV_DIG)
+	item->bcICMS			= bf.vardbl(BO_CSV_SEP, BO_CSV_DIG)
+	item->ICMS				= bf.vardbl(BO_CSV_SEP, BO_CSV_DIG)
+	item->bcICMSST			= bf.vardbl(BO_CSV_SEP, BO_CSV_DIG)
+	bf.varchar(BO_CSV_SEP) '' ICMS ST
+	bf.varchar(BO_CSV_SEP) '' bc ICMS ST anterior
+	bf.varchar(BO_CSV_SEP) '' ICMS ST anterior
+	item->IPI				= bf.vardbl(BO_CSV_SEP, BO_CSV_DIG)
+	item->desconto			= bf.vardbl(BO_CSV_SEP, BO_CSV_DIG)
+	bf.varchar(BO_CSV_SEP) '' frete
+	bf.varchar(BO_CSV_SEP) '' indicador frete
+	bf.varchar(BO_CSV_SEP) '' seguro
+	item->despesasAcess		= bf.vardbl(BO_CSV_SEP, BO_CSV_DIG)
+	bf.varchar(BO_CSV_SEP) '' pis
+	bf.varchar(BO_CSV_SEP) '' cofins
+	bf.varchar(BO_CSV_SEP) '' num doc importacao
+	bf.varchar(BO_CSV_SEP) '' num fci
+	bf.varchar(BO_CSV_SEP) '' data desembaraco
+	bf.varchar(BO_CSV_SEP) '' uf desembaraco
+	bf.varchar(BO_CSV_SEP) '' info adicional
+	bf.varchar(BO_CSV_SEP) '' origem mercadoria
+	bf.varchar(BO_CSV_SEP) '' cnae
+	item->next_ = null
+	
+	'' pular \r\n
+	bf.char1
+	bf.char1
+	
+	function = item
+end function
+
 ''''''''
 sub Efd.adicionarDFe(dfe as TDFe ptr)
 	
@@ -2484,7 +3207,7 @@ sub Efd.adicionarDFe(dfe as TDFe ptr)
 	if chaveDFeDict[dfe->chave] = null then
 		chaveDFeDict.add(dfe->chave, dfe)
 	end if
-	
+
 	'' adicionar ao db
 	select case dfe->operacao
 	case ENTRADA
@@ -2499,7 +3222,7 @@ sub Efd.adicionarDFe(dfe as TDFe ptr)
 		db_dfeEntradaInsertStmt->bind(7, dfe->dataEmi)
 		db_dfeEntradaInsertStmt->bind(8, dfe->valorOperacao)
 		if len(dfe->nfe.ieEmit) > 0 then
-			db_dfeEntradaInsertStmt->bind(9, trim(dfe->nfe.ieEmit))
+			db_dfeEntradaInsertStmt->bind(9, dfe->nfe.ieEmit)
 		else
 			db_dfeEntradaInsertStmt->bindNull(9)
 		end if
@@ -2511,6 +3234,7 @@ sub Efd.adicionarDFe(dfe as TDFe ptr)
 	case SAIDA
 		'' (cnpjDest, ufDest, serie, numero, modelo, chave, dataEmit, valorOp, ieDest)
 		db_dfeSaidaInsertStmt->reset()
+
 		db_dfeSaidaInsertStmt->bind(1, dfe->cnpjDest)
 		db_dfeSaidaInsertStmt->bind(2, dfe->ufDest)
 		db_dfeSaidaInsertStmt->bind(3, dfe->serie)
@@ -2519,8 +3243,8 @@ sub Efd.adicionarDFe(dfe as TDFe ptr)
 		db_dfeSaidaInsertStmt->bind(6, dfe->chave)
 		db_dfeSaidaInsertStmt->bind(7, dfe->dataEmi)
 		db_dfeSaidaInsertStmt->bind(8, dfe->valorOperacao)
-		if len(dfe->nfe.ieEmit) > 0 then
-			db_dfeSaidaInsertStmt->bind(9, trim(dfe->nfe.ieEmit))
+		if len(dfe->nfe.ieDest) > 0 then
+			db_dfeSaidaInsertStmt->bind(9, dfe->nfe.ieDest)
 		else
 			db_dfeSaidaInsertStmt->bindNull(9)
 		end if
@@ -2536,20 +3260,33 @@ end sub
 
 ''''''''
 sub Efd.adicionarItemDFe(chave as const zstring ptr, item as TDFe_NFeItem ptr)
-		'' (serie, numero, modelo, chave, cfop, valorProd, valorDesc, valorAcess, bc, aliq, icms, bcIcmsST) 
+		'' (serie, numero, modelo, numItem, chave, cfop, valorProd, valorDesc, valorAcess, bc, aliq, icms, bcIcmsST, ncm, cst, qtd, unidade, codProduto, descricao) 
 		db_itensDfeSaidaInsertStmt->reset()
 		db_itensDfeSaidaInsertStmt->bind(1, item->serie)
 		db_itensDfeSaidaInsertStmt->bind(2, item->numero)
 		db_itensDfeSaidaInsertStmt->bind(3, item->modelo)
-		db_itensDfeSaidaInsertStmt->bind(4, chave)
-		db_itensDfeSaidaInsertStmt->bind(5, item->cfop)
-		db_itensDfeSaidaInsertStmt->bind(6, item->valorProduto)
-		db_itensDfeSaidaInsertStmt->bind(7, item->desconto)
-		db_itensDfeSaidaInsertStmt->bind(8, item->despesasAcess)
-		db_itensDfeSaidaInsertStmt->bind(9, item->bcICMS)
-		db_itensDfeSaidaInsertStmt->bind(10, item->aliqICMS)
-		db_itensDfeSaidaInsertStmt->bind(11, item->icms)
-		db_itensDfeSaidaInsertStmt->bind(12, item->bcIcmsST)
+		db_itensDfeSaidaInsertStmt->bind(4, item->nroItem)
+		db_itensDfeSaidaInsertStmt->bind(5, chave)
+		db_itensDfeSaidaInsertStmt->bind(6, item->cfop)
+		db_itensDfeSaidaInsertStmt->bind(7, item->valorProduto)
+		db_itensDfeSaidaInsertStmt->bind(8, item->desconto)
+		db_itensDfeSaidaInsertStmt->bind(9, item->despesasAcess)
+		db_itensDfeSaidaInsertStmt->bind(10, item->bcICMS)
+		db_itensDfeSaidaInsertStmt->bind(11, item->aliqICMS)
+		db_itensDfeSaidaInsertStmt->bind(12, item->icms)
+		db_itensDfeSaidaInsertStmt->bind(13, item->bcIcmsST)
+		db_itensDfeSaidaInsertStmt->bind(14, item->ncm)
+		db_itensDfeSaidaInsertStmt->bind(15, item->cst)
+		db_itensDfeSaidaInsertStmt->bind(16, item->qtd)
+		if opcoes.manterDb then
+			db_itensDfeSaidaInsertStmt->bind(17, item->unidade)
+			db_itensDfeSaidaInsertStmt->bind(18, item->codProduto)
+			db_itensDfeSaidaInsertStmt->bind(19, item->descricao)
+		else
+			db_itensDfeSaidaInsertStmt->bind(17, null)
+			db_itensDfeSaidaInsertStmt->bind(18, null)
+			db_itensDfeSaidaInsertStmt->bind(19, null)
+		end if
 	
 		if not db->execNonQuery(db_itensDfeSaidaInsertStmt) then
 			print "Erro ao inserir Item DFe de entrada: "; *db->getErrorMsg()
@@ -2568,6 +3305,7 @@ function Efd.carregarCsv(nomeArquivo as String, mostrarProgresso as ProgressoCB)
 	mostrarProgresso("Carregando arquivo: " + nomeArquivo, 0)
 	
 	dim as integer tipoArquivo
+	dim as boolean isSafi = true
 	if instr( nomeArquivo, "SAFI_NFe_Destinatario" ) > 0 then
 		tipoArquivo = SAFI_NFe_Dest
 		nfeDestSafiFornecido = true
@@ -2585,6 +3323,12 @@ function Efd.carregarCsv(nomeArquivo as String, mostrarProgresso as ProgressoCB)
 		cteListHead = null
 		cteListTail = null
 		cteSafiFornecido = true
+		
+	elseif instr( nomeArquivo, "NFE_Emitente_Itens_SP_OSF" ) > 0 then
+		tipoArquivo = SAFI_NFe_Emit_Itens
+		isSafi = false
+		itemNFeSafiFornecido = true
+	
 	else
 		print "Erro: impossível resolver tipo de arquivo pelo nome"
 		return false
@@ -2604,52 +3348,56 @@ function Efd.carregarCsv(nomeArquivo as String, mostrarProgresso as ProgressoCB)
 		do while bf.temProximo()		 
 			mostrarProgresso(null, bf.posicao / fsize)
 			
-			'' outro header?
-			if bf.peek1 <> asc("""") then
-				'' final de arquivo?
-				
-				var linha = lcase(lerLinha(bf))
-				if left(linha, 22) = "cnpj base contribuinte" or left(linha, 26) = "cnpj/cpf base contribuinte" then
-					mostrarProgresso(null, 1)
-					nroLinha += 1
+			if isSafi then
+				'' outro header?
+				if bf.peek1 <> asc("""") then
+					'' final de arquivo?
 					
-					'' se for CT-e, temos que ler o CNPJ base do contribuinte para fazer um 
-					'' patch em todos os tipos de operação (saída ou entrada)
-					if tipoArquivo = SAFI_CTe then
-						var cnpjBase = bf.charCsv
-						var cte = cteListHead
-						do while cte <> null 
-							if left(cte->parent->cnpjEmit,8) = cnpjBase then
-								cte->parent->operacao = SAIDA
-							elseif left(cte->cnpjToma,8) = cnpjBase then
-								cte->parent->operacao = ENTRADA
-							end if
-							adicionarDFe(cte->parent)
-							cte = cte->next_
-						loop
+					var linha = lcase(lerLinha(bf))
+					if left(linha, 22) = "cnpj base contribuinte" or left(linha, 26) = "cnpj/cpf base contribuinte" then
+						mostrarProgresso(null, 1)
+						nroLinha += 1
+						
+						'' se for CT-e, temos que ler o CNPJ base do contribuinte para fazer um 
+						'' patch em todos os tipos de operação (saída ou entrada)
+						if tipoArquivo = SAFI_CTe then
+							var cnpjBase = bf.charCsv
+							var cte = cteListHead
+							do while cte <> null 
+								if left(cte->parent->cnpjEmit,8) = cnpjBase then
+									cte->parent->operacao = SAIDA
+								elseif left(cte->cnpjToma,8) = cnpjBase then
+									cte->parent->operacao = ENTRADA
+								end if
+								adicionarDFe(cte->parent)
+								cte = cte->next_
+							loop
+						end if
+						exit do
+					else
+						emModoOutrasUFs = true
 					end if
-					exit do
-				else
-					emModoOutrasUFs = true
 				end if
 			end if
 		
 			select case as const tipoArquivo  
 			case SAFI_NFe_Dest
-				var dfe = carregarCsvNFeDest( bf, emModoOutrasUFs )
+				var dfe = carregarCsvNFeDestSAFI( bf, emModoOutrasUFs )
 				if dfe <> null then
 					adicionarDFe(dfe)
 				end if
 			
 			case SAFI_NFe_Emit
-				var dfe = carregarCsvNFeEmit( bf )
+				var dfe = carregarCsvNFeEmitSAFI( bf )
 				if dfe <> null then
 					adicionarDFe(dfe)
 				end if
 				
 			case SAFI_NFe_Emit_Itens
 				var chave = ""
-				var nfeItem = carregarCsvNFeEmitItens( bf, chave )
+				var nfeItem = iif(isSafi, _
+					carregarCsvNFeEmitItensSAFI( bf, chave ), _
+					carregarCsvNFeEmitItens( bf, chave ))
 				if nfeItem <> null then
 					adicionarItemDFe(chave, nfeItem)
 
@@ -2672,11 +3420,15 @@ function Efd.carregarCsv(nomeArquivo as String, mostrarProgresso as ProgressoCB)
 				end if
 			
 			case SAFI_CTe
-				var dfe = carregarCsvCTe( bf, emModoOutrasUFs )
+				var dfe = carregarCsvCTeSAFI( bf, emModoOutrasUFs )
 			end select
 			
 			nroLinha += 1
 		loop
+		
+		if not isSafi then
+			mostrarProgresso(null, 1)
+		end if
 		
 		function = true
 	
@@ -2686,6 +3438,710 @@ function Efd.carregarCsv(nomeArquivo as String, mostrarProgresso as ProgressoCB)
 	endtry
 	   
 	bf.fechar()
+	
+end function
+
+private function dbl2Cnpj(valor as double) as string
+	return iif(valor <> 0, right("00000000000000" + str(valor), 14), "")
+end function 
+
+private function limparCNPJ(valor as string) as string
+	return iif(len(valor) > 0, right("00000000000000" + strreplace(strreplace(strreplace(valor, ".", ""), "/", ""), "-", ""), 14), "")
+end function
+
+#define limparIE(valor) strreplace(valor, ".", "")
+
+''''''''
+function Efd.carregarXlsxNFeDest(rd as ExcelReader ptr) as TDFe ptr
+	
+	'' Chave Acesso NFe,	Número,	Série,	Modelo,	Data Emissão,	Razão Social Emitente
+	'' CNPJ Emitente,	Número CPF Emitente,	Inscrição Estadual Emitente,	CRT,	DRT Emitente
+	'' UF Emit,	Razão Social Destinatário,	CNPJ Destinatário,	Inscrição Estadual Destinatário,	DRT Destinatário
+	'' UF Dest,	Tipo Doc Fiscal,	Descrição Natureza Operação,	Peso Liquido,	Peso Bruto	
+	'' Informações Interesse Fisco,	Informações Complementares Interesse Contribuinte,	Indicador Modalidade Frete,	Situação Documento,	Dt. Cancelamento	
+	'' Mercadoria - Valor,	Razão Social Transportador	CNPJ do Transportador,	Inscrição Estadual Transportador,	Placa Veículo Transportador	
+	'' UF Veículo Transportador,	Total BC  ICMS,	Total ICMS,	Total BC ICMS-ST,	Total ICMS-ST	
+	'' Total NFe,	Valor Total Frete,	Valor Total Seguro,	Quantidade Cartas de Correção Eletrônicas,	Quantidade Manifestações Destinatário
+
+	var chave				= rd->read
+	if len(chave) <> 44 then
+		return null
+	end if
+		
+	if chaveDFeDict[chave] <> null then
+		return null
+	end if
+
+	var dfe = new TDFe
+	
+	dfe->loader				= LOADER_NFE_DEST
+	dfe->operacao			= ENTRADA
+	dfe->chave				= chave
+	dfe->numero				= rd->readDbl
+	dfe->serie				= rd->readInt
+	dfe->modelo				= rd->readInt
+	dfe->dataEmi			= rd->readDate
+	dfe->nomeEmit			= rd->read(true)
+	dfe->cnpjEmit			= dbl2Cnpj(rd->readDbl)
+	rd->skip '' cpf emit
+	dfe->nfe.ieEmit			= trim(limparIE(rd->read))
+	rd->skip '' crt emit
+	rd->skip '' drt emit
+	dfe->ufEmit				= UF_SIGLA2COD(rd->read)
+	dfe->nomeDest			= rd->read(true)
+	dfe->cnpjDest			= dbl2Cnpj(rd->readDbl)
+	dfe->nfe.ieDest			= trim(limparIE(rd->read))
+	rd->skip '' drt dest
+	dfe->ufDest				= UF_SIGLA2COD(rd->read)
+	rd->skip '' tipo doc
+	rd->skip '' descrição op
+	rd->skip '' peso liq
+	rd->skip '' peso bruto
+	rd->skip '' info fisco
+	rd->skip '' info contrib
+	rd->skip '' frete
+	rd->skip '' situação doc
+	rd->skip '' data canc
+	rd->skip '' merc valor
+	rd->skip '' transportador
+	rd->skip '' cnpj transportador
+	rd->skip '' ie transportador
+	rd->skip '' placa transportador
+	rd->skip '' uf transportador
+	dfe->nfe.bcICMSTotal	= rd->readDbl
+	dfe->nfe.ICMSTotal		= rd->readDbl
+	dfe->nfe.bcICMSSTTotal	= rd->readDbl
+	dfe->nfe.ICMSSTTotal	= rd->readDbl
+	dfe->valorOperacao		= rd->readDbl
+	
+	function = dfe
+
+end function
+
+''''''''
+function Efd.carregarXlsxNFeDestItens(rd as ExcelReader ptr) as TDFe ptr
+	
+	'' Chave de Acesso NFe, Número Documento Fiscal, Série Documento Fiscal, Modelo Documento Fiscal, Tipo Documento Fiscal, Situação Documento Fiscal, 
+	'' Data Emissão, Razão Social Emitente, CNPJ Emitente, CPF Emitente, Inscrição Estadual Emitente, DRT Emitente,	UF Emitente, Razão Social Destinatário,
+	'' CNPJ Destinatário, CPF Destinatário,	Inscrição Estadual Destinatário, DRT Destinatário, UF Destinatário, Item, Descrição Produto, Código Produto, 
+	'' GTIN, NCM, CFOP, CST, O/CSOSN, Alíquota ICMS, Percentual Redução Base de Cálculo ICMS, Alíquota ICMS-ST, Percentual Redução Base de Cálculo ICMS-ST, 
+	'' Quantidade Comercial, Unidade Comercial, Valor Produto ou Serviço, Valor Base de Cálculo ICMS, Valor ICMS, Valor Base Cálculo ICMS-ST, Valor ICMS-ST
+	'' Valor Base Cálculo ICMS-ST Retido Operação Anterior, Valor ICMS-ST Retido Operação Anterior, Valor IPI, Valor Desconto,
+	'' Valor Frete, Indicador Modalidade Frete, Valor Seguro, Valor Outras Despesas Acessórias, Valor PIS, Valor COFINS, 
+	'' Percentual Alíquota Crédito Simples Nacional, Valor Crédito Simples Nacional,
+	'' Número DI, Número FCI, Data Desembaraço, Código UF Desembaraço, Descrição Informações Adicionais Produto
+	
+	var chave				= rd->read
+	if len(chave) <> 44 then
+		return null
+	end if
+	
+	var dfe = cast(TDFe ptr, chaveDFeDict[chave])	
+	if dfe = null then
+		dfe = new TDFe
+	else
+		if dfe->loader <> LOADER_NFE_DEST_ITENS then
+			return null
+		end if
+	end if
+	
+	dfe->loader				= LOADER_NFE_DEST_ITENS
+	dfe->operacao			= ENTRADA
+	dfe->chave				= chave
+	dfe->numero				= rd->readDbl
+	dfe->serie				= rd->readInt
+	dfe->modelo				= rd->readInt
+	rd->skip '' tipo
+	rd->skip '' situação
+	dfe->dataEmi			= rd->readDate
+	dfe->nomeEmit			= rd->read(true)
+	dfe->cnpjEmit			= dbl2Cnpj(rd->readDbl)
+	rd->skip '' cpf emit
+	dfe->nfe.ieEmit			= trim(limparIE(rd->read))
+	rd->skip '' drt emit
+	dfe->ufEmit				= UF_SIGLA2COD(rd->read)
+	dfe->nomeDest			= rd->read(true)
+	dfe->cnpjDest			= dbl2Cnpj(rd->readDbl)
+	if dfe->cnpjDest = "" then
+		dfe->cnpjDest 		= rd->read
+	else
+		rd->skip '' cpf dest
+	end if
+	rd->skip '' ie dest
+	rd->skip '' drt dest
+	dfe->ufDest				= UF_SIGLA2COD(rd->read)
+	rd->skip '' item
+	rd->skip '' descrição prod
+	rd->skip '' código prod
+	rd->skip '' GTIN
+	rd->skip '' NCM
+	rd->skip '' CFOP
+	rd->skip '' CST
+	rd->skip '' CSOSN
+	rd->skip '' aliq
+	rd->skip '' red bc icms
+	rd->skip '' aliq ST
+	rd->skip '' red bc icms ST
+	rd->skip '' qtd
+	rd->skip '' unidade
+	dfe->valorOperacao		+= rd->readDbl
+	dfe->nfe.bcICMSTotal	+= rd->readDbl
+	dfe->nfe.ICMSTotal		+= rd->readDbl
+	dfe->nfe.bcICMSSTTotal	+= rd->readDbl
+	dfe->nfe.ICMSSTTotal	+= rd->readDbl
+
+	function = dfe
+
+end function
+
+''''''''
+function Efd.carregarXlsxNFeEmit(rd as ExcelReader ptr) as TDFe ptr
+	
+	var chave = rd->read
+	if len(chave) <> 44 then
+		return null
+	end if
+	
+	var dfe = cast(TDFe ptr, chaveDFeDict[chave])	
+	if dfe = null then
+		dfe = new TDFe
+	end if
+	
+	'' Chave Acesso NFe,	Número,	Série,	Modelo,	Data Emissão,	Razão Social Emitente
+	'' CNPJ Emitente,	Inscrição Estadual Emitente,	CRT, DRT Emit,	UF Emit
+	'' Razão Social Destinatário,	CNPJ ou CPF do Destinatário,	Inscrição Estadual Destinatário,	CNAE Destinatário,	Cod Cnae Destinatário (Cadesp)	
+	'' DRT Dest,	UF Dest,	Tipo Doc Fiscal,	Descrição Natureza Operação,	Peso Liquido(NFe SP Volume)
+	'' Peso Bruto(NFe SP Volume),	Informações Interesse Fisco,	Informações Complementares Interesse Contribuinte,	Indicador Modalidade Frete,	Situação Documento
+	'' Dt. Cancelamento,	Mercadoria - Valor,	Razão Social Transportador,	CNPJ do Transportador,	Inscrição Estadual Transportador
+	'' Placa Veículo Transportador,	UF Veículo Transportador,	Total BC  ICMS,	Total ICMSv,	Total BC ICMS-ST
+	'' Total ICMS-ST,	Total NFe,	Valor Total Frete,	Valor Total Seguro,	Valor ICMS Inter. UF Destino	
+	'' Valor ICMS Inter. UF Remetente,	Quantidade Cartas de Correção Eletrônicas,	Quantidade Manifestações Detinatário
+
+	dfe->loader				= LOADER_NFE_EMIT
+	dfe->chave				= chave
+	dfe->numero				= rd->readDbl
+	dfe->serie				= rd->readInt
+	dfe->modelo				= rd->readInt
+	dfe->dataEmi			= rd->readDate
+	dfe->nomeEmit			= rd->read(true)
+	dfe->cnpjEmit			= dbl2Cnpj(rd->readDbl)
+	dfe->nfe.ieEmit			= trim(limparIE(rd->read))
+	rd->skip '' crt emit
+	rd->skip '' drt emit
+	dfe->ufEmit				= UF_SIGLA2COD(rd->read)
+	dfe->nomeDest			= rd->read(true)
+	dfe->cnpjDest			= limparCNPJ(rd->read)
+	dfe->nfe.ieDest			= trim(limparIE(rd->read))
+	rd->skip '' cnae dest
+	rd->skip '' cnae dest cadesp
+	rd->skip '' drt dest
+	dfe->ufDest				= UF_SIGLA2COD(rd->read)
+	var op = rd->read
+	dfe->operacao			= iif(op[0] = asc("S"), SAIDA, ENTRADA)
+	rd->skip '' descrição op
+	rd->skip '' peso liq
+	rd->skip '' peso bruto
+	rd->skip '' info fisco
+	rd->skip '' info contrib
+	rd->skip '' frete
+	rd->skip '' situação doc
+	rd->skip '' data canc
+	rd->skip '' merc valor
+	rd->skip '' transportador
+	rd->skip '' cnpj transportador
+	rd->skip '' ie transportador
+	rd->skip '' placa transportador
+	rd->skip '' uf transportador
+	dfe->nfe.bcICMSTotal	= rd->readDbl
+	dfe->nfe.ICMSTotal		= rd->readDbl
+	dfe->nfe.bcICMSSTTotal	= rd->readDbl
+	dfe->nfe.ICMSSTTotal	= rd->readDbl
+	dfe->valorOperacao		= rd->readDbl
+	
+	'' devolução? inverter emit <-> dest
+	if dfe->operacao = ENTRADA then
+		swap dfe->cnpjEmit, dfe->cnpjDest
+		swap dfe->ufEmit, dfe->ufDest
+	end if
+
+	function = dfe
+	
+end function
+
+''''''''
+function Efd.carregarXlsxNFeEmitItens(rd as ExcelReader ptr, chave as string) as TDFe_NFeItem ptr
+	
+	'' Chave de Acesso NFe,	Número Documento Fiscal,	 Série Documento Fiscal,	Modelo Documento Fiscal, Tipo Documento Fiscal,	
+	'' Situação Documento Fiscal,	Data Emissão,	Razão Social Emitente,	CNPJ Emitente,	Inscrição Estadual Emitente,	
+	'' DRT Emitente,	UF Emitente,	Razão Social Destinatário,	CNPJ Destinatário,	CPF Destinatário,	
+	'' Inscrição Estadual Destinatário,	DRT Destinatário,	UF Destinatário,	Item,	Descrição Produto,	
+	'' Código Produto,	GTIN,	NCM,	CFOP,	CST,	
+	'' O/CSOSN,	Alíquota ICMS,	Percentual Redução Base de Cálculo ICMS,	Alíquota ICMS-ST,	Percentual Redução Base de Cálculo ICMS-ST,	
+	'' Quantidade Comercial,	Unidade Comercial,	 Valor Produto ou Serviço ,	 Valor Base de Cálculo ICMS,	 Valor ICMS, 	
+	'' Valor Base Cálculo ICMS-ST,	Valor ICMS-ST,	Valor Base Cálculo ICMS-ST Retido Operação Anterior,	Valor ICMS-ST Retido Operação Anterior,	Valor IPI,	
+	'' Valor Desconto,	Valor Frete,	Indicador Modalidade Frete,	Valor Seguro,	Valor Outras Despesas Acessórias, 
+	'' Valor PIS,	Valor COFINS,	Número DI,	Número FCI,	Data Desembaraço
+	'' Código UF Desembaraço,	Descrição Informações Adicionais Produto
+		
+	chave = rd->read
+	if len(chave) <> 44 then
+		return null
+	end if
+	
+	var item = new TDFe_NFeItem
+	
+	item->numero			= rd->readDbl
+	item->serie				= rd->readInt
+	item->modelo 			= rd->readInt
+	rd->skip '' tipo
+	rd->skip	'' situação
+	rd->skip '' data emi
+	rd->skip '' razão social emi
+	rd->skip '' cnpj emi
+	rd->skip '' ie emi
+	rd->skip '' drt emi
+	rd->skip	'' uf emi
+	rd->skip	'' razão social dest
+	rd->skip '' cnpj dest
+	rd->skip '' cpf dest
+	rd->skip '' ie dest
+	rd->skip '' drt dest
+	rd->skip	'' uf dest
+	item->nroItem			= rd->readInt
+	item->descricao			= rd->read(true)
+	item->codProduto		= rd->read
+	rd->skip	'' GTIN
+	item->ncm				= rd->readInt
+	item->cfop				= rd->readInt
+	item->cst				= rd->readInt
+	rd->skip '' CSOSN
+	item->aliqICMS			= rd->readDbl
+	rd->skip '' redução bc
+	rd->skip '' alíq ICMS ST
+	rd->skip '' redução bc ST
+	item->qtd				= rd->readDbl
+	item->unidade			= rd->read
+	item->valorProduto		= rd->readDbl
+	item->bcICMS			= rd->readDbl
+	item->ICMS				= rd->readDbl
+	item->bcICMSST			= rd->readDbl
+	rd->skip '' ICMS ST
+	rd->skip '' bc ICMS ST anterior
+	rd->skip '' ICMS ST anterior
+	item->IPI				= rd->readDbl
+	item->desconto			= rd->readDbl
+	rd->skip '' frete
+	rd->skip '' indicador frete
+	rd->skip '' seguro
+	item->despesasAcess		= rd->readDbl
+	item->next_ = null
+		
+	function = item
+	
+end function
+
+''''''''
+function Efd.carregarXlsxCTe(rd as ExcelReader ptr, op as TipoOperacao) as TDFe ptr
+	
+	'' ---em branco---,	Chave Acesso CT-e (char),	Série,	Num CTe,	Data Emissão	
+	'' CNPJ Emitente,	Num. Inscr. Est. Emitente,	Razão Social Emitente,	UF Emitente,	CNPJ Tomador,	
+	'' Num Inscr. Est. Tomador,	Razão Social Tomador,	Indicador Tomador Serviço,	UF Tomador,	CNPJ Remetente,	
+	'' Razão Social Remetente,	UF Remetente,	CNPJ Destinatário,	Razão Social Destinatário,	UF Destinatário,	
+	'' CNPJ Expedidor,	UF Expedidor,	CNPJ Recebedor,	UF Recebedor,	Tipo CT-e,	
+	'' indSN,	Código CFOP,	Descr. Nat. Operação,	Descr. Modal,	Descr. Servico,	
+	'' Descr. Cst,	Município Inicial,	UF Inicial,	Município Final,	UF Final,	
+	'' Aliqüota Icms,	Perc. Redução Bc,	Valor Bc St Retido,	Valor Icms St Retido,	Valor Icms OutrasUF,	
+	'' Valor Crédito Outorgado/Presumido,	Valor Total Prest. Serviço,	Valor Icms,	Valor Bc ICMS,	Quantidade de CCE,	
+	'' Quantidade de manifestações do tomador
+	
+	rd->skip '' ---em branco---
+	var chave 				= rd->read
+	if len(chave) <> 44 then
+		return null
+	end if
+	
+	var dfe = new TDFe
+
+	dfe->operacao			= op
+	dfe->chave				= chave
+	dfe->serie				= rd->readInt
+	dfe->numero				= rd->readInt
+	dfe->dataEmi			= rd->readDate
+	dfe->cnpjEmit			= dbl2Cnpj(rd->readDbl)
+	rd->skip '' ie emit
+	dfe->nomeEmit			= rd->read(true)
+	dfe->ufEmit				= UF_SIGLA2COD(rd->read)
+	dfe->cte.cnpjToma		= dbl2Cnpj(rd->readDbl)
+	rd->skip '' ie toma
+	dfe->cte.nomeToma		= rd->read(true)
+	rd->skip '' ind toma
+	dfe->cte.ufToma			= rd->read
+	dfe->cte.cnpjRem		= dbl2Cnpj(rd->readDbl)
+	dfe->cte.nomeRem		= rd->read(true)
+	dfe->cte.ufRem			= rd->read
+	dfe->cnpjDest			= dbl2Cnpj(rd->readDbl)
+	dfe->nomeDest			= rd->read(true)
+	dfe->ufDest				= UF_SIGLA2COD(rd->read)
+	dfe->cte.cnpjExp		= dbl2Cnpj(rd->readDbl)
+	dfe->cte.ufExp			= rd->read
+	dfe->cte.cnpjReceb		= dbl2Cnpj(rd->readDbl)
+	dfe->cte.ufReceb		= rd->read
+	dfe->cte.tipo			= valint(left(rd->read,1))
+	rd->skip '' indSN
+	dfe->cte.cfop			= rd->readInt
+	rd->skip '' Descr. Nat. Operação
+	rd->skip '' Descr. Modal
+	rd->skip '' Descr. Servico
+	rd->skip '' Descr. Cst
+	dfe->cte.nomeMunicIni	= rd->read
+	dfe->cte.ufIni			= rd->read
+	dfe->cte.nomeMunicFim	= rd->read
+	dfe->cte.ufFim			= rd->read
+	rd->skip '' Aliqüota Icms
+	rd->skip '' Perc. Redução Bc
+	rd->skip '' Valor Bc St Retido
+	rd->skip '' Valor Icms St Retido
+	rd->skip '' Valor Icms OutrasUF,	
+	rd->skip '' Valor Crédito Outorgado/Presumido
+	dfe->valorOperacao		= rd->readDbl
+	rd->skip '' Valor Icms
+	rd->skip '' Valor Bc ICMS
+	dfe->cte.valorReceber	= dfe->valorOperacao
+	dfe->cte.qtdCCe			= rd->readInt
+	dfe->modelo				= 57
+	
+	function = dfe
+	
+end function
+
+''''''''
+function Efd.carregarXlsxSATItens(rd as ExcelReader ptr, chave as string) as TDFe_NFeItem ptr
+	
+	'' ---em branco---, Num Inscr. Estadual Emitente,	Data Emissão,	Identificação CF-e,	Número Cupom CF-e,	Indicador Cupom Cancelado	
+	'' Número Série,	Valor ICMS,	Número Item,	Código Produto,	Código EAN,	
+	'' Descrição Produto,	Código NCM,	Código CFOP 04 Posições,	Unidade Comercial,	Quantidade Comercial,	
+	'' Indicador Regra Cálculo,	Valor Unitário Comercialização,	Valor Produtos,	Valor Desconto,	Valor Outro,	
+	'' Valor Item,	Valor Rateio Desconto,	Valor Rateio Acrescimo,	Indicador Origem,	Código CST/CSOSN,	
+	'' Alíquota ICMS,	Código CST PIS,	Valor Base Cálculo PIS,	Alíquota PIS,	Valor PIS,	
+	'' Quantidade Vendida PIS,	Valor Alíquota PIS,	Valor Base Cálculo PIS-ST,	Alíquota PIS-ST,	Quantidade Vendida PIS-ST,	
+	'' Valor Alíquota PIS-ST,	Valor PIS-ST,	Código CST COFINS,	Valor Base Cálculo COFINS,	Alíquota COFINS	Valor COFINS,	
+	'' Quantidade Vendida COFINS,	Valor Alíquota COFINS,	Valor Base Cálculo COFINS-ST,	Alíquota COFINS-ST,	Quantidade Vendida COFINS-ST,	
+	'' Valor Alíquota COFINS-ST,	Valor COFINS-ST,	Informações Adicicionais,	Descrição Campo,	Descrição Texto Campo
+		
+	rd->skip '' ---em branco---
+	var ie = trim(rd->read)
+	if len(ie) = 0 then
+		return null
+	end if
+	if ie[0] < asc("0") or ie[0] > asc("9") then
+		return null
+	end if
+	
+	rd->skip '' data emi
+	chave = rd->read
+	if len(chave) <> 3+44 then
+		return null
+	end if
+	
+	chave = right(chave, 44)
+	
+	var item = new TDFe_NFeItem
+
+	item->modelo 			= 59
+	item->numero			= rd->readInt
+	rd->skip '' situação
+	item->serie				= rd->readInt
+	item->ICMS				= rd->readDbl
+	item->nroItem			= rd->readInt
+	item->codProduto		= rd->read
+	rd->skip '' EAN
+	item->descricao			= rd->read(true)
+	item->ncm				= rd->readInt
+	item->cfop				= rd->readInt
+	item->unidade			= rd->read
+	item->qtd				= rd->readDbl
+	rd->skip '' Indicador Regra Cálculo
+	rd->skip '' Valor Unitário Comercialização
+	rd->skip '' Valor Produtos
+	item->desconto			= rd->readDbl
+	item->despesasAcess		= rd->readDbl
+	item->valorProduto		= rd->readDbl
+	rd->skip '' Valor Rateio Desconto
+	rd->skip '' Valor Rateio Acrescimo
+	rd->skip '' Indicador Origem
+	item->cst				= rd->readInt
+	item->aliqICMS			= rd->readDbl
+	rd->skip '' Código CST PIS
+	rd->skip '' Valor Base Cálculo PIS
+	rd->skip '' Alíquota PIS
+	item->IPI				= rd->readDbl
+	item->bcICMS			= item->valorProduto
+	item->bcICMSST			= 0
+	item->next_ = null
+	
+	function = item
+	
+end function
+
+''''''''
+function Efd.carregarXlsxSAT(rd as ExcelReader ptr) as TDFe ptr
+	
+	'' ---em branco---, Num Inscr. Estadual Emitente,	Número de Série do SAT,	Data Emissão,	Hora Emissão,	
+	'' Indicador Cupom Cancelado,	Identificação CF-e,	Data Recepção Cupom,	Número Cupom CF-e,	Indicador Possui Destinatário,	
+	'' Valor Total CF-e,	Valor Total ICMS,	Valor Total Produtos,	Valor Total Desconto,	Valor Total Pis,	Valor Total Cofins,	
+	'' Valor Total Pis-ST,	Valor Total Cofins-ST,	Valor Total Outros,	Valor Acrescimo/Desconto Subtotal,	Valor Cfe Lei 12741
+	
+	rd->skip '' ---em branco---
+	var ie = rd->read
+	if len(ie) = 0 then
+		return null
+	end if
+	if ie[0] < asc("0") or ie[0] > asc("9") then
+		return null
+	end if
+	
+	rd->skip '' Número de Série do SAT
+	var dEmi 				= rd->readDate
+	rd->skip '' Hora Emissão
+	rd->skip '' Indicador Cupom Cancelado
+	
+	var chave = rd->read
+	if len(chave) <> 3+44 then
+		return null
+	end if
+	
+	chave = right(chave, 44)
+	
+	var dfe = cast(TDFe ptr, chaveDFeDict[chave])	
+	if dfe = null then
+		dfe = new TDFe
+	end if
+	
+	dfe->chave				= chave
+	dfe->dataEmi			= dEmi
+	dfe->nfe.ieEmit			= str(cdbl(ie))
+	rd->skip '' Data Recepção Cupom
+	dfe->numero				= rd->readInt
+	dfe->serie				= 0
+	dfe->modelo				= 59
+	rd->skip '' Indicador Possui Destinatário
+	dfe->valorOperacao		= rd->readDbl
+	dfe->nfe.ICMSTotal		= rd->readDbl
+	dfe->nfe.bcICMSTotal	= dfe->valorOperacao
+	dfe->ufEmit				= 35
+	dfe->cnpjDest			= "00000000000000"
+	dfe->ufDest				= 35
+	dfe->operacao			= SAIDA
+	dfe->nfe.bcICMSSTTotal	= 0
+	dfe->nfe.ICMSSTTotal	= 0
+	
+	function = dfe
+	
+end function
+
+''''''''
+function Efd.carregarXlsx(nomeArquivo as String, mostrarProgresso as ProgressoCB) as Boolean
+
+	if left(nomeArquivo, 1) = "~" then
+		return true
+	elseif left(nomeArquivo, 7) = "SpedEFD" then
+		return true
+	elseif nomeArquivo = "__efd__.xlsx" then
+		return true
+	elseif instr(nomeArquivo, "NFe_Destinatario_Itens_OSF") > 0 then
+		return true
+	end if
+
+	mostrarProgresso("Carregando arquivo: " + nomeArquivo, 0)
+	
+	dim as integer tipoArquivo
+	dim as string nomePlanilhas(0 to 1)
+	
+	if instr( nomeArquivo, "NFe_Destinatario_OSF" ) > 0 then
+		tipoArquivo = SAFI_NFe_Dest
+		nfeDestSafiFornecido = true
+		nomePlanilhas(0) = "Planilha NF-e por DestinatÃ¡rio"
+
+	elseif instr( nomeArquivo, "NFe_Emitente_Itens_OSF" ) > 0 then
+		tipoArquivo = SAFI_NFe_Emit_Itens
+		itemNFeSafiFornecido = true
+		nomePlanilhas(0) = "Planilha"
+	
+	elseif instr( nomeArquivo, "NFe_Emitente_OSF" ) > 0 then
+		tipoArquivo = SAFI_NFe_Emit
+		nfeEmitSafiFornecido = true
+		nomePlanilhas(0) = "Planilha NF-e por Emitente"
+	
+	elseif instr( nomeArquivo, "CTe_CNPJ_Emitente_Tomador_Remetente_Destinatario_OSF" ) > 0 then
+		tipoArquivo = SAFI_CTe
+		nomePlanilhas(0) = "CT-e por Emitente"
+		nomePlanilhas(1) = "CT-e por Tomador"
+		cteSafiFornecido = true
+	
+	elseif instr( nomeArquivo, "SAT_-_CuponsEmitidosPorContribuinteCNPJ_OSF" ) > 0 then
+		tipoArquivo = SAFI_SAT
+		nfeEmitSafiFornecido = true
+		nomePlanilhas(0) = "Cupons emitidos em dado periodo"
+	
+	elseif instr( nomeArquivo, "SAT_-_ItensDeCuponsCNPJ_OSF" ) > 0 then
+		tipoArquivo = SAFI_SAT_Itens
+		itemNFeSafiFornecido = true
+		nomePlanilhas(0) = "Itens de Cupons"
+	
+	elseif instr( nomeArquivo, "NFC-e_itens_OSF" ) > 0 then
+		tipoArquivo = SAFI_NFCe_Itens
+		itemNFeSafiFornecido = true
+		nomePlanilhas(0) = "Itens"
+		print wstr(!"\n\tErro: relatório não suportado ainda")
+		return false
+		
+	elseif instr( nomeArquivo, "REDF_consulta_Cupons_Fiscais_ECF" ) > 0 then
+		tipoArquivo = SAFI_ECF
+		nfeEmitSafiFornecido = true
+		nomePlanilhas(0) = "REDF - Cupons Fiscais"
+		print wstr(!"\n\tErro: relatório não suportado ainda")
+		return false
+	
+	elseif instr( nomeArquivo, "REDF_-_Consulta_Cupons_Fiscais_ECF_e_itens_do_CF" ) > 0 then
+		tipoArquivo = SAFI_ECF_Itens
+		itemNFeSafiFornecido = true
+		nomePlanilhas(0) = "REDF - Itens dos Cupons Fiscais"
+		print wstr(!"\n\tErro: relatório não suportado ainda")
+		return false
+	
+	else
+		print wstr(!"\n\tErro: impossível resolver tipo de arquivo pelo nome")
+		return false
+	end if
+	
+	var reader = new ExcelReader()
+	
+	if not reader->open(nomeArquivo) then
+		print wstr(!"\n\tErro: arquivo não encontrado ou inválido")
+		delete reader
+		return false
+	end if
+			
+	var plan = 0
+	do
+		var nomePlanilha = nomePlanilhas(plan)
+		if nomePlanilha = "" then
+			exit do
+		end if
+		
+		if not reader->setSheet(nomePlanilha) then
+			print wstr(!"\n\tErro: planilha não encontrada (" + nomePlanilha + ")")
+			delete reader
+			return false
+		end if
+		
+		var nroLinha = 1
+
+		try
+			do while (reader->nextRow()) 
+				if nroLinha > 1 then
+					select case as const tipoArquivo  
+					case SAFI_NFe_Dest
+						var dfe = carregarXlsxNFeDest(reader)
+						if dfe <> null then
+							adicionarDFe(dfe)
+						end if
+					
+					case SAFI_NFe_Emit
+						var dfe = carregarXlsxNFeEmit( reader )
+						if dfe <> null then
+							adicionarDFe(dfe)
+						end if
+						
+					case SAFI_NFe_Emit_Itens
+						var chave = ""
+						var nfeItem = carregarXlsxNFeEmitItens( reader, chave )
+						if nfeItem <> null then
+							adicionarItemDFe(chave, nfeItem)
+
+							var dfe = cast(TDFe ptr, chaveDFeDict[chave])
+							'' nf-e não encontrada? pode acontecer se processarmos o csv de itens antes do csv de nf-e
+							if dfe = null then
+								dfe = new TDFe
+								'' só adicionar ao dicionário, depois será adicionado por adicionarDFe() no case acima
+								dfe->chave = chave
+								chaveDFeDict.add(dfe->chave, dfe)
+							end if
+							
+							if dfe->nfe.itemListHead = null then
+								dfe->nfe.itemListHead = nfeItem
+							else
+								dfe->nfe.itemListTail->next_ = nfeItem
+							end if
+							
+							dfe->nfe.itemListTail = nfeItem
+						end if
+					
+					case SAFI_CTe
+						var dfe = carregarXlsxCTe( reader, iif(plan = 0, SAIDA, ENTRADA) )
+						if dfe <> null then
+							adicionarDFe(dfe)
+						end if
+						
+					case SAFI_SAT
+						var dfe = carregarXlsxSAT( reader )
+						if dfe <> null then
+							adicionarDFe(dfe)
+						end if
+						
+					case SAFI_SAT_Itens
+						var chave = ""
+						var satItem = carregarXlsxSATItens( reader, chave )
+						if satItem <> null then
+							adicionarItemDFe(chave, satItem)
+
+							var dfe = cast(TDFe ptr, chaveDFeDict[chave])
+							'' sat não encontrado? pode acontecer se processarmos o csv de itens antes do csv de nf-e
+							if dfe = null then
+								dfe = new TDFe
+								'' só adicionar ao dicionário, depois será adicionado por adicionarDFe() no case acima
+								dfe->chave = chave
+								chaveDFeDict.add(dfe->chave, dfe)
+							end if
+							
+							if dfe->nfe.itemListHead = null then
+								dfe->nfe.itemListHead = satItem
+							else
+								dfe->nfe.itemListTail->next_ = satItem
+							end if
+							
+							dfe->nfe.itemListTail = satItem
+						end if
+						
+					case SAFI_NFCe_Itens
+						''var dfe = carregarXlsxNFCeItens( reader )
+						''if dfe <> null then
+						''end if
+
+					case SAFI_ECF_Itens
+						''var dfe = carregarXlsxECFItens( reader )
+						''if dfe <> null then
+						''end if
+						
+					end select
+				end if
+				
+				nroLinha += 1
+			loop
+			
+			function = true
+		
+		catch
+			print !"\r\n\tErro ao carregar linha " & nroLinha & !"\r\n"
+			function = false
+		endtry
+	
+		plan += 1
+	loop while plan <= ubound(nomePlanilhas)
+	
+	mostrarProgresso(null, 1)
+	
+	delete reader
 	
 end function
 
@@ -2726,6 +4182,8 @@ private sub adicionarColunasComuns(sheet as ExcelWorksheet ptr, ehEntrada as Boo
 		sheet->AddCellType(CT_MONEY, "DifAl ICMS Orig")
 		sheet->AddCellType(CT_MONEY, "DifAl ICMS Dest")
 	end if
+	
+	sheet->AddCellType(CT_STRING, "Info. complementares")
 end sub
    
 ''''''''
@@ -2806,6 +4264,32 @@ sub Efd.criarPlanilhas()
 	inventario->AddCellType(CT_STRING, "Texto Complementar")
 	inventario->AddCellType(CT_STRING, "Codigo Conta Contabil")
 	inventario->AddCellType(CT_MONEY, "Valor Item IR")
+
+	'' CIAP
+	ciap = ew->AddWorksheet("CIAP")
+	ciap->AddCellType(CT_DATE, "Data Inicial")
+	ciap->AddCellType(CT_DATE, "Data Final")
+	ciap->AddCellType(CT_MONEY, "Soma Total Saidas Tributadas")
+	ciap->AddCellType(CT_MONEY, "Soma Total Saidas")
+	ciap->AddCellType(CT_STRING, "Codigo Bem")
+	ciap->AddCellType(CT_STRING, "Descricao Bem")
+	ciap->AddCellType(CT_DATE, "Data Movimentacao")
+	ciap->AddCellType(CT_STRING, "Tipo Movimentacao")
+	ciap->AddCellType(CT_MONEY, "Valor ICMS")
+	ciap->AddCellType(CT_MONEY, "Valor ICMS ST")
+	ciap->AddCellType(CT_MONEY, "Valor ICMS Frete")
+	ciap->AddCellType(CT_MONEY, "Valor ICMS Difal")
+	ciap->AddCellType(CT_INTNUMBER, "Num. Parcela")
+	ciap->AddCellType(CT_MONEY, "Valor Parcela")
+	ciap->AddCellType(CT_STRING, "Modelo")
+	ciap->AddCellType(CT_STRING, "Serie")
+	ciap->AddCellType(CT_INTNUMBER, "Numero")
+	ciap->AddCellType(CT_DATE, "Data Emissao")
+	ciap->AddCellType(CT_STRING, "Chave NF-e")
+	ciap->AddCellType(CT_STRING, "CNPJ")
+	ciap->AddCellType(CT_STRING, "IE")
+	ciap->AddCellType(CT_STRING, "UF")
+	ciap->AddCellType(CT_STRING, "Razao Social")
 
 	'' Ressarcimento ST
 	ressarcST = ew->AddWorksheet("Ressarcimento ST")
@@ -2928,7 +4412,11 @@ end function
 ''''''''
 function Efd.processar(nomeArquivo as string, mostrarProgresso as ProgressoCB) as Boolean
    
-	gerarPlanilhas(nomeArquivo, mostrarProgresso)
+	if opcoes.formatoDeSaida <> FT_NULL then
+		gerarPlanilhas(nomeArquivo, mostrarProgresso)
+	else
+		mostrarProgresso(null, 1)
+	end if
 	
 	if opcoes.gerarRelatorios then
 		if tipoArquivo = TIPO_ARQUIVO_EFD then
@@ -2951,10 +4439,26 @@ function Efd.processar(nomeArquivo as string, mostrarProgresso as ProgressoCB) a
 	regListHead = null
 
 	sintegraDict.end_()
+	infoComplDict.end_()
+	bemCiapDict.end_()
 	itemIdDict.end_()
 	participanteDict.end_()
 
 	function = true
+end function
+
+private function efd.getInfoCompl(info as TDocInfoCompl ptr) as string
+	var res = ""
+	
+	do while info <> null
+		var compl = cast( TInfoCompl ptr, infoComplDict[info->idCompl])
+		res += iif(len(res) > 0, "|", "") + _
+			compl->descricao + _
+			iif(len(info->extra) > 0, ":" + info->extra, "")
+		info = info->next_
+	loop
+	
+	function = res
 end function
 
 ''''''''
@@ -2986,8 +4490,12 @@ sub Efd.gerarPlanilhas(nomeArquivo as string, mostrarProgresso as ProgressoCB)
 							emitirLinha = filtrarPorCnpj(part->cnpj)
 						end if
 					end if
+
+					if opcoes.filtrarChaves andalso emitirLinha then
+						emitirLinha = filtrarPorChave(doc->chave)
+					end if
 					
-					if opcoes.somenteRessarcimentoST then
+					if opcoes.somenteRessarcimentoST andalso emitirLinha then
 						emitirLinha = reg->itemNF.itemRessarcStListHead <> null
 					end if
 					
@@ -3001,7 +4509,7 @@ sub Efd.gerarPlanilhas(nomeArquivo as string, mostrarProgresso as ProgressoCB)
 						end if
 
 						if part <> null then
-							row->addCell(part->cnpj)
+							row->addCell(iif(len(part->cpf) > 0, part->cpf, part->cnpj))
 							row->addCell(part->ie)
 							row->addCell(MUNICIPIO2SIGLA(part->municip))
 							row->addCell(part->nome)
@@ -3037,16 +4545,17 @@ sub Efd.gerarPlanilhas(nomeArquivo as string, mostrarProgresso as ProgressoCB)
 							row->addCell(itemId->id)
 							row->addCell(itemId->descricao)
 						end if
+						row->addCell(getInfoCompl(doc->infoComplListHead))
 					end if
 				end select
 
 			'NF-e?
-			case DOC_NF, DOC_NFSCT
+			case DOC_NF, DOC_NFSCT, DOC_NF_ELETRIC
 				select case as const reg->nf.situacao
 				case REGULAR, EXTEMPORANEO
 					'' NOTA: não existe itemDoc para saídas (exceto quando há ressarcimento ST), só temos informações básicas do DF-e, 
 					'' 	     a não ser que sejam carregados os relatórios .csv do SAFI vindos do infoview
-					if reg->nf.operacao = SAIDA or (reg->nf.operacao = ENTRADA and reg->nf.nroItens = 0) or reg->tipo = DOC_NFSCT then
+					if reg->nf.operacao = SAIDA or (reg->nf.operacao = ENTRADA and reg->nf.nroItens = 0) or reg->tipo <> DOC_NF then
 						dim as TDFe_NFeItem ptr item = null
 						if itemNFeSafiFornecido and opcoes.acrescentarDados then
 							if len(reg->nf.chave) > 0 then
@@ -3060,14 +4569,19 @@ sub Efd.gerarPlanilhas(nomeArquivo as string, mostrarProgresso as ProgressoCB)
 						var part = cast( TParticipante ptr, participanteDict[reg->nf.idParticipante] )
 
 						var emitirLinhas = (opcoes.somenteRessarcimentoST = false)
-						if opcoes.filtrarCnpj then
+						if opcoes.filtrarCnpj andalso emitirLinhas then
 							if part <> null then
-								if emitirLinhas then
-									emitirLinhas = filtrarPorCnpj(part->cnpj)
-								end if
+								emitirLinhas = filtrarPorCnpj(part->cnpj)
 							end if
 						end if
 
+						if opcoes.filtrarChaves andalso emitirLinhas then
+							emitirLinhas = filtrarPorChave(reg->nf.chave)
+						end if
+
+						var anal = iif(item = null, reg->nf.itemAnalListHead, null)
+						var analCnt = 1
+						
 						if emitirLinhas then
 							do
 								dim as ExcelRow ptr row
@@ -3078,7 +4592,7 @@ sub Efd.gerarPlanilhas(nomeArquivo as string, mostrarProgresso as ProgressoCB)
 								end if
 							
 								if part <> null then
-									row->addCell(part->cnpj)
+									row->addCell(iif(len(part->cpf) > 0, part->cpf, part->cnpj))
 									row->addCell(part->ie)
 									row->addCell(MUNICIPIO2SIGLA(part->municip))
 									row->addCell(part->nome)
@@ -3096,43 +4610,58 @@ sub Efd.gerarPlanilhas(nomeArquivo as string, mostrarProgresso as ProgressoCB)
 								row->addCell(reg->nf.chave)
 								row->addCell(codSituacao2Str(reg->nf.situacao))
 
-								if (itemNFeSafiFornecido and opcoes.acrescentarDados) or _
-								   cbool((reg->nf.operacao = ENTRADA) and (not reg->tipo = DOC_NFSCT)) then
-									if item <> null then
-										row->addCell(item->bcICMS)
-										row->addCell(item->aliqICMS)
-										row->addCell(item->ICMS)
-										row->addCell(item->bcICMSST)
-										row->addCell("")
-										row->addCell("")
-										row->addCell(item->IPI)
-										row->addCell(item->valorProduto)
-										row->addCell(item->nroItem)
-										row->addCell(item->qtd)
-										row->addCell(item->unidade)
-										row->addCell(item->cfop)
-										row->addCell("")
-										row->addCell("")
-										row->addCell(item->codProduto)
-										row->addCell(item->descricao)
-									else
-										for cell as integer = 1 to 16
-											row->addCell("")
-										next
-									end if
+								if ((itemNFeSafiFornecido and opcoes.acrescentarDados) or _
+								   cbool((reg->nf.operacao = ENTRADA) and (reg->tipo = DOC_NF))) and _
+								   cbool(item <> null) then
+									row->addCell(item->bcICMS)
+									row->addCell(item->aliqICMS)
+									row->addCell(item->ICMS)
+									row->addCell(item->bcICMSST)
+									row->addCell("")
+									row->addCell("")
+									row->addCell(item->IPI)
+									row->addCell(item->valorProduto)
+									row->addCell(item->nroItem)
+									row->addCell(item->qtd)
+									row->addCell(item->unidade)
+									row->addCell(item->cfop)
+									row->addCell(item->cst)
+									row->addCell(item->ncm)
+									row->addCell(item->codProduto)
+									row->addCell(item->descricao)
 
 								else
-									row->addCell(reg->nf.bcICMS)
-									row->addCell("")
-									row->addCell(reg->nf.ICMS)
-									row->addCell(reg->nf.bcICMSST)
-									row->addCell(reg->nf.ICMSST)
-									row->addCell("")
-									row->addCell(reg->nf.IPI)
-									row->addCell(reg->nf.valorTotal)
-									for cell as integer = 1 to 16-8
+									if anal = null then
+										row->addCell(reg->nf.bcICMS)
 										row->addCell("")
-									next
+										row->addCell(reg->nf.ICMS)
+										row->addCell(reg->nf.bcICMSST)
+										row->addCell(reg->nf.ICMSST)
+										row->addCell("")
+										row->addCell(reg->nf.IPI)
+										row->addCell(reg->nf.valorTotal)
+										for cell as integer = 1 to 16-8
+											row->addCell("")
+										next
+									else
+										row->addCell(anal->bc)
+										row->addCell(anal->aliq)
+										row->addCell(anal->ICMS)
+										row->addCell(anal->bcST)
+										row->addCell("")
+										row->addCell(anal->ICMSST)
+										row->addCell(anal->IPI)
+										row->addCell(anal->valorOp)
+										row->addCell(analCnt)
+										row->addCell(0)
+										row->addCell("")
+										row->addCell(anal->cfop)
+										row->addCell(anal->cst)
+										for cell as integer = 1 to 3
+											row->addCell("")
+										next
+										analCnt += 1
+									end if
 								end if
 
 								if reg->nf.operacao = SAIDA then
@@ -3140,13 +4669,20 @@ sub Efd.gerarPlanilhas(nomeArquivo as string, mostrarProgresso as ProgressoCB)
 									row->addCell(reg->nf.difal.icmsOrigem)
 									row->addCell(reg->nf.difal.icmsDest)
 								end if
+								
+								row->addCell(getInfoCompl(reg->nf.infoComplListHead))
 							
 								if item = null then
-									exit do
+									if anal = null then
+										exit do
+									end if
+									
+									anal = anal->next_
+								else
+									item = item->next_
 								end if
-
-								item = item->next_
-							loop while item <> null
+								
+							loop while (item <> null) or (anal <> null)
 						end if
 					
 					end if
@@ -3185,12 +4721,12 @@ sub Efd.gerarPlanilhas(nomeArquivo as string, mostrarProgresso as ProgressoCB)
 						emitirLinha = filtrarPorCnpj(part->cnpj)
 					end if
 				end if
-				
+
 				if emitirLinha then
 					var row = ressarcST->AddRow()
 
 					if part <> null then
-						row->addCell(part->cnpj)
+						row->addCell(iif(len(part->cpf) > 0, part->cpf, part->cnpj))
 						row->addCell(part->ie)
 						row->addCell(MUNICIPIO2SIGLA(part->municip))
 						row->addCell(part->nome)
@@ -3230,12 +4766,14 @@ sub Efd.gerarPlanilhas(nomeArquivo as string, mostrarProgresso as ProgressoCB)
 					var part = cast( TParticipante ptr, participanteDict[reg->ct.idParticipante] )
 
 					var emitirLinhas = (opcoes.somenteRessarcimentoST = false)
-					if opcoes.filtrarCnpj then
+					if opcoes.filtrarCnpj andalso emitirLinhas then
 						if part <> null then
-							if emitirLinhas then
-								emitirLinhas = filtrarPorCnpj(part->cnpj)
-							end if
+							emitirLinhas = filtrarPorCnpj(part->cnpj)
 						end if
+					end if
+
+					if opcoes.filtrarChaves andalso emitirLinhas then
+						emitirLinhas = filtrarPorChave(reg->ct.chave)
 					end if
 						
 					if emitirLinhas then
@@ -3264,7 +4802,7 @@ sub Efd.gerarPlanilhas(nomeArquivo as string, mostrarProgresso as ProgressoCB)
 							end if
 							
 							if part <> null then
-								row->addCell(part->cnpj)
+								row->addCell(iif(len(part->cpf) > 0, part->cpf, part->cnpj))
 								row->addCell(part->ie)
 								row->addCell(MUNICIPIO2SIGLA(part->municip))
 								row->addCell(part->nome)
@@ -3362,10 +4900,12 @@ sub Efd.gerarPlanilhas(nomeArquivo as string, mostrarProgresso as ProgressoCB)
 					'só existe cupom para saída
 					if doc->operacao = SAIDA then
 						var emitirLinha = (opcoes.somenteRessarcimentoST = false)
-						if opcoes.filtrarCnpj then
-							if emitirLinha then
-								emitirLinha = filtrarPorCnpj(doc->cpfCnpjAdquirente)
-							end if
+						if opcoes.filtrarCnpj andalso emitirLinha then
+							emitirLinha = filtrarPorCnpj(doc->cpfCnpjAdquirente)
+						end if
+
+						if opcoes.filtrarChaves andalso emitirLinha then
+							emitirLinha = filtrarPorChave(doc->chave)
 						end if
 						
 						if emitirLinha then
@@ -3401,6 +4941,104 @@ sub Efd.gerarPlanilhas(nomeArquivo as string, mostrarProgresso as ProgressoCB)
 								row->addCell(itemId->id)
 								row->addCell(itemId->descricao)
 							end if
+						end if
+					end if
+				end select
+				
+			'SAT?
+			case DOC_SAT
+				var doc = @reg->sat
+				select case as const doc->situacao
+				case REGULAR, EXTEMPORANEO
+					'só existe cupom para saída
+					if doc->operacao = SAIDA then
+						var emitirLinha = (opcoes.somenteRessarcimentoST = false)
+						if opcoes.filtrarCnpj andalso emitirLinha then
+							emitirLinha = filtrarPorCnpj(doc->cpfCnpjAdquirente)
+						end if
+						
+						if opcoes.filtrarChaves andalso emitirLinha then
+							emitirLinha = filtrarPorChave(doc->chave)
+						end if
+						
+						if emitirLinha then
+							dim as TDFe_NFeItem ptr item = null
+							if itemNFeSafiFornecido and opcoes.acrescentarDados then
+								var dfe = cast( TDFe ptr, chaveDFeDict[doc->chave] )
+								if dfe <> null then
+									item = dfe->nfe.itemListHead
+								end if
+							end if
+							
+							var anal = iif(item = null, doc->itemAnalListHead, null)
+							
+							var analCnt = 1
+							do
+								var row = saidas->AddRow()
+
+								row->addCell(doc->cpfCnpjAdquirente)
+								row->addCell("")
+								row->addCell("SP")
+								row->addCell("")
+								row->addCell(str(doc->modelo))
+								row->addCell("")
+								row->addCell(doc->numero)
+								row->addCell(YyyyMmDd2Datetime(doc->dataEmi))
+								row->addCell(YyyyMmDd2Datetime(doc->dataEmi))
+								row->addCell(doc->chave)
+								row->addCell(codSituacao2Str(doc->situacao))
+								if item <> null then
+									row->addCell(item->bcICMS)
+									row->addCell(item->aliqICMS)
+									row->addCell(item->ICMS)
+									row->addCell("")
+									row->addCell("")
+									row->addCell("")
+									row->addCell("")
+									row->addCell(item->valorProduto)
+									row->addCell(item->nroItem)
+									row->addCell(item->qtd)
+									row->addCell(item->unidade)
+									row->addCell(item->cfop)
+									row->addCell(item->cst)
+									row->addCell(item->ncm)
+									row->addCell(item->codProduto)
+									row->addCell(item->descricao)
+									
+									item = item->next_
+									if item = null then
+										exit do
+									end if
+									
+								else
+									if anal = null then
+										exit do
+									end if
+										
+									row->addCell("")
+									row->addCell(anal->aliq)
+									row->addCell("")
+									row->addCell("")
+									row->addCell("")
+									row->addCell("")
+									row->addCell("")
+									row->addCell(anal->valorOp)
+									row->addCell(analCnt)
+									row->addCell("")
+									row->addCell("")
+									row->addCell(anal->cfop)
+									row->addCell(anal->cst)
+									row->addCell("")
+									row->addCell("")
+									row->addCell("")
+									
+									analCnt += 1
+									anal = anal->next_
+									if anal = null then
+										exit do
+									end if
+								end if
+							loop
 						end if
 					end if
 				end select
@@ -3473,60 +5111,140 @@ sub Efd.gerarPlanilhas(nomeArquivo as string, mostrarProgresso as ProgressoCB)
 				row->addCell(reg->invItem.indPropriedade)
 				var part = cast( TParticipante ptr, participanteDict[reg->invItem.idParticipante] )
 				if part <> null then
-					row->addCell(part->cnpj)
+					row->addCell(iif(len(part->cpf) > 0, part->cpf, part->cnpj))
 				else
 					row->addCell("")
 				end if
 				row->addCell(reg->invItem.txtComplementar)
 				row->addCell(reg->invItem.codConta)
 				row->addCell(reg->invItem.valorItemIR)
-				
-			'documento do sintegra?
-			case SINTEGRA_DOCUMENTO
-				if reg->docSint.modelo = 55 then 
-					select case as const reg->docSint.situacao
-					case REGULAR, EXTEMPORANEO
-						dim as ExcelRow ptr row 
-						if reg->docSint.operacao = SAIDA then
-							row = saidas->AddRow()
-						else
-							row = entradas->AddRow()
-						end if
-						  
-						row->addCell(reg->docSint.cnpj)
-						row->addCell(reg->docSint.ie)
-						row->addCell(ufCod2Sigla(reg->docSint.uf))
-						row->addCell("")
-						row->addCell(reg->docSint.modelo)
-						row->addCell(reg->docSint.serie)
-						row->addCell(reg->docSint.numero)
-						row->addCell(YyyyMmDd2Datetime(reg->docSint.dataEmi))
-						row->addCell("")
-						row->addCell("")
-						row->addCell(codSituacao2Str(reg->docSint.situacao))
-						row->addCell(reg->docSint.bcICMS)
-						row->addCell(reg->docSint.aliqICMS)
-						row->addCell(reg->docSint.ICMS)
-						row->addCell(reg->docSint.bcICMSST)
-						row->addCell("")
-						row->addCell(reg->docSint.ICMSST)
-						row->addCell(reg->docSint.valorIPI)
-						row->addCell(reg->docSint.valorTotal)
-						row->addCell("")
-						row->addCell("")
-						row->addCell("")
-						row->addCell(reg->docSint.cfop)
-						row->addCell("")
-						
-					case CANCELADO, CANCELADO_EXT, DENEGADO, INUTILIZADO
-						/'var row = canceladas->AddRow()
-						row->addCell(reg->docSint.modelo)
-						row->addCell(reg->docSint.serie)
-						row->addCell(reg->docSint.numero)
-						row->addCell("")'/
 
-					end select
+			case CIAP_ITEM
+				if reg->ciapItem.docCnt = 0 then
+					var row = ciap->AddRow()
+					
+					var pai = reg->ciapItem.pai
+					row->addCell(YyyyMmDd2Datetime(pai->dataIni))
+					row->addCell(YyyyMmDd2Datetime(pai->dataFim))
+					row->addCell(pai->valorTributExpSoma)
+					row->addCell(pai->valorTotalSaidas)
+					
+					var bemCiap = cast( TBemCiap ptr, bemCiapDict[reg->ciapItem.bemId] )
+					if bemCiap <> null then 
+						row->addCell(bemCiap->id)
+						row->addCell(bemCiap->descricao)
+					else
+						row->addCell(reg->ciapItem.bemId)
+						row->addCell("")
+					end if
+					
+					row->addCell(YyyyMmDd2Datetime(reg->ciapItem.dataMov))
+					row->addCell(reg->ciapItem.tipoMov)
+					row->addCell(reg->ciapItem.valorIcms)
+					row->addCell(reg->ciapItem.valorIcmsSt)
+					row->addCell(reg->ciapItem.valorIcmsFrete)
+					row->addCell(reg->ciapItem.valorIcmsDifal)
+					row->addCell(reg->ciapItem.parcela)
+					row->addCell(reg->ciapItem.valorParcela)
 				end if
+
+			case CIAP_ITEM_DOC
+				var row = ciap->AddRow()
+				
+				var pai = reg->ciapItemDoc.pai
+				var avo = pai->pai
+				row->addCell(YyyyMmDd2Datetime(avo->dataIni))
+				row->addCell(YyyyMmDd2Datetime(avo->dataFim))
+				row->addCell(avo->valorTributExpSoma)
+				row->addCell(avo->valorTotalSaidas)
+				
+				var bemCiap = cast( TBemCiap ptr, bemCiapDict[reg->ciapItem.bemId] )
+				if bemCiap <> null then 
+					row->addCell(bemCiap->id)
+					row->addCell(bemCiap->descricao)
+				else
+					row->addCell(reg->ciapItem.bemId)
+					row->addCell("")
+				end if
+				
+				row->addCell(YyyyMmDd2Datetime(pai->dataMov))
+				row->addCell(pai->tipoMov)
+				row->addCell(pai->valorIcms)
+				row->addCell(pai->valorIcmsSt)
+				row->addCell(pai->valorIcmsFrete)
+				row->addCell(pai->valorIcmsDifal)
+				row->addCell(pai->parcela)
+				row->addCell(pai->valorParcela)
+				
+				row->addCell(reg->ciapItemDoc.modelo)
+				row->addCell(reg->ciapItemDoc.serie)
+				row->addCell(reg->ciapItemDoc.numero)
+				row->addCell(YyyyMmDd2Datetime(reg->ciapItemDoc.dataEmi))
+				
+				var part = cast( TParticipante ptr, participanteDict[reg->ciapItemDoc.idParticipante] )
+				if part <> null then
+					row->addCell(iif(len(part->cpf) > 0, part->cpf, part->cnpj))
+					row->addCell(part->ie)
+					row->addCell(MUNICIPIO2SIGLA(part->municip))
+					row->addCell(part->nome)
+				else
+					row->addCell("")
+					row->addCell("")
+					row->addCell("")
+					row->addCell("")
+				end if
+
+
+			'item de documento do sintegra?
+			case SINTEGRA_DOCUMENTO_ITEM
+				var doc = reg->docItemSint.doc
+				
+				select case as const doc->situacao
+				case REGULAR, EXTEMPORANEO, CANCELADO, CANCELADO_EXT, DENEGADO, INUTILIZADO
+					dim as ExcelRow ptr row 
+					if doc->operacao = SAIDA then
+						row = saidas->AddRow()
+					else
+						row = entradas->AddRow()
+					end if
+					
+					var itemId = cast( TItemId ptr, itemIdDict[reg->docItemSint.codMercadoria] )
+					  
+					row->addCell(doc->cnpj)
+					row->addCell(doc->ie)
+					row->addCell(ufCod2Sigla(doc->uf))
+					row->addCell("")
+					row->addCell(doc->modelo)
+					row->addCell(doc->serie)
+					row->addCell(doc->numero)
+					row->addCell(YyyyMmDd2Datetime(doc->dataEmi))
+					row->addCell("")
+					row->addCell("")
+					row->addCell(codSituacao2Str(doc->situacao))
+					row->addCell(reg->docItemSint.bcICMS)
+					row->addCell(reg->docItemSint.aliqICMS)
+					row->addCell(reg->docItemSint.bcICMS * reg->docItemSint.aliqICMS / 100)
+					row->addCell(reg->docItemSint.bcICMSST)
+					row->addCell("")
+					row->addCell(reg->docSint.ICMSST)
+					row->addCell(reg->docItemSint.valorIPI)
+					row->addCell(reg->docItemSint.valor)
+					row->addCell(reg->docItemSint.nroItem)
+					row->addCell(reg->docItemSint.qtd)
+					if itemId <> null then 
+						row->addCell(rtrim(itemId->unidInventario))
+					else
+						row->addCell("")
+					end if
+					row->addCell(reg->docItemSint.cfop)
+					row->addCell(reg->docItemSint.cst)
+					if itemId <> null then 
+						row->addCell(itemId->ncm)
+						row->addCell(rtrim(itemId->id))
+						row->addCell(rtrim(itemId->descricao))
+					end if
+					
+				end select
 
 			case LUA_CUSTOM
 				
@@ -3612,7 +5330,7 @@ static function Efd.luacb_efd_participante_get cdecl(byval L as lua_State ptr) a
 		if part <> null then
 			lua_newtable(L)
 			lua_pushstring(L, "cnpj")
-			lua_pushstring(L, iif(formatar, STR2CNPJ(part->cnpj), part->cnpj))
+			lua_pushstring(L, iif(formatar, iif(len(part->cpf) > 0, STR2CPF(part->cpf), STR2CNPJ(part->cnpj)), iif(len(part->cpf) > 0, part->cpf, part->cnpj)))
 			lua_settable(L, -3)
 			lua_pushstring(L, "ie")
 			lua_pushstring(L, iif(formatar, STR2IE(part->ie), part->ie))

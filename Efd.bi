@@ -1,15 +1,11 @@
 
 #include once "Dict.bi"
 #include once "bfile.bi"
+#include once "ExcelReader.bi"
 #include once "ExcelWriter.bi"
 #include once "DocxFactoryDyn.bi"
 #include once "DB.bi"
 #include once "Lua/lualib.bi"
-
-enum TipoFormatoSaida
-	SAIDA_XML
-	SAIDA_CSV
-end enum
 
 enum TTipoArquivo
 	TIPO_ARQUIVO_EFD
@@ -18,20 +14,26 @@ end enum
 
 type OpcoesExtracao
 	gerarRelatorios 		as boolean = false
+	pularLreLrsAoGerarRelatorios as boolean = false
 	acrescentarDados		as boolean = false
-	formatoDeSaida 			as TTipoArquivo = SAIDA_XML
+	formatoDeSaida 			as FileType = FT_XLSX
 	somenteRessarcimentoST 	as boolean = false
 	dbEmDisco 				as boolean = false
 	manterDb				as boolean = false
 	filtrarCnpj				as boolean = false
+	filtrarChaves			as boolean = false
 	listaCnpj(any)			as string
+	listaChaves(any)		as string
 end type
 
 enum TipoRegistro
 	MESTRE
 	PARTICIPANTE
 	ITEM_ID
+	BEM_CIAP
+	INFO_COMPL
 	DOC_NF										'' NF, NF-e, NFC-e
+	DOC_NF_INFO									'' informações complementares de interesse do fisco
 	DOC_NF_ITEM    								'' item de NF-e (só informado para entradas)
 	DOC_NF_ITEM_RESSARC_ST						'' ressarcimento ST
 	DOC_NF_ANAL									'' analítico
@@ -46,6 +48,10 @@ enum TipoRegistro
 	DOC_ECF_ANAL				
 	DOC_NFSCT									'' NF de comunicação e telecomunicação
 	DOC_NFSCT_ANAL
+	DOC_SAT
+	DOC_SAT_ANAL
+	DOC_NF_ELETRIC
+	DOC_NF_ELETRIC_ANAL
 	APURACAO_ICMS_PERIODO		
 	APURACAO_ICMS_PROPRIO		
 	APURACAO_ICMS_AJUSTE		
@@ -54,12 +60,17 @@ enum TipoRegistro
 	APURACAO_ICMS_ST			
 	INVENTARIO_TOTAIS
 	INVENTARIO_ITEM
+	CIAP_TOTAL
+	CIAP_ITEM
+	CIAP_ITEM_DOC
 	FIM_DO_ARQUIVO								'' NOTA: anterior à assinatura digital que fica no final no arquivo
 	DESCONHECIDO   				
 	LUA_CUSTOM									'' tratado no script Lua
-	SINTEGRA_DOCUMENTO 			
-	SINTEGRA_DOCUMENTO_IPI 		
-	SINTEGRA_DOCUMENTO_ST		
+	SINTEGRA_DOCUMENTO 							= 50
+	SINTEGRA_DOCUMENTO_IPI 						= 51
+	SINTEGRA_DOCUMENTO_ST						= 53
+	SINTEGRA_DOCUMENTO_ITEM						= 54
+	SINTEGRA_MERCADORIA							= 75
 	__TipoRegistro__LEN__
 end enum
 
@@ -90,7 +101,7 @@ type TParticipante
 	nome           		as zstring * 100+1
 	pais		 	   	as integer
 	cnpj           		as zstring * 14+1
-	cpf            		as longint
+	cpf            		as zstring * 11+1
 	ie			      	as zstring * 14+1
 	municip		   		as integer
 	suframa		   		as zstring * 9+1
@@ -204,6 +215,23 @@ type TItemId
 	codServico     as zstring * 5+1
 	aliqICMSInt    as Double
 	CEST           as integer
+	aliqIPI		   as double				'' só presente no SINTEGRA
+	redBcIcms	   as double				'' //
+	bcICMSST	   as double				'' //
+end type
+
+type TInfoCompl
+	id             	as zstring * 6+1
+	descricao      	as zstring * 256+1
+end type
+
+type TBemCiap
+	id             	as zstring * 60+1
+	tipoMerc		as integer
+	descricao      	as zstring * 256+1
+	principal	   	as zstring * 60+1
+	codAnal			as zstring * 60+1
+	parcelas		as integer
 end type
 
 enum TipoResponsavelRetencaoRessarcST
@@ -339,6 +367,12 @@ type TDocItemAnal
 	next_					as TDocItemAnal ptr
 end type
 
+type TDocInfoCompl
+	idCompl					as zstring * 6+1
+	extra					as zstring * 255+1
+	next_					as TDocInfoCompl ptr
+end type
+
 type TDocDF
 	operacao				as TipoOperacao
 	situacao				as TipoSituacao
@@ -355,6 +389,8 @@ type TDocDF
 	bcICMS					as double
 	ICMS					as double
 	difal					as TDocDifAliq
+	infoComplListHead		as TDocInfoCompl ptr
+	infoComplListTail		as TDocInfoCompl ptr
 	itemAnalListHead 		as TDocItemAnal ptr
 	itemAnalListTail 		as TDocItemAnal ptr
 end type
@@ -401,15 +437,31 @@ type TDocECF extends TDocDF
 	nroItens			as integer
 end type
 
-type TDocumentoSintegra
+type TDocSAT extends TDocDF
+	PIS					as double
+	COFINS				as double
+	cpfCnpjAdquirente	as zstring * 14+1
+	serieEquip			as zstring * 09+1
+	descontos			as double
+	valorMerc 			as double
+	despesasAcess		as double
+	pisST				as double
+	cofinsST			as double
+	nroItens			as integer
+end type
+
+type TDocumentoSintegraBase
 	cnpj           	as zstring * 14+1
+	serie          	as zstring * 3+1
+	numero         	as integer
+	cfop           	as short
+end type
+
+type TDocumentoSintegra extends TDocumentoSintegraBase
 	ie             	as zstring * 14+1
 	dataEmi        	as zstring * 8+1
 	uf             	as byte
 	modelo		  	as TipoModelo
-	serie          	as short
-	numero         	as integer
-	cfop           	as short
 	operacao	   	as TipoOperacao
 	valorTotal     	as Double
 	bcICMS  		as Double
@@ -426,6 +478,20 @@ type TDocumentoSintegra
 	situacao	    as TipoSituacao
 	chave		  	as zstring * 44+1
 	chaveDict	  	as zstring * 50+1
+end type
+
+type TDocumentoItemSintegra extends TDocumentoSintegraBase
+	doc				as TDocumentoSintegra ptr
+	CST				as zstring * 3+1
+	nroItem			as integer
+	codMercadoria	as zstring * 14+1
+	qtd				as double
+	valor			as double
+	desconto		as double
+	bcICMS			as double
+	bcIcmsST		as double
+	valorIPI		as double
+	aliqIcms		as double
 end type
 
 type TApuracaoIcmsPeriodo
@@ -508,13 +574,50 @@ type TInventarioItem
 	valorItemIR				as double
 end type
 
+type TCiapTotal
+	dataIni					as zstring * 8+1
+	dataFim					as zstring * 8+1
+	saldoInicialICMS		as double
+	parcelasSoma			as double
+	valorTributExpSoma		as double
+	valorTotalSaidas		as double
+	indicePercSaidas		as double
+	valorIcmsAprop			as double
+	valorOutrosCred			as double
+end type
+
+type TCiapItem
+	pai						as TCiapTotal ptr
+	bemId         			as zstring * 60+1
+	dataMov					as zstring * 8+1
+	tipoMov					as zstring * 2+1
+	valorIcms				as double
+	valorIcmsSt				as double
+	valorIcmsFrete			as double
+	valorIcmsDifal			as double
+	parcela					as integer
+	valorParcela			as double
+	docCnt					as integer
+end type
+
+type TCiapItemDoc
+	pai         			as TCiapItem ptr
+	indEmi					as integer
+	idParticipante			as zstring * 60+1
+	modelo					as integer
+	serie					as zstring * 3+1
+	numero					as integer
+	chaveNfe				as zstring * 44+1
+	dataEmi					as zstring * 8+1
+end type
+
 type TLuaReg
 	tipo					as zstring * 4+1
 	table					as integer
 end type
 
 type TArquivoInfo
-	nome			as zstring * 256+1
+	nome					as zstring * 256+1
 end type
 
 type TRegistro
@@ -529,8 +632,13 @@ type TRegistro
 		ct         			as TDocCT
 		ecf         		as TDocECF
 		itemECF     		as TDocECFItem
+		sat         		as TDocSAT
+		docInfoCompl		as TDocInfoCompl
 		docSint	  			as TDocumentoSintegra
+		docItemSint	  		as TDocumentoItemSintegra
 		itemId      		as TItemId
+		bemCiap				as TBemCiap
+		infoCompl			as TInfoCompl
 		apuIcms	  			as TApuracaoIcmsPeriodo
 		apuIcmsST  			as TApuracaoIcmsSTPeriodo
 		itemAnal			as TDocItemAnal
@@ -539,6 +647,9 @@ type TRegistro
 		ecfRedZ				as TECFReducaoZ
 		invTotais			as TInventarioTotais
 		invItem				as TInventarioItem
+		ciapTotal			as TCiapTotal
+		ciapItem			as TCiapItem
+		ciapItemDoc			as TCiapItemDoc
 		lua					as TLuaReg
 	end union
 	next_          			as TRegistro ptr
@@ -549,6 +660,11 @@ enum SAFI_TipoArquivo
 	SAFI_NFe_Emit
 	SAFI_NFe_Emit_Itens
 	SAFI_CTe
+	SAFI_SAT
+	SAFI_SAT_Itens
+	SAFI_NFCe_Itens
+	SAFI_ECF
+	SAFI_ECF_Itens
 end enum
 
 enum SAFI_Dfe_Fornecido
@@ -566,6 +682,8 @@ type TDFe_NFeItem									'' Nota: só existe para NF-e emitidas, já que para as 
 	modelo			as TipoModelo
 	nroItem			as integer
 	cfop			as short
+	ncm				as longint
+	cst				as integer
 	codProduto		as zstring * 60+1
 	descricao		as zstring * 256+1
 	qtd				as double
@@ -583,6 +701,7 @@ end type
 
 type TDFe_NFe
 	ieEmit			as zstring * 14+1
+	ieDest			as zstring * 14+1
 	bcICMSTotal		as double
 	ICMSTotal		as double
 	bcICMSSTTotal	as double
@@ -605,7 +724,7 @@ type TDFe_CTe
 	ufReceb			as zstring * 2+1
 	tipo			as byte
 	valorReceber	as double
-	qtdCTe			as double
+	qtdCCe			as double
 	cfop			as integer
 	nomeMunicIni	as zstring * 64+1
 	ufIni			as zstring * 2+1
@@ -614,6 +733,18 @@ type TDFe_CTe
 	next_			as TDFe_CTe ptr					'' usado para dar patch 
 	parent			as TDFe_ ptr
 end type
+
+enum TDFE_LOADER
+	LOADER_UNKNOWN
+	LOADER_NFE_DEST
+	LOADER_NFE_DEST_ITENS
+	LOADER_NFE_EMIT
+	LOADER_NFE_EMIT_ITENS
+	LOADER_CTE
+	LOADER_NFCE
+	LOADER_SAT
+	LOADER_ECF
+end enum
 
 type TDFe
 	modelo			as TipoModelo
@@ -629,6 +760,7 @@ type TDFe
 	nomeDest		as zstring * 100+1
 	ufDest			as byte
 	valorOperacao	as double
+	loader			as TDFE_LOADER
 	
 	union
 		nfe			as TDFe_NFe
@@ -670,6 +802,7 @@ enum RelLinhaTipo
 	REL_LIN_DF_SAIDA
 	REL_LIN_DF_ITEM_ANAL
 	REL_LIN_DF_REDZ
+	REL_LIN_DF_SAT
 end enum
 
 type RelLinhaDF
@@ -686,12 +819,17 @@ type RelLinhaRedZ
 	doc 			as TECFReducaoZ ptr
 end type
 
+type RelLinhaSat
+	doc 			as TDocSAT ptr
+end type
+
 type RelLinha
 	tipo			as RelLinhaTipo
 	union
 		df			as RelLinhaDF
 		anal		as RelLinhaAnal
 		redZ		as RelLinhaRedZ
+		sat			as RelLinhaSat
 	end union
 end type
 
@@ -739,6 +877,7 @@ public:
 	declare sub finalizarExtracao(mostrarProgresso as ProgressoCB)
 	declare function carregarTxt(nomeArquivo as String, mostrarProgresso as ProgressoCB) as Boolean
 	declare function carregarCsv(nomeArquivo as String, mostrarProgresso as ProgressoCB) as Boolean
+	declare function carregarXlsx(nomeArquivo as String, mostrarProgresso as ProgressoCB) as Boolean
 	declare function processar(nomeArquivo as string, mostrarProgresso as ProgressoCB) as Boolean
 	declare sub analisar(mostrarProgresso as ProgressoCB)
 	declare function getPlanilha(nome as const zstring ptr) as ExcelWorksheet ptr
@@ -750,21 +889,35 @@ private:
 	declare function lerRegistro(bf as bfile, reg as TRegistro ptr) as Boolean
 	declare function lerRegistroSintegra(bf as bfile, reg as TRegistro ptr) as Boolean
 	declare function lerTipo(bf as bfile, tipo as zstring ptr) as TipoRegistro
+	declare function lerRegDocNFItem(bf as bfile, reg as TRegistro ptr, documentoPai as TDocNF ptr) as Boolean
+	declare function lerRegDocNFElet(bf as bfile, reg as TRegistro ptr) as Boolean
 	declare sub lerAssinatura(bf as bfile)
 	declare function carregarSintegra(bf as bfile, mostrarProgresso as ProgressoCB) as Boolean
-	declare function carregarCsvNFeDest(bf as bfile, emModoOutrasUFs as boolean) as TDFe ptr
-	declare function carregarCsvNFeEmit(bf as bfile) as TDFe ptr
+	declare function carregarCsvNFeDestSAFI(bf as bfile, emModoOutrasUFs as boolean) as TDFe ptr
+	declare function carregarCsvNFeEmitSAFI(bf as bfile) as TDFe ptr
+	declare function carregarCsvNFeEmitItensSAFI(bf as bfile, chave as string) as TDFe_NFeItem ptr
+	declare function carregarCsvCTeSAFI(bf as bfile, emModoOutrasUFs as boolean) as TDFe ptr
 	declare function carregarCsvNFeEmitItens(bf as bfile, chave as string) as TDFe_NFeItem ptr
-	declare function carregarCsvCTe(bf as bfile, emModoOutrasUFs as boolean) as TDFe ptr
+	declare function carregarXlsxNFeDest(reader as ExcelReader ptr) as TDFe ptr
+	declare function carregarXlsxNFeDestItens(reader as ExcelReader ptr) as TDFe ptr
+	declare function carregarXlsxNFeEmit(rd as ExcelReader ptr) as TDFe ptr
+	declare function carregarXlsxNFeEmitItens(rd as ExcelReader ptr, chave as string) as TDFe_NFeItem ptr
+	declare function carregarXlsxCTe(rd as ExcelReader ptr, op as TipoOperacao) as TDFe ptr
+	declare function carregarXlsxSAT(rd as ExcelReader ptr) as TDFe ptr
+	declare function carregarXlsxSATItens(rd as ExcelReader ptr, chave as string) as TDFe_NFeItem ptr
 	
 	declare sub adicionarDFe(dfe as TDFe ptr)
 	declare sub adicionarItemDFe(chave as const zstring ptr, item as TDFe_NFeItem ptr)
 	declare sub adicionarEfdDfe(chave as zstring ptr, operacao as TipoOperacao, dataEmi as zstring ptr, valorOperacao as double)
 	declare sub adicionarDocEscriturado(doc as TDocDF ptr)
 	declare sub adicionarDocEscriturado(doc as TDocECF ptr)
+	declare sub adicionarDocEscriturado(doc as TDocSAT ptr)
 	declare sub adicionarItemNFEscriturado(item as TDocNFItem ptr)
 	declare sub adicionarRessarcStEscriturado(doc as TDocNFItemRessarcSt ptr)
+	declare sub adicionarItemEscriturado(item as TItemId ptr)
 	declare function filtrarPorCnpj(idParticipante as const zstring ptr) as boolean
+	declare function filtrarPorChave(chave as const zstring ptr) as boolean
+	declare function getInfoCompl(info as TDocInfoCompl ptr) as string
 	
 	declare sub addRegistroAoDB(reg as TRegistro ptr)
 	
@@ -778,6 +931,7 @@ private:
 	declare sub adicionarDocRelatorioEntradas(doc as TDocDF ptr, part as TParticipante ptr)
 	declare sub adicionarDocRelatorioSaidas(doc as TDocDF ptr, part as TParticipante ptr)
 	declare sub adicionarDocRelatorioSaidas(doc as TECFReducaoZ ptr)
+	declare sub adicionarDocRelatorioSaidas(doc as TDocSAT ptr)
 	declare sub adicionarDocRelatorioItemAnal(sit as TipoSituacao, anal as TDocItemAnal ptr)
 	declare sub finalizarRelatorio()
 	declare sub relatorioSomarLR(sit as TipoSituacao, anal as TDocItemAnal ptr)
@@ -799,12 +953,16 @@ private:
 	nroRegs             	as integer = 0
 	participanteDict    	as TDict
 	itemIdDict          	as TDict
+	bemCiapDict          	as TDict
+	infoComplDict			as TDict
 	sintegraDict			as TDict
 	ultimoReg   			as TRegistro ptr
 	ultimoDocNFItem  		as TDocNFItem ptr
 	ultimoEquipECF			as TEquipECF ptr
 	ultimoECFRedZ			as TRegistro ptr
 	ultimoInventario		as TInventarioTotais ptr
+	ultimoCiap				as TCiapTotal ptr
+	ultimoCiapItem			as TCiapItem ptr
 	nroLinha				as integer
 	regMestre				as TRegistro ptr
 
@@ -815,6 +973,7 @@ private:
 	apuracaoIcms			as ExcelWorksheet ptr
 	apuracaoIcmsST			as ExcelWorksheet ptr
 	inventario				as ExcelWorksheet ptr
+	ciap					as ExcelWorksheet ptr
 	ressarcST				as ExcelWorksheet ptr
 	inconsistenciasLRE		as ExcelWorksheet ptr
 	inconsistenciasLRS		as ExcelWorksheet ptr
@@ -845,6 +1004,7 @@ private:
 	db_itensNfLRInsertStmt	as TDbStmt ptr
 	db_LRSInsertStmt		as TDbStmt ptr
 	db_ressarcStItensNfLRSInsertStmt as TDbStmt ptr
+	db_itensIdInsertStmt as TDbStmt ptr
 	
 	'' geração de relatórios em formato PDF com o layout do programa EFD-ICMS-IPI da RFB
 	baseTemplatesDir		as string
@@ -878,8 +1038,6 @@ end type
 
 #define DBL2MONEYBR(d) (format(d,"#,#,#.00"))
 
-#define UF_SIGLA2COD(s) (cast(integer, *cast(VarBox ptr, ufSigla2CodDict[s])))
-
 #define MUNICIPIO2SIGLA(m) (iif(m >= 1100000 and m <= 5399999, ufCod2Sigla(m \ 100000), "EX"))
 
 declare function ddMmYyyy2YyyyMmDd(s as const zstring ptr) as string
@@ -889,6 +1047,8 @@ declare function STR2IE(ie as string) as string
 declare function tipoItem2Str(tipo as TipoItemId) as string
 declare function dupstr(s as const zstring ptr) as zstring ptr
 declare sub splitstr(Text As String, Delim As String = ",", Ret() As String)
+declare function strreplace(byref text as string, byref a as string, byref b as string) as string
+declare function UF_SIGLA2COD(s as zstring ptr) as integer
 
 extern as string ufCod2Sigla(11 to 53)
 extern as TDict ufSigla2CodDict

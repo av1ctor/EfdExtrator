@@ -31,9 +31,12 @@ public:
    declare function varchar(separador as uInteger = asc("|")) as string
    declare function varint(separador as uInteger = asc("|")) as longint
    declare function vardbl(separador as uInteger = asc("|"), decimalSep as uinteger = asc(",")) as double
+   declare property dbl11_3() as double
+   declare property dbl12_2() as double
    declare property dbl13_2() as double
    declare property dbl13_3() as double
    declare property dbl4_2() as double
+   declare property dbl5_2() as double
    declare property int1() as integer
    declare property int2() as integer
    declare property int4() as integer
@@ -58,6 +61,8 @@ private:
    res6 as string    = "000000"
    res8 as string    = "00000000"
    res9 as string    = "000000000"
+   res11 as string   = "00000000000"
+   res12 as string   = "000000000000"
    res13 as string   = "0000000000000"
    res14 as string   = "00000000000000"
    res22 as string   = "0000000000000000000000"

@@ -1,3 +1,33 @@
+versão 0.7 beta:
+- adicionado: opção -filtrarChaves chave1,chave2,...
+- corrigido: colunas CNPJ emitente e destinatário não estavam sendo formatadas para 14 dígitos ao carregar os relatórios em formato xlsx do Infoview BO
+- corrigido: planilha do relatório NFe_Destinatario_OSF do Infoview BO em formato xlsx não estava sendo carregada
+
+versão 0.6 beta:
+- adicionado: extração do bloco G (CIAP)
+- adicionado: extração de informações complementares (0450 e C110)
+- adicionado: carregamento do relatório NFE_Emitente_Itens_SP_OSF em formato csv
+- adicionado: opção '-formatoDeSaida null' para não criar planilha de saída
+- adicionado: coluna 'NCM' à tabela itensDfeSaida
+- corrigido: campo analítico C590 (NF Energia Elétrica/àgua/Gás) não estava sendo extraído
+
+versão 0.5 beta:
+- adicionado: o formato padrão de saída agora é xlsx do Excel 2003 ou superior
+- adicionado: os relatórios do novo Infoview BO, em formato xlsx, podem ser carregados diretamente, não sendo mais necessário utilizar os relatórios do SAFI em csv
+- adicionado: extração dos registros do SAT (C800 e C850)
+- corrigido: ao usar a opção -complementarDados, registros de NF-e que contivessem tanto itens (C170), como itens analíticos (C190), estavam sendo extraídos em dobro
+
+versão 0.4 beta:
+- adicionado suporte ao layout 112 (para EFDs a partir de janeiro-2019)
+
+versão 0.3 beta:
+- DBs atualizados para a última versão (março-2019)
+- scripts de análise estão mais fáceis de ler e agora retornam uma exceção se ocorrer algum erro na execução
+- novas análises implementadas (ver TODO.txt)
+- aba Saídas na planilha agora lista cada item do LRS, um para cada CFOP do documento fiscal
+- nova opção -dbEmDisco, que gravará os dados intermediários em disco, poupando memória (use -manterDB para preservar o arquivo em formato SQLite)
+- nova opção -formatoDeSaida xml|csv para mudar o formato da planilha gerada
+
 versão 0.2 beta:
 - adicionado: extração do bloco H (Livro de Inventário)
 - corrigido: ordenação das datas no relatório Word/docx agora segue a ordem do EFD-ICMS-IPI

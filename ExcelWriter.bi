@@ -1,6 +1,8 @@
 
 #include once "Lua/lualib.bi"
 #include once "Lua/lauxlib.bi"
+#include once "iconv.bi"
+#include once "xlsxwriter.bi"
 #define NULL 0
 
 enum CellType
@@ -64,19 +66,31 @@ end type
 
 type ProgressCB as sub(stage as const wstring ptr, preComplete as double)
 
+enum FileType
+	FT_XLSX
+	FT_XML
+	FT_CSV
+	FT_NULL
+end enum
+
 type ExcelWriter
 	declare constructor
 	declare destructor
 	declare function AddWorksheet(name as string) as ExcelWorksheet ptr
-	declare function create(fileName as string, generateCSV as boolean) as boolean
+	declare function create(fileName as string, ftype as FileType = FT_XLSX) as boolean
 	declare function flush(showProgress as ProgressCB) as boolean
 	declare sub close
 	declare static sub exportAPI(L as lua_State ptr)
 	
 private:
-	isCSV					as boolean = false
+	ftype					as FileType
 	fileName				as string
 	fnum				   	as integer = 0
+	xlsxWorkbook			as lxw_workbook ptr
+	xlsxFormats(0 to __CT_LEN__-1) as lxw_format ptr
+	cd						as iconv_t
+	
 	workbook 				as ExcelWorkbook ptr = null
 	CellType2String(0 to __CT_LEN__-1) as string
+	
 end type

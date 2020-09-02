@@ -362,6 +362,9 @@ end sub
 	
 ''''''''	
 sub TDbStmt.bind(index as integer, value as const zstring ptr)
+	
+	'' NOTE: the value string can't be freed or modified until exec() is called!
+	
 	if value = null then
 		sqlite3_bind_null(stmt, index)
 	else
@@ -371,6 +374,9 @@ end sub
 
 ''''''''	
 sub TDbStmt.bind(index as integer, value as const wstring ptr)
+
+	'' NOTE: the value string can't be freed or modified until exec() is called!
+	
 	if value = null then
 		sqlite3_bind_null(stmt, index)
 	else

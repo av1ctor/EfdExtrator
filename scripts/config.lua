@@ -8,7 +8,7 @@ function configurarDB(db, dbPath)
 end
 
 ----------------------------------------------------------------------
--- criar tabela de dfe's de entrada (relatórios do SAFI)
+-- criar tabela de dfe's de entrada (relatórios do SAFI ou do BO)
 function criarTabela_dfeEntrada(db)
 
 	db_execNonQuery( db, [[
@@ -61,7 +61,7 @@ function criarTabela_dfeEntrada(db)
 end
 
 ----------------------------------------------------------------------
--- criar tabela de dfe's de saída (relatórios do SAFI)
+-- criar tabela de dfe's de saída (relatórios do SAFI ou do BO)
 function criarTabela_dfeSaida(db)
 
 	db_execNonQuery( db, [[
@@ -116,7 +116,7 @@ function criarTabela_dfeSaida(db)
 end
 
 ----------------------------------------------------------------------
--- criar tabela de itens de docs saída (relatórios do SAFI)
+-- criar tabela de itens de docs saída (relatórios do SAFI ou do BO)
 function criarTabela_itensDfeSaida(db)
 
 	db_execNonQuery( db, [[
@@ -124,6 +124,7 @@ function criarTabela_itensDfeSaida(db)
 			serie		short not null,
 			numero		integer not null,
 			modelo		short not null,
+			numItem		short not null,
 			chave		char(44) not null,
 			cfop		integer not null,
 			valorProd	real not null,
@@ -133,10 +134,17 @@ function criarTabela_itensDfeSaida(db)
 			aliq		real not null,
 			icms		real not null,
 			bcIcmsST	real not null,
+			ncm			bigint null,
+			cst			integer null,
+			qtd			real null,
+			unidade		varchar(8) null,
+			codProduto	varchar(64) null,
+			descricao	varchar(256) null,
 			PRIMARY KEY (
 				serie,
 				numero,
-				modelo
+				modelo,
+				numItem
 			)
 		) 
 	]])
@@ -159,11 +167,23 @@ function criarTabela_itensDfeSaida(db)
 		) 
 	]])
 
+	db_execNonQuery( db, [[
+		CREATE INDEX itensDfeSaidaNcmIdx ON itensDfeSaida (
+			ncm
+		) 
+	]])
+
+	db_execNonQuery( db, [[
+		CREATE INDEX itensDfeSaidaCstIdx ON itensDfeSaida (
+			cst
+		) 
+	]])
+
 	-- retornar a query que será usada no insert
 	return [[
 		insert into itensDfeSaida 
-			(serie, numero, modelo, chave, cfop, valorProd, valorDesc, valorAcess, bc, aliq, icms, bcIcmsST) 
-			values (?,?,?,?,?,?,?,?,?,?,?,?)
+			(serie, numero, modelo, numItem, chave, cfop, valorProd, valorDesc, valorAcess, bc, aliq, icms, bcIcmsST, ncm, cst, qtd, unidade, codProduto, descricao) 
+			values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
 	]]
 
 end
@@ -264,6 +284,7 @@ function criarTabela_itensNfLR(db)
 			bcIcmsST	real not null,
 			aliqIcmsST	real not null,
 			icmsST		real not null,
+			itemId		varchar(64) null,
 			PRIMARY KEY (
 				periodo,
 				cnpjEmit,
@@ -304,8 +325,8 @@ function criarTabela_itensNfLR(db)
 	-- retornar a query que será usada no insert
 	return [[
 		insert into itensNfLR 
-		(periodo, cnpjEmit, ufEmit, serie, numero, modelo, numItem, cst_origem, cst_tribut, cfop, qtd, valorProd, valorDesc, bc, aliq, icms, bcIcmsST, aliqIcmsST, icmsST) 
-		values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+		(periodo, cnpjEmit, ufEmit, serie, numero, modelo, numItem, cst_origem, cst_tribut, cfop, qtd, valorProd, valorDesc, bc, aliq, icms, bcIcmsST, aliqIcmsST, icmsST, itemId) 
+		values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
 	]]
 	
 end
@@ -451,6 +472,31 @@ function criarTabela_ressarcStItensNfLRS(db)
 		insert into ressarcStItensNfLRS 
 			(periodo, cnpjEmit, ufEmit, serie, numero, modelo, nroItem, cnpjUlt, ufUlt, serieUlt, numeroUlt, modeloUlt, chaveUlt, dataUlt, valorUlt, bcSTUlt, qtdUlt, nroItemUlt) 
 			values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+	]]
+	
+end
+
+-- criar tabela itensId
+function criarTabela_itensId(db)
+
+	db_execNonQuery( db, [[
+		create table itensId( 
+			id			varchar(64) not null,
+			descricao	varchar(1024) not null,
+			ncm			bigint null,
+			cest		integer null,
+			aliqInt		real null,
+			PRIMARY KEY (
+				id
+			)
+		) 
+	]])
+	
+	-- retornar a query que será usada no insert
+	return [[
+		insert into itensId 
+			(id, descricao, ncm, cest, aliqInt) 
+			values (?,?,?,?,?)
 	]]
 	
 end
