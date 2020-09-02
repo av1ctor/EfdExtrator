@@ -332,23 +332,66 @@ property bfile.dbl13_2() as double
 	res14[11] = asc(".")
 	res14[12] = char1
 	res14[13] = char1
-
+	
 	property = val(res14)
+   
+end property
+
+''''''''
+property bfile.dbl5_2() as double
+   
+	res6[0] = char1
+	res6[1] = char1
+	res6[2] = char1
+	res6[3] = asc(".")
+	res6[4] = char1
+	res6[5] = char1
+
+	property = val(res6)
    
 end property
 
 ''''''''
 property bfile.dbl4_2() as double
    
-	for i as integer = 0 to 1
-		res5[i] = char1
-	next
-
+	res5[0] = char1
+	res5[1] = char1
 	res5[2] = asc(".")
 	res5[3] = char1
 	res5[4] = char1
 
 	property = val(res5)
+   
+end property
+
+''''''''
+property bfile.dbl11_3() as double
+   
+	for i as integer = 0 to 7
+		res12[i] = char1
+	next
+
+	res12[08] = asc(".")
+	res12[09] = char1
+	res12[10] = char1
+	res12[11] = char1
+
+	property = val(res12)
+   
+end property
+
+''''''''
+property bfile.dbl12_2() as double
+   
+	for i as integer = 0 to 9
+		res13[i] = char1
+	next
+
+	res13[10] = asc(".")
+	res13[11] = char1
+	res13[12] = char1
+
+	property = val(res13)
    
 end property
 

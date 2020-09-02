@@ -58,6 +58,26 @@ private sub tablesCtor constructor
 	codSituacao2Str(SUBSTITUIDO) 		= "SUBST"
 end sub
 
+'''''
+function UF_SIGLA2COD(s as zstring ptr) as integer
+	
+	if s = null then
+		return 0
+	end if
+	
+	if len(s) = 0 then
+		return 0
+	end if
+	
+	var cod = cast(VarBox ptr, ufSigla2CodDict[s])
+	if cod = null then
+		return 0
+	end if
+	
+	function = cast(integer, *cod)
+
+end function
+
 ''''''''
 function ddMmYyyy2YyyyMmDd(s as const zstring ptr) as string
 	
@@ -218,3 +238,36 @@ sub splitstr(Text as string, Delim as string, Ret() as string)
 	Ret(cnt) = mid(Text, RetVal(cnt - 1) + 1)
    
 end sub
+
+function strreplace _
+	( _
+		byref text as string, _
+		byref a as string, _
+		byref b as string _
+	) as string
+
+	var result = text
+
+	var alen = len(a)
+	var blen = len(b)
+
+	var i = 0
+	do
+		'' Does result contain an occurence of a?
+		i = instr(i + 1, result, a)
+		if i = 0 then
+			exit do
+		end if
+
+		'' Cut out a and insert b in its place
+		'' result  =  front  +  b  +  back
+		var keep = right(result, len(result) - ((i - 1) + alen))
+		result = left(result, i - 1)
+		result += b
+		result += keep
+
+		i += blen - 1
+	loop
+
+	function = result
+end function

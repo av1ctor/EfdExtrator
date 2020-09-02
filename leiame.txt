@@ -1,42 +1,47 @@
 Extrator de EFD/Sintegra para Excel/Word
-Copyleft 2017-2018 by André Vicentini (avtvicentini)
+Copyleft 2017-2020 by André Vicentini (avtvicentini)
 
 Modo de usar:
 
-    EfdExtrator.exe [-gerarRelatorios] [-complementarDados] [-filtrarCnpj cnpj1,cnpj2,...] -formatoDeSaida xml|csv -somenteRessarcimentoST -dbEmDisco arquivo.txt [arquivo.csv]
+    EfdExtrator.exe [-gerarRelatorios] [-complementarDados] [-filtrarCnpj cnpj1,cnpj2,...] [-filtrarChaves chave1,chave2,...] -formatoDeSaida xml|csv|xlsx|null -somenteRessarcimentoST -dbEmDisco -manterDB arquivo.txt [arquivo.csv] [arquivo.xlsx]
 
     Notas:
-        1. No lugar do nome dos arquivos, podem ser usadas máscaras,
-           como por exemplo: *.txt e *.csv
-        2. O(s) arquivo(s) .txt pode(m) ser em formato Sintegra ou EFD
-        3. Os arquivos .csv do SAFI devem manter o padrão de nome dado pelo
-           Infoview BO, mas podem ser usados prefixos e sufixos no nome,
-           como por exemplo: "2017 SAFI_NFe_Emitente_Itens parte 1.csv"
-        4. No final da extração será gerado um arquivo .xml que deve ser
-           aberto no Excel 2003 ou superior
-        5. A opção -gerarRelatorios gera os relatórios do EFD-ICMS-IPI
-           no formato Word/docx. Para converter em lote esses arquivos para 
-           PDF, copie o arquivo doc2pdf.ps1 para a pasta onde se encontram
-           os relatórios e o execute - essa conversão é feita pelo Word e 
-           costuma ser demorada
-        6. A opção -complementarDados inclui dados complementares na planilha
-           (aba Saídas) que será gerada e que não constam na EFD, caso os
-           arquivos .csv do SAFI sejam fornecidos
-        7. A opção -filtrarCnpj fará com que só sejam extraídos os registros 
-           com os mesmos CNPJs (de emitentes ou destinatários) dos contidos
-           na lista de CNPJs informada (separada por vírgula, com zeros à esq. 
-        8. A opção -formatoDeSaida permite trocar o formato de saída do
-           padrão (xml - Excel) para csv
-        9. A opção -somenteRessarcimentoST extrairá somente documentos do LRS
-           que contenham o registro C176 relativo ao ressarcimento ST
-        A. A opção -dbEmDisco gravará os dados intermediários em disco,
-           poupando memória (utilize -manterDB para preservar o arquivo)
+	1. No lugar do nome dos arquivos, podem ser usadas máscaras,
+	   como por exemplo: *.txt *.csv *.xlsx
+	2. Os arquivos .txt podem ser em formato Sintegra ou EFD
+	3. Os arquivos .csv do SAFI devem manter o padrão de nome dado pelo
+	   Infoview BO, mas podem ser usados prefixos e sufixos no nome,
+	   como por exemplo: "2017 SAFI_NFe_Emitente_Itens parte 1.csv"
+	4. Os arquivos .xlsx devem manter o padrão de nome dado pelo
+	   Infoview BO, mas podem ser usados prefixos e sufixos no nome,
+	   como por exemplo: "2019 NFe_Emitente_Itens_OSF parte 1.xlsx"
+	5. No final da extração será gerado um arquivo .xlsx para ser aberto
+	   no Excel 2003 ou superior (exceto se o formato de saída for null)
+	6. A opção -gerarRelatorios gera os relatórios do EFD-ICMS-IPI
+	   no formato Word/docx. Para converter em lote esses arquivos para 
+	   PDF, copie o arquivo doc2pdf.ps1 para a pasta onde se encontram
+	   os relatórios e o execute - essa conversão é feita pelo Word e 
+	   costuma ser demorada
+	7. A opção -complementarDados inclui dados complementares na planilha
+	   (aba Saídas ou Entradas para docs de emissão própria) que será 
+	   gerada e que não constam na EFD, caso os arquivos .csv do SAFI ou 
+	   os .xlsx do Infoview BO sejam fornecidos. AVISO: não utilize as
+	   informações relacionadas ao ICMS (alíquota, BC, valor, etc), pois
+           esses dados serão retirados dos DF-e's e não da escrituração
+	8. A opção -filtrarCnpj fará com que só sejam extraídos os registros 
+	   com os mesmos CNPJs (de emitentes ou destinatários) dos contidos
+	   na lista de CNPJs informada (separada por vírgula; com zeros à esq.) 
+	9. A opção -filtrarChaves fará com que só sejam extraídos os registros
+	   com as mesmas chaves das contidas na lista (usar @arquivo.txt para
+	   carregar as chaves de um arquivo, que deve conter uma única linha)
+	A. A opção -formatoDeSaida permite trocar o formato de saída do
+	   padrão xlsx para csv ou XML (Excel 2003 ou superior)
+	B. A opção -somenteRessarcimentoST extrairá somente documentos do LRS
+	   que contenham o registro C176 relativo ao ressarcimento ST
+	C. A opção -dbEmDisco gravará os dados intermediários em disco,
+	   poupando memória (utilize -manterDB para preservar o arquivo)
 
    Sobre as análises e cruzamentos:
-
-    Para que sejam feitas análises e cruzamentos por completo (ver TODO.txt para saber o que falta implementar) é necessário baixar os DBs (> 2GB) contendo os dados de 
-	contribuintes (os dados são os mesmos carregados no SAFI e fornecidos pela DEAT).
-    Baixe o arquivo no Google Drive (EFDExtrator_DB.rar) e o extraia para o diretório onde estiver instalado o EfdExtrator (senha do RAR: sefazsp)
 
     As análises e os cruzamentos são realizados em Lua scripting (ver scripts/analises.lua). 
     Com isso, é possível realizar novos cruzamentos apenas atualizando os scripts, sem necessidade de recompilar o aplicativo. 

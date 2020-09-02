@@ -1,4 +1,4 @@
-'' para compilar: fbc.exe EfdExtrator.bas Efd.bas Efd-analises.bas Efd-relatorios.bas Efd-misc.bas bfile.bas ExcelWriter.bas list.bas Dict.bas DocxFactoryDyn.bas DB.bas VarBox.bas trycatch.bas
+'' fbc.exe EfdExtrator.bas Efd.bas Efd-analises.bas Efd-relatorios.bas Efd-misc.bas bfile.bas ExcelReader.bas ExcelWriter.bas list.bas Dict.bas DocxFactoryDyn.bas DB.bas VarBox.bas trycatch.bas
 
 #include once "EFD.bi"
 
@@ -12,40 +12,49 @@ on error goto exceptionReport
 '''''''''''
 sub mostrarUso()
 	print wstr("Modo de usar:")
-	print wstr("EfdExtrator.exe [-gerarRelatorios] [-complementarDados] [-filtrarCnpj cnpj1,cnpj2,...] -formatoDeSaida xml|csv -somenteRessarcimentoST -dbEmDisco arquivo.txt [arquivo.csv]")
+	print wstr("EfdExtrator.exe [-gerarRelatorios] [-complementarDados] [-filtrarCnpj cnpj1,cnpj2,...] [-filtrarChaves chave1,chave2,...] [-formatoDeSaida xml|csv|xlsx|null] [-somenteRessarcimentoST] [-dbEmDisco -manterDB] efd-ou-sintegra.txt [relatorio-bo.csv] [relatorio-bo.xlsx]")
 	print wstr("Notas:")
 	print wstr(!"\t1. No lugar do nome dos arquivos, podem ser usadas máscaras,")
-	print wstr(!"\t   como por exemplo: *.txt e *.csv")
-	print wstr(!"\t2. O(s) arquivo(s) .txt pode(m) ser em formato Sintegra ou EFD")
+	print wstr(!"\t   como por exemplo: *.txt *.csv *.xlsx")
+	print wstr(!"\t2. Os arquivos .txt podem ser em formato Sintegra ou EFD")
 	print wstr(!"\t3. Os arquivos .csv do SAFI devem manter o padrão de nome dado pelo")
 	print wstr(!"\t   Infoview BO, mas podem ser usados prefixos e sufixos no nome,")
 	print wstr(!"\t   como por exemplo: \"2017 SAFI_NFe_Emitente_Itens parte 1.csv\"")
-	print wstr(!"\t4. No final da extração será gerado um arquivo .xml que deve ser")
-	print wstr(!"\t   aberto no Excel 2003 ou superior")
-	print wstr(!"\t5. A opção -gerarRelatorios gera os relatórios do EFD-ICMS-IPI")
+	print wstr(!"\t4. Os arquivos .xlsx devem manter o padrão de nome dado pelo")
+	print wstr(!"\t   Infoview BO, mas podem ser usados prefixos e sufixos no nome,")
+	print wstr(!"\t   como por exemplo: \"2019 NFe_Emitente_Itens_OSF parte 1.xlsx\"")
+	print wstr(!"\t5. No final da extração será gerado um arquivo .xlsx para ser aberto")
+	print wstr(!"\t   no Excel 2003 ou superior (exceto se o formato de saída for null)")
+	print wstr(!"\t6. A opção -gerarRelatorios gera os relatórios do EFD-ICMS-IPI")
 	print wstr(!"\t   no formato Word/docx. Para converter em lote esses arquivos para")
 	print wstr(!"\t   PDF, copie o arquivo doc2pdf.ps1 para a pasta onde se encontram")
 	print wstr(!"\t   os relatórios e o execute - essa conversão é feita pelo Word e")
 	print wstr(!"\t   costuma ser demorada")
-	print wstr(!"\t6. A opção -complementarDados inclui dados complementares na planilha")
-	print wstr(!"\t   (aba saídas) que será gerada e que não constam na EFD, caso os")
-	print wstr(!"\t   arquivos .csv do SAFI sejam fornecidos")
-	print wstr(!"\t7. A opção -filtrarCnpj fará com que só sejam extraídos os registros")
+	print wstr(!"\t7. A opção -complementarDados inclui dados complementares na planilha")
+	print wstr(!"\t   (aba Saídas ou Entradas para docs de emissão própria) que será")
+	print wstr(!"\t   gerada e que não constam na EFD, caso os arquivos .csv do SAFI ou")
+	print wstr(!"\t   os .xlsx do Infoview BO sejam fornecidos. AVISO: não utilize as")
+	print wstr(!"\t   informações relacionadas ao ICMS (alíquota, BC, valor, etc), pois")
+	print wstr(!"\t   esses dados serão retirados dos DF-e's e não da escrituração")
+	print wstr(!"\t8. A opção -filtrarCnpj fará com que só sejam extraídos os registros")
 	print wstr(!"\t   com os mesmos CNPJs (de emitentes ou destinatários) dos contidos")
-	print wstr(!"\t   na lista de CNPJs informada (separada por vírgula; zeros à esq)")
-	print wstr(!"\t8. A opção -formatoDeSaida permite trocar o formato de saída do")
-	print wstr(!"\t   padrão (xml - Excel) para csv")
-	print wstr(!"\t9. A opção -somenteRessarcimentoST extrairá somente documentos do LRS")
+	print wstr(!"\t   na lista de CNPJs informada (separada por vírgula; zeros à esq.)")
+	print wstr(!"\t9. A opção -filtrarChaves fará com que só sejam extraídos os registros")
+	print wstr(!"\t   com as mesmas chaves das contidas na lista (usar @arquivo.txt para")
+	print wstr(!"\t   carregar as chaves de um arquivo, que deve conter uma única linha)")
+	print wstr(!"\tA. A opção -formatoDeSaida permite trocar o formato de saída do")
+	print wstr(!"\t   padrão xlsx para csv ou XML (Excel 2003 ou superior)")
+	print wstr(!"\tB. A opção -somenteRessarcimentoST extrairá somente documentos do LRS")
 	print wstr(!"\t   que contenham o registro C176 relativo ao ressarcimento ST")
-	print wstr(!"\tA. A opção -dbEmDisco gravará os dados intermediários em disco,")
+	print wstr(!"\tC. A opção -dbEmDisco gravará os dados intermediários em disco,")
 	print wstr(!"\t   poupando memória (utilize -manterDB para preservar o arquivo)")
 	print 
 end sub
 
 '''''''''''   
 sub mostrarCopyright()
-	print wstr("Extrator de EFD/Sintegra para Excel, versão 0.3 beta")
-	print wstr("Copyleft 2017-2019 by André Vicentini (avtvicentini)")
+	print wstr("Extrator de EFD/Sintegra para Excel, versão 0.7 beta")
+	print wstr("Copyleft 2017-2020 by André Vicentini (avtvicentini)")
 	print
 end sub
 
@@ -98,6 +107,9 @@ sub main()
 			case "-gerarrelatorios"
 				opcoes.gerarRelatorios = true
 				nroOpcoes += 1
+			case "-naogerarlrelrs"
+				opcoes.pularLreLrsAoGerarRelatorios = true
+				nroOpcoes += 1
 			case "-filtrarcnpj"
 				i += 1
 				var listaCnpj = command(i)
@@ -106,6 +118,16 @@ sub main()
 					opcoes.filtrarCnpj = true
 				else
 					opcoes.filtrarCnpj = false
+				end if
+				nroOpcoes += 2
+			case "-filtrarchave"
+				i += 1
+				var listaChaves = command(i)
+				if( len(listaChaves) > 0 ) then
+					splitstr(listaChaves, ",", opcoes.listaChaves())
+					opcoes.filtrarChaves = true
+				else
+					opcoes.filtrarChaves = false
 				end if
 				nroOpcoes += 2
 			case "-complementardados"
@@ -124,9 +146,13 @@ sub main()
 				i += 1
 				select case command(i)
 				case "xml" 
-					opcoes.formatoDeSaida = SAIDA_XML
+					opcoes.formatoDeSaida = FT_XML
 				case "csv"
-					opcoes.formatoDeSaida = SAIDA_CSV
+					opcoes.formatoDeSaida = FT_CSV
+				case "xlsx"
+					opcoes.formatoDeSaida = FT_XLSX
+				case "null"
+					opcoes.formatoDeSaida = FT_NULL
 				case else
 					print wstr("Erro: formato de saída inválido")
 					exit sub
@@ -166,6 +192,11 @@ sub main()
 	   do while len(arquivoEntrada) > 0
 			if lcase(right(arquivoEntrada,3)) = "csv" then
 				if not e.carregarCsv( arquivoEntrada, @mostrarProgresso ) then
+					print !"\r\nErro ao carregar arquivo!"
+					end -1
+				end if
+			elseif lcase(right(arquivoEntrada,4)) = "xlsx" then
+				if not e.carregarXlsx( arquivoEntrada, @mostrarProgresso ) then
 					print !"\r\nErro ao carregar arquivo!"
 					end -1
 				end if
@@ -212,8 +243,10 @@ sub main()
 	end if
 	
 	''
-	print "Analisando:"
-	e.analisar(@mostrarProgresso)
+	if opcoes.formatoDeSaida <> FT_NULL then
+		print "Analisando:"
+		e.analisar(@mostrarProgresso)
+	end if
    
 	''
 	e.finalizarExtracao( @mostrarProgresso )
@@ -224,11 +257,14 @@ end sub
 '''''''''''
 sub importarGia()   
 
-	const SEP = asc("¨")
+	const SEP = asc("|")
 	
 	var db = new TDb
 	
 	db->open(ExePath + "\db\GIA.db")
+	db->execNonQuery("PRAGMA JOURNAL_MODE=OFF")
+	db->execNonQuery("PRAGMA SYNCHRONOUS=0")
+	db->execNonQuery("PRAGMA LOCKING_MODE=EXCLUSIVE")
 	
 	var stmt = db->prepare("insert into GIA (ie, mes, ano, totCreditos, totDebitos) values (?,?,?,?,?)")
 	var updStmt = db->prepare("update GIA set totDevolucoes = ?, totRetencoes = ? where ie = ? and mes = ? and ano = ?")
@@ -355,11 +391,14 @@ end function
 '''''''''''
 sub importarCadContribuinte()   
 
-	const SEP = asc("¨")
+	const SEP = asc("|")
 	
 	var db = new TDb
 	
 	db->open(ExePath + "\db\CadContribuinte.db")
+	db->execNonQuery("PRAGMA JOURNAL_MODE=OFF")
+	db->execNonQuery("PRAGMA SYNCHRONOUS=0")
+	db->execNonQuery("PRAGMA LOCKING_MODE=EXCLUSIVE")
 	
 	var arquivo = command(2)
 	if len(arquivo) = 0 then
@@ -401,7 +440,7 @@ sub importarCadContribuinte()
 			
 		dataIni = brdata2yyyymmdd(dataIni)
 		
-		if dataFim = "1899-12-31" then
+		if dataFim = "31/12/1899" then
 			dataFim = "99999999"
 		else
 			dataFim = brdata2yyyymmdd(dataFim)
@@ -439,11 +478,16 @@ end sub
 '''''''''''
 sub importarCadContribuinteRegime()   
 
-	const SEP = asc("¨")
+	''dim lastDayOfMonth(1 to 12) as string = {"31", "28", "31", "30", "31", "30", "31", "31", "30", "31", "30", "31"}
+
+	const SEP = asc("|")
 	
 	var db = new TDb
 	
 	db->open(ExePath + "\db\CadContribuinte.db")
+	db->execNonQuery("PRAGMA JOURNAL_MODE=OFF")
+	db->execNonQuery("PRAGMA SYNCHRONOUS=0")
+	db->execNonQuery("PRAGMA LOCKING_MODE=EXCLUSIVE")
 	
 	var arquivo = command(2)
 	if len(arquivo) = 0 then
@@ -453,8 +497,7 @@ sub importarCadContribuinteRegime()
 	dim as bfile inf
 	inf.abrir(arquivo)
 	
-	'' pular as 2 primeiras linhas
-	inf.varchar(10)
+	'' pular a primeira linha
 	inf.varchar(10)
 	
 	mostrarProgresso("Carregando Cadastro Regimes (" & arquivo & ")", 0)
@@ -483,8 +526,8 @@ sub importarCadContribuinteRegime()
 		stmt->reset()
 		stmt->bind(1, ie)
 		stmt->bind(2, regime)
-		stmt->bind(3, dataIni)
-		stmt->bind(4, dataFim)
+		stmt->bind(3, dataIni) '' yyyymm
+		stmt->bind(4, dataFim) '' yyyymm
 		db->execNonQuery(stmt)
 		
 		if l = 100000 then
