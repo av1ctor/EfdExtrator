@@ -29,7 +29,9 @@ sub mostrarUso()
 	print wstr(!"\t   no formato Word/docx. Para converter em lote esses arquivos para")
 	print wstr(!"\t   PDF, copie o arquivo doc2pdf.ps1 para a pasta onde se encontram")
 	print wstr(!"\t   os relatórios e o execute - essa conversão é feita pelo Word e")
-	print wstr(!"\t   costuma ser demorada")
+	print wstr(!"\t   costuma ser demorada. Para remover páginas em branco (geradas")
+	print wstr(!"\t   pela opção -filtrarCnpj/-filtrarChaves), execute na pasta:")
+	print wstr(!"\t   pdffilter.exe -r DELETE_THIS_PAGE *.pdf")
 	print wstr(!"\t7. A opção -complementarDados inclui dados complementares na planilha")
 	print wstr(!"\t   (aba Saídas ou Entradas para docs de emissão própria) que será")
 	print wstr(!"\t   gerada e que não constam na EFD, caso os arquivos .csv do SAFI ou")
@@ -41,7 +43,7 @@ sub mostrarUso()
 	print wstr(!"\t   na lista de CNPJs informada (separada por vírgula; zeros à esq.)")
 	print wstr(!"\t9. A opção -filtrarChaves fará com que só sejam extraídos os registros")
 	print wstr(!"\t   com as mesmas chaves das contidas na lista (usar @arquivo.txt para")
-	print wstr(!"\t   carregar as chaves de um arquivo, que deve conter uma única linha)")
+	print wstr(!"\t   carregar as chaves de um arquivo, uma chave por linha)")
 	print wstr(!"\tA. A opção -formatoDeSaida permite trocar o formato de saída do")
 	print wstr(!"\t   padrão xlsx para csv ou XML (Excel 2003 ou superior)")
 	print wstr(!"\tB. A opção -somenteRessarcimentoST extrairá somente documentos do LRS")
@@ -120,11 +122,15 @@ sub main()
 					opcoes.filtrarCnpj = false
 				end if
 				nroOpcoes += 2
-			case "-filtrarchave"
+			case "-filtrarchaves"
 				i += 1
 				var listaChaves = command(i)
 				if( len(listaChaves) > 0 ) then
-					splitstr(listaChaves, ",", opcoes.listaChaves())
+					if left(listaChaves, 1) = "@" then
+						loadstrings(mid(listaChaves, 2), opcoes.listaChaves())
+					else
+						splitstr(listaChaves, ",", opcoes.listaChaves())
+					end if
 					opcoes.filtrarChaves = true
 				else
 					opcoes.filtrarChaves = false

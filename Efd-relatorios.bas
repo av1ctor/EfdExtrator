@@ -5,75 +5,77 @@
 #include once "DB.bi"
 #include once "trycatch.bi"
 
-const MAX_LINHAS = 33
-const MAX_RAZAO_SOCIAL_LEN = 32
+const MAX_ROWS = 45.13
+const MAX_EMPTY_ROWS = 11
+const EMPTY_HEIGHT = 1.0
+const ANAL_HEIGHT = 0.972972973 '' relativo à EMPTY_HEIGHT / 4
+const DF_HEIGHT = 1.432432432	'' relativo à EMPTY_HEIGHT / 4
 
 #macro list_add_ANAL(__doc, __sit)
 	var anal = __doc.itemAnalListHead
 	do while anal <> null
+		if relNroLinhas+ANAL_HEIGHT > MAX_ROWS then
+			gerarPaginaRelatorio()
+		end if
 		var lin = cast(RelLinha ptr, relLinhasList.add())
 		lin->tipo = REL_LIN_DF_ITEM_ANAL
 		lin->anal.item = anal
 		lin->anal.sit = __sit
-		relNroLinhas += 1
-		if relNroLinhas > MAX_LINHAS then
-			gerarPaginaRelatorio()
-		end if
-		
+		relNroLinhas += ANAL_HEIGHT + iif(relNroLinhas = 0, DF_HEIGHT, 0.0) '' se o anal for o 1o item, o Docx vai adicionar um item vazio :/
 		anal = anal->next_
 	loop
 #endmacro
 
 #macro list_add_DF_ENTRADA(__doc, __part)
 	scope
+		if relNroLinhas+DF_HEIGHT > MAX_ROWS then
+			gerarPaginaRelatorio()
+		end if
 		var lin = cast(RelLinha ptr, relLinhasList.add())
 		lin->tipo = REL_LIN_DF_ENTRADA
 		lin->df.doc = @__doc
 		lin->df.part = __part
-		relNroLinhas += iif(__part <> null andalso len(__part->nome) > MAX_RAZAO_SOCIAL_LEN, 2, 1)
-		if relNroLinhas > MAX_LINHAS then
-			gerarPaginaRelatorio()
-		end if
+		relNroLinhas += DF_HEIGHT
 		list_add_ANAL(__doc, __doc.situacao)
 	end scope
 #endmacro
 
 #macro list_add_DF_SAIDA(__doc, __part)
 	scope
+		if relNroLinhas+DF_HEIGHT > MAX_ROWS then
+			gerarPaginaRelatorio()
+		end if
 		var lin = cast(RelLinha ptr, relLinhasList.add())
 		lin->tipo = REL_LIN_DF_SAIDA
 		lin->df.doc = @__doc
 		lin->df.part = __part
-		relNroLinhas += iif(__part <> null andalso len(__part->nome) > MAX_RAZAO_SOCIAL_LEN, 2, 1)
-		if relNroLinhas > MAX_LINHAS then
-			gerarPaginaRelatorio()
-		end if
+		relNroLinhas += DF_HEIGHT
 		list_add_ANAL(__doc, __doc.situacao)
 	end scope
 #endmacro
 
 #macro list_add_REDZ(__doc)
 	scope
+		if relNroLinhas+DF_HEIGHT > MAX_ROWS then
+			gerarPaginaRelatorio()
+		end if
 		var lin = cast(RelLinha ptr, relLinhasList.add())
 		lin->tipo = REL_LIN_DF_REDZ
 		lin->redz.doc = @__doc
-		relNroLinhas += 1
-		if relNroLinhas > MAX_LINHAS then
-			gerarPaginaRelatorio()
-		end if
+		relNroLinhas += DF_HEIGHT
 		list_add_ANAL(__doc, REGULAR)
 	end scope
 #endmacro
 
 #macro list_add_SAT(__doc)
 	scope
+		if relNroLinhas+DF_HEIGHT > MAX_ROWS then
+			gerarPaginaRelatorio()
+		end if
 		var lin = cast(RelLinha ptr, relLinhasList.add())
 		lin->tipo = REL_LIN_DF_SAT
 		lin->sat.doc = @__doc
-		relNroLinhas += 1
-		if relNroLinhas > MAX_LINHAS then
-			gerarPaginaRelatorio()
-		end if
+		relNroLinhas += DF_HEIGHT
 		list_add_ANAL(__doc, REGULAR)
 	end scope
 #endmacro
@@ -89,7 +91,7 @@ sub Efd.gerarRelatorios(nomeArquivo as string, mostrarProgresso as ProgressoCB)
 	
 	ultimoRelatorio = -1
 
-	relLinhasList.init(MAX_LINHAS, len(RelLinha))
+	relLinhasList.init(cint(MAX_ROWS + 0.5), len(RelLinha))
 	
 	'' NOTA: por limitação do DocxFactory, que só consegue trabalhar com um template por vez, 
 	''		 precisamos processar entradas primeiro, depois saídas e por último os registros 
@@ -223,7 +225,7 @@ sub Efd.gerarRelatorios(nomeArquivo as string, mostrarProgresso as ProgressoCB)
 end sub
 
 ''''''''
-private sub efd.gerarPaginaRelatorio()
+private sub efd.gerarPaginaRelatorio(lastPage as boolean)
 
 	var gerarPagina = true
 	
@@ -276,6 +278,7 @@ private sub efd.gerarPaginaRelatorio()
 
 	var n = cast(RelLinha ptr, relLinhasList.head)
 	do while n <> null
+		
 		if gerarPagina then
 			select case as const n->tipo
 			case REL_LIN_DF_ENTRADA
@@ -290,6 +293,8 @@ private sub efd.gerarPaginaRelatorio()
 				adicionarDocRelatorioItemAnal(n->anal.sit, n->anal.item)
 			end select
 		else
+			nroRegistrosRel += 1
+			
 			if n->tipo = REL_LIN_DF_ITEM_ANAL then
 				relatorioSomarLR(n->anal.sit, n->anal.item)
 			end if
@@ -299,6 +304,24 @@ private sub efd.gerarPaginaRelatorio()
 		n = relLinhasList.next_(n)
 		relLinhasList.del(p)
 	loop
+	
+	if not gerarPagina then
+		var rows = cint(int(iif(lastPage, relNroLinhas, MAX_EMPTY_ROWS)))
+		
+		if rows > MAX_EMPTY_ROWS then
+			rows = MAX_EMPTY_ROWS
+		end if
+			
+		if rows = MAX_EMPTY_ROWS then
+			dfwd->setClipboardValueByStr("item_anal_empty", "ALERT", "DELETE_THIS_PAGE")
+		end if
+		
+		for i as integer = 1 to rows
+			dfwd->paste("item_anal_empty")
+		next
+	end if
+	
+	relNroPaginas += 1
 	
 	relNroLinhas = 0
 
@@ -383,6 +406,7 @@ sub Efd.iniciarRelatorio(relatorio as TipoRelatorio, nomeRelatorio as string, su
 	nroRegistrosRel = 0
 	
 	relNroLinhas = 0
+	relNroPaginas = 0
 
 	dfwd->load(baseTemplatesDir + nomeRelatorio + ".dfw")
 
@@ -621,7 +645,7 @@ sub Efd.finalizarRelatorio()
 		return
 	end if
 	
-	gerarPaginaRelatorio()
+	gerarPaginaRelatorio(true)
 	
 	dim as string bookmark
 	select case ultimoRelatorio

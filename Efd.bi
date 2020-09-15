@@ -936,7 +936,7 @@ private:
 	declare sub finalizarRelatorio()
 	declare sub relatorioSomarLR(sit as TipoSituacao, anal as TDocItemAnal ptr)
 	declare function codMunicipio2Nome(cod as integer) as string
-	declare sub gerarPaginaRelatorio()
+	declare sub gerarPaginaRelatorio(lastPage as boolean = false)
 	
 	declare sub analisarInconsistenciasLRE(mostrarProgresso as ProgressoCB)
 	declare sub analisarInconsistenciasLRS(mostrarProgresso as ProgressoCB)
@@ -1016,7 +1016,8 @@ private:
 	nroRegistrosRel			as integer
 	municipDict				as TDict
 	relLinhasList			as TList			'' de RelLinha
-	relNroLinhas			as integer
+	relNroLinhas			as double
+	relNroPaginas			as integer
 	
 	''
 	assinaturaP7K_DER(any)	as byte
@@ -1049,6 +1050,7 @@ declare function dupstr(s as const zstring ptr) as zstring ptr
 declare sub splitstr(Text As String, Delim As String = ",", Ret() As String)
 declare function strreplace(byref text as string, byref a as string, byref b as string) as string
 declare function UF_SIGLA2COD(s as zstring ptr) as integer
+declare sub loadstrings(fromFile as string, toArray() as string)
 
 extern as string ufCod2Sigla(11 to 53)
 extern as TDict ufSigla2CodDict
