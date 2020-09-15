@@ -21,7 +21,9 @@ Modo de usar:
 	   no formato Word/docx. Para converter em lote esses arquivos para 
 	   PDF, copie o arquivo doc2pdf.ps1 para a pasta onde se encontram
 	   os relatórios e o execute - essa conversão é feita pelo Word e 
-	   costuma ser demorada
+	   costuma ser demorada. Para remover páginas em branco (geradas
+	   pela opção -filtrarCnpj/-filtrarChaves), execute na pasta: 
+	   pdffilter.exe -r DELETE_THIS_PAGE *.pdf
 	7. A opção -complementarDados inclui dados complementares na planilha
 	   (aba Saídas ou Entradas para docs de emissão própria) que será 
 	   gerada e que não constam na EFD, caso os arquivos .csv do SAFI ou 
@@ -33,7 +35,7 @@ Modo de usar:
 	   na lista de CNPJs informada (separada por vírgula; com zeros à esq.) 
 	9. A opção -filtrarChaves fará com que só sejam extraídos os registros
 	   com as mesmas chaves das contidas na lista (usar @arquivo.txt para
-	   carregar as chaves de um arquivo, que deve conter uma única linha)
+	   carregar as chaves de um arquivo, uma chave por linha)
 	A. A opção -formatoDeSaida permite trocar o formato de saída do
 	   padrão xlsx para csv ou XML (Excel 2003 ou superior)
 	B. A opção -somenteRessarcimentoST extrairá somente documentos do LRS

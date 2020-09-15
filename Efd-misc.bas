@@ -239,6 +239,34 @@ sub splitstr(Text as string, Delim as string, Ret() as string)
    
 end sub
 
+
+'''''''
+sub loadstrings(fromFile as string, toArray() as string)
+	
+	dim as bfile f
+	f.abrir(fromFile)
+
+	var items = 10
+	redim toArray(0 to items-1)
+	
+	var i = 0
+	do while f.temProximo()
+		if( i >= items ) then
+			items += 10
+			redim preserve toArray(0 to items-1)
+		end if
+	
+		toArray(i) = f.varchar(13)
+		f.char1			'' skip \n
+		i += 1
+	loop
+	
+	redim preserve toArray(0 to i-1)
+	
+	f.fechar()
+
+end sub
+
 function strreplace _
 	( _
 		byref text as string, _
