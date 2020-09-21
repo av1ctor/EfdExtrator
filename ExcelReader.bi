@@ -1,5 +1,5 @@
 #include once "xlsxio_read.bi"
-#include once "iconv.bi"
+#include once "libiconv.bi"
 
 type ExcelReader
 public:

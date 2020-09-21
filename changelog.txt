@@ -1,6 +1,6 @@
 versão 0.8 beta:
+- alterado: a geração dos relatórios do EFD ICMS-IPI agora é feita diretamente para PDF
 - alterado: filtragem por CNPJ ou chave agora imprime em branco (com o texto DELETE_THIS_PAGE) as páginas onde não foram encontrados os dados procurados
-- adicionado: ferramenta pdffilter.exe para remover páginas em branco (uso: pdffilter.exe *.pdf DELETE_THIS_PAGE -r)
 
 versão 0.7 beta:
 - adicionado: opção -filtrarChaves chave1,chave2,...
