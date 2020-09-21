@@ -1,6 +1,6 @@
 
 #include once "ExcelWriter.bi"
-#include "iconv.bi"
+#include "libiconv.bi"
 
 ''
 constructor ExcelWriter()

@@ -1,4 +1,4 @@
-'' fbc.exe EfdExtrator.bas Efd.bas Efd-analises.bas Efd-relatorios.bas Efd-misc.bas bfile.bas ExcelReader.bas ExcelWriter.bas list.bas Dict.bas DocxFactoryDyn.bas DB.bas VarBox.bas trycatch.bas
+'' fbc.exe EfdExtrator.bas Efd.bas Efd-analises.bas Efd-relatorios.bas Efd-misc.bas bfile.bas ExcelReader.bas ExcelWriter.bas list.bas Dict.bas Pdfer.bas DB.bas VarBox.bas trycatch.bas -d WITH_PARSER
 
 #include once "EFD.bi"
 
@@ -26,8 +26,7 @@ sub mostrarUso()
 	print wstr(!"\t5. No final da extração será gerado um arquivo .xlsx para ser aberto")
 	print wstr(!"\t   no Excel 2003 ou superior (exceto se o formato de saída for null)")
 	print wstr(!"\t6. A opção -gerarRelatorios gera os relatórios do EFD-ICMS-IPI")
-	print wstr(!"\t   no formato Word/docx. Para converter em lote esses arquivos para")
-	print wstr(!"\t   PDF, copie o arquivo doc2pdf.ps1 para a pasta onde se encontram")
+	print wstr(!"\t   no formato PDF.")
 	print wstr(!"\t   os relatórios e o execute - essa conversão é feita pelo Word e")
 	print wstr(!"\t   costuma ser demorada. Para remover páginas em branco (geradas")
 	print wstr(!"\t   pela opção -filtrarCnpj/-filtrarChaves), execute na pasta:")
@@ -109,8 +108,15 @@ sub main()
 			case "-gerarrelatorios"
 				opcoes.gerarRelatorios = true
 				nroOpcoes += 1
+			case "-naogerarlre"
+				opcoes.pularLreAoGerarRelatorios = true
+				nroOpcoes += 1
+			case "-naogerarlrs"
+				opcoes.pularLrsAoGerarRelatorios = true
+				nroOpcoes += 1
 			case "-naogerarlrelrs"
-				opcoes.pularLreLrsAoGerarRelatorios = true
+				opcoes.pularLreAoGerarRelatorios = true
+				opcoes.pularLrsAoGerarRelatorios = true
 				nroOpcoes += 1
 			case "-filtrarcnpj"
 				i += 1

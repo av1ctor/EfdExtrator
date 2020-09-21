@@ -5,7 +5,6 @@
 #include once "ExcelWriter.bi"
 #include once "vbcompat.bi"
 #include once "ssl_helper.bi"
-#include once "DocxFactoryDyn.bi"
 #include once "DB.bi"
 #include once "Lua/lualib.bi"
 #include once "Lua/lauxlib.bi"
@@ -45,8 +44,6 @@ constructor Efd()
 	''
 	baseTemplatesDir = ExePath + "\templates\"
 	
-	dfwd = new DocxFactoryDyn
-	
 	municipDict.init(2^10, true, true, true)
 	
 	''
@@ -63,8 +60,6 @@ destructor Efd()
 	
 	''
 	municipDict.end_()
-	
-	delete dfwd
 	
 	''
 	chaveDFeDict.end_()
@@ -136,7 +131,6 @@ sub EFd.configurarScripting()
 		TDb.exportAPI(lua)
 		ExcelWriter.exportAPI(lua)
 		bfile.exportAPI(lua)
-		DocxFactoryDyn.exportAPI(lua)
 		exportAPI(lua)
 
 		luaL_dofile(lua, ExePath + "\scripts\config.lua")

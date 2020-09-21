@@ -1,81 +1,88 @@
 #include once "efd.bi"
 #include once "Dict.bi"
 #include once "vbcompat.bi"
-#include once "DocxFactoryDyn.bi"
 #include once "DB.bi"
 #include once "trycatch.bi"
 
-const MAX_ROWS = 45.13
-const MAX_EMPTY_ROWS = 11
-const EMPTY_HEIGHT = 1.0
-const ANAL_HEIGHT = 0.972972973 '' relativo à EMPTY_HEIGHT / 4
-const DF_HEIGHT = 1.432432432	'' relativo à EMPTY_HEIGHT / 4
+const PAGE_VLIMIT = 441.9
+const ROW_HEIGHT = 3 + 0.5 + (19*0.5) + 0.5 + 0.5 	'' espaço anterior, linha superior, conteúdo, linha inferior, espaço posterior
+const ANAL_HEIGHT = 0.5 + (19*0.5) 					'' linha superior, conteúdo, linha inferior
 
 #macro list_add_ANAL(__doc, __sit)
 	var anal = __doc.itemAnalListHead
 	do while anal <> null
-		if relNroLinhas+ANAL_HEIGHT > MAX_ROWS then
+		var height = ANAL_HEIGHT
+		if relYPos + height > PAGE_VLIMIT then
 			gerarPaginaRelatorio()
 		end if
 		var lin = cast(RelLinha ptr, relLinhasList.add())
 		lin->tipo = REL_LIN_DF_ITEM_ANAL
 		lin->anal.item = anal
 		lin->anal.sit = __sit
-		relNroLinhas += ANAL_HEIGHT + iif(relNroLinhas = 0, DF_HEIGHT, 0.0) '' se o anal for o 1o item, o Docx vai adicionar um item vazio :/
+		relYPos += height
+		relNroLinhas += 1
 		anal = anal->next_
 	loop
 #endmacro
 
 #macro list_add_DF_ENTRADA(__doc, __part)
 	scope
-		if relNroLinhas+DF_HEIGHT > MAX_ROWS then
+		var height = ROW_HEIGHT + iif(relNroLinhas = 0, -3, 0)
+		if relYPos + height > PAGE_VLIMIT then
 			gerarPaginaRelatorio()
 		end if
 		var lin = cast(RelLinha ptr, relLinhasList.add())
 		lin->tipo = REL_LIN_DF_ENTRADA
 		lin->df.doc = @__doc
 		lin->df.part = __part
-		relNroLinhas += DF_HEIGHT
+		relYPos += ROW_HEIGHT + iif(relNroLinhas = 0, -3, 0)
+		relNroLinhas += 1
 		list_add_ANAL(__doc, __doc.situacao)
 	end scope
 #endmacro
 
 #macro list_add_DF_SAIDA(__doc, __part)
 	scope
-		if relNroLinhas+DF_HEIGHT > MAX_ROWS then
+		var height = ROW_HEIGHT + iif(relNroLinhas = 0, -3, 0)
+		if relYPos + height > PAGE_VLIMIT then
 			gerarPaginaRelatorio()
 		end if
 		var lin = cast(RelLinha ptr, relLinhasList.add())
 		lin->tipo = REL_LIN_DF_SAIDA
 		lin->df.doc = @__doc
 		lin->df.part = __part
-		relNroLinhas += DF_HEIGHT
+		relYPos += ROW_HEIGHT + iif(relNroLinhas = 0, -3, 0)
+		relNroLinhas += 1
 		list_add_ANAL(__doc, __doc.situacao)
 	end scope
 #endmacro
 
 #macro list_add_REDZ(__doc)
 	scope
-		if relNroLinhas+DF_HEIGHT > MAX_ROWS then
+		var height = ROW_HEIGHT + iif(relNroLinhas = 0, -3, 0)
+		if relYPos + height > PAGE_VLIMIT then
 			gerarPaginaRelatorio()
 		end if
 		var lin = cast(RelLinha ptr, relLinhasList.add())
 		lin->tipo = REL_LIN_DF_REDZ
 		lin->redz.doc = @__doc
-		relNroLinhas += DF_HEIGHT
+		relYPos += ROW_HEIGHT + iif(relNroLinhas = 0, -3, 0)
+		relNroLinhas += 1
 		list_add_ANAL(__doc, REGULAR)
 	end scope
 #endmacro
 
 #macro list_add_SAT(__doc)
 	scope
-		if relNroLinhas+DF_HEIGHT > MAX_ROWS then
+		var height = ROW_HEIGHT + iif(relNroLinhas = 0, -3, 0)
+		if relYPos + height > PAGE_VLIMIT then
 			gerarPaginaRelatorio()
 		end if
 		var lin = cast(RelLinha ptr, relLinhasList.add())
 		lin->tipo = REL_LIN_DF_SAT
 		lin->sat.doc = @__doc
-		relNroLinhas += DF_HEIGHT
+		relYPos += ROW_HEIGHT + iif(relNroLinhas = 0, -3, 0)
+		relNroLinhas += 1
 		list_add_ANAL(__doc, REGULAR)
 	end scope
 #endmacro
@@ -91,13 +98,14 @@ sub Efd.gerarRelatorios(nomeArquivo as string, mostrarProgresso as ProgressoCB)
 	
 	ultimoRelatorio = -1
 
-	relLinhasList.init(cint(MAX_ROWS + 0.5), len(RelLinha))
+	relLinhasList.init(cint(PAGE_VLIMIT / ROW_HEIGHT + 0.5), len(RelLinha))
+	relPaginasList.init(1000, len(RelPagina))
 	
 	'' NOTA: por limitação do DocxFactory, que só consegue trabalhar com um template por vez, 
 	''		 precisamos processar entradas primeiro, depois saídas e por último os registros 
 	''		 que são sequenciais (LRE e LRS vêm intercalados na EFD)
 	
-	if not opcoes.pularLreLrsAoGerarRelatorios then
+	if not opcoes.pularLreAoGerarRelatorios then
 		'' LRE
 		iniciarRelatorio(REL_LRE, "entradas", "LRE")
 		
@@ -124,10 +132,10 @@ sub Efd.gerarRelatorios(nomeArquivo as string, mostrarProgresso as ProgressoCB)
 					var luaFunc = cast(customLuaCb ptr, customLuaCbDict[reg->lua.tipo])->rel_entradas
 					
 					if luaFunc <> null then
-						lua_getglobal(lua, luaFunc)
-						lua_pushlightuserdata(lua, dfwd)
-						lua_rawgeti(lua, LUA_REGISTRYINDEX, reg->lua.table)
-						lua_call(lua, 2, 0)
+						'lua_getglobal(lua, luaFunc)
+						'lua_pushlightuserdata(lua, dfwd)
+						'lua_rawgeti(lua, LUA_REGISTRYINDEX, reg->lua.table)
+						'lua_call(lua, 2, 0)
 					end if
 				end select
 				
@@ -138,11 +146,13 @@ sub Efd.gerarRelatorios(nomeArquivo as string, mostrarProgresso as ProgressoCB)
 		endtry
 		
 		finalizarRelatorio()
+	end if
 		
+	if not opcoes.pularLrsAoGerarRelatorios then
 		'' LRS
 		iniciarRelatorio(REL_LRS, "saidas", "LRS")
 		
-		reg = regListHead
+		var reg = regListHead
 		try
 			do while reg <> null
 				'para cada registro..
@@ -173,10 +183,10 @@ sub Efd.gerarRelatorios(nomeArquivo as string, mostrarProgresso as ProgressoCB)
 					var luaFunc = cast(customLuaCb ptr, customLuaCbDict[reg->lua.tipo])->rel_saidas
 					
 					if luaFunc <> null then
-						lua_getglobal(lua, luaFunc)
-						lua_pushlightuserdata(lua, dfwd)
-						lua_rawgeti(lua, LUA_REGISTRYINDEX, reg->lua.table)
-						lua_call(lua, 2, 0)
+						'lua_getglobal(lua, luaFunc)
+						'lua_pushlightuserdata(lua, dfwd)
+						'lua_rawgeti(lua, LUA_REGISTRYINDEX, reg->lua.table)
+						'lua_call(lua, 2, 0)
 					end if
 				end select
 
@@ -205,10 +215,10 @@ sub Efd.gerarRelatorios(nomeArquivo as string, mostrarProgresso as ProgressoCB)
 				var luaFunc = cast(customLuaCb ptr, customLuaCbDict[reg->lua.tipo])->rel_outros
 				
 				if luaFunc <> null then
-					lua_getglobal(lua, luaFunc)
-					lua_pushlightuserdata(lua, dfwd)
-					lua_rawgeti(lua, LUA_REGISTRYINDEX, reg->lua.table)
-					lua_call(lua, 2, 0)
+					'lua_getglobal(lua, luaFunc)
+					'lua_pushlightuserdata(lua, dfwd)
+					'lua_rawgeti(lua, LUA_REGISTRYINDEX, reg->lua.table)
+					'lua_call(lua, 2, 0)
 				end if
 			end select
 
@@ -218,6 +228,7 @@ sub Efd.gerarRelatorios(nomeArquivo as string, mostrarProgresso as ProgressoCB)
 		print !"\r\nErro ao tratar o registro de tipo (" & reg->tipo & !") carregado na linha (" & reg->linha & !")\r\n"
 	endtry
 	
+	relPaginasList.end_()
 	relLinhasList.end_()
 	
 	mostrarProgresso(null, 1)
@@ -276,7 +287,18 @@ private sub efd.gerarPaginaRelatorio(lastPage as boolean)
 		loop
 	end if
 
+	var pagina = cast(RelPagina ptr, relPaginasList.add())
+	pagina->emitir = gerarPagina
+
+	'' emitir header e footer
+	if gerarPagina then
+		relPage = relTemplate->clonePage(0)
+		pagina->page = relPage
+	end if
+	
 	var n = cast(RelLinha ptr, relLinhasList.head)
+	relNroLinhas = 0
+	relYPos = 0
 	do while n <> null
 		
 		if gerarPagina then
@@ -305,25 +327,9 @@ private sub efd.gerarPaginaRelatorio(lastPage as boolean)
 		relLinhasList.del(p)
 	loop
 	
-	if not gerarPagina then
-		var rows = cint(int(iif(lastPage, relNroLinhas, MAX_EMPTY_ROWS)))
-		
-		if rows > MAX_EMPTY_ROWS then
-			rows = MAX_EMPTY_ROWS
-		end if
-			
-		if rows = MAX_EMPTY_ROWS then
-			dfwd->setClipboardValueByStr("item_anal_empty", "ALERT", "DELETE_THIS_PAGE")
-		end if
-		
-		for i as integer = 1 to rows
-			dfwd->paste("item_anal_empty")
-		next
-	end if
-	
 	relNroPaginas += 1
-	
 	relNroLinhas = 0
+	relYPos = 0
 
 end sub
 
@@ -332,7 +338,7 @@ sub Efd.gerarRelatorioApuracaoICMS(nomeArquivo as string, reg as TRegistro ptr)
 
 	iniciarRelatorio(REL_RAICMS, "apuracao_icms", "RAICMS")
 	
-	dfwd->setClipboardValueByStrW("grid", "nome", regMestre->mestre.nome)
+	/'dfwd->setClipboardValueByStrW("grid", "nome", regMestre->mestre.nome)
 	dfwd->setClipboardValueByStr("grid", "cnpj", STR2CNPJ(regMestre->mestre.cnpj))
 	dfwd->setClipboardValueByStr("grid", "ie", STR2IE(regMestre->mestre.ie))
 	dfwd->setClipboardValueByStr("grid", "escrit", YyyyMmDd2DatetimeBR(regMestre->mestre.dataIni) + " a " + YyyyMmDd2DatetimeBR(regMestre->mestre.dataFim))
@@ -353,7 +359,7 @@ sub Efd.gerarRelatorioApuracaoICMS(nomeArquivo as string, reg as TRegistro ptr)
 	dfwd->setClipboardValueByStr("grid", "a_transportar", DBL2MONEYBR(reg->apuIcms.saldoCredTransportar))
 	dfwd->setClipboardValueByStr("grid", "extra_apu", DBL2MONEYBR(reg->apuIcms.debExtraApuracao))
 	
-	dfwd->paste("grid")
+	dfwd->paste("grid")'/
 
 	finalizarRelatorio()
 	
@@ -364,7 +370,7 @@ sub Efd.gerarRelatorioApuracaoICMSST(nomeArquivo as string, reg as TRegistro ptr
 
 	iniciarRelatorio(REL_RAICMSST, "apuracao_icms_st", "RAICMSST_" + reg->apuIcmsST.UF)
 
-	dfwd->setClipboardValueByStrW("grid", "nome", regMestre->mestre.nome)
+	/'dfwd->setClipboardValueByStrW("grid", "nome", regMestre->mestre.nome)
 	dfwd->setClipboardValueByStr("grid", "cnpj", STR2CNPJ(regMestre->mestre.cnpj))
 	dfwd->setClipboardValueByStr("grid", "ie", STR2IE(regMestre->mestre.ie))
 	dfwd->setClipboardValueByStr("grid", "escrit", YyyyMmDd2DatetimeBR(regMestre->mestre.dataIni) + " a " + YyyyMmDd2DatetimeBR(regMestre->mestre.dataFim))
@@ -386,7 +392,7 @@ sub Efd.gerarRelatorioApuracaoICMSST(nomeArquivo as string, reg as TRegistro ptr
 	dfwd->setClipboardValueByStr("grid", "a_transportar", DBL2MONEYBR(reg->apuIcmsST.saldoCredTransportar))
 	dfwd->setClipboardValueByStr("grid", "extra_apu", DBL2MONEYBR(reg->apuIcmsST.debExtraApuracao))
 
-	dfwd->paste("grid")
+	dfwd->paste("grid")'/
 
 	finalizarRelatorio()
 	
@@ -405,31 +411,89 @@ sub Efd.iniciarRelatorio(relatorio as TipoRelatorio, nomeRelatorio as string, su
 	ultimoRelatorio = relatorio
 	nroRegistrosRel = 0
 	
+	relYPos = 0
 	relNroLinhas = 0
 	relNroPaginas = 0
-
-	dfwd->load(baseTemplatesDir + nomeRelatorio + ".dfw")
-
-	dfwd->setClipboardValueByStrW("_header", "nome", regMestre->mestre.nome)
-	dfwd->setClipboardValueByStr("_header", "cnpj", STR2CNPJ(regMestre->mestre.cnpj))
-	dfwd->setClipboardValueByStr("_header", "ie", STR2IE(regMestre->mestre.ie))
-	dfwd->setClipboardValueByStr("_header", "uf", MUNICIPIO2SIGLA(regMestre->mestre.municip))
+	relPage = null
 	
 	select case relatorio
 	case REL_LRE, REL_LRS
-		dfwd->setClipboardValueByStr("_header", "municipio", codMunicipio2Nome(regMestre->mestre.municip))
-		dfwd->setClipboardValueByStr("_header", "apu", YyyyMmDd2DatetimeBR(regMestre->mestre.dataIni) + " a " + YyyyMmDd2DatetimeBR(regMestre->mestre.dataFim))
-	
 		relSomaLRList.init(10, len(RelSomatorioLR))
 		relSomaLRDict.init(10)
-		
-		dfwd->paste("tabela")
 	end select
 	
+	relTemplate = new PdfTemplate(baseTemplatesDir + nomeRelatorio + ".xml")
+	relTemplate->load()
+	
+	var page = relTemplate->getPage(0)
+	
+	'' alterar header e footer
+	var header = page->getNode("header")
+	header->setAttrib("hidden", false)
+	
+	var nome = page->getNode("NOME")
+	nome->setAttrib("text", regMestre->mestre.nome)
+	var cnpj = page->getNode("CNPJ")
+	cnpj->setAttrib("text", STR2CNPJ(regMestre->mestre.cnpj))
+	var ie = page->getNode("IE")
+	ie->setAttrib("text", STR2IE(regMestre->mestre.ie))
+	var uf = page->getNode("UF")
+	uf->setAttrib("text", MUNICIPIO2SIGLA(regMestre->mestre.municip))
+
+	select case relatorio
+	case REL_LRE, REL_LRS
+		var munic = page->getNode("MUNICIPIO")
+		munic->setAttrib("text", codMunicipio2Nome(regMestre->mestre.municip))
+		var apu = page->getNode("APU")
+		apu->setAttrib("text", YyyyMmDd2DatetimeBR(regMestre->mestre.dataIni) + " a " + YyyyMmDd2DatetimeBR(regMestre->mestre.dataFim))
+	end select
+
+	var footer = page->getNode("footer")
+	footer->setAttrib("hidden", false)
+	
+	if infAssinatura <> null then
+		var nomeAss = page->getNode("NOME_ASS")
+		nomeAss->setAttrib("text", infAssinatura->assinante)
+		var cpfAss = page->getNode("CPF_ASS")
+		cpfAss->setAttrib("text", STR2CPF(infAssinatura->cpf))
+		var hashAss = page->getNode("HASH_ASS")
+		hashAss->setAttrib("text", infAssinatura->hashDoArquivo)
+	end if
+
 end sub
 
 private function cmpFunc(key as any ptr, node as any ptr) as boolean
 	function = *cast(zstring ptr, key) < cast(RelSomatorioLR ptr, node)->chave
+end function
+
+''''''''
+function Efd.gerarLinhaDFe() as PdfTemplateNode ptr
+	if relNroLinhas > 0 then
+		relYPos -= 3
+	end if
+	
+	var row = relPage->getNode("row")
+	var clone = row->clone(relPage, relPage)
+	clone->setAttrib("hidden", false)
+	clone->translateY(relYPos)
+	
+	relYPos -= 0.5 + (19*0.5) + 0.5 + 0.5
+	relNroLinhas += 1
+	
+	return clone
+end function
+
+''''''''
+function Efd.gerarLinhaAnal() as PdfTemplateNode ptr
+	var anal = relPage->getNode("anal")
+	var clone = anal->clone(relPage, relPage)
+	clone->setAttrib("hidden", false)
+	clone->translateY(relYPos)
+	relYPos -= 0.5 + (19*0.5)
+	
+	relNroLinhas += 1
+
+	return clone
 end function
 
 ''''''''
@@ -465,20 +529,31 @@ sub Efd.adicionarDocRelatorioItemAnal(sit as TipoSituacao, anal as TDocItemAnal 
 
 	select case sit
 	case REGULAR, EXTEMPORANEO
-		dfwd->setClipboardValueByStr("linha_anal", "cst", format(anal->cst,"000"))
-		dfwd->setClipboardValueByStr("linha_anal", "cfop", anal->cfop)
-		dfwd->setClipboardValueByStr("linha_anal", "aliq", DBL2MONEYBR(anal->aliq))
-		dfwd->setClipboardValueByStr("linha_anal", "bc", DBL2MONEYBR(anal->bc))
-		dfwd->setClipboardValueByStr("linha_anal", "icms", DBL2MONEYBR(anal->ICMS))
-		dfwd->setClipboardValueByStr("linha_anal", "bcst", DBL2MONEYBR(anal->bcST))
-		dfwd->setClipboardValueByStr("linha_anal", "icmsst", DBL2MONEYBR(anal->ICMSST))
-		dfwd->setClipboardValueByStr("linha_anal", "ipi", DBL2MONEYBR(anal->IPI))
-		dfwd->setClipboardValueByStr("linha_anal", "valop", DBL2MONEYBR(anal->valorOp))
+	
+		var row = gerarLinhaAnal()
+
+		var cst = row->getChild("CST")
+		cst->setAttrib("text", format(anal->cst,"000"))
+		var cfop = row->getChild("")
+		cfop->setAttrib("text", str(anal->cfop))
+		var aliq = row->getChild("ALIQ")
+		aliq->setAttrib("text", DBL2MONEYBR(anal->aliq))
+		var bc = row->getChild("BC")
+		bc->setAttrib("text", DBL2MONEYBR(anal->bc))
+		var icms = row->getChild("ICMS")
+		icms->setAttrib("text", DBL2MONEYBR(anal->ICMS))
+		var bcst = row->getChild("BCST")
+		bcst->setAttrib("text", DBL2MONEYBR(anal->bcST))
+		var icmsSt = row->getChild("ICMSST")
+		icmsSt->setAttrib("text", DBL2MONEYBR(anal->ICMSST))
+		var ipi = row->getChild("IPI")
+		ipi->setAttrib("text", DBL2MONEYBR(anal->IPI))
+		var valop = row->getChild("VALOP")
+		valop->setAttrib("text", DBL2MONEYBR(anal->valorOp))
 		if ultimoRelatorio = REL_LRE then
-			dfwd->setClipboardValueByStr("linha_anal", "redbc", DBL2MONEYBR(anal->redBC))
+			'var redbc = row->getChild("REDBC")
+			'redbc->setAttrib("text", DBL2MONEYBR(anal->redBC))
 		end if
-		
-		dfwd->paste("linha_anal")
 	end select
 
 end sub
@@ -537,36 +612,42 @@ end function
 ''''''''
 sub Efd.adicionarDocRelatorioSaidas(doc as TDocDF ptr, part as TParticipante ptr)
 
+	var row = gerarLinhaDFe()
+	
 	if len(doc->dataEmi) > 0 then
-		dfwd->setClipboardValueByStr("linha", "demi", YyyyMmDd2DatetimeBR(doc->dataEmi))
+		var demi = row->getChild("DEMI")
+		demi->setAttrib("text", YyyyMmDd2DatetimeBR(doc->dataEmi))
 	end if
 	if len(doc->dataEntSaida) > 0 then
-		dfwd->setClipboardValueByStr("linha", "dsaida", YyyyMmDd2DatetimeBR(doc->dataEntSaida))
+		var dsaida = row->getChild("DSAIDA")
+		dsaida->setAttrib("text", YyyyMmDd2DatetimeBR(doc->dataEntSaida))
 	end if
-	dfwd->setClipboardValueByStr("linha", "nrini", doc->numero)
-	dfwd->setClipboardValueByStr("linha", "md", doc->modelo)
-	dfwd->setClipboardValueByStr("linha", "sr", doc->serie)
-	dfwd->setClipboardValueByStr("linha", "sub", doc->subserie)
-	dfwd->setClipboardValueByStr("linha", "sit", format(cdbl(doc->situacao), "00"))
+	var nrini = row->getChild("NRINI")
+	nrini->setAttrib("text", str(doc->numero))
+	var md = row->getChild("MD")
+	md->setAttrib("text", str(doc->modelo))
+	var sr = row->getChild("SR")
+	sr->setAttrib("text", doc->serie)
+	var subsr = row->getChild("SUB")
+	subsr->setAttrib("text", doc->subserie)
+	var sit = row->getChild("SIT")
+	sit->setAttrib("text", format(cdbl(doc->situacao), "00"))
 	
 	select case doc->situacao
 	case REGULAR, EXTEMPORANEO
 		if part <> null then
-			dfwd->setClipboardValueByStr("linha", "cnpjdest", iif(len(part->cpf) > 0, STR2CPF(part->cpf), STR2CNPJ(part->cnpj)))
-			dfwd->setClipboardValueByStr("linha", "iedest", STR2IE(part->ie))
-			dfwd->setClipboardValueByStr("linha", "uf", MUNICIPIO2SIGLA(part->municip))
-			dfwd->setClipboardValueByStr("linha", "mundest", str(part->municip))
-			dfwd->setClipboardValueByStrW("linha", "razaodest", left(part->nome, 64))
-		else
-			dfwd->setClipboardValueByStr("linha", "cnpjdest", "")
-			dfwd->setClipboardValueByStr("linha", "iedest", "")
-			dfwd->setClipboardValueByStr("linha", "uf", "")
-			dfwd->setClipboardValueByStr("linha", "mundest", "")
-			dfwd->setClipboardValueByStr("linha", "razaodest", "")
+			var cnpjdest = row->getChild("CNPJDEST")
+			cnpjdest->setAttrib("text", iif(len(part->cpf) > 0, STR2CPF(part->cpf), STR2CNPJ(part->cnpj)))
+			var iedest = row->getChild("IEDEST")
+			iedest->setAttrib("text", STR2IE(part->ie))
+			var uf = row->getChild("UFDEST")
+			uf->setAttrib("text", MUNICIPIO2SIGLA(part->municip))
+			var mundest = row->getChild("MUNDEST")
+			mundest->setAttrib("text", str(part->municip))
+			var razaodest = row->getChild("RAZAODEST")
+			razaodest->setAttrib("text", left(part->nome, 64))
 		end if
 	end select
-	
-	dfwd->paste("linha")
 	
 	nroRegistrosRel += 1
 	
@@ -575,6 +656,7 @@ end sub
 ''''''''
 sub Efd.adicionarDocRelatorioEntradas(doc as TDocDF ptr, part as TParticipante ptr)
 
+	/'
 	dfwd->setClipboardValueByStr("linha", "demi", YyyyMmDd2DatetimeBR(doc->dataEmi))
 	dfwd->setClipboardValueByStr("linha", "dent", YyyyMmDd2DatetimeBR(doc->dataEntSaida))
 	dfwd->setClipboardValueByStr("linha", "nro", doc->numero)
@@ -596,7 +678,7 @@ sub Efd.adicionarDocRelatorioEntradas(doc as TDocDF ptr, part as TParticipante p
 		dfwd->setClipboardValueByStr("linha", "razao", "")
 	end if
 	
-	dfwd->paste("linha")
+	dfwd->paste("linha")'/
 	
 	nroRegistrosRel += 1
 	
@@ -607,16 +689,22 @@ sub Efd.adicionarDocRelatorioSaidas(doc as TECFReducaoZ ptr)
 
 	var equip = doc->equipECF
 
-	dfwd->setClipboardValueByStr("linha", "demi", YyyyMmDd2DatetimeBR(doc->dataMov))
-	dfwd->setClipboardValueByStr("linha", "nrini", doc->numIni)
-	dfwd->setClipboardValueByStr("linha", "nrfim", doc->numFim)
-	dfwd->setClipboardValueByStr("linha", "ncaixa", equip->numCaixa)
-	dfwd->setClipboardValueByStr("linha", "ecf", equip->numSerie)
-	dfwd->setClipboardValueByStr("linha", "md", iif(equip->modelo = &h2D, "2D", str(equip->modelo)))
-	dfwd->setClipboardValueByStr("linha", "sr", "")
-	dfwd->setClipboardValueByStr("linha", "sit", "00")
+	var row = gerarLinhaDFe()
 	
-	dfwd->paste("linha")
+	var demi = row->getChild("DEMI")
+	demi->setAttrib("text", YyyyMmDd2DatetimeBR(doc->dataMov))
+	var nrini = row->getChild("NRINI")
+	nrini->setAttrib("text", str(doc->numIni))
+	var nrfim = row->getChild("NRINI")
+	nrfim->setAttrib("text", str(doc->numFim))
+	var ncaixa = row->getChild("NCAIXA")
+	ncaixa->setAttrib("text", str(equip->numCaixa))
+	var ecf = row->getChild("ECF")
+	ecf->setAttrib("text", equip->numSerie)
+	var md = row->getChild("MD")
+	md->setAttrib("text", iif(equip->modelo = &h2D, "2D", str(equip->modelo)))
+	var sit = row->getChild("SIT")
+	sit->setAttrib("text", "00")
 	
 	nroRegistrosRel += 1
 	
@@ -625,14 +713,18 @@ end sub
 ''''''''
 sub Efd.adicionarDocRelatorioSaidas(doc as TDocSAT ptr)
 
-	dfwd->setClipboardValueByStr("linha", "demi", YyyyMmDd2DatetimeBR(doc->dataEmi))
-	dfwd->setClipboardValueByStr("linha", "nro", doc->numero)
-	dfwd->setClipboardValueByStr("linha", "ecf", doc->serieEquip)
-	dfwd->setClipboardValueByStr("linha", "md", doc->modelo)
-	dfwd->setClipboardValueByStr("linha", "sr", "")
-	dfwd->setClipboardValueByStr("linha", "sit", format(cdbl(doc->situacao), "00"))
+	var row = gerarLinhaDFe()
 	
-	dfwd->paste("linha")
+	var demi = row->getChild("DEMI")
+	demi->setAttrib("text", YyyyMmDd2DatetimeBR(doc->dataEmi))
+	var nrini = row->getChild("NRINI")
+	nrini->setAttrib("text", str(doc->numero))
+	var ecf = row->getChild("ECF")
+	ecf->setAttrib("text", doc->serieEquip)
+	var md = row->getChild("MD")
+	md->setAttrib("text", str(doc->modelo))
+	var sit = row->getChild("SIT")
+	sit->setAttrib("text", format(cdbl(doc->situacao), "00"))
 	
 	nroRegistrosRel += 1
 	
@@ -647,36 +739,28 @@ sub Efd.finalizarRelatorio()
 	
 	gerarPaginaRelatorio(true)
 	
-	dim as string bookmark
-	select case ultimoRelatorio
-	case REL_LRE, REL_LRS
-		bookmark = "_header"
-	case else
-		bookmark = "ass"
-	end select
+	var outf = new PdfDoc()
 	
-	if infAssinatura <> null then
-		dfwd->setClipboardValueByStr(bookmark, "nome_ass", infAssinatura->assinante)
-		dfwd->setClipboardValueByStr(bookmark, "cpf_ass", STR2CPF(infAssinatura->cpf))
-		dfwd->setClipboardValueByStr(bookmark, "hash_ass", infAssinatura->hashDoArquivo)
-	else
-		dfwd->setClipboardValueByStr(bookmark, "nome_ass", "")
-		dfwd->setClipboardValueByStr(bookmark, "cpf_ass", "")
-		dfwd->setClipboardValueByStr(bookmark, "hash_ass", "")
-	end if
-
 	select case ultimoRelatorio
 	case REL_LRE, REL_LRS
 		
 		if nroRegistrosRel = 0 then
-			dfwd->paste("vazio")
+			var empty = relPage->getNode("empty")
+			empty->setAttrib("hidden", false)
+		
 		else
-			dfwd->paste("resumo")
+			if relPage = null then
+				relPage = relTemplate->clonePage(0)
+			end if
+
+			var resumo = relPage->getNode("resumo")
+			resumo->setAttrib("hidden", false)
 		
 			dim as RelSomatorioLR totSoma
 			
 			var soma = cast(RelSomatorioLR ptr, relSomaLRList.head)
 			do while soma <> null
+				/'
 				if ultimoRelatorio = REL_LRS then
 					dfwd->setClipboardValueByStr("resumo_linha", "sit", format(cdbl(soma->situacao), "00"))
 				end if
@@ -692,6 +776,7 @@ sub Efd.finalizarRelatorio()
 				dfwd->setClipboardValueByStr("resumo_linha", "ipi", DBL2MONEYBR(soma->ipi))
 				
 				dfwd->paste("resumo_linha")
+				'/
 				
 				totSoma.valorOp += soma->valorOp
 				totSoma.bc += soma->bc
@@ -703,7 +788,7 @@ sub Efd.finalizarRelatorio()
 				soma = relSomaLRList.next_(soma)
 			loop
 			
-			dfwd->paste("resumo_sep")
+			/'dfwd->paste("resumo_sep")
 			
 			dfwd->setClipboardValueByStr("resumo_total", "totvalop", DBL2MONEYBR(totSoma.valorOp))
 			dfwd->setClipboardValueByStr("resumo_total", "totbc", DBL2MONEYBR(totSoma.bc))
@@ -712,20 +797,42 @@ sub Efd.finalizarRelatorio()
 			dfwd->setClipboardValueByStr("resumo_total", "toticmsst", DBL2MONEYBR(totSoma.ICMSST))
 			dfwd->setClipboardValueByStr("resumo_total", "totipi", DBL2MONEYBR(totSoma.ipi))
 			
-			dfwd->paste("resumo_total")
+			dfwd->paste("resumo_total")'/
 		end if
+		
+		var cnt = 1
+		var pagina = cast(RelPagina ptr, relPaginasList.head)
+		do while pagina <> null
+			if pagina->emitir /'andalso cnt < 50'/ then
+				var page = pagina->page
+				var pg = page->getNode("PAGINA")
+				pg->setAttrib("text", wstr(cnt & "de " & relNroPaginas))
+				page->emit(outf, cnt-1)
+				delete page
+			end if
+			
+			cnt += 1
+			
+			var last = pagina
+			pagina = relPaginasList.next_(pagina)
+			relPaginasList.del(last)
+		loop
 		
 		relSomaLRDict.end_()
 		relSomaLRList.end_()
-	case else
-		dfwd->paste("ass")
 	end select
 	
-	dfwd->save(DdMmYyyy2Yyyy_Mm(regMestre->mestre.dataIni) + "_" + ultimoRelatorioSufixo + ".docx")
+	'' salvar PDF
+	outf->saveTo(DdMmYyyy2Yyyy_Mm(regMestre->mestre.dataIni) + "_" + ultimoRelatorioSufixo + ".pdf")
+	delete outf
 	
-	dfwd->close()
+	delete relTemplate
 	
 	ultimoRelatorio = -1
 	nroRegistrosRel = 0
+	relYPos = 0
+	relNroLinhas = 0
+	relNroPaginas = 0
+	relPage = null
 
 end sub

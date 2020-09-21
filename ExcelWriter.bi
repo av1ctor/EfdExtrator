@@ -1,7 +1,7 @@
 
 #include once "Lua/lualib.bi"
 #include once "Lua/lauxlib.bi"
-#include once "iconv.bi"
+#include once "libiconv.bi"
 #include once "xlsxwriter.bi"
 #define NULL 0
 

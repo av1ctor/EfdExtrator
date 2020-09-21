@@ -3,9 +3,9 @@
 #include once "bfile.bi"
 #include once "ExcelReader.bi"
 #include once "ExcelWriter.bi"
-#include once "DocxFactoryDyn.bi"
 #include once "DB.bi"
 #include once "Lua/lualib.bi"
+#include once "PDFer.bi"
 
 enum TTipoArquivo
 	TIPO_ARQUIVO_EFD
@@ -14,7 +14,8 @@ end enum
 
 type OpcoesExtracao
 	gerarRelatorios 		as boolean = false
-	pularLreLrsAoGerarRelatorios as boolean = false
+	pularLreAoGerarRelatorios as boolean = false
+	pularLrsAoGerarRelatorios as boolean = false
 	acrescentarDados		as boolean = false
 	formatoDeSaida 			as FileType = FT_XLSX
 	somenteRessarcimentoST 	as boolean = false
@@ -833,6 +834,11 @@ type RelLinha
 	end union
 end type
 
+type RelPagina
+	page			as PdfTemplatePageNode ptr
+	emitir			as boolean
+end type
+
 type ProgressoCB as sub(estagio as const wstring ptr, porCompleto as double)
 
 enum TipoInconsistencia
@@ -937,6 +943,8 @@ private:
 	declare sub relatorioSomarLR(sit as TipoSituacao, anal as TDocItemAnal ptr)
 	declare function codMunicipio2Nome(cod as integer) as string
 	declare sub gerarPaginaRelatorio(lastPage as boolean = false)
+	declare function gerarLinhaDFe() as PdfTemplateNode ptr
+	declare function gerarLinhaAnal() as PdfTemplateNode ptr
 	
 	declare sub analisarInconsistenciasLRE(mostrarProgresso as ProgressoCB)
 	declare sub analisarInconsistenciasLRS(mostrarProgresso as ProgressoCB)
@@ -1008,7 +1016,6 @@ private:
 	
 	'' geração de relatórios em formato PDF com o layout do programa EFD-ICMS-IPI da RFB
 	baseTemplatesDir		as string
-	dfwd					as DocxFactoryDyn ptr
 	ultimoRelatorio			as TipoRelatorio
 	ultimoRelatorioSufixo	as string
 	relSomaLRDict			as TDict
@@ -1017,7 +1024,11 @@ private:
 	municipDict				as TDict
 	relLinhasList			as TList			'' de RelLinha
 	relNroLinhas			as double
+	relYPos					as double
 	relNroPaginas			as integer
+	relTemplate				as PdfTemplate ptr
+	relPage					as PdfTemplatePageNode ptr
+	relPaginasList			as TList			'' de RelPagina
 	
 	''
 	assinaturaP7K_DER(any)	as byte
