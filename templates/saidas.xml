@@ -1108,7 +1108,7 @@
 					<lineto x="407" y="502.75"/>
 				</stroke_path>
 				<fill_text color="0 0 0">
-					<span font="Helvetica" wmode="0" bidi="0" trm="7 0 0 7" x="406" y="505.34" align="right" width="83" id="BC"></span>
+					<span font="Helvetica" wmode="0" bidi="0" trm="7 0 0 7" x="406" y="505.34" align="right" width="83" id="BCICMS"></span>
 				</fill_text>
 				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
 					<moveto x="406.75" y="513"/>
@@ -1146,7 +1146,7 @@
 					<lineto x="568" y="502.75"/>
 				</stroke_path>
 				<fill_text color="0 0 0">
-					<span font="Helvetica" wmode="0" bidi="0" trm="7 0 0 7" x="567" y="505.34" align="right" width="68" id="BCST"></span>
+					<span font="Helvetica" wmode="0" bidi="0" trm="7 0 0 7" x="567" y="505.34" align="right" width="68" id="BCICMSST"></span>
 				</fill_text>
 				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
 					<moveto x="567.75" y="513"/>

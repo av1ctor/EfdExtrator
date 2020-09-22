@@ -1,3 +1,5 @@
+'' Extrator de EFD
+'' Copyleft 2017-2020 André Vicentini (avtvicentini)
 '' fbc.exe EfdExtrator.bas Efd.bas Efd-analises.bas Efd-relatorios.bas Efd-misc.bas bfile.bas ExcelReader.bas ExcelWriter.bas list.bas Dict.bas Pdfer.bas DB.bas VarBox.bas trycatch.bas -d WITH_PARSER
 
 #include once "EFD.bi"
@@ -27,10 +29,6 @@ sub mostrarUso()
 	print wstr(!"\t   no Excel 2003 ou superior (exceto se o formato de saída for null)")
 	print wstr(!"\t6. A opção -gerarRelatorios gera os relatórios do EFD-ICMS-IPI")
 	print wstr(!"\t   no formato PDF.")
-	print wstr(!"\t   os relatórios e o execute - essa conversão é feita pelo Word e")
-	print wstr(!"\t   costuma ser demorada. Para remover páginas em branco (geradas")
-	print wstr(!"\t   pela opção -filtrarCnpj/-filtrarChaves), execute na pasta:")
-	print wstr(!"\t   pdffilter.exe -r DELETE_THIS_PAGE *.pdf")
 	print wstr(!"\t7. A opção -complementarDados inclui dados complementares na planilha")
 	print wstr(!"\t   (aba Saídas ou Entradas para docs de emissão própria) que será")
 	print wstr(!"\t   gerada e que não constam na EFD, caso os arquivos .csv do SAFI ou")
@@ -117,6 +115,9 @@ sub main()
 			case "-naogerarlrelrs"
 				opcoes.pularLreAoGerarRelatorios = true
 				opcoes.pularLrsAoGerarRelatorios = true
+				nroOpcoes += 1
+			case "-naogerarlraicms"
+				opcoes.pularLRaicmsAoGerarRelatorios = true
 				nroOpcoes += 1
 			case "-filtrarcnpj"
 				i += 1
