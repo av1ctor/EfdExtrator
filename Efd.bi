@@ -943,8 +943,12 @@ private:
 	declare sub relatorioSomarLR(sit as TipoSituacao, anal as TDocItemAnal ptr)
 	declare function codMunicipio2Nome(cod as integer) as string
 	declare sub gerarPaginaRelatorio(lastPage as boolean = false)
+	declare sub gerarResumoRelatorio()
+	declare sub gerarResumoRelatorioHeader()
+	declare sub setChildText(row as PdfTemplateNode ptr, id as string, value as string)
 	declare function gerarLinhaDFe() as PdfTemplateNode ptr
 	declare function gerarLinhaAnal() as PdfTemplateNode ptr
+	declare function criarPaginaRelatorio(emitir as boolean) as RelPagina ptr
 	
 	declare sub analisarInconsistenciasLRE(mostrarProgresso as ProgressoCB)
 	declare sub analisarInconsistenciasLRS(mostrarProgresso as ProgressoCB)

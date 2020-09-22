@@ -5,8 +5,12 @@
 #include once "trycatch.bi"
 
 const PAGE_VLIMIT = 441.9
-const ROW_HEIGHT = 3 + 0.5 + (19*0.5) + 0.5 + 0.5 	'' espaço anterior, linha superior, conteúdo, linha inferior, espaço posterior
-const ANAL_HEIGHT = 0.5 + (19*0.5) 					'' linha superior, conteúdo, linha inferior
+const ROW_SPACE_BEFORE = 3
+const STROKE_WIDTH = 0.5
+const ROW_HEIGHT = STROKE_WIDTH + 9.5 + STROKE_WIDTH + 0.5 	'' espaço anterior, linha superior, conteúdo, linha inferior, espaço posterior
+const ANAL_HEIGHT = STROKE_WIDTH + 9.5 						'' linha superior, conteúdo, linha inferior
+const RESUMO_HEADER_HEIGHT = 9.0
+const RESUMO_ROW_HEIGHT = 12.0
 
 #macro list_add_ANAL(__doc, __sit)
 	var anal = __doc.itemAnalListHead
@@ -27,7 +31,7 @@ const ANAL_HEIGHT = 0.5 + (19*0.5) 					'' linha superior, conteúdo, linha infer
 
 #macro list_add_DF_ENTRADA(__doc, __part)
 	scope
-		var height = ROW_HEIGHT + iif(relNroLinhas = 0, -3, 0)
+		var height = iif(relNroLinhas > 0, ROW_SPACE_BEFORE, 0) + ROW_HEIGHT
 		if relYPos + height > PAGE_VLIMIT then
 			gerarPaginaRelatorio()
 		end if
@@ -35,7 +39,7 @@ const ANAL_HEIGHT = 0.5 + (19*0.5) 					'' linha superior, conteúdo, linha infer
 		lin->tipo = REL_LIN_DF_ENTRADA
 		lin->df.doc = @__doc
 		lin->df.part = __part
-		relYPos += ROW_HEIGHT + iif(relNroLinhas = 0, -3, 0)
+		relYPos += iif(relNroLinhas > 0, ROW_SPACE_BEFORE, 0) + ROW_HEIGHT
 		relNroLinhas += 1
 		list_add_ANAL(__doc, __doc.situacao)
 	end scope
@@ -43,7 +47,7 @@ const ANAL_HEIGHT = 0.5 + (19*0.5) 					'' linha superior, conteúdo, linha infer
 
 #macro list_add_DF_SAIDA(__doc, __part)
 	scope
-		var height = ROW_HEIGHT + iif(relNroLinhas = 0, -3, 0)
+		var height = iif(relNroLinhas > 0, ROW_SPACE_BEFORE, 0) + ROW_HEIGHT
 		if relYPos + height > PAGE_VLIMIT then
 			gerarPaginaRelatorio()
 		end if
@@ -51,7 +55,7 @@ const ANAL_HEIGHT = 0.5 + (19*0.5) 					'' linha superior, conteúdo, linha infer
 		lin->tipo = REL_LIN_DF_SAIDA
 		lin->df.doc = @__doc
 		lin->df.part = __part
-		relYPos += ROW_HEIGHT + iif(relNroLinhas = 0, -3, 0)
+		relYPos += iif(relNroLinhas > 0, ROW_SPACE_BEFORE, 0) + ROW_HEIGHT
 		relNroLinhas += 1
 		list_add_ANAL(__doc, __doc.situacao)
 	end scope
@@ -59,14 +63,14 @@ const ANAL_HEIGHT = 0.5 + (19*0.5) 					'' linha superior, conteúdo, linha infer
 
 #macro list_add_REDZ(__doc)
 	scope
-		var height = ROW_HEIGHT + iif(relNroLinhas = 0, -3, 0)
+		var height = iif(relNroLinhas > 0, ROW_SPACE_BEFORE, 0) + ROW_HEIGHT
 		if relYPos + height > PAGE_VLIMIT then
 			gerarPaginaRelatorio()
 		end if
 		var lin = cast(RelLinha ptr, relLinhasList.add())
 		lin->tipo = REL_LIN_DF_REDZ
 		lin->redz.doc = @__doc
-		relYPos += ROW_HEIGHT + iif(relNroLinhas = 0, -3, 0)
+		relYPos += iif(relNroLinhas > 0, ROW_SPACE_BEFORE, 0) + ROW_HEIGHT
 		relNroLinhas += 1
 		list_add_ANAL(__doc, REGULAR)
 	end scope
@@ -74,14 +78,14 @@ const ANAL_HEIGHT = 0.5 + (19*0.5) 					'' linha superior, conteúdo, linha infer
 
 #macro list_add_SAT(__doc)
 	scope
-		var height = ROW_HEIGHT + iif(relNroLinhas = 0, -3, 0)
+		var height = iif(relNroLinhas > 0, ROW_SPACE_BEFORE, 0) + ROW_HEIGHT
 		if relYPos + height > PAGE_VLIMIT then
 			gerarPaginaRelatorio()
 		end if
 		var lin = cast(RelLinha ptr, relLinhasList.add())
 		lin->tipo = REL_LIN_DF_SAT
 		lin->sat.doc = @__doc
-		relYPos += ROW_HEIGHT + iif(relNroLinhas = 0, -3, 0)
+		relYPos += iif(relNroLinhas > 0, ROW_SPACE_BEFORE, 0) + ROW_HEIGHT
 		relNroLinhas += 1
 		list_add_ANAL(__doc, REGULAR)
 	end scope
@@ -236,6 +240,23 @@ sub Efd.gerarRelatorios(nomeArquivo as string, mostrarProgresso as ProgressoCB)
 end sub
 
 ''''''''
+private function efd.criarPaginaRelatorio(emitir as boolean) as RelPagina ptr
+	var pagina = cast(RelPagina ptr, relPaginasList.add())
+	pagina->emitir = emitir
+
+	'' emitir header e footer
+	if emitir then
+		relPage = relTemplate->clonePage(0)
+		pagina->page = relPage
+	end if
+	
+	relNroLinhas = 0
+	relYPos = 0
+	
+	return pagina
+end function
+
+''''''''
 private sub efd.gerarPaginaRelatorio(lastPage as boolean)
 
 	var gerarPagina = true
@@ -287,18 +308,10 @@ private sub efd.gerarPaginaRelatorio(lastPage as boolean)
 		loop
 	end if
 
-	var pagina = cast(RelPagina ptr, relPaginasList.add())
-	pagina->emitir = gerarPagina
+	var pagina = criarPaginaRelatorio(gerarPagina)
 
 	'' emitir header e footer
-	if gerarPagina then
-		relPage = relTemplate->clonePage(0)
-		pagina->page = relPage
-	end if
-	
 	var n = cast(RelLinha ptr, relLinhasList.head)
-	relNroLinhas = 0
-	relYPos = 0
 	do while n <> null
 		
 		if gerarPagina then
@@ -328,8 +341,10 @@ private sub efd.gerarPaginaRelatorio(lastPage as boolean)
 	loop
 	
 	relNroPaginas += 1
-	relNroLinhas = 0
-	relYPos = 0
+	if not lastPage then
+		relNroLinhas = 0
+		relYPos = 0
+	end if
 
 end sub
 
@@ -469,15 +484,15 @@ end function
 ''''''''
 function Efd.gerarLinhaDFe() as PdfTemplateNode ptr
 	if relNroLinhas > 0 then
-		relYPos -= 3
+		relYPos += ROW_SPACE_BEFORE
 	end if
 	
 	var row = relPage->getNode("row")
 	var clone = row->clone(relPage, relPage)
 	clone->setAttrib("hidden", false)
-	clone->translateY(relYPos)
+	clone->translateY(-relYPos)
 	
-	relYPos -= 0.5 + (19*0.5) + 0.5 + 0.5
+	relYPos += ROW_HEIGHT
 	relNroLinhas += 1
 	
 	return clone
@@ -488,9 +503,9 @@ function Efd.gerarLinhaAnal() as PdfTemplateNode ptr
 	var anal = relPage->getNode("anal")
 	var clone = anal->clone(relPage, relPage)
 	clone->setAttrib("hidden", false)
-	clone->translateY(relYPos)
-	relYPos -= 0.5 + (19*0.5)
+	clone->translateY(-relYPos)
 	
+	relYPos += ANAL_HEIGHT
 	relNroLinhas += 1
 
 	return clone
@@ -523,36 +538,30 @@ private sub Efd.relatorioSomarLR(sit as TipoSituacao, anal as TDocItemAnal ptr)
 end sub
 
 ''''''''
+sub Efd.setChildText(row as PdfTemplateNode ptr, id as string, value as string)
+	var node = row->getChild(id)
+	node->setAttrib("text", value)
+end sub
+
+''''''''
 sub Efd.adicionarDocRelatorioItemAnal(sit as TipoSituacao, anal as TDocItemAnal ptr)
 	
 	relatorioSomarLR(sit, anal)
 
 	select case sit
 	case REGULAR, EXTEMPORANEO
-	
 		var row = gerarLinhaAnal()
-
-		var cst = row->getChild("CST")
-		cst->setAttrib("text", format(anal->cst,"000"))
-		var cfop = row->getChild("")
-		cfop->setAttrib("text", str(anal->cfop))
-		var aliq = row->getChild("ALIQ")
-		aliq->setAttrib("text", DBL2MONEYBR(anal->aliq))
-		var bc = row->getChild("BC")
-		bc->setAttrib("text", DBL2MONEYBR(anal->bc))
-		var icms = row->getChild("ICMS")
-		icms->setAttrib("text", DBL2MONEYBR(anal->ICMS))
-		var bcst = row->getChild("BCST")
-		bcst->setAttrib("text", DBL2MONEYBR(anal->bcST))
-		var icmsSt = row->getChild("ICMSST")
-		icmsSt->setAttrib("text", DBL2MONEYBR(anal->ICMSST))
-		var ipi = row->getChild("IPI")
-		ipi->setAttrib("text", DBL2MONEYBR(anal->IPI))
-		var valop = row->getChild("VALOP")
-		valop->setAttrib("text", DBL2MONEYBR(anal->valorOp))
+		setChildText(row, "CST", format(anal->cst,"000"))
+		setChildText(row, "CFOP", str(anal->cfop))
+		setChildText(row, "ALIQ", DBL2MONEYBR(anal->aliq))
+		setChildText(row, "BC", DBL2MONEYBR(anal->bc))
+		setChildText(row, "ICMS", DBL2MONEYBR(anal->ICMS))
+		setChildText(row, "BCST", DBL2MONEYBR(anal->bcST))
+		setChildText(row, "ICMSST", DBL2MONEYBR(anal->ICMSST))
+		setChildText(row, "IPI", DBL2MONEYBR(anal->IPI))
+		setChildText(row, "VALOP", DBL2MONEYBR(anal->valorOp))
 		if ultimoRelatorio = REL_LRE then
-			'var redbc = row->getChild("REDBC")
-			'redbc->setAttrib("text", DBL2MONEYBR(anal->redBC))
+			'setChildText(row, "REDBC", DBL2MONEYBR(anal->redBC))
 		end if
 	end select
 
@@ -615,37 +624,25 @@ sub Efd.adicionarDocRelatorioSaidas(doc as TDocDF ptr, part as TParticipante ptr
 	var row = gerarLinhaDFe()
 	
 	if len(doc->dataEmi) > 0 then
-		var demi = row->getChild("DEMI")
-		demi->setAttrib("text", YyyyMmDd2DatetimeBR(doc->dataEmi))
+		setChildText(row, "DEMI", YyyyMmDd2DatetimeBR(doc->dataEmi))
 	end if
 	if len(doc->dataEntSaida) > 0 then
-		var dsaida = row->getChild("DSAIDA")
-		dsaida->setAttrib("text", YyyyMmDd2DatetimeBR(doc->dataEntSaida))
+		setChildText(row, "DSAIDA", YyyyMmDd2DatetimeBR(doc->dataEntSaida))
 	end if
-	var nrini = row->getChild("NRINI")
-	nrini->setAttrib("text", str(doc->numero))
-	var md = row->getChild("MD")
-	md->setAttrib("text", str(doc->modelo))
-	var sr = row->getChild("SR")
-	sr->setAttrib("text", doc->serie)
-	var subsr = row->getChild("SUB")
-	subsr->setAttrib("text", doc->subserie)
-	var sit = row->getChild("SIT")
-	sit->setAttrib("text", format(cdbl(doc->situacao), "00"))
+	setChildText(row, "NRINI", str(doc->numero))
+	setChildText(row, "MD", str(doc->modelo))
+	setChildText(row, "SR", doc->serie)
+	setChildText(row, "SUB", doc->subserie)
+	setChildText(row, "SIT", format(cdbl(doc->situacao), "00"))
 	
 	select case doc->situacao
 	case REGULAR, EXTEMPORANEO
 		if part <> null then
-			var cnpjdest = row->getChild("CNPJDEST")
-			cnpjdest->setAttrib("text", iif(len(part->cpf) > 0, STR2CPF(part->cpf), STR2CNPJ(part->cnpj)))
-			var iedest = row->getChild("IEDEST")
-			iedest->setAttrib("text", STR2IE(part->ie))
-			var uf = row->getChild("UFDEST")
-			uf->setAttrib("text", MUNICIPIO2SIGLA(part->municip))
-			var mundest = row->getChild("MUNDEST")
-			mundest->setAttrib("text", str(part->municip))
-			var razaodest = row->getChild("RAZAODEST")
-			razaodest->setAttrib("text", left(part->nome, 64))
+			setChildText(row, "CNPJDEST", iif(len(part->cpf) > 0, STR2CPF(part->cpf), STR2CNPJ(part->cnpj)))
+			setChildText(row, "IEDEST", STR2IE(part->ie))
+			setChildText(row, "UFDEST", MUNICIPIO2SIGLA(part->municip))
+			setChildText(row, "MUNDEST", str(part->municip))
+			setChildText(row, "RAZAODEST", left(part->nome, 64))
 		end if
 	end select
 	
@@ -691,20 +688,13 @@ sub Efd.adicionarDocRelatorioSaidas(doc as TECFReducaoZ ptr)
 
 	var row = gerarLinhaDFe()
 	
-	var demi = row->getChild("DEMI")
-	demi->setAttrib("text", YyyyMmDd2DatetimeBR(doc->dataMov))
-	var nrini = row->getChild("NRINI")
-	nrini->setAttrib("text", str(doc->numIni))
-	var nrfim = row->getChild("NRINI")
-	nrfim->setAttrib("text", str(doc->numFim))
-	var ncaixa = row->getChild("NCAIXA")
-	ncaixa->setAttrib("text", str(equip->numCaixa))
-	var ecf = row->getChild("ECF")
-	ecf->setAttrib("text", equip->numSerie)
-	var md = row->getChild("MD")
-	md->setAttrib("text", iif(equip->modelo = &h2D, "2D", str(equip->modelo)))
-	var sit = row->getChild("SIT")
-	sit->setAttrib("text", "00")
+	setChildText(row, "DEMI", YyyyMmDd2DatetimeBR(doc->dataMov))
+	setChildText(row, "NRINI", str(doc->numIni))
+	setChildText(row, "NRINI", str(doc->numFim))
+	setChildText(row, "NCAIXA", str(equip->numCaixa))
+	setChildText(row, "ECF", equip->numSerie)
+	setChildText(row, "MD", iif(equip->modelo = &h2D, "2D", str(equip->modelo)))
+	setChildText(row, "SIT", "00")
 	
 	nroRegistrosRel += 1
 	
@@ -715,19 +705,98 @@ sub Efd.adicionarDocRelatorioSaidas(doc as TDocSAT ptr)
 
 	var row = gerarLinhaDFe()
 	
-	var demi = row->getChild("DEMI")
-	demi->setAttrib("text", YyyyMmDd2DatetimeBR(doc->dataEmi))
-	var nrini = row->getChild("NRINI")
-	nrini->setAttrib("text", str(doc->numero))
-	var ecf = row->getChild("ECF")
-	ecf->setAttrib("text", doc->serieEquip)
-	var md = row->getChild("MD")
-	md->setAttrib("text", str(doc->modelo))
-	var sit = row->getChild("SIT")
-	sit->setAttrib("text", format(cdbl(doc->situacao), "00"))
+	setChildText(row, "DEMI", YyyyMmDd2DatetimeBR(doc->dataEmi))
+	setChildText(row, "NRINI", str(doc->numero))
+	setChildText(row, "ECF", doc->serieEquip)
+	setChildText(row, "MD", str(doc->modelo))
+	setChildText(row, "SIT", format(cdbl(doc->situacao), "00"))
 	
 	nroRegistrosRel += 1
 	
+end sub
+
+''''''''
+sub efd.gerarResumoRelatorioHeader()
+	relYPos += ROW_SPACE_BEFORE
+
+	var title = relPage->getNode("resumo-title")
+	title->setAttrib("hidden", false)
+	title->translateY(-relYPos)
+	relYPos += RESUMO_HEADER_HEIGHT
+
+	var header = relPage->getNode("resumo-header")
+	header->setAttrib("hidden", false)
+	header->translateY(-relYPos)
+	relYPos += RESUMO_HEADER_HEIGHT
+end sub
+
+sub efd.gerarResumoRelatorio()
+	'' header
+	if relPage = null orElse relYPos + ROW_SPACE_BEFORE + RESUMO_HEADER_HEIGHT * 2 + RESUMO_ROW_HEIGHT > PAGE_VLIMIT then
+		criarPaginaRelatorio(true)
+	end if
+	
+	gerarResumoRelatorioHeader()
+
+	'' tabela de totais
+	dim as RelSomatorioLR totSoma
+	
+	var soma = cast(RelSomatorioLR ptr, relSomaLRList.head)
+	do while soma <> null
+		if relYPos + RESUMO_ROW_HEIGHT > PAGE_VLIMIT then
+			criarPaginaRelatorio(true)
+			gerarResumoRelatorioHeader()
+		end if
+	
+		var org = relPage->getNode("resumo-row")
+		var row = org->clone(relPage, relPage)
+		row->setAttrib("hidden", false)
+		row->translateY(-relYPos)
+		relYPos += RESUMO_ROW_HEIGHT
+	
+		if ultimoRelatorio = REL_LRS then
+			setChildText(row, "SIT", format(cdbl(soma->situacao), "00"))
+		end if
+		
+		setChildText(row, "CST", format(soma->cst,"000"))
+		setChildText(row, "CFOP", str(soma->cfop))
+		setChildText(row, "ALIQ", DBL2MONEYBR(soma->aliq))
+		setChildText(row, "OPER", DBL2MONEYBR(soma->valorOp))
+		setChildText(row, "BCICMS", DBL2MONEYBR(soma->bc))
+		setChildText(row, "ICMS", DBL2MONEYBR(soma->icms))
+		setChildText(row, "BCICMSST", DBL2MONEYBR(soma->bcST))
+		setChildText(row, "ICMSST", DBL2MONEYBR(soma->ICMSST))
+		setChildText(row, "IPI", DBL2MONEYBR(soma->ipi))
+		
+		totSoma.valorOp += soma->valorOp
+		totSoma.bc += soma->bc
+		totSoma.icms += soma->icms
+		totSoma.bcST += soma->bcST
+		totSoma.ICMSST += soma->ICMSST
+		totSoma.ipi += soma->ipi
+		
+		soma = relSomaLRList.next_(soma)
+	loop
+	
+	'' totais
+	if relYPos + ROW_SPACE_BEFORE + RESUMO_HEADER_HEIGHT > PAGE_VLIMIT then
+		criarPaginaRelatorio(true)
+		gerarResumoRelatorioHeader()
+	end if
+	
+	relYPos += ROW_SPACE_BEFORE
+
+	var total = relPage->getNode("resumo-total")
+	total->setAttrib("hidden", false)
+	total->translateY(-relYPos)
+	relYPos += RESUMO_HEADER_HEIGHT
+	
+	setChildText(total, "OPERTOT", DBL2MONEYBR(totSoma.valorOp))
+	setChildText(total, "BCICMSTOT", DBL2MONEYBR(totSoma.bc))
+	setChildText(total, "ICMSTOT", DBL2MONEYBR(totSoma.icms))
+	setChildText(total, "BCICMSSTTOT", DBL2MONEYBR(totSoma.bcST))
+	setChildText(total, "ICMSSTTOT", DBL2MONEYBR(totSoma.ICMSST))
+	setChildText(total, "IPITOT", DBL2MONEYBR(totSoma.ipi))
 end sub
 
 ''''''''
@@ -749,61 +818,14 @@ sub Efd.finalizarRelatorio()
 			empty->setAttrib("hidden", false)
 		
 		else
-			if relPage = null then
-				relPage = relTemplate->clonePage(0)
-			end if
-
-			var resumo = relPage->getNode("resumo")
-			resumo->setAttrib("hidden", false)
-		
-			dim as RelSomatorioLR totSoma
-			
-			var soma = cast(RelSomatorioLR ptr, relSomaLRList.head)
-			do while soma <> null
-				/'
-				if ultimoRelatorio = REL_LRS then
-					dfwd->setClipboardValueByStr("resumo_linha", "sit", format(cdbl(soma->situacao), "00"))
-				end if
-				
-				dfwd->setClipboardValueByStr("resumo_linha", "cst", format(soma->cst,"000"))
-				dfwd->setClipboardValueByStr("resumo_linha", "cfop", soma->cfop)
-				dfwd->setClipboardValueByStr("resumo_linha", "aliq", DBL2MONEYBR(soma->aliq))
-				dfwd->setClipboardValueByStr("resumo_linha", "valop", DBL2MONEYBR(soma->valorOp))
-				dfwd->setClipboardValueByStr("resumo_linha", "bc", DBL2MONEYBR(soma->bc))
-				dfwd->setClipboardValueByStr("resumo_linha", "icms", DBL2MONEYBR(soma->icms))
-				dfwd->setClipboardValueByStr("resumo_linha", "bcst", DBL2MONEYBR(soma->bcST))
-				dfwd->setClipboardValueByStr("resumo_linha", "icmsst", DBL2MONEYBR(soma->ICMSST))
-				dfwd->setClipboardValueByStr("resumo_linha", "ipi", DBL2MONEYBR(soma->ipi))
-				
-				dfwd->paste("resumo_linha")
-				'/
-				
-				totSoma.valorOp += soma->valorOp
-				totSoma.bc += soma->bc
-				totSoma.icms += soma->icms
-				totSoma.bcST += soma->bcST
-				totSoma.ICMSST += soma->ICMSST
-				totSoma.ipi += soma->ipi
-				
-				soma = relSomaLRList.next_(soma)
-			loop
-			
-			/'dfwd->paste("resumo_sep")
-			
-			dfwd->setClipboardValueByStr("resumo_total", "totvalop", DBL2MONEYBR(totSoma.valorOp))
-			dfwd->setClipboardValueByStr("resumo_total", "totbc", DBL2MONEYBR(totSoma.bc))
-			dfwd->setClipboardValueByStr("resumo_total", "toticms", DBL2MONEYBR(totSoma.icms))
-			dfwd->setClipboardValueByStr("resumo_total", "totbcst", DBL2MONEYBR(totSoma.bcST))
-			dfwd->setClipboardValueByStr("resumo_total", "toticmsst", DBL2MONEYBR(totSoma.ICMSST))
-			dfwd->setClipboardValueByStr("resumo_total", "totipi", DBL2MONEYBR(totSoma.ipi))
-			
-			dfwd->paste("resumo_total")'/
+			gerarResumoRelatorio()
 		end if
 		
+		'' atribuir número de cada página
 		var cnt = 1
 		var pagina = cast(RelPagina ptr, relPaginasList.head)
 		do while pagina <> null
-			if pagina->emitir /'andalso cnt < 50'/ then
+			if pagina->emitir andalso cnt > 900 then
 				var page = pagina->page
 				var pg = page->getNode("PAGINA")
 				pg->setAttrib("text", wstr(cnt & "de " & relNroPaginas))
