@@ -13,18 +13,19 @@ enum TTipoArquivo
 end enum
 
 type OpcoesExtracao
-	gerarRelatorios 		as boolean = false
-	pularLreAoGerarRelatorios as boolean = false
-	pularLrsAoGerarRelatorios as boolean = false
-	acrescentarDados		as boolean = false
-	formatoDeSaida 			as FileType = FT_XLSX
-	somenteRessarcimentoST 	as boolean = false
-	dbEmDisco 				as boolean = false
-	manterDb				as boolean = false
-	filtrarCnpj				as boolean = false
-	filtrarChaves			as boolean = false
-	listaCnpj(any)			as string
-	listaChaves(any)		as string
+	gerarRelatorios 				as boolean = false
+	pularLreAoGerarRelatorios 		as boolean = false
+	pularLrsAoGerarRelatorios 		as boolean = false
+	pularLRaicmsAoGerarRelatorios	as boolean = false
+	acrescentarDados				as boolean = false
+	formatoDeSaida 					as FileType = FT_XLSX
+	somenteRessarcimentoST 			as boolean = false
+	dbEmDisco 						as boolean = false
+	manterDb						as boolean = false
+	filtrarCnpj						as boolean = false
+	filtrarChaves					as boolean = false
+	listaCnpj(any)					as string
+	listaChaves(any)				as string
 end type
 
 enum TipoRegistro
@@ -946,7 +947,9 @@ private:
 	declare sub gerarResumoRelatorio()
 	declare sub gerarResumoRelatorioHeader()
 	declare sub setNodeText(page as PdfTemplatePageNode ptr, id as string, value as string)
+	declare sub setNodeText(page as PdfTemplatePageNode ptr, id as string, value as wstring ptr)
 	declare sub setChildText(row as PdfTemplateNode ptr, id as string, value as string)
+	declare sub setChildText(row as PdfTemplateNode ptr, id as string, value as wstring ptr)
 	declare function gerarLinhaDFe() as PdfTemplateNode ptr
 	declare function gerarLinhaAnal() as PdfTemplateNode ptr
 	declare function criarPaginaRelatorio(emitir as boolean) as RelPagina ptr
@@ -1067,6 +1070,7 @@ declare sub splitstr(Text As String, Delim As String = ",", Ret() As String)
 declare function strreplace(byref text as string, byref a as string, byref b as string) as string
 declare function UF_SIGLA2COD(s as zstring ptr) as integer
 declare sub loadstrings(fromFile as string, toArray() as string)
+declare function utf8ToUtf16le(src as zstring ptr) as wstring ptr
 
 extern as string ufCod2Sigla(11 to 53)
 extern as TDict ufSigla2CodDict

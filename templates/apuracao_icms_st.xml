@@ -171,7 +171,7 @@
 				<lineto x="440" y="686"/>
 			</stroke_path>
 			<fill_text color="0 0 0">
-				<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="546.43" y="690.46" id="SALDO_CRED"></span>
+				<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="30" y="690.46" width="534" align="right" id="SALDO_CRED"></span>
 			</fill_text>
 			<fill_path winding="nonzero" color=".8 .80392 .81569">
 				<moveto x="30" y="671"/>
@@ -188,7 +188,7 @@
 				<lineto x="440" y="671"/>
 			</stroke_path>
 			<fill_text color="0 0 0">
-				<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="530.86" y="675.46" id="DEVOLUCOES"></span>
+				<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="30" y="675.46" width="534" align="right" id="DEVOLUCOES"></span>
 			</fill_text>
 			<fill_text color="0 0 0">
 				<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="32" y="660.46">VALOR DE ICMS ST - RESSARCIMENTOS</span>
@@ -198,7 +198,7 @@
 				<lineto x="440" y="656"/>
 			</stroke_path>
 			<fill_text color="0 0 0">
-				<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="546.43" y="660.46" id="RESSARCIMENTOS"></span>
+				<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="30" y="660.46" width="534" align="right" id="RESSARCIMENTOS"></span>
 			</fill_text>
 			<fill_path winding="nonzero" color=".8 .80392 .81569">
 				<moveto x="30" y="641"/>
@@ -215,7 +215,7 @@
 				<lineto x="440" y="641"/>
 			</stroke_path>
 			<fill_text color="0 0 0">
-				<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="541.98" y="645.46" id="OUTROS_CRED"></span>
+				<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="30" y="645.46" width="534" align="right" id="OUTROS_CRED"></span>
 			</fill_text>
 			<fill_text color="0 0 0">
 				<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="32" y="630.46">VALOR TOTAL DOS AJUSTES A CRÉDITO DE ICMS ST (provenientes dos documentos fiscais)</span>
@@ -225,7 +225,7 @@
 				<lineto x="440" y="626"/>
 			</stroke_path>
 			<fill_text color="0 0 0">
-				<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="546.43" y="630.46" id="AJUSTE_CRED"></span>
+				<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="30" y="630.46" width="534" align="right" id="AJUSTE_CRED"></span>
 			</fill_text>
 			<fill_path winding="nonzero" color=".8 .80392 .81569">
 				<moveto x="30" y="611"/>
@@ -242,7 +242,7 @@
 				<lineto x="440" y="611"/>
 			</stroke_path>
 			<fill_text color="0 0 0">
-				<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="521.97" y="615.46" id="ICMS_ST"></span>
+				<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="30" y="615.46" width="534" align="right" id="ICMS_ST"></span>
 			</fill_text>
 			<fill_text color="0 0 0">
 				<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="32" y="600.46">VALOR DE OUTROS DÉBITOS ST</span>
@@ -252,7 +252,7 @@
 				<lineto x="440" y="596"/>
 			</stroke_path>
 			<fill_text color="0 0 0">
-				<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="546.43" y="600.46" id="OUTROS_DEB"></span>
+				<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="30" y="600.46" width="534" align="right" id="OUTROS_DEB"></span>
 			</fill_text>
 			<fill_path winding="nonzero" color=".8 .80392 .81569">
 				<moveto x="30" y="581"/>
@@ -269,7 +269,7 @@
 				<lineto x="440" y="581"/>
 			</stroke_path>
 			<fill_text color="0 0 0">
-				<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="546.43" y="585.46" id="AJUSTE_DEB"></span>
+				<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="30" y="585.46" width="534" align="right" id="AJUSTE_DEB"></span>
 			</fill_text>
 			<fill_text color="0 0 0">
 				<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="32" y="570.46">VALOR DE SALDO DEVEDOR ICMS ST ANTES DAS DEDUÇÕES</span>
@@ -279,7 +279,7 @@
 				<lineto x="440" y="566"/>
 			</stroke_path>
 			<fill_text color="0 0 0">
-				<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="521.97" y="570.46" id="SALDO_DEV"></span>
+				<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="30" y="570.46" width="534" align="right" id="SALDO_DEV"></span>
 			</fill_text>
 			<fill_path winding="nonzero" color=".8 .80392 .81569">
 				<moveto x="30" y="551"/>
@@ -296,7 +296,7 @@
 				<lineto x="440" y="551"/>
 			</stroke_path>
 			<fill_text color="0 0 0">
-				<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="546.43" y="555.46" id="DEDUCOES"></span>
+				<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="30" y="555.46" width="534" align="right" id="DEDUCOES"></span>
 			</fill_text>
 			<fill_text color="0 0 0">
 				<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="32" y="540.46">VALOR DO ICMS ST A RECOLHER</span>
@@ -306,7 +306,7 @@
 				<lineto x="440" y="536"/>
 			</stroke_path>
 			<fill_text color="0 0 0">
-				<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="521.97" y="540.46" id="A_RECOLHER"></span>
+				<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="30" y="540.46" width="534" align="right" id="A_RECOLHER"></span>
 			</fill_text>
 			<fill_path winding="nonzero" color=".8 .80392 .81569">
 				<moveto x="30" y="521"/>
@@ -323,7 +323,7 @@
 				<lineto x="440" y="521"/>
 			</stroke_path>
 			<fill_text color="0 0 0">
-				<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="546.43" y="525.46" id="A_TRANSPORTAR"></span>
+				<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="30" y="525.46" width="534" align="right" id="A_TRANSPORTAR"></span>
 			</fill_text>
 			<fill_text color="0 0 0">
 				<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="32" y="510.46">VALORES RECOLHIDOS OU A RECOLHER, EXTRA-APURAÇÃO</span>
@@ -333,7 +333,7 @@
 				<lineto x="440" y="506"/>
 			</stroke_path>
 			<fill_text color="0 0 0">
-				<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="546.43" y="510.46" id="EXTRA_APU"></span>
+				<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="30" y="510.46" width="534" align="right" id="EXTRA_APU"></span>
 			</fill_text>
 			<stroke_path linewidth="2" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
 				<moveto x="30" y="506"/>

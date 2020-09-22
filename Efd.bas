@@ -53,7 +53,7 @@ constructor Efd()
 end constructor
 
 destructor Efd()
-	
+
 	''
 	dbConfig->close()
 	delete dbConfig
