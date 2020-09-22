@@ -945,6 +945,7 @@ private:
 	declare sub gerarPaginaRelatorio(lastPage as boolean = false)
 	declare sub gerarResumoRelatorio()
 	declare sub gerarResumoRelatorioHeader()
+	declare sub setNodeText(page as PdfTemplatePageNode ptr, id as string, value as string)
 	declare sub setChildText(row as PdfTemplateNode ptr, id as string, value as string)
 	declare function gerarLinhaDFe() as PdfTemplateNode ptr
 	declare function gerarLinhaAnal() as PdfTemplateNode ptr

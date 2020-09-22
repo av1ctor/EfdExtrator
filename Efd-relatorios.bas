@@ -244,7 +244,6 @@ private function efd.criarPaginaRelatorio(emitir as boolean) as RelPagina ptr
 	var pagina = cast(RelPagina ptr, relPaginasList.add())
 	pagina->emitir = emitir
 
-	'' emitir header e footer
 	if emitir then
 		relPage = relTemplate->clonePage(0)
 		pagina->page = relPage
@@ -353,28 +352,28 @@ sub Efd.gerarRelatorioApuracaoICMS(nomeArquivo as string, reg as TRegistro ptr)
 
 	iniciarRelatorio(REL_RAICMS, "apuracao_icms", "RAICMS")
 	
-	/'dfwd->setClipboardValueByStrW("grid", "nome", regMestre->mestre.nome)
-	dfwd->setClipboardValueByStr("grid", "cnpj", STR2CNPJ(regMestre->mestre.cnpj))
-	dfwd->setClipboardValueByStr("grid", "ie", STR2IE(regMestre->mestre.ie))
-	dfwd->setClipboardValueByStr("grid", "escrit", YyyyMmDd2DatetimeBR(regMestre->mestre.dataIni) + " a " + YyyyMmDd2DatetimeBR(regMestre->mestre.dataFim))
-	dfwd->setClipboardValueByStr("grid", "apur", YyyyMmDd2DatetimeBR(reg->apuIcms.dataIni) + " a " + YyyyMmDd2DatetimeBR(reg->apuIcms.dataFim))
+	criarPaginaRelatorio(true)
 	
-	dfwd->setClipboardValueByStr("grid", "saidas", DBL2MONEYBR(reg->apuIcms.totalDebitos))
-	dfwd->setClipboardValueByStr("grid", "ajuste_deb", DBL2MONEYBR(reg->apuIcms.ajustesDebitos))
-	dfwd->setClipboardValueByStr("grid", "ajuste_deb_imp", DBL2MONEYBR(reg->apuIcms.totalAjusteDeb))
-	dfwd->setClipboardValueByStr("grid", "estorno_cred", DBL2MONEYBR(reg->apuIcms.estornosCredito))
-	dfwd->setClipboardValueByStr("grid", "credito", DBL2MONEYBR(reg->apuIcms.totalCreditos))
-	dfwd->setClipboardValueByStr("grid", "ajuste_cred", DBL2MONEYBR(reg->apuIcms.ajustesCreditos))
-	dfwd->setClipboardValueByStr("grid", "ajuste_cred_imp", DBL2MONEYBR(reg->apuIcms.totalAjusteCred))
-	dfwd->setClipboardValueByStr("grid", "estorno_deb", DBL2MONEYBR(reg->apuIcms.estornoDebitos))
-	dfwd->setClipboardValueByStr("grid", "cred_anterior", DBL2MONEYBR(reg->apuIcms.saldoCredAnterior))
-	dfwd->setClipboardValueByStr("grid", "saldo_dev", DBL2MONEYBR(reg->apuIcms.saldoDevedorApurado))
-	dfwd->setClipboardValueByStr("grid", "deducoes", DBL2MONEYBR(reg->apuIcms.totalDeducoes))
-	dfwd->setClipboardValueByStr("grid", "a_recolher", DBL2MONEYBR(reg->apuIcms.icmsRecolher))
-	dfwd->setClipboardValueByStr("grid", "a_transportar", DBL2MONEYBR(reg->apuIcms.saldoCredTransportar))
-	dfwd->setClipboardValueByStr("grid", "extra_apu", DBL2MONEYBR(reg->apuIcms.debExtraApuracao))
+	setNodeText(relPage, "NOME", regMestre->mestre.nome)
+	setNodeText(relPage, "CNPJ", STR2CNPJ(regMestre->mestre.cnpj))
+	setNodeText(relPage, "IE", STR2IE(regMestre->mestre.ie))
+	setNodeText(relPage, "ESCRIT", YyyyMmDd2DatetimeBR(regMestre->mestre.dataIni) + " a " + YyyyMmDd2DatetimeBR(regMestre->mestre.dataFim))
+	setNodeText(relPage, "APU", YyyyMmDd2DatetimeBR(reg->apuIcms.dataIni) + " a " + YyyyMmDd2DatetimeBR(reg->apuIcms.dataFim))
 	
-	dfwd->paste("grid")'/
+	setNodeText(relPage, "SAIDAS", DBL2MONEYBR(reg->apuIcms.totalDebitos))
+	setNodeText(relPage, "AJUSTE_DEB", DBL2MONEYBR(reg->apuIcms.ajustesDebitos))
+	setNodeText(relPage, "AJUSTE_DEB_IMP", DBL2MONEYBR(reg->apuIcms.totalAjusteDeb))
+	setNodeText(relPage, "ESTORNO_CRED", DBL2MONEYBR(reg->apuIcms.estornosCredito))
+	setNodeText(relPage, "CREDITO", DBL2MONEYBR(reg->apuIcms.totalCreditos))
+	setNodeText(relPage, "AJUSTE_CRED", DBL2MONEYBR(reg->apuIcms.ajustesCreditos))
+	setNodeText(relPage, "AJUSTE_CRED_IMP", DBL2MONEYBR(reg->apuIcms.totalAjusteCred))
+	setNodeText(relPage, "ESTORNO_DEB", DBL2MONEYBR(reg->apuIcms.estornoDebitos))
+	setNodeText(relPage, "CRED_ANTERIOR", DBL2MONEYBR(reg->apuIcms.saldoCredAnterior))
+	setNodeText(relPage, "SALDO_DEV", DBL2MONEYBR(reg->apuIcms.saldoDevedorApurado))
+	setNodeText(relPage, "DEDUCOES", DBL2MONEYBR(reg->apuIcms.totalDeducoes))
+	setNodeText(relPage, "A_RECOLHER", DBL2MONEYBR(reg->apuIcms.icmsRecolher))
+	setNodeText(relPage, "A_TRANSPORTAR", DBL2MONEYBR(reg->apuIcms.saldoCredTransportar))
+	setNodeText(relPage, "EXTRA_APU", DBL2MONEYBR(reg->apuIcms.debExtraApuracao))
 
 	finalizarRelatorio()
 	
@@ -385,29 +384,29 @@ sub Efd.gerarRelatorioApuracaoICMSST(nomeArquivo as string, reg as TRegistro ptr
 
 	iniciarRelatorio(REL_RAICMSST, "apuracao_icms_st", "RAICMSST_" + reg->apuIcmsST.UF)
 
-	/'dfwd->setClipboardValueByStrW("grid", "nome", regMestre->mestre.nome)
-	dfwd->setClipboardValueByStr("grid", "cnpj", STR2CNPJ(regMestre->mestre.cnpj))
-	dfwd->setClipboardValueByStr("grid", "ie", STR2IE(regMestre->mestre.ie))
-	dfwd->setClipboardValueByStr("grid", "escrit", YyyyMmDd2DatetimeBR(regMestre->mestre.dataIni) + " a " + YyyyMmDd2DatetimeBR(regMestre->mestre.dataFim))
-	dfwd->setClipboardValueByStrW("grid", "apur", YyyyMmDd2DatetimeBR(reg->apuIcmsST.dataIni) + " a " + YyyyMmDd2DatetimeBR(reg->apuIcmsST.dataFim) + " - INSCRIÃ‡ÃƒO ESTADUAL:")
-	dfwd->setClipboardValueByStr("grid", "UF", reg->apuIcmsST.UF)
-	dfwd->setClipboardValueByStr("grid", "MOV", iif(reg->apuIcmsST.mov, "1 - COM", "0 - SEM"))
+	criarPaginaRelatorio(true)
 	
-	dfwd->setClipboardValueByStr("grid", "saldo_cred", DBL2MONEYBR(reg->apuIcmsST.saldoCredAnterior))
-	dfwd->setClipboardValueByStr("grid", "devolucoes", DBL2MONEYBR(reg->apuIcmsST.devolMercadorias))
-	dfwd->setClipboardValueByStr("grid", "ressarcimentos", DBL2MONEYBR(reg->apuIcmsST.totalRessarciment))
-	dfwd->setClipboardValueByStr("grid", "outros_cred", DBL2MONEYBR(reg->apuIcmsST.totalOutrosCred))
-	dfwd->setClipboardValueByStr("grid", "ajuste_cred", DBL2MONEYBR(reg->apuIcmsST.ajusteCred))
-	dfwd->setClipboardValueByStr("grid", "icms_st", DBL2MONEYBR(reg->apuIcmsST.totalRetencao))
-	dfwd->setClipboardValueByStr("grid", "outros_deb", DBL2MONEYBR(reg->apuIcmsST.totalOutrosDeb))
-	dfwd->setClipboardValueByStr("grid", "ajuste_deb", DBL2MONEYBR(reg->apuIcmsST.ajusteDeb))
-	dfwd->setClipboardValueByStr("grid", "saldo_dev", DBL2MONEYBR(reg->apuIcmsST.saldoAntesDed))
-	dfwd->setClipboardValueByStr("grid", "deducoes", DBL2MONEYBR(reg->apuIcmsST.totalDeducoes))
-	dfwd->setClipboardValueByStr("grid", "a_recolher", DBL2MONEYBR(reg->apuIcmsST.icmsRecolher))
-	dfwd->setClipboardValueByStr("grid", "a_transportar", DBL2MONEYBR(reg->apuIcmsST.saldoCredTransportar))
-	dfwd->setClipboardValueByStr("grid", "extra_apu", DBL2MONEYBR(reg->apuIcmsST.debExtraApuracao))
-
-	dfwd->paste("grid")'/
+	setNodeText(relPage, "NOME", regMestre->mestre.nome)
+	setNodeText(relPage, "CNPJ", STR2CNPJ(regMestre->mestre.cnpj))
+	setNodeText(relPage, "IE", STR2IE(regMestre->mestre.ie))
+	setNodeText(relPage, "ESCRIT", YyyyMmDd2DatetimeBR(regMestre->mestre.dataIni) + " a " + YyyyMmDd2DatetimeBR(regMestre->mestre.dataFim))
+	setNodeText(relPage, "APU", YyyyMmDd2DatetimeBR(reg->apuIcmsST.dataIni) + " a " + YyyyMmDd2DatetimeBR(reg->apuIcmsST.dataFim))
+	setNodeText(relPage, "UF", reg->apuIcmsST.UF)
+	setNodeText(relPage, "MOV", iif(reg->apuIcmsST.mov, "1 - COM", "0 - SEM"))
+	
+	setNodeText(relPage, "SALDO_CRED", DBL2MONEYBR(reg->apuIcmsST.saldoCredAnterior))
+	setNodeText(relPage, "DEVOLUCOES", DBL2MONEYBR(reg->apuIcmsST.devolMercadorias))
+	setNodeText(relPage, "RESSARCIMENTOS", DBL2MONEYBR(reg->apuIcmsST.totalRessarciment))
+	setNodeText(relPage, "OUTROS_CRED", DBL2MONEYBR(reg->apuIcmsST.totalOutrosCred))
+	setNodeText(relPage, "AJUSTE_CRED", DBL2MONEYBR(reg->apuIcmsST.ajusteCred))
+	setNodeText(relPage, "ICMS_ST", DBL2MONEYBR(reg->apuIcmsST.totalRetencao))
+	setNodeText(relPage, "OUTROS_DEB", DBL2MONEYBR(reg->apuIcmsST.totalOutrosDeb))
+	setNodeText(relPage, "AJUSTE_DEB", DBL2MONEYBR(reg->apuIcmsST.ajusteDeb))
+	setNodeText(relPage, "SALDO_DEV", DBL2MONEYBR(reg->apuIcmsST.saldoAntesDed))
+	setNodeText(relPage, "DEDUCOES", DBL2MONEYBR(reg->apuIcmsST.totalDeducoes))
+	setNodeText(relPage, "A_RECOLHER", DBL2MONEYBR(reg->apuIcmsST.icmsRecolher))
+	setNodeText(relPage, "A_TRANSPORTAR", DBL2MONEYBR(reg->apuIcmsST.saldoCredTransportar))
+	setNodeText(relPage, "EXTRA_APU", DBL2MONEYBR(reg->apuIcmsST.debExtraApuracao))
 
 	finalizarRelatorio()
 	
@@ -452,11 +451,11 @@ sub Efd.iniciarRelatorio(relatorio as TipoRelatorio, nomeRelatorio as string, su
 	cnpj->setAttrib("text", STR2CNPJ(regMestre->mestre.cnpj))
 	var ie = page->getNode("IE")
 	ie->setAttrib("text", STR2IE(regMestre->mestre.ie))
-	var uf = page->getNode("UF")
-	uf->setAttrib("text", MUNICIPIO2SIGLA(regMestre->mestre.municip))
-
+	
 	select case relatorio
 	case REL_LRE, REL_LRS
+		var uf = page->getNode("UF")
+		uf->setAttrib("text", MUNICIPIO2SIGLA(regMestre->mestre.municip))
 		var munic = page->getNode("MUNICIPIO")
 		munic->setAttrib("text", codMunicipio2Nome(regMestre->mestre.municip))
 		var apu = page->getNode("APU")
@@ -540,6 +539,12 @@ end sub
 ''''''''
 sub Efd.setChildText(row as PdfTemplateNode ptr, id as string, value as string)
 	var node = row->getChild(id)
+	node->setAttrib("text", value)
+end sub
+
+''''''''
+sub Efd.setNodeText(page as PdfTemplatePageNode ptr, id as string, value as string)
+	var node = page->getNode(id)
 	node->setAttrib("text", value)
 end sub
 
@@ -806,49 +811,52 @@ sub Efd.finalizarRelatorio()
 		return
 	end if
 	
-	gerarPaginaRelatorio(true)
-	
 	var outf = new PdfDoc()
 	
 	select case ultimoRelatorio
 	case REL_LRE, REL_LRS
+		gerarPaginaRelatorio(true)
 		
 		if nroRegistrosRel = 0 then
 			var empty = relPage->getNode("empty")
 			empty->setAttrib("hidden", false)
-		
 		else
 			gerarResumoRelatorio()
 		end if
-		
-		'' atribuir número de cada página
-		var cnt = 1
-		var pagina = cast(RelPagina ptr, relPaginasList.head)
-		do while pagina <> null
-			if pagina->emitir andalso cnt > 900 then
-				var page = pagina->page
-				var pg = page->getNode("PAGINA")
-				pg->setAttrib("text", wstr(cnt & "de " & relNroPaginas))
-				page->emit(outf, cnt-1)
-				delete page
-			end if
-			
-			cnt += 1
-			
-			var last = pagina
-			pagina = relPaginasList.next_(pagina)
-			relPaginasList.del(last)
-		loop
-		
-		relSomaLRDict.end_()
-		relSomaLRList.end_()
 	end select
+	
+	'' atribuir número de cada página
+	var cnt = 1
+	var pagina = cast(RelPagina ptr, relPaginasList.head)
+	do while pagina <> null
+		if pagina->emitir then
+			var page = pagina->page
+			var pg = page->getNode("PAGINA")
+			if pg <> null then
+				pg->setAttrib("text", wstr(cnt & "de " & relNroPaginas))
+			end if
+			page->emit(outf, cnt-1)
+			delete page
+		end if
+		
+		cnt += 1
+		
+		var last = pagina
+		pagina = relPaginasList.next_(pagina)
+		relPaginasList.del(last)
+	loop
 	
 	'' salvar PDF
 	outf->saveTo(DdMmYyyy2Yyyy_Mm(regMestre->mestre.dataIni) + "_" + ultimoRelatorioSufixo + ".pdf")
 	delete outf
 	
 	delete relTemplate
+
+	select case ultimoRelatorio
+	case REL_LRE, REL_LRS
+		relSomaLRDict.end_()
+		relSomaLRList.end_()
+	end select
 	
 	ultimoRelatorio = -1
 	nroRegistrosRel = 0
