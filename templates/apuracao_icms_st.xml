@@ -1,1464 +1,511 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <document>
-	<page number="1" mediabox="0 0 842 595">
+	<page number="1" mediabox="0 0 595 842">
 		<set_default_colorspaces gray="DeviceGray" rgb="DeviceRGB" cmyk="DeviceCMYK" oi="None"/>
-		<group bbox="0 0 842 595" isolated="1" knockout="0" blendmode="Normal" alpha="1">
-			<stroke_path linewidth="2" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-				<moveto x="31" y="513.5"/>
-				<lineto x="812" y="513.5"/>
-			</stroke_path>
-			<fill_path winding="nonzero" color=".8 .8 .8">
-				<moveto x="30" y="574"/>
-				<lineto x="812" y="574"/>
-				<lineto x="812" y="560"/>
-				<lineto x="30" y="560"/>
-				<closepath/>
-			</fill_path>
+		<group bbox="0 0 595 842" isolated="1" knockout="0" blendmode="Normal" alpha="1">
 			<template id="header">
-				<fill_text color="0 0 0">
-					<span font="Helvetica-Bold" wmode="0" bidi="0" trm="10 0 0 10" x="171.53" y="563.21">REGISTROS FISCAIS DOS DOCUMENTOS DE SAÍDAS DE MERCADORIAS E PRESTAÇÃO DE SERVIÇOS</span>
-				</fill_text>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="30" y="560"/>
-					<lineto x="812" y="560"/>
+				<stroke_path linewidth="1" miterlimit="10" linecap="2,2,2" linejoin="0" color="0 0 0">
+					<moveto x="32" y="746"/>
+					<lineto x="563" y="746"/>
+					<curveto x1="564.1" y1="746" x2="565" y2="746.9" x3="565" y3="748"/>
+					<lineto x="565" y="820"/>
+					<curveto x1="565" y1="821.1" x2="564.1" y2="822" x3="563" y3="822"/>
+					<lineto x="32" y="822"/>
+					<curveto x1="30.9" y1="822" x2="30" y2="821.1" x3="30" y3="820"/>
+					<lineto x="30" y="748"/>
+					<curveto x1="30" y1="746.9" x2="30.9" y2="746" x3="32" y3="746"/>
 				</stroke_path>
-				<fill_text color="0 0 0">
-					<span font="Helvetica-Bold" wmode="0" bidi="0" trm="8 0 0 8" x="38" y="551.96">CONTRIBUINTE</span>
-				</fill_text>
-				<fill_text color="0 0 0">
-					<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="102" y="551.96" id="NOME"></span>
-				</fill_text>
-				<fill_text color="0 0 0">
-					<span font="Helvetica-Bold" wmode="0" bidi="0" trm="8 0 0 8" x="38" y="541.96">CNPJ/CPF:</span>
-				</fill_text>
-				<fill_text color="0 0 0">
-					<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="81" y="541.96" id="CNPJ"></span>
-				</fill_text>
-				<fill_text color="0 0 0">
-					<span font="Helvetica-Bold" wmode="0" bidi="0" trm="8 0 0 8" x="188" y="541.96">INSCRIÇÃO ESTADUAL:</span>
-				</fill_text>
-				<fill_text color="0 0 0">
-					<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="285" y="541.96" id="IE"></span>
-				</fill_text>
-				<fill_path winding="nonzero" color="1 1 1">
-					<moveto x="355" y="550"/>
-					<lineto x="370" y="550"/>
-					<lineto x="370" y="540"/>
-					<lineto x="355" y="540"/>
+				<fill_path winding="nonzero" color=".8 .8 .8">
+					<moveto x="30" y="822"/>
+					<lineto x="565" y="822"/>
+					<lineto x="565" y="799"/>
+					<lineto x="30" y="799"/>
 					<closepath/>
 				</fill_path>
 				<fill_text color="0 0 0">
-					<span font="Helvetica-Bold" wmode="0" bidi="0" trm="8 0 0 8" x="355" y="541.96">UF:</span>
+					<span font="Helvetica-Bold" wmode="0" bidi="0" trm="12 0 0 12" x="80.16" y="805.95">REGISTROS FISCAIS DA APURAÇÃO DO ICMS - SUBSTITUIÇÃO TRIBUTÁRIA</span>
+				</fill_text>
+				<stroke_path linewidth="1" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
+					<moveto x="29.5" y="822"/>
+					<lineto x="565.5" y="822"/>
+				</stroke_path>
+				<stroke_path linewidth="1" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
+					<moveto x="30" y="822.5"/>
+					<lineto x="30" y="798.5"/>
+				</stroke_path>
+				<stroke_path linewidth="1" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
+					<moveto x="29.5" y="799"/>
+					<lineto x="565.5" y="799"/>
+				</stroke_path>
+				<stroke_path linewidth="1" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
+					<moveto x="565" y="822.5"/>
+					<lineto x="565" y="798.5"/>
+				</stroke_path>
+				<fill_text color="0 0 0">
+					<span font="Helvetica-Bold" wmode="0" bidi="0" trm="10 0 0 10" x="38" y="787.71">CONTRIBUINTE:</span>
 				</fill_text>
 				<fill_text color="0 0 0">
-					<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="369" y="541.96" id="UF"></span>
+					<span font="Helvetica" wmode="0" bidi="0" trm="10 0 0 10" x="124" y="788.21" id="NOME"></span>
+				</fill_text>
+				<fill_text color="0 0 0">
+					<span font="Helvetica-Bold" wmode="0" bidi="0" trm="10 0 0 10" x="38" y="768.96">CNPJ/CPF:</span>
+				</fill_text>
+				<fill_text color="0 0 0">
+					<span font="Helvetica" wmode="0" bidi="0" trm="10 0 0 10" x="94" y="768.96" id="CNPJ"></span>
+				</fill_text>
+				<fill_text color="0 0 0">
+					<span font="Helvetica" wmode="0" bidi="0" trm="10 0 0 10" x="369" y="768.96" id="IE"></span>
+				</fill_text>
+				<fill_text color="0 0 0">
+					<span font="Helvetica-Bold" wmode="0" bidi="0" trm="10 0 0 10" x="250" y="769.96">INSCRIÇÃO ESTADUAL:</span>
 				</fill_text>
 				<fill_path winding="nonzero" color="1 1 1">
-					<moveto x="395" y="550"/>
-					<lineto x="444" y="550"/>
-					<lineto x="444" y="540"/>
-					<lineto x="395" y="540"/>
+					<moveto x="40" y="767"/>
+					<lineto x="198" y="767"/>
+					<lineto x="198" y="752"/>
+					<lineto x="40" y="752"/>
 					<closepath/>
 				</fill_path>
 				<fill_text color="0 0 0">
-					<span font="Helvetica-Bold" wmode="0" bidi="0" trm="8 0 0 8" x="395" y="541.96">MUNICÍPIO:</span>
+					<span font="Helvetica-Bold" wmode="0" bidi="0" trm="10 0 0 10" x="40" y="753.96">PERÍODO DA ESCRITURAÇÃO:</span>
 				</fill_text>
 				<fill_text color="0 0 0">
-					<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="443" y="541.96" id="MUNICIPIO"></span>
+					<span font="Helvetica" wmode="0" bidi="0" trm="10 0 0 10" x="200" y="753.96" id="ESCRIT"></span>
 				</fill_text>
 				<fill_path winding="nonzero" color="1 1 1">
-					<moveto x="594" y="560"/>
-					<lineto x="701" y="560"/>
-					<lineto x="701" y="550"/>
-					<lineto x="594" y="550"/>
+					<moveto x="352" y="767"/>
+					<lineto x="475" y="767"/>
+					<lineto x="475" y="752"/>
+					<lineto x="352" y="752"/>
 					<closepath/>
 				</fill_path>
 				<fill_text color="0 0 0">
-					<span font="Helvetica-Bold" wmode="0" bidi="0" trm="8 0 0 8" x="594" y="551.96">PERÍODO DE APURAÇÃO:</span>
+					<span font="Helvetica-Bold" wmode="0" bidi="0" trm="10 0 0 10" x="352" y="753.96">UF ESCRITURAÇÃO:</span>
 				</fill_text>
 				<fill_text color="0 0 0">
-					<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="700" y="551.96" id="APU"></span>
+					<span font="Helvetica" wmode="0" bidi="0" trm="10 0 0 10" x="480" y="753.96">SP</span>
 				</fill_text>
-			</template>
-			<stroke_path linewidth="1" miterlimit="10" linecap="2,2,2" linejoin="0" color="0 0 0">
-				<moveto x="32" y="539"/>
-				<lineto x="810" y="539"/>
-				<curveto x1="811.1" y1="539" x2="812" y2="539.9" x3="812" y3="541"/>
-				<lineto x="812" y="573"/>
-				<curveto x1="812" y1="574.1" x2="811.1" y2="575" x3="810" y3="575"/>
-				<lineto x="32" y="575"/>
-				<curveto x1="30.9" y1="575" x2="30" y2="574.1" x3="30" y3="573"/>
-				<lineto x="30" y="541"/>
-				<curveto x1="30" y1="539.9" x2="30.9" y2="539" x3="32" y3="539"/>
-			</stroke_path>
-			<fill_path winding="nonzero" color=".8 .8 .8">
-				<moveto x="568" y="524"/>
-				<lineto x="636" y="524"/>
-				<lineto x="636" y="515"/>
-				<lineto x="568" y="515"/>
-				<closepath/>
-			</fill_path>
-			<fill_text color="0 0 0">
-				<span font="Helvetica-Bold" wmode="0" bidi="0" trm="5 0 0 5" x="571.85" y="517.6">Base de Cálculo ICMS ST</span>
-			</fill_text>
-			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-				<moveto x="567.75" y="524"/>
-				<lineto x="636.25" y="524"/>
-			</stroke_path>
-			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-				<moveto x="568" y="524.25"/>
-				<lineto x="568" y="514.75"/>
-			</stroke_path>
-			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-				<moveto x="567.75" y="515"/>
-				<lineto x="636.25" y="515"/>
-			</stroke_path>
-			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-				<moveto x="636" y="524.25"/>
-				<lineto x="636" y="514.75"/>
-			</stroke_path>
-			<fill_path winding="nonzero" color=".8 .8 .8">
-				<moveto x="132" y="524"/>
-				<lineto x="204" y="524"/>
-				<lineto x="204" y="515"/>
-				<lineto x="132" y="515"/>
-				<closepath/>
-			</fill_path>
-			<fill_text color="0 0 0">
-				<span font="Helvetica-Bold" wmode="0" bidi="0" trm="5 0 0 5" x="156.05" y="517.6">CST/ICMS</span>
-			</fill_text>
-			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-				<moveto x="131.75" y="524"/>
-				<lineto x="204.25" y="524"/>
-			</stroke_path>
-			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-				<moveto x="132" y="524.25"/>
-				<lineto x="132" y="514.75"/>
-			</stroke_path>
-			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-				<moveto x="131.75" y="515"/>
-				<lineto x="204.25" y="515"/>
-			</stroke_path>
-			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-				<moveto x="204" y="524.25"/>
-				<lineto x="204" y="514.75"/>
-			</stroke_path>
-			<fill_path winding="nonzero" color=".8 .8 .8">
-				<moveto x="407" y="524"/>
-				<lineto x="490" y="524"/>
-				<lineto x="490" y="515"/>
-				<lineto x="407" y="515"/>
-				<closepath/>
-			</fill_path>
-			<fill_text color="0 0 0">
-				<span font="Helvetica-Bold" wmode="0" bidi="0" trm="5 0 0 5" x="422.24" y="517.6">Base de Cálculo ICMS</span>
-			</fill_text>
-			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-				<moveto x="406.75" y="524"/>
-				<lineto x="490.25" y="524"/>
-			</stroke_path>
-			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-				<moveto x="407" y="524.25"/>
-				<lineto x="407" y="514.75"/>
-			</stroke_path>
-			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-				<moveto x="406.75" y="515"/>
-				<lineto x="490.25" y="515"/>
-			</stroke_path>
-			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-				<moveto x="490" y="524.25"/>
-				<lineto x="490" y="514.75"/>
-			</stroke_path>
-			<fill_path winding="nonzero" color=".8 .8 .8">
-				<moveto x="417" y="538"/>
-				<lineto x="490" y="538"/>
-				<lineto x="490" y="524"/>
-				<lineto x="417" y="524"/>
-				<closepath/>
-			</fill_path>
-			<fill_text color="0 0 0">
-				<span font="Helvetica-Bold" wmode="0" bidi="0" trm="5 0 0 5" x="441.14" y="529.1">CNPJ/CPF</span>
-			</fill_text>
-			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-				<moveto x="416.75" y="538"/>
-				<lineto x="490.25" y="538"/>
-			</stroke_path>
-			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-				<moveto x="417" y="538.25"/>
-				<lineto x="417" y="523.75"/>
-			</stroke_path>
-			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-				<moveto x="416.75" y="524"/>
-				<lineto x="490.25" y="524"/>
-			</stroke_path>
-			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-				<moveto x="490" y="538.25"/>
-				<lineto x="490" y="523.75"/>
-			</stroke_path>
-			<fill_path winding="nonzero" color=".8 .8 .8">
-				<moveto x="636" y="524"/>
-				<lineto x="724" y="524"/>
-				<lineto x="724" y="515"/>
-				<lineto x="636" y="515"/>
-				<closepath/>
-			</fill_path>
-			<fill_text color="0 0 0">
-				<span font="Helvetica-Bold" wmode="0" bidi="0" trm="5 0 0 5" x="662.91" y="517.6">Valor ICMS ST</span>
-			</fill_text>
-			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-				<moveto x="635.75" y="524"/>
-				<lineto x="724.25" y="524"/>
-			</stroke_path>
-			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-				<moveto x="636" y="524.25"/>
-				<lineto x="636" y="514.75"/>
-			</stroke_path>
-			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-				<moveto x="635.75" y="515"/>
-				<lineto x="724.25" y="515"/>
-			</stroke_path>
-			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-				<moveto x="724" y="524.25"/>
-				<lineto x="724" y="514.75"/>
-			</stroke_path>
-			<fill_path winding="nonzero" color=".8 .8 .8">
-				<moveto x="112" y="531"/>
-				<lineto x="146" y="531"/>
-				<lineto x="146" y="524"/>
-				<lineto x="112" y="524"/>
-				<closepath/>
-			</fill_path>
-			<fill_text color="0 0 0">
-				<span font="Helvetica-Bold" wmode="0" bidi="0" trm="5 0 0 5" x="121.91" y="525.6">Inicial</span>
-			</fill_text>
-			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-				<moveto x="111.75" y="531"/>
-				<lineto x="146.25" y="531"/>
-			</stroke_path>
-			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-				<moveto x="112" y="531.25"/>
-				<lineto x="112" y="523.75"/>
-			</stroke_path>
-			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-				<moveto x="111.75" y="524"/>
-				<lineto x="146.25" y="524"/>
-			</stroke_path>
-			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-				<moveto x="146" y="531.25"/>
-				<lineto x="146" y="523.75"/>
-			</stroke_path>
-			<fill_path winding="nonzero" color=".8 .8 .8">
-				<moveto x="71" y="538"/>
-				<lineto x="112" y="538"/>
-				<lineto x="112" y="524"/>
-				<lineto x="71" y="524"/>
-				<closepath/>
-			</fill_path>
-			<fill_text color="0 0 0">
-				<span font="Helvetica-Bold" wmode="0" bidi="0" trm="5 0 0 5" x="78.72" y="529.1">Data Saida</span>
-			</fill_text>
-			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-				<moveto x="70.75" y="538"/>
-				<lineto x="112.25" y="538"/>
-			</stroke_path>
-			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-				<moveto x="71" y="538.25"/>
-				<lineto x="71" y="523.75"/>
-			</stroke_path>
-			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-				<moveto x="70.75" y="524"/>
-				<lineto x="112.25" y="524"/>
-			</stroke_path>
-			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-				<moveto x="112" y="538.25"/>
-				<lineto x="112" y="523.75"/>
-			</stroke_path>
-			<fill_path winding="nonzero" color=".8 .8 .8">
-				<moveto x="553" y="538"/>
-				<lineto x="568" y="538"/>
-				<lineto x="568" y="524"/>
-				<lineto x="553" y="524"/>
-				<closepath/>
-			</fill_path>
-			<fill_text color="0 0 0">
-				<span font="Helvetica-Bold" wmode="0" bidi="0" trm="5 0 0 5" x="557.17" y="529.1">UF</span>
-			</fill_text>
-			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-				<moveto x="552.75" y="538"/>
-				<lineto x="568.25" y="538"/>
-			</stroke_path>
-			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-				<moveto x="553" y="538.25"/>
-				<lineto x="553" y="523.75"/>
-			</stroke_path>
-			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-				<moveto x="552.75" y="524"/>
-				<lineto x="568.25" y="524"/>
-			</stroke_path>
-			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-				<moveto x="568" y="538.25"/>
-				<lineto x="568" y="523.75"/>
-			</stroke_path>
-			<fill_path winding="nonzero" color=".8 .8 .8">
-				<moveto x="31" y="538"/>
-				<lineto x="71" y="538"/>
-				<lineto x="71" y="524"/>
-				<lineto x="31" y="524"/>
-				<closepath/>
-			</fill_path>
-			<fill_text color="0 0 0">
-				<span font="Helvetica-Bold" wmode="0" bidi="0" trm="5 0 0 5" x="34.88" y="529.1">Data emissão</span>
-			</fill_text>
-			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-				<moveto x="30.75" y="538"/>
-				<lineto x="71.25" y="538"/>
-			</stroke_path>
-			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-				<moveto x="31" y="538.25"/>
-				<lineto x="31" y="523.75"/>
-			</stroke_path>
-			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-				<moveto x="30.75" y="524"/>
-				<lineto x="71.25" y="524"/>
-			</stroke_path>
-			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-				<moveto x="71" y="538.25"/>
-				<lineto x="71" y="523.75"/>
-			</stroke_path>
-			<fill_path winding="nonzero" color=".8 .8 .8">
-				<moveto x="389" y="538"/>
-				<lineto x="417" y="538"/>
-				<lineto x="417" y="524"/>
-				<lineto x="389" y="524"/>
-				<closepath/>
-			</fill_path>
-			<fill_text color="0 0 0">
-				<span font="Helvetica-Bold" wmode="0" bidi="0" trm="5 0 0 5" x="392.58" y="529.1">Situação</span>
-			</fill_text>
-			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-				<moveto x="388.75" y="538"/>
-				<lineto x="417.25" y="538"/>
-			</stroke_path>
-			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-				<moveto x="389" y="538.25"/>
-				<lineto x="389" y="523.75"/>
-			</stroke_path>
-			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-				<moveto x="388.75" y="524"/>
-				<lineto x="417.25" y="524"/>
-			</stroke_path>
-			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-				<moveto x="417" y="538.25"/>
-				<lineto x="417" y="523.75"/>
-			</stroke_path>
-			<fill_path winding="nonzero" color=".8 .8 .8">
-				<moveto x="724" y="524"/>
-				<lineto x="812" y="524"/>
-				<lineto x="812" y="515"/>
-				<lineto x="724" y="515"/>
-				<closepath/>
-			</fill_path>
-			<fill_text color="0 0 0">
-				<span font="Helvetica-Bold" wmode="0" bidi="0" trm="5 0 0 5" x="757.99" y="517.6">Valor IPI</span>
-			</fill_text>
-			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-				<moveto x="723.75" y="524"/>
-				<lineto x="812.25" y="524"/>
-			</stroke_path>
-			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-				<moveto x="724" y="524.25"/>
-				<lineto x="724" y="514.75"/>
-			</stroke_path>
-			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-				<moveto x="723.75" y="515"/>
-				<lineto x="812.25" y="515"/>
-			</stroke_path>
-			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-				<moveto x="812" y="524.25"/>
-				<lineto x="812" y="514.75"/>
-			</stroke_path>
-			<fill_path winding="nonzero" color=".8 .8 .8">
-				<moveto x="490" y="538"/>
-				<lineto x="553" y="538"/>
-				<lineto x="553" y="524"/>
-				<lineto x="490" y="524"/>
-				<closepath/>
-			</fill_path>
-			<fill_text color="0 0 0">
-				<span font="Helvetica-Bold" wmode="0" bidi="0" trm="5 0 0 5" x="519.14" y="529.1">IE</span>
-			</fill_text>
-			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-				<moveto x="489.75" y="538"/>
-				<lineto x="553.25" y="538"/>
-			</stroke_path>
-			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-				<moveto x="490" y="538.25"/>
-				<lineto x="490" y="523.75"/>
-			</stroke_path>
-			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-				<moveto x="489.75" y="524"/>
-				<lineto x="553.25" y="524"/>
-			</stroke_path>
-			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-				<moveto x="553" y="538.25"/>
-				<lineto x="553" y="523.75"/>
-			</stroke_path>
-			<fill_path winding="nonzero" color=".8 .8 .8">
-				<moveto x="204" y="524"/>
-				<lineto x="260" y="524"/>
-				<lineto x="260" y="515"/>
-				<lineto x="204" y="515"/>
-				<closepath/>
-			</fill_path>
-			<fill_text color="0 0 0">
-				<span font="Helvetica-Bold" wmode="0" bidi="0" trm="5 0 0 5" x="225.05" y="517.6">CFOP</span>
-			</fill_text>
-			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-				<moveto x="203.75" y="524"/>
-				<lineto x="260.25" y="524"/>
-			</stroke_path>
-			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-				<moveto x="204" y="524.25"/>
-				<lineto x="204" y="514.75"/>
-			</stroke_path>
-			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-				<moveto x="203.75" y="515"/>
-				<lineto x="260.25" y="515"/>
-			</stroke_path>
-			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-				<moveto x="260" y="524.25"/>
-				<lineto x="260" y="514.75"/>
-			</stroke_path>
-			<fill_path winding="nonzero" color=".8 .8 .8">
-				<moveto x="146" y="531"/>
-				<lineto x="183" y="531"/>
-				<lineto x="183" y="524"/>
-				<lineto x="146" y="524"/>
-				<closepath/>
-			</fill_path>
-			<fill_text color="0 0 0">
-				<span font="Helvetica-Bold" wmode="0" bidi="0" trm="5 0 0 5" x="158.66" y="525.6">Final</span>
-			</fill_text>
-			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-				<moveto x="145.75" y="531"/>
-				<lineto x="183.25" y="531"/>
-			</stroke_path>
-			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-				<moveto x="146" y="531.25"/>
-				<lineto x="146" y="523.75"/>
-			</stroke_path>
-			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-				<moveto x="145.75" y="524"/>
-				<lineto x="183.25" y="524"/>
-			</stroke_path>
-			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-				<moveto x="183" y="531.25"/>
-				<lineto x="183" y="523.75"/>
-			</stroke_path>
-			<fill_path winding="nonzero" color=".8 .8 .8">
-				<moveto x="636" y="538"/>
-				<lineto x="812" y="538"/>
-				<lineto x="812" y="524"/>
-				<lineto x="636" y="524"/>
-				<closepath/>
-			</fill_path>
-			<fill_text color="0 0 0">
-				<span font="Helvetica-Bold" wmode="0" bidi="0" trm="5 0 0 5" x="708.85" y="529.1">Razão social</span>
-			</fill_text>
-			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-				<moveto x="635.75" y="538"/>
-				<lineto x="812.25" y="538"/>
-			</stroke_path>
-			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-				<moveto x="636" y="538.25"/>
-				<lineto x="636" y="523.75"/>
-			</stroke_path>
-			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-				<moveto x="635.75" y="524"/>
-				<lineto x="812.25" y="524"/>
-			</stroke_path>
-			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-				<moveto x="812" y="538.25"/>
-				<lineto x="812" y="523.75"/>
-			</stroke_path>
-			<fill_path winding="nonzero" color=".8 .8 .8">
-				<moveto x="259" y="538"/>
-				<lineto x="347" y="538"/>
-				<lineto x="347" y="524"/>
-				<lineto x="259" y="524"/>
-				<closepath/>
-			</fill_path>
-			<fill_text color="0 0 0">
-				<span font="Helvetica-Bold" wmode="0" bidi="0" trm="5 0 0 5" x="292.3" y="529.1">ECF/SAT</span>
-			</fill_text>
-			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-				<moveto x="258.75" y="538"/>
-				<lineto x="347.25" y="538"/>
-			</stroke_path>
-			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-				<moveto x="259" y="538.25"/>
-				<lineto x="259" y="523.75"/>
-			</stroke_path>
-			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-				<moveto x="258.75" y="524"/>
-				<lineto x="347.25" y="524"/>
-			</stroke_path>
-			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-				<moveto x="347" y="538.25"/>
-				<lineto x="347" y="523.75"/>
-			</stroke_path>
-			<fill_path winding="nonzero" color=".8 .8 .8">
-				<moveto x="260" y="524"/>
-				<lineto x="337" y="524"/>
-				<lineto x="337" y="515"/>
-				<lineto x="260" y="515"/>
-				<closepath/>
-			</fill_path>
-			<fill_text color="0 0 0">
-				<span font="Helvetica-Bold" wmode="0" bidi="0" trm="5 0 0 5" x="281.55" y="517.6">Alíquota ICMS</span>
-			</fill_text>
-			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-				<moveto x="259.75" y="524"/>
-				<lineto x="337.25" y="524"/>
-			</stroke_path>
-			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-				<moveto x="260" y="524.25"/>
-				<lineto x="260" y="514.75"/>
-			</stroke_path>
-			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-				<moveto x="259.75" y="515"/>
-				<lineto x="337.25" y="515"/>
-			</stroke_path>
-			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-				<moveto x="337" y="524.25"/>
-				<lineto x="337" y="514.75"/>
-			</stroke_path>
-			<fill_path winding="nonzero" color=".8 .8 .8">
-				<moveto x="347" y="538"/>
-				<lineto x="366" y="538"/>
-				<lineto x="366" y="524"/>
-				<lineto x="347" y="524"/>
-				<closepath/>
-			</fill_path>
-			<fill_text color="0 0 0">
-				<span font="Helvetica-Bold" wmode="0" bidi="0" trm="5 0 0 5" x="350.39" y="529.1">Série</span>
-			</fill_text>
-			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-				<moveto x="346.75" y="538"/>
-				<lineto x="366.25" y="538"/>
-			</stroke_path>
-			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-				<moveto x="347" y="538.25"/>
-				<lineto x="347" y="523.75"/>
-			</stroke_path>
-			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-				<moveto x="346.75" y="524"/>
-				<lineto x="366.25" y="524"/>
-			</stroke_path>
-			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-				<moveto x="366" y="538.25"/>
-				<lineto x="366" y="523.75"/>
-			</stroke_path>
-			<fill_path winding="nonzero" color=".8 .8 .8">
-				<moveto x="183" y="538"/>
-				<lineto x="204" y="538"/>
-				<lineto x="204" y="524"/>
-				<lineto x="183" y="524"/>
-				<closepath/>
-			</fill_path>
-			<fill_text color="0 0 0">
-				<span font="Helvetica-Bold" wmode="0" bidi="0" trm="5 0 0 5" x="184.75" y="529.1">Modelo</span>
-			</fill_text>
-			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-				<moveto x="182.75" y="538"/>
-				<lineto x="204.25" y="538"/>
-			</stroke_path>
-			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-				<moveto x="183" y="538.25"/>
-				<lineto x="183" y="523.75"/>
-			</stroke_path>
-			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-				<moveto x="182.75" y="524"/>
-				<lineto x="204.25" y="524"/>
-			</stroke_path>
-			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-				<moveto x="204" y="538.25"/>
-				<lineto x="204" y="523.75"/>
-			</stroke_path>
-			<fill_path winding="nonzero" color=".8 .8 .8">
-				<moveto x="366" y="538"/>
-				<lineto x="389" y="538"/>
-				<lineto x="389" y="524"/>
-				<lineto x="366" y="524"/>
-				<closepath/>
-			</fill_path>
-			<fill_text color="0 0 0">
-				<span font="Helvetica-Bold" wmode="0" bidi="0" trm="5 0 0 5" x="366.94" y="529.1">Subsérie</span>
-			</fill_text>
-			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-				<moveto x="365.75" y="538"/>
-				<lineto x="389.25" y="538"/>
-			</stroke_path>
-			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-				<moveto x="366" y="538.25"/>
-				<lineto x="366" y="523.75"/>
-			</stroke_path>
-			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-				<moveto x="365.75" y="524"/>
-				<lineto x="389.25" y="524"/>
-			</stroke_path>
-			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-				<moveto x="389" y="538.25"/>
-				<lineto x="389" y="523.75"/>
-			</stroke_path>
-			<fill_path winding="nonzero" color=".8 .8 .8">
-				<moveto x="112" y="538"/>
-				<lineto x="183" y="538"/>
-				<lineto x="183" y="531"/>
-				<lineto x="112" y="531"/>
-				<closepath/>
-			</fill_path>
-			<fill_text color="0 0 0">
-				<span font="Helvetica-Bold" wmode="0" bidi="0" trm="5 0 0 5" x="137.92" y="532.6">Nr. Doc.</span>
-			</fill_text>
-			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-				<moveto x="111.75" y="538"/>
-				<lineto x="183.25" y="538"/>
-			</stroke_path>
-			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-				<moveto x="112" y="538.25"/>
-				<lineto x="112" y="530.75"/>
-			</stroke_path>
-			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-				<moveto x="111.75" y="531"/>
-				<lineto x="183.25" y="531"/>
-			</stroke_path>
-			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-				<moveto x="183" y="538.25"/>
-				<lineto x="183" y="530.75"/>
-			</stroke_path>
-			<fill_path winding="nonzero" color=".8 .8 .8">
-				<moveto x="204" y="538"/>
-				<lineto x="260" y="538"/>
-				<lineto x="260" y="524"/>
-				<lineto x="204" y="524"/>
-				<closepath/>
-			</fill_path>
-			<fill_text color="0 0 0">
-				<span font="Helvetica-Bold" wmode="0" bidi="0" trm="5 0 0 5" x="222.33" y="529.1">Nº caixa</span>
-			</fill_text>
-			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-				<moveto x="203.75" y="538"/>
-				<lineto x="260.25" y="538"/>
-			</stroke_path>
-			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-				<moveto x="204" y="538.25"/>
-				<lineto x="204" y="523.75"/>
-			</stroke_path>
-			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-				<moveto x="203.75" y="524"/>
-				<lineto x="260.25" y="524"/>
-			</stroke_path>
-			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-				<moveto x="260" y="538.25"/>
-				<lineto x="260" y="523.75"/>
-			</stroke_path>
-			<fill_path winding="nonzero" color=".8 .8 .8">
-				<moveto x="337" y="524"/>
-				<lineto x="407" y="524"/>
-				<lineto x="407" y="515"/>
-				<lineto x="337" y="515"/>
-				<closepath/>
-			</fill_path>
-			<fill_text color="0 0 0">
-				<span font="Helvetica-Bold" wmode="0" bidi="0" trm="5 0 0 5" x="353.52" y="517.6">Valor Operação</span>
-			</fill_text>
-			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-				<moveto x="336.75" y="524"/>
-				<lineto x="407.25" y="524"/>
-			</stroke_path>
-			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-				<moveto x="337" y="524.25"/>
-				<lineto x="337" y="514.75"/>
-			</stroke_path>
-			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-				<moveto x="336.75" y="515"/>
-				<lineto x="407.25" y="515"/>
-			</stroke_path>
-			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-				<moveto x="407" y="524.25"/>
-				<lineto x="407" y="514.75"/>
-			</stroke_path>
-			<fill_path winding="nonzero" color=".8 .8 .8">
-				<moveto x="490" y="524"/>
-				<lineto x="568" y="524"/>
-				<lineto x="568" y="515"/>
-				<lineto x="490" y="515"/>
-				<closepath/>
-			</fill_path>
-			<fill_text color="0 0 0">
-				<span font="Helvetica-Bold" wmode="0" bidi="0" trm="5 0 0 5" x="515.8" y="517.6">Valor ICMS</span>
-			</fill_text>
-			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-				<moveto x="489.75" y="524"/>
-				<lineto x="568.25" y="524"/>
-			</stroke_path>
-			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-				<moveto x="490" y="524.25"/>
-				<lineto x="490" y="514.75"/>
-			</stroke_path>
-			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-				<moveto x="489.75" y="515"/>
-				<lineto x="568.25" y="515"/>
-			</stroke_path>
-			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-				<moveto x="568" y="524.25"/>
-				<lineto x="568" y="514.75"/>
-			</stroke_path>
-			<fill_path winding="nonzero" color=".8 .8 .8">
-				<moveto x="568" y="538"/>
-				<lineto x="636" y="538"/>
-				<lineto x="636" y="524"/>
-				<lineto x="568" y="524"/>
-				<closepath/>
-			</fill_path>
-			<fill_text color="0 0 0">
-				<span font="Helvetica-Bold" wmode="0" bidi="0" trm="5 0 0 5" x="590.33" y="529.1">Município</span>
-			</fill_text>
-			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-				<moveto x="567.75" y="538"/>
-				<lineto x="636.25" y="538"/>
-			</stroke_path>
-			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-				<moveto x="568" y="538.25"/>
-				<lineto x="568" y="523.75"/>
-			</stroke_path>
-			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-				<moveto x="567.75" y="524"/>
-				<lineto x="636.25" y="524"/>
-			</stroke_path>
-			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-				<moveto x="636" y="538.25"/>
-				<lineto x="636" y="523.75"/>
-			</stroke_path>
-			
-			<template id="row">
+				<fill_path winding="nonzero" color="1 1 1">
+					<moveto x="30" y="504"/>
+					<lineto x="565" y="504"/>
+					<lineto x="565" y="742"/>
+					<lineto x="30" y="742"/>
+					<lineto x="30" y="504"/>
+				</fill_path>
+				<fill_path winding="nonzero" color=".8 .8 .8">
+					<moveto x="440" y="715"/>
+					<lineto x="565" y="715"/>
+					<lineto x="565" y="701"/>
+					<lineto x="440" y="701"/>
+					<closepath/>
+				</fill_path>
 				<fill_text color="0 0 0">
-					<span font="Helvetica-Bold" wmode="0" bidi="0" trm="7 0 0 7" x="31" y="505.34" id="DEMI" align="center" width="40"></span>
+					<span font="Helvetica-Bold" wmode="0" bidi="0" trm="10 0 0 10" x="482.21" y="704.21">Valor R$</span>
 				</fill_text>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="30.75" y="513"/>
-					<lineto x="71.25" y="513"/>
+				<stroke_path linewidth="1" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
+					<moveto x="440" y="715"/>
+					<lineto x="565" y="715"/>
+				</stroke_path>
+				<stroke_path linewidth="1" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
+					<moveto x="440" y="701"/>
+					<lineto x="565" y="701"/>
+				</stroke_path>
+				<fill_path winding="nonzero" color=".8 .8 .8">
+					<moveto x="30" y="715"/>
+					<lineto x="440" y="715"/>
+					<lineto x="440" y="701"/>
+					<lineto x="30" y="701"/>
+					<closepath/>
+				</fill_path>
+				<fill_text color="0 0 0">
+					<span font="Helvetica-Bold" wmode="0" bidi="0" trm="10 0 0 10" x="211.1" y="704.21">Descrição</span>
+				</fill_text>
+				<stroke_path linewidth="1" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
+					<moveto x="30" y="715"/>
+					<lineto x="440.25" y="715"/>
+				</stroke_path>
+				<stroke_path linewidth="1" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
+					<moveto x="30" y="701"/>
+					<lineto x="440.25" y="701"/>
 				</stroke_path>
 				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="31" y="513.25"/>
-					<lineto x="31" y="502.75"/>
-				</stroke_path>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="30.75" y="503"/>
-					<lineto x="71.25" y="503"/>
-				</stroke_path>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="71" y="513.25"/>
-					<lineto x="71" y="502.75"/>
+					<moveto x="440" y="715.5"/>
+					<lineto x="440" y="700.5"/>
 				</stroke_path>
 				<fill_text color="0 0 0">
-					<span font="Helvetica-Bold" wmode="0" bidi="0" trm="7 0 0 7" x="73" y="505.34" id="DSAIDA" align="center" width="39"></span>
+					<span font="Helvetica-Bold" wmode="0" bidi="0" trm="10 0 0 10" x="50" y="729.96">PERÍODO DE APURAÇÃO:</span>
 				</fill_text>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="70.75" y="513"/>
-					<lineto x="112.25" y="513"/>
-				</stroke_path>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="71" y="513.25"/>
-					<lineto x="71" y="502.75"/>
-				</stroke_path>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="70.75" y="503"/>
-					<lineto x="112.25" y="503"/>
-				</stroke_path>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="112" y="513.25"/>
-					<lineto x="112" y="502.75"/>
-				</stroke_path>
 				<fill_text color="0 0 0">
-					<span font="Helvetica-Bold" wmode="0" bidi="0" trm="7 0 0 7" x="111" y="505.34" width="35" align="center" id="NRINI"></span>
+					<span font="Helvetica-Bold" wmode="0" bidi="0" trm="10 0 0 10" x="179.5" y="729.96" id="APU"></span>
 				</fill_text>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="111.75" y="513"/>
-					<lineto x="146.25" y="513"/>
-				</stroke_path>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="112" y="513.25"/>
-					<lineto x="112" y="502.75"/>
-				</stroke_path>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="111.75" y="503"/>
-					<lineto x="146.25" y="503"/>
-				</stroke_path>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="146" y="513.25"/>
-					<lineto x="146" y="502.75"/>
-				</stroke_path>
 				<fill_text color="0 0 0">
-					<span font="Helvetica-Bold" wmode="0" bidi="0" trm="7 0 0 7" x="183.61" y="505.34" align="center" width="22"></span>
+					<span font="Helvetica-Bold" wmode="0" bidi="0" trm="10 0 0 10" x="294" y="729.96">- INSCRIÇÃO ESTADUAL:         UF:</span>
 				</fill_text>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="182.75" y="513"/>
-					<lineto x="204.25" y="513"/>
-				</stroke_path>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="183" y="513.25"/>
-					<lineto x="183" y="502.75"/>
-				</stroke_path>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="182.75" y="503"/>
-					<lineto x="204.25" y="503"/>
-				</stroke_path>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="204" y="513.25"/>
-					<lineto x="204" y="502.75"/>
-				</stroke_path>
 				<fill_text color="0 0 0">
-					<span font="Helvetica-Bold" wmode="0" bidi="0" trm="7 0 0 7" x="347.66" y="505.34" id="SR" align="center" width="19"></span>
+					<span font="Helvetica-Bold" wmode="0" bidi="0" trm="10 0 0 10" x="461" y="729.96" id="UF"></span>
 				</fill_text>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="346.75" y="513"/>
-					<lineto x="366.25" y="513"/>
-				</stroke_path>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="347" y="513.25"/>
-					<lineto x="347" y="502.75"/>
-				</stroke_path>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="346.75" y="503"/>
-					<lineto x="366.25" y="503"/>
-				</stroke_path>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="366" y="513.25"/>
-					<lineto x="366" y="502.75"/>
-				</stroke_path>
 				<fill_text color="0 0 0">
-					<span font="Helvetica-Bold" wmode="0" bidi="0" trm="7 0 0 7" x="365" y="505.34" width="26" align="center" id="SUB"></span>
+					<span font="Helvetica-Bold" wmode="0" bidi="0" trm="10 0 0 10" x="50" y="718.46">INDICADOR DE MOVIMENTAÇÃO ST :</span>
 				</fill_text>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="365.75" y="513"/>
-					<lineto x="389.25" y="513"/>
-				</stroke_path>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="366" y="513.25"/>
-					<lineto x="366" y="502.75"/>
-				</stroke_path>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="365.75" y="503"/>
-					<lineto x="389.25" y="503"/>
-				</stroke_path>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="389" y="513.25"/>
-					<lineto x="389" y="502.75"/>
-				</stroke_path>
 				<fill_text color="0 0 0">
-					<span font="Helvetica-Bold" wmode="0" bidi="0" trm="7 0 0 7" x="389" y="505.34" id="SIT" align="center" width="28"></span>
+					<span font="Helvetica-Bold" wmode="0" bidi="0" trm="10 0 0 10" x="237" y="718.46" id="MOV"></span>
 				</fill_text>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="388.75" y="513"/>
-					<lineto x="417.25" y="513"/>
-				</stroke_path>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="389" y="513.25"/>
-					<lineto x="389" y="502.75"/>
-				</stroke_path>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="388.75" y="503"/>
-					<lineto x="417.25" y="503"/>
-				</stroke_path>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="417" y="513.25"/>
-					<lineto x="417" y="502.75"/>
-				</stroke_path>
 				<fill_text color="0 0 0">
-					<span font="Helvetica-Bold" wmode="0" bidi="0" trm="7 0 0 7" x="417" y="505.34" id="CNPJDEST" align="center" width="73"></span>
+					<span font="Helvetica-Bold" wmode="0" bidi="0" trm="10 0 0 10" x="277" y="718.46">OPERAÇÕES ST</span>
 				</fill_text>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="416.75" y="513"/>
-					<lineto x="490.25" y="513"/>
+				<stroke_path linewidth="2" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
+					<moveto x="30" y="741"/>
+					<lineto x="565" y="741"/>
 				</stroke_path>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="417" y="513.25"/>
-					<lineto x="417" y="502.75"/>
-				</stroke_path>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="416.75" y="503"/>
-					<lineto x="490.25" y="503"/>
-				</stroke_path>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="490" y="513.25"/>
-					<lineto x="490" y="502.75"/>
-				</stroke_path>
-				<fill_text color="0 0 0">
-					<span font="Helvetica-Bold" wmode="0" bidi="0" trm="7 0 0 7" x="490" y="505.34" id="IEDEST" align="center" width="63"></span>
-				</fill_text>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="489.75" y="513"/>
-					<lineto x="553.25" y="513"/>
-				</stroke_path>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="490" y="513.25"/>
-					<lineto x="490" y="502.75"/>
-				</stroke_path>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="489.75" y="503"/>
-					<lineto x="553.25" y="503"/>
-				</stroke_path>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="553" y="513.25"/>
-					<lineto x="553" y="502.75"/>
-				</stroke_path>
-				<fill_text color="0 0 0">
-					<span font="Helvetica-Bold" wmode="0" bidi="0" trm="7 0 0 7" x="553" y="505.34" id="UFDEST" align="center" width="15"></span>
-				</fill_text>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="552.75" y="513"/>
-					<lineto x="568.25" y="513"/>
-				</stroke_path>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="553" y="513.25"/>
-					<lineto x="553" y="502.75"/>
-				</stroke_path>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="552.75" y="503"/>
-					<lineto x="568.25" y="503"/>
-				</stroke_path>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="568" y="513.25"/>
-					<lineto x="568" y="502.75"/>
-				</stroke_path>
-				<fill_text color="0 0 0">
-					<span font="Helvetica-Bold" wmode="0" bidi="0" trm="7 0 0 7" x="568" y="505.34" id="MUNDEST" align="center" width="68"></span>
-				</fill_text>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="567.75" y="513"/>
-					<lineto x="636.25" y="513"/>
-				</stroke_path>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="568" y="513.25"/>
-					<lineto x="568" y="502.75"/>
-				</stroke_path>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="567.75" y="503"/>
-					<lineto x="636.25" y="503"/>
-				</stroke_path>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="636" y="513.25"/>
-					<lineto x="636" y="502.75"/>
-				</stroke_path>
-				<fill_text color="0 0 0">
-					<span font="Helvetica-Bold" wmode="0" bidi="0" trm="7 0 0 7" x="636" y="505.34" id="RAZAODEST" align="center" width="176"></span>
-				</fill_text>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="635.75" y="513"/>
-					<lineto x="812.25" y="513"/>
-				</stroke_path>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="636" y="513.25"/>
-					<lineto x="636" y="502.75"/>
-				</stroke_path>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="635.75" y="503"/>
-					<lineto x="812.25" y="503"/>
-				</stroke_path>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="812" y="513.25"/>
-					<lineto x="812" y="502.75"/>
-				</stroke_path>
-				<fill_text color="0 0 0">
-					<span font="Helvetica-Bold" wmode="0" bidi="0" trm="7 0 0 7" x="145" y="505.34" id="NRFIM" align="center" width="38"></span>
-				</fill_text>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="145.75" y="513"/>
-					<lineto x="183.25" y="513"/>
-				</stroke_path>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="146" y="513.25"/>
-					<lineto x="146" y="502.75"/>
-				</stroke_path>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="145.75" y="503"/>
-					<lineto x="183.25" y="503"/>
-				</stroke_path>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="183" y="513.25"/>
-					<lineto x="183" y="502.75"/>
-				</stroke_path>
-				<fill_text color="0 0 0">
-					<span font="Helvetica-Bold" wmode="0" bidi="0" trm="7 0 0 7" x="203" y="505.34" id="NCAIXA" align="center" width="57"></span>
-				</fill_text>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="203.75" y="513"/>
-					<lineto x="260.25" y="513"/>
-				</stroke_path>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="204" y="513.25"/>
-					<lineto x="204" y="502.75"/>
-				</stroke_path>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="203.75" y="503"/>
-					<lineto x="260.25" y="503"/>
-				</stroke_path>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="260" y="513.25"/>
-					<lineto x="260" y="502.75"/>
-				</stroke_path>
-				<fill_text color="0 0 0">
-					<span font="Helvetica-Bold" wmode="0" bidi="0" trm="7 0 0 7" x="260" y="505.34" id="ECF" align="center" width="87"></span>
-				</fill_text>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="259.75" y="513"/>
-					<lineto x="347.25" y="513"/>
-				</stroke_path>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="260" y="513.25"/>
-					<lineto x="260" y="502.75"/>
-				</stroke_path>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="259.75" y="503"/>
-					<lineto x="347.25" y="503"/>
-				</stroke_path>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="347" y="513.25"/>
-					<lineto x="347" y="502.75"/>
+				<stroke_path linewidth="1" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
+					<moveto x="30" y="715"/>
+					<lineto x="565" y="715"/>
 				</stroke_path>
 			</template>
 			
-			<template id="anal">
-				<fill_text color="0 0 0">
-					<span font="Helvetica" wmode="0" bidi="0" trm="7 0 0 7" x="132" y="505.34" id="CST" align="center" width="73"></span>
-				</fill_text>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="131.75" y="513"/>
-					<lineto x="204.25" y="513"/>
-				</stroke_path>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="132" y="513.25"/>
-					<lineto x="132" y="502.75"/>
-				</stroke_path>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="131.75" y="503"/>
-					<lineto x="204.25" y="503"/>
-				</stroke_path>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="204" y="513.25"/>
-					<lineto x="204" y="502.75"/>
-				</stroke_path>
-				<fill_text color="0 0 0">
-					<span font="Helvetica" wmode="0" bidi="0" trm="7 0 0 7" x="203.72" y="505.34" id="CFOP" align="center" width="56"></span>
-				</fill_text>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="203.75" y="513"/>
-					<lineto x="260.25" y="513"/>
-				</stroke_path>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="204" y="513.25"/>
-					<lineto x="204" y="502.75"/>
-				</stroke_path>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="203.75" y="503"/>
-					<lineto x="260.25" y="503"/>
-				</stroke_path>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="260" y="513.25"/>
-					<lineto x="260" y="502.75"/>
-				</stroke_path>
-				<fill_text color="0 0 0">
-					<span font="Helvetica" wmode="0" bidi="0" trm="7 0 0 7" x="259" y="505.34" id="ALIQ" align="right" width="77"></span>
-				</fill_text>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="259.75" y="513"/>
-					<lineto x="337.25" y="513"/>
-				</stroke_path>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="260" y="513.25"/>
-					<lineto x="260" y="502.75"/>
-				</stroke_path>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="259.75" y="503"/>
-					<lineto x="337.25" y="503"/>
-				</stroke_path>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="337" y="513.25"/>
-					<lineto x="337" y="502.75"/>
-				</stroke_path>
-				<fill_text color="0 0 0">
-					<span font="Helvetica" wmode="0" bidi="0" trm="7 0 0 7" x="336" y="505.34" id="VALOP" align="right" width="70"></span>
-				</fill_text>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="336.75" y="513"/>
-					<lineto x="407.25" y="513"/>
-				</stroke_path>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="337" y="513.25"/>
-					<lineto x="337" y="502.75"/>
-				</stroke_path>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="336.75" y="503"/>
-					<lineto x="407.25" y="503"/>
-				</stroke_path>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="407" y="513.25"/>
-					<lineto x="407" y="502.75"/>
-				</stroke_path>
-				<fill_text color="0 0 0">
-					<span font="Helvetica" wmode="0" bidi="0" trm="7 0 0 7" x="406" y="505.34" id="BC" align="right" width="83"></span>
-				</fill_text>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="406.75" y="513"/>
-					<lineto x="490.25" y="513"/>
-				</stroke_path>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="407" y="513.25"/>
-					<lineto x="407" y="502.75"/>
-				</stroke_path>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="406.75" y="503"/>
-					<lineto x="490.25" y="503"/>
-				</stroke_path>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="490" y="513.25"/>
-					<lineto x="490" y="502.75"/>
-				</stroke_path>
-				<fill_text color="0 0 0">
-					<span font="Helvetica" wmode="0" bidi="0" trm="7 0 0 7" x="489" y="505.34" id="ICMS" align="right" width="77.5"></span>
-				</fill_text>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="489.75" y="513"/>
-					<lineto x="568.25" y="513"/>
-				</stroke_path>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="490" y="513.25"/>
-					<lineto x="490" y="502.75"/>
-				</stroke_path>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="489.75" y="503"/>
-					<lineto x="568.25" y="503"/>
-				</stroke_path>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="568" y="513.25"/>
-					<lineto x="568" y="502.75"/>
-				</stroke_path>
-				<fill_text color="0 0 0">
-					<span font="Helvetica" wmode="0" bidi="0" trm="7 0 0 7" x="567" y="505.34" id="BCST" align="right" width="68"></span>
-				</fill_text>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="567.75" y="513"/>
-					<lineto x="636.25" y="513"/>
-				</stroke_path>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="568" y="513.25"/>
-					<lineto x="568" y="502.75"/>
-				</stroke_path>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="567.75" y="503"/>
-					<lineto x="636.25" y="503"/>
-				</stroke_path>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="636" y="513.25"/>
-					<lineto x="636" y="502.75"/>
-				</stroke_path>
-				<fill_text color="0 0 0">
-					<span font="Helvetica" wmode="0" bidi="0" trm="7 0 0 7" x="635" y="505.34" id="ICMSST" align="right" width="88"></span>
-				</fill_text>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="635.75" y="513"/>
-					<lineto x="724.25" y="513"/>
-				</stroke_path>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="636" y="513.25"/>
-					<lineto x="636" y="502.75"/>
-				</stroke_path>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="635.75" y="503"/>
-					<lineto x="724.25" y="503"/>
-				</stroke_path>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="724" y="513.25"/>
-					<lineto x="724" y="502.75"/>
-				</stroke_path>
-				<fill_text color="0 0 0">
-					<span font="Helvetica" wmode="0" bidi="0" trm="7 0 0 7" x="723" y="505.34" id="IPI" align="right" width="88"></span>
-				</fill_text>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="723.75" y="513"/>
-					<lineto x="812.25" y="513"/>
-				</stroke_path>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="724" y="513.25"/>
-					<lineto x="724" y="502.75"/>
-				</stroke_path>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="723.75" y="503"/>
-					<lineto x="812.25" y="503"/>
-				</stroke_path>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="812" y="513.25"/>
-					<lineto x="812" y="502.75"/>
-				</stroke_path>
-			</template>
-
+			<fill_text color="0 0 0">
+				<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="32" y="690.46">VALOR DO SALDO CREDOR ST DE PERÍODO ANTERIOR</span>
+			</fill_text>
+			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
+				<moveto x="440" y="701"/>
+				<lineto x="440" y="686"/>
+			</stroke_path>
+			<fill_text color="0 0 0">
+				<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="546.43" y="690.46" id="SALDO_CRED"></span>
+			</fill_text>
+			<fill_path winding="nonzero" color=".8 .80392 .81569">
+				<moveto x="30" y="671"/>
+				<lineto x="564" y="671"/>
+				<lineto x="564" y="686"/>
+				<lineto x="30" y="686"/>
+				<lineto x="30" y="671"/>
+			</fill_path>
+			<fill_text color="0 0 0">
+				<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="32" y="675.46">VALOR DE ICMS - REF. DEVOLUÇÕES MERCADORIAS</span>
+			</fill_text>
+			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
+				<moveto x="440" y="686"/>
+				<lineto x="440" y="671"/>
+			</stroke_path>
+			<fill_text color="0 0 0">
+				<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="530.86" y="675.46" id="DEVOLUCOES"></span>
+			</fill_text>
+			<fill_text color="0 0 0">
+				<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="32" y="660.46">VALOR DE ICMS ST - RESSARCIMENTOS</span>
+			</fill_text>
+			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
+				<moveto x="440" y="671"/>
+				<lineto x="440" y="656"/>
+			</stroke_path>
+			<fill_text color="0 0 0">
+				<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="546.43" y="660.46" id="RESSARCIMENTOS"></span>
+			</fill_text>
+			<fill_path winding="nonzero" color=".8 .80392 .81569">
+				<moveto x="30" y="641"/>
+				<lineto x="564" y="641"/>
+				<lineto x="564" y="656"/>
+				<lineto x="30" y="656"/>
+				<lineto x="30" y="641"/>
+			</fill_path>
+			<fill_text color="0 0 0">
+				<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="32" y="645.46">VALOR DE OUTROS CRÉDITOS ST</span>
+			</fill_text>
+			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
+				<moveto x="440" y="656"/>
+				<lineto x="440" y="641"/>
+			</stroke_path>
+			<fill_text color="0 0 0">
+				<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="541.98" y="645.46" id="OUTROS_CRED"></span>
+			</fill_text>
+			<fill_text color="0 0 0">
+				<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="32" y="630.46">VALOR TOTAL DOS AJUSTES A CRÉDITO DE ICMS ST (provenientes dos documentos fiscais)</span>
+			</fill_text>
+			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
+				<moveto x="440" y="641"/>
+				<lineto x="440" y="626"/>
+			</stroke_path>
+			<fill_text color="0 0 0">
+				<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="546.43" y="630.46" id="AJUSTE_CRED"></span>
+			</fill_text>
+			<fill_path winding="nonzero" color=".8 .80392 .81569">
+				<moveto x="30" y="611"/>
+				<lineto x="564" y="611"/>
+				<lineto x="564" y="626"/>
+				<lineto x="30" y="626"/>
+				<lineto x="30" y="611"/>
+			</fill_path>
+			<fill_text color="0 0 0">
+				<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="32" y="615.46">VALOR DO ICMS RETIDO POR ST</span>
+			</fill_text>
+			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
+				<moveto x="440" y="626"/>
+				<lineto x="440" y="611"/>
+			</stroke_path>
+			<fill_text color="0 0 0">
+				<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="521.97" y="615.46" id="ICMS_ST"></span>
+			</fill_text>
+			<fill_text color="0 0 0">
+				<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="32" y="600.46">VALOR DE OUTROS DÉBITOS ST</span>
+			</fill_text>
+			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
+				<moveto x="440" y="611"/>
+				<lineto x="440" y="596"/>
+			</stroke_path>
+			<fill_text color="0 0 0">
+				<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="546.43" y="600.46" id="OUTROS_DEB"></span>
+			</fill_text>
+			<fill_path winding="nonzero" color=".8 .80392 .81569">
+				<moveto x="30" y="581"/>
+				<lineto x="564" y="581"/>
+				<lineto x="564" y="596"/>
+				<lineto x="30" y="596"/>
+				<lineto x="30" y="581"/>
+			</fill_path>
+			<fill_text color="0 0 0">
+				<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="32" y="585.46">VALOR TOTAL DOS AJUSTES A DÉBITO DE ICMS ST (provenientes dos documentos fiscais).</span>
+			</fill_text>
+			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
+				<moveto x="440" y="596"/>
+				<lineto x="440" y="581"/>
+			</stroke_path>
+			<fill_text color="0 0 0">
+				<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="546.43" y="585.46" id="AJUSTE_DEB"></span>
+			</fill_text>
+			<fill_text color="0 0 0">
+				<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="32" y="570.46">VALOR DE SALDO DEVEDOR ICMS ST ANTES DAS DEDUÇÕES</span>
+			</fill_text>
+			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
+				<moveto x="440" y="581"/>
+				<lineto x="440" y="566"/>
+			</stroke_path>
+			<fill_text color="0 0 0">
+				<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="521.97" y="570.46" id="SALDO_DEV"></span>
+			</fill_text>
+			<fill_path winding="nonzero" color=".8 .80392 .81569">
+				<moveto x="30" y="551"/>
+				<lineto x="564" y="551"/>
+				<lineto x="564" y="566"/>
+				<lineto x="30" y="566"/>
+				<lineto x="30" y="551"/>
+			</fill_path>
+			<fill_text color="0 0 0">
+				<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="32" y="555.46">VALOR DAS DEDUÇÕES ST</span>
+			</fill_text>
+			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
+				<moveto x="440" y="566"/>
+				<lineto x="440" y="551"/>
+			</stroke_path>
+			<fill_text color="0 0 0">
+				<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="546.43" y="555.46" id="DEDUCOES"></span>
+			</fill_text>
+			<fill_text color="0 0 0">
+				<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="32" y="540.46">VALOR DO ICMS ST A RECOLHER</span>
+			</fill_text>
+			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
+				<moveto x="440" y="551"/>
+				<lineto x="440" y="536"/>
+			</stroke_path>
+			<fill_text color="0 0 0">
+				<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="521.97" y="540.46" id="A_RECOLHER"></span>
+			</fill_text>
+			<fill_path winding="nonzero" color=".8 .80392 .81569">
+				<moveto x="30" y="521"/>
+				<lineto x="564" y="521"/>
+				<lineto x="564" y="536"/>
+				<lineto x="30" y="536"/>
+				<lineto x="30" y="521"/>
+			</fill_path>
+			<fill_text color="0 0 0">
+				<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="32" y="525.46">VALOR DO SALDO CREDOR A TRANSPORTAR</span>
+			</fill_text>
+			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
+				<moveto x="440" y="536"/>
+				<lineto x="440" y="521"/>
+			</stroke_path>
+			<fill_text color="0 0 0">
+				<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="546.43" y="525.46" id="A_TRANSPORTAR"></span>
+			</fill_text>
+			<fill_text color="0 0 0">
+				<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="32" y="510.46">VALORES RECOLHIDOS OU A RECOLHER, EXTRA-APURAÇÃO</span>
+			</fill_text>
+			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
+				<moveto x="440" y="521"/>
+				<lineto x="440" y="506"/>
+			</stroke_path>
+			<fill_text color="0 0 0">
+				<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="546.43" y="510.46" id="EXTRA_APU"></span>
+			</fill_text>
+			<stroke_path linewidth="2" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
+				<moveto x="30" y="506"/>
+				<lineto x="564" y="504"/>
+			</stroke_path>
+			
 			<template id="footer">
+				<fill_text color="0 0 0">
+					<span font="Helvetica-Bold" wmode="0" bidi="0" trm="10 0 0 10" x="229.94" y="116.71">INFORMAÇÃO DO ARQUIVO</span>
+				</fill_text>
 				<stroke_path linewidth="1" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="30" y="70.5"/>
-					<lineto x="812" y="70.5"/>
+					<moveto x="31" y="127.5"/>
+					<lineto x="566" y="127.5"/>
 				</stroke_path>
 				<stroke_path linewidth="1" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="30" y="49.5"/>
-					<lineto x="812" y="49.5"/>
+					<moveto x="31" y="22.5"/>
+					<lineto x="566" y="22.5"/>
 				</stroke_path>
 				<fill_text color="0 0 0">
-					<span font="Helvetica" wmode="0" bidi="0" trm="5 0 0 5" x="738.32" y="52.98">Página</span>
-				</fill_text>
-				<fill_text color="0 0 0">
-					<span font="Helvetica" wmode="0" bidi="0" trm="5 0 0 5" x="755" y="52.98" id="PAGINA"></span>
-				</fill_text>
-				<fill_text color="0 0 0">
-					<span font="Helvetica" wmode="0" bidi="0" trm="5 0 0 5" x="35" y="62.6">Este relatório foi gerado pelo Sistema Público de Escrituração Digital – Sped</span>
-				</fill_text>
-				<fill_text color="0 0 0">
-					<span font="Helvetica" wmode="0" bidi="0" trm="5 0 0 5" x="35" y="54.23">Versão 2.6.8 do Visualizador</span>
-				</fill_text>
-				<fill_text color="0 0 0">
-					<span font="Helvetica-Bold" wmode="0" bidi="0" trm="5 0 0 5" x="389.97" y="41.6">INFORMAÇÃO DO ARQUIVO</span>
+					<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="43.42" y="93.96">Dados do Assinante do arquivo</span>
 				</fill_text>
 				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="31.75" y="48"/>
-					<lineto x="813.25" y="48"/>
+					<moveto x="30.75" y="113"/>
+					<lineto x="167.25" y="113"/>
 				</stroke_path>
 				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="32" y="48.25"/>
-					<lineto x="32" y="38.75"/>
+					<moveto x="31" y="113.25"/>
+					<lineto x="31" y="80.75"/>
 				</stroke_path>
 				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="31.75" y="39"/>
-					<lineto x="813.25" y="39"/>
+					<moveto x="30.75" y="81"/>
+					<lineto x="167.25" y="81"/>
 				</stroke_path>
 				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="813" y="48.25"/>
-					<lineto x="813" y="38.75"/>
+					<moveto x="167" y="113.25"/>
+					<lineto x="167" y="80.75"/>
 				</stroke_path>
 				<fill_text color="0 0 0">
-					<span font="Helvetica" wmode="0" bidi="0" trm="5 0 0 5" x="66.76" y="31.1">Dados do Assinante do arquivo</span>
+					<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="170" y="101.46">Nome:</span>
 				</fill_text>
 				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="31.75" y="39"/>
-					<lineto x="168.25" y="39"/>
+					<moveto x="167" y="113"/>
+					<lineto x="200.25" y="113"/>
 				</stroke_path>
 				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="32" y="39.25"/>
-					<lineto x="32" y="26.75"/>
+					<moveto x="167" y="96"/>
+					<lineto x="200.25" y="96"/>
 				</stroke_path>
 				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="31.75" y="27"/>
-					<lineto x="168.25" y="27"/>
-				</stroke_path>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="168" y="39.25"/>
-					<lineto x="168" y="26.75"/>
+					<moveto x="200" y="113.25"/>
+					<lineto x="200" y="95.75"/>
 				</stroke_path>
 				<fill_text color="0 0 0">
-					<span font="Helvetica" wmode="0" bidi="0" trm="5 0 0 5" x="171" y="34.1">Nome:</span>
+					<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="202" y="101.46" id="NOME_ASS"></span>
 				</fill_text>
 				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="167.75" y="39"/>
-					<lineto x="200.25" y="39"/>
+					<moveto x="199" y="113"/>
+					<lineto x="565.25" y="113"/>
 				</stroke_path>
 				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="168" y="39.25"/>
-					<lineto x="168" y="32.75"/>
+					<moveto x="199" y="96"/>
+					<lineto x="565.25" y="96"/>
 				</stroke_path>
 				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="167.75" y="33"/>
-					<lineto x="200.25" y="33"/>
-				</stroke_path>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="200" y="39.25"/>
-					<lineto x="200" y="32.75"/>
+					<moveto x="565" y="113.25"/>
+					<lineto x="565" y="95.75"/>
 				</stroke_path>
 				<fill_text color="0 0 0">
-					<span font="Helvetica" wmode="0" bidi="0" trm="5 0 0 5" x="203" y="34.1" id="NOME_ASS"></span>
+					<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="170" y="85.96">CPF:</span>
 				</fill_text>
 				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="199.75" y="39"/>
-					<lineto x="813.25" y="39"/>
+					<moveto x="167" y="81"/>
+					<lineto x="200.25" y="81"/>
 				</stroke_path>
 				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="200" y="39.25"/>
-					<lineto x="200" y="32.75"/>
-				</stroke_path>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="199.75" y="33"/>
-					<lineto x="813.25" y="33"/>
-				</stroke_path>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="813" y="39.25"/>
-					<lineto x="813" y="32.75"/>
+					<moveto x="200" y="97"/>
+					<lineto x="200" y="80.75"/>
 				</stroke_path>
 				<fill_text color="0 0 0">
-					<span font="Helvetica" wmode="0" bidi="0" trm="5 0 0 5" x="171" y="28.1">CPF:</span>
+					<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="202" y="85.96" id="CPF_ASS"></span>
 				</fill_text>
 				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="167.75" y="33"/>
-					<lineto x="200.25" y="33"/>
+					<moveto x="199" y="81"/>
+					<lineto x="301.25" y="81"/>
 				</stroke_path>
 				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="168" y="33.25"/>
-					<lineto x="168" y="26.75"/>
-				</stroke_path>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="167.75" y="27"/>
-					<lineto x="200.25" y="27"/>
-				</stroke_path>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="200" y="33.25"/>
-					<lineto x="200" y="26.75"/>
+					<moveto x="301" y="97"/>
+					<lineto x="301" y="80.75"/>
 				</stroke_path>
 				<fill_text color="0 0 0">
-					<span font="Helvetica" wmode="0" bidi="0" trm="5 0 0 5" x="203" y="28.1" id="CPF_ASS"></span>
+					<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="304" y="85.96">Data do recibo:</span>
 				</fill_text>
 				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="199.75" y="33"/>
-					<lineto x="302.25" y="33"/>
+					<moveto x="301" y="81"/>
+					<lineto x="364.25" y="81"/>
 				</stroke_path>
 				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="200" y="33.25"/>
-					<lineto x="200" y="26.75"/>
+					<moveto x="364" y="97"/>
+					<lineto x="364" y="80.75"/>
 				</stroke_path>
 				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="199.75" y="27"/>
-					<lineto x="302.25" y="27"/>
+					<moveto x="363" y="81"/>
+					<lineto x="565.25" y="81"/>
 				</stroke_path>
 				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="302" y="33.25"/>
-					<lineto x="302" y="26.75"/>
+					<moveto x="565" y="97"/>
+					<lineto x="565" y="80.75"/>
 				</stroke_path>
 				<fill_text color="0 0 0">
-					<span font="Helvetica" wmode="0" bidi="0" trm="5 0 0 5" x="305" y="28.1">Data do recibo:</span>
+					<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="34" y="54.96">Mensagem:</span>
 				</fill_text>
 				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="301.75" y="33"/>
-					<lineto x="364.25" y="33"/>
+					<moveto x="31" y="66"/>
+					<lineto x="31" y="49.75"/>
 				</stroke_path>
 				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="302" y="33.25"/>
-					<lineto x="302" y="26.75"/>
+					<moveto x="30.75" y="50"/>
+					<lineto x="80.25" y="50"/>
 				</stroke_path>
 				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="301.75" y="27"/>
-					<lineto x="364.25" y="27"/>
-				</stroke_path>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="364" y="33.25"/>
-					<lineto x="364" y="26.75"/>
-				</stroke_path>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="363.75" y="33"/>
-					<lineto x="813.25" y="33"/>
-				</stroke_path>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="364" y="33.25"/>
-					<lineto x="364" y="26.75"/>
-				</stroke_path>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="363.75" y="27"/>
-					<lineto x="813.25" y="27"/>
-				</stroke_path>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="813" y="33.25"/>
-					<lineto x="813" y="26.75"/>
+					<moveto x="80" y="66"/>
+					<lineto x="80" y="49.75"/>
 				</stroke_path>
 				<fill_text color="0 0 0">
-					<span font="Helvetica" wmode="0" bidi="0" trm="5 0 0 5" x="659" y="21.6" id="HASH_ASS"></span>
+					<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="83" y="54.96">Somente Visualização</span>
 				</fill_text>
 				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="655.75" y="27"/>
-					<lineto x="813.25" y="27"/>
+					<moveto x="80" y="50"/>
+					<lineto x="565.25" y="50"/>
 				</stroke_path>
 				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="656" y="27.25"/>
-					<lineto x="656" y="19.75"/>
-				</stroke_path>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="655.75" y="20"/>
-					<lineto x="813.25" y="20"/>
-				</stroke_path>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="813" y="27.25"/>
-					<lineto x="813" y="19.75"/>
+					<moveto x="565" y="66"/>
+					<lineto x="565" y="49.75"/>
 				</stroke_path>
 				<fill_text color="0 0 0">
-					<span font="Helvetica" wmode="0" bidi="0" trm="5 0 0 5" x="597" y="21.6">Hashcode do Arquivo:</span>
+					<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="476.3" y="24.56">Página 1 de</span>
+				</fill_text>
+				<fill_text color="0 0 0">
+					<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="519" y="24.56">1</span>
+				</fill_text>
+				<fill_text color="0 0 0">
+					<span font="Helvetica" wmode="0" bidi="0" trm="7 0 0 7" x="35" y="38.34">Este relatório foi gerado pelo Sistema Público de Escrituração Digital – Sped</span>
+				</fill_text>
+				<fill_text color="0 0 0">
+					<span font="Helvetica" wmode="0" bidi="0" trm="7 0 0 7" x="35" y="28.32">Versão 2.3.5 do Visualizador</span>
+				</fill_text>
+				<fill_text color="0 0 0">
+					<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="34" y="70.96">Hashcode do Arquivo:</span>
 				</fill_text>
 				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="593.75" y="27"/>
-					<lineto x="656.25" y="27"/>
+					<moveto x="31" y="82"/>
+					<lineto x="31" y="65.75"/>
 				</stroke_path>
 				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="594" y="27.25"/>
-					<lineto x="594" y="19.75"/>
+					<moveto x="30.75" y="66"/>
+					<lineto x="117.25" y="66"/>
 				</stroke_path>
 				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="593.75" y="20"/>
-					<lineto x="656.25" y="20"/>
-				</stroke_path>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="656" y="27.25"/>
-					<lineto x="656" y="19.75"/>
+					<moveto x="117" y="82"/>
+					<lineto x="117" y="65.75"/>
 				</stroke_path>
 				<fill_text color="0 0 0">
-					<span font="Helvetica" wmode="0" bidi="0" trm="5 0 0 5" x="84" y="21.6">Somente Visualização</span>
+					<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="121" y="70.96" id="HASH_ASS"></span>
 				</fill_text>
 				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="80.75" y="27"/>
-					<lineto x="594.25" y="27"/>
+					<moveto x="118" y="66"/>
+					<lineto x="565.25" y="66"/>
 				</stroke_path>
 				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="81" y="27.25"/>
-					<lineto x="81" y="19.75"/>
+					<moveto x="565" y="82"/>
+					<lineto x="565" y="65.75"/>
 				</stroke_path>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="80.75" y="20"/>
-					<lineto x="594.25" y="20"/>
-				</stroke_path>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="594" y="27.25"/>
-					<lineto x="594" y="19.75"/>
-				</stroke_path>
-				<fill_text color="0 0 0">
-					<span font="Helvetica" wmode="0" bidi="0" trm="5 0 0 5" x="35" y="21.6">Mensagem:</span>
-				</fill_text>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="31.75" y="27"/>
-					<lineto x="81.25" y="27"/>
-				</stroke_path>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="32" y="27.25"/>
-					<lineto x="32" y="19.75"/>
-				</stroke_path>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="31.75" y="20"/>
-					<lineto x="81.25" y="20"/>
-				</stroke_path>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="81" y="27.25"/>
-					<lineto x="81" y="19.75"/>
-				</stroke_path>
-			</template>
-			
-			<template id="resumo">
-			</template>
-			
-			<template id="empty">
-				<fill_text colorspace="DeviceRGB" color=".752941 .752941 .752941">
-					<span font="Helvetica" wmode="0" bidi="0" trm="31.9988 0 0 -31.9988" x="0" y="301.52" width="842" align="center">Não há registros para serem exibidos.</span>	
-				</fill_text>
 			</template>
 		</group>
 	</page>
