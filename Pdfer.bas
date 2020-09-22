@@ -1278,8 +1278,13 @@ end function
 function PdfTemplate.parseTemplate(parent as PdfTemplateNode ptr, page as PdfTemplatePageNode ptr) as PdfTemplateTemplateNode ptr
 	
 	var id = getXmlAttrib("id")
+	var attrib = getXmlAttrib("hidden")
+	var hidden = true
+	if len(attrib) > 0 then
+		hidden = attrib = "true" orelse attrib = "1"
+	end if
 	
-	return new PdfTemplateTemplateNode(id, page->getIdDict(), parent)
+	return new PdfTemplateTemplateNode(id, page->getIdDict(), parent, hidden)
 	
 end function
 
