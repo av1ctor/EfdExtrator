@@ -26,6 +26,7 @@ type OpcoesExtracao
 	filtrarChaves					as boolean = false
 	listaCnpj(any)					as string
 	listaChaves(any)				as string
+	highlight						as boolean
 end type
 
 enum TipoRegistro
@@ -827,6 +828,7 @@ end type
 
 type RelLinha
 	tipo			as RelLinhaTipo
+	highlight		as boolean
 	union
 		df			as RelLinhaDF
 		anal		as RelLinhaAnal
@@ -935,10 +937,10 @@ private:
 	declare sub gerarRelatorioApuracaoICMS(nomeArquivo as string, reg as TRegistro ptr)
 	declare sub gerarRelatorioApuracaoICMSST(nomeArquivo as string, reg as TRegistro ptr)
 	declare sub iniciarRelatorio(relatorio as TipoRelatorio, nomeRelatorio as string, sufixo as string)
-	declare sub adicionarDocRelatorioEntradas(doc as TDocDF ptr, part as TParticipante ptr)
-	declare sub adicionarDocRelatorioSaidas(doc as TDocDF ptr, part as TParticipante ptr)
-	declare sub adicionarDocRelatorioSaidas(doc as TECFReducaoZ ptr)
-	declare sub adicionarDocRelatorioSaidas(doc as TDocSAT ptr)
+	declare sub adicionarDocRelatorioEntradas(doc as TDocDF ptr, part as TParticipante ptr, highlight as boolean)
+	declare sub adicionarDocRelatorioSaidas(doc as TDocDF ptr, part as TParticipante ptr, highlight as boolean)
+	declare sub adicionarDocRelatorioSaidas(doc as TECFReducaoZ ptr, highlight as boolean)
+	declare sub adicionarDocRelatorioSaidas(doc as TDocSAT ptr, highlight as boolean)
 	declare sub adicionarDocRelatorioItemAnal(sit as TipoSituacao, anal as TDocItemAnal ptr)
 	declare sub finalizarRelatorio()
 	declare sub relatorioSomarLR(sit as TipoSituacao, anal as TDocItemAnal ptr)
@@ -950,7 +952,7 @@ private:
 	declare sub setNodeText(page as PdfTemplatePageNode ptr, id as string, value as wstring ptr)
 	declare sub setChildText(row as PdfTemplateNode ptr, id as string, value as string)
 	declare sub setChildText(row as PdfTemplateNode ptr, id as string, value as wstring ptr)
-	declare function gerarLinhaDFe() as PdfTemplateNode ptr
+	declare function gerarLinhaDFe(highlight as boolean) as PdfTemplateNode ptr
 	declare function gerarLinhaAnal() as PdfTemplateNode ptr
 	declare function criarPaginaRelatorio(emitir as boolean) as RelPagina ptr
 	
@@ -1069,7 +1071,7 @@ declare function dupstr(s as const zstring ptr) as zstring ptr
 declare sub splitstr(Text As String, Delim As String = ",", Ret() As String)
 declare function strreplace(byref text as string, byref a as string, byref b as string) as string
 declare function UF_SIGLA2COD(s as zstring ptr) as integer
-declare sub loadstrings(fromFile as string, toArray() as string)
+declare function loadstrings(fromFile as string, toArray() as string) as boolean
 
 extern as string ufCod2Sigla(11 to 53)
 extern as TDict ufSigla2CodDict

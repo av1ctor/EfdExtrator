@@ -4,7 +4,10 @@
 #include once "DB.bi"
 #include once "trycatch.bi"
 
-const PAGE_VLIMIT = 441.9
+const PAGE_LEFT = 30
+const PAGE_RIGHT = 813
+const PAGE_TOP = 514
+const PAGE_BOTTOM = 441.9
 const ROW_SPACE_BEFORE = 3
 const STROKE_WIDTH = 0.5
 const ROW_HEIGHT = STROKE_WIDTH + 9.5 + STROKE_WIDTH + 0.5 	'' espaço anterior, linha superior, conteúdo, linha inferior, espaço posterior
@@ -20,7 +23,7 @@ const LRS_RESUMO_ROW_HEIGHT = 12.0
 	var anal = __doc.itemAnalListHead
 	do while anal <> null
 		var height = ANAL_HEIGHT
-		if relYPos + height > PAGE_VLIMIT then
+		if relYPos + height > PAGE_BOTTOM then
 			gerarPaginaRelatorio()
 		end if
 		var lin = cast(RelLinha ptr, relLinhasList.add())
@@ -36,11 +39,12 @@ const LRS_RESUMO_ROW_HEIGHT = 12.0
 #macro list_add_DF_ENTRADA(__doc, __part)
 	scope
 		var height = iif(relNroLinhas > 0, ROW_SPACE_BEFORE, 0) + ROW_HEIGHT
-		if relYPos + height > PAGE_VLIMIT then
+		if relYPos + height > PAGE_BOTTOM then
 			gerarPaginaRelatorio()
 		end if
 		var lin = cast(RelLinha ptr, relLinhasList.add())
 		lin->tipo = REL_LIN_DF_ENTRADA
+		lin->highlight = false
 		lin->df.doc = @__doc
 		lin->df.part = __part
 		relYPos += iif(relNroLinhas > 0, ROW_SPACE_BEFORE, 0) + ROW_HEIGHT
@@ -53,11 +57,12 @@ const LRS_RESUMO_ROW_HEIGHT = 12.0
 #macro list_add_DF_SAIDA(__doc, __part)
 	scope
 		var height = iif(relNroLinhas > 0, ROW_SPACE_BEFORE, 0) + ROW_HEIGHT
-		if relYPos + height > PAGE_VLIMIT then
+		if relYPos + height > PAGE_BOTTOM then
 			gerarPaginaRelatorio()
 		end if
 		var lin = cast(RelLinha ptr, relLinhasList.add())
 		lin->tipo = REL_LIN_DF_SAIDA
+		lin->highlight = false
 		lin->df.doc = @__doc
 		lin->df.part = __part
 		relYPos += iif(relNroLinhas > 0, ROW_SPACE_BEFORE, 0) + ROW_HEIGHT
@@ -70,11 +75,12 @@ const LRS_RESUMO_ROW_HEIGHT = 12.0
 #macro list_add_REDZ(__doc)
 	scope
 		var height = iif(relNroLinhas > 0, ROW_SPACE_BEFORE, 0) + ROW_HEIGHT
-		if relYPos + height > PAGE_VLIMIT then
+		if relYPos + height > PAGE_BOTTOM then
 			gerarPaginaRelatorio()
 		end if
 		var lin = cast(RelLinha ptr, relLinhasList.add())
 		lin->tipo = REL_LIN_DF_REDZ
+		lin->highlight = false
 		lin->redz.doc = @__doc
 		relYPos += iif(relNroLinhas > 0, ROW_SPACE_BEFORE, 0) + ROW_HEIGHT
 		relNroLinhas += 1
@@ -86,11 +92,12 @@ const LRS_RESUMO_ROW_HEIGHT = 12.0
 #macro list_add_SAT(__doc)
 	scope
 		var height = iif(relNroLinhas > 0, ROW_SPACE_BEFORE, 0) + ROW_HEIGHT
-		if relYPos + height > PAGE_VLIMIT then
+		if relYPos + height > PAGE_BOTTOM then
 			gerarPaginaRelatorio()
 		end if
 		var lin = cast(RelLinha ptr, relLinhasList.add())
 		lin->tipo = REL_LIN_DF_SAT
+		lin->highlight = false
 		lin->sat.doc = @__doc
 		relYPos += iif(relNroLinhas > 0, ROW_SPACE_BEFORE, 0) + ROW_HEIGHT
 		relNroLinhas += 1
@@ -110,7 +117,7 @@ sub Efd.gerarRelatorios(nomeArquivo as string, mostrarProgresso as ProgressoCB)
 	
 	ultimoRelatorio = -1
 
-	relLinhasList.init(cint(PAGE_VLIMIT / ROW_HEIGHT + 0.5), len(RelLinha))
+	relLinhasList.init(cint(PAGE_BOTTOM / ROW_HEIGHT + 0.5), len(RelLinha))
 	relPaginasList.init(1000, len(RelPagina))
 	
 	mostrarProgresso(null, .1)
@@ -291,7 +298,10 @@ private sub efd.gerarPaginaRelatorio(lastPage as boolean)
 				if part <> null then
 					if filtrarPorCnpj(part->cnpj) then
 						gerarPagina = true
-						exit do
+						if not opcoes.highlight then
+							exit do
+						end if
+						n->highlight = true
 					end if
 				end if
 				
@@ -315,7 +325,10 @@ private sub efd.gerarPaginaRelatorio(lastPage as boolean)
 				if chave <> null then
 					if filtrarPorChave(chave) then
 						gerarPagina = true
-						exit do
+						if not opcoes.highlight then
+							exit do
+						end if
+						n->highlight = true
 					end if
 				end if
 				
@@ -333,13 +346,13 @@ private sub efd.gerarPaginaRelatorio(lastPage as boolean)
 		if gerarPagina then
 			select case as const n->tipo
 			case REL_LIN_DF_ENTRADA
-				adicionarDocRelatorioEntradas(n->df.doc, n->df.part)
+				adicionarDocRelatorioEntradas(n->df.doc, n->df.part, n->highlight)
 			case REL_LIN_DF_SAIDA
-				adicionarDocRelatorioSaidas(n->df.doc, n->df.part)
+				adicionarDocRelatorioSaidas(n->df.doc, n->df.part, n->highlight)
 			case REL_LIN_DF_REDZ
-				adicionarDocRelatorioSaidas(n->redz.doc)
+				adicionarDocRelatorioSaidas(n->redz.doc, n->highlight)
 			case REL_LIN_DF_SAT
-				adicionarDocRelatorioSaidas(n->sat.doc)
+				adicionarDocRelatorioSaidas(n->sat.doc, n->highlight)
 			case REL_LIN_DF_ITEM_ANAL
 				adicionarDocRelatorioItemAnal(n->anal.sit, n->anal.item)
 			end select
@@ -493,9 +506,13 @@ private function cmpFunc(key as any ptr, node as any ptr) as boolean
 end function
 
 ''''''''
-function Efd.gerarLinhaDFe() as PdfTemplateNode ptr
+function Efd.gerarLinhaDFe(highlight as boolean) as PdfTemplateNode ptr
 	if relNroLinhas > 0 then
 		relYPos += ROW_SPACE_BEFORE
+	end if
+	
+	if highlight then
+		var hl = new PdfTemplateHighlightNode(PAGE_LEFT, (PAGE_TOP-relYpos-ROW_HEIGHT), PAGE_RIGHT, (PAGE_TOP-relYPos), relPage)
 	end if
 	
 	var row = relPage->getNode("row")
@@ -648,8 +665,8 @@ static function Efd.luacb_efd_rel_addItemAnalitico cdecl(L as lua_State ptr) as 
 end function
 
 ''''''''
-sub Efd.adicionarDocRelatorioSaidas(doc as TDocDF ptr, part as TParticipante ptr)
-	var row = gerarLinhaDFe()
+sub Efd.adicionarDocRelatorioSaidas(doc as TDocDF ptr, part as TParticipante ptr, highlight as boolean)
+	var row = gerarLinhaDFe(highlight)
 	
 	if len(doc->dataEmi) > 0 then
 		setChildText(row, "DEMI", YyyyMmDd2DatetimeBR(doc->dataEmi))
@@ -676,8 +693,8 @@ sub Efd.adicionarDocRelatorioSaidas(doc as TDocDF ptr, part as TParticipante ptr
 end sub
 
 ''''''''
-sub Efd.adicionarDocRelatorioEntradas(doc as TDocDF ptr, part as TParticipante ptr)
-	var row = gerarLinhaDFe()
+sub Efd.adicionarDocRelatorioEntradas(doc as TDocDF ptr, part as TParticipante ptr, highlight as boolean)
+	var row = gerarLinhaDFe(highlight)
 	
 	setChildText(row, "DEMI", YyyyMmDd2DatetimeBR(doc->dataEmi))
 	setChildText(row, "DENT", YyyyMmDd2DatetimeBR(doc->dataEntSaida))
@@ -696,10 +713,10 @@ sub Efd.adicionarDocRelatorioEntradas(doc as TDocDF ptr, part as TParticipante p
 end sub
 
 ''''''''
-sub Efd.adicionarDocRelatorioSaidas(doc as TECFReducaoZ ptr)
+sub Efd.adicionarDocRelatorioSaidas(doc as TECFReducaoZ ptr, highlight as boolean)
 	var equip = doc->equipECF
 
-	var row = gerarLinhaDFe()
+	var row = gerarLinhaDFe(highlight)
 	
 	setChildText(row, "DEMI", YyyyMmDd2DatetimeBR(doc->dataMov))
 	setChildText(row, "NRINI", str(doc->numIni))
@@ -711,8 +728,8 @@ sub Efd.adicionarDocRelatorioSaidas(doc as TECFReducaoZ ptr)
 end sub
 
 ''''''''
-sub Efd.adicionarDocRelatorioSaidas(doc as TDocSAT ptr)
-	var row = gerarLinhaDFe()
+sub Efd.adicionarDocRelatorioSaidas(doc as TDocSAT ptr, highlight as boolean)
+	var row = gerarLinhaDFe(highlight)
 	
 	setChildText(row, "DEMI", YyyyMmDd2DatetimeBR(doc->dataEmi))
 	setChildText(row, "NRINI", str(doc->numero))
@@ -742,7 +759,7 @@ sub efd.gerarResumoRelatorio()
 	var rowHeight = iif(ultimoRelatorio = REL_LRS, LRS_RESUMO_ROW_HEIGHT, LRE_RESUMO_ROW_HEIGHT)
 	
 	'' header
-	if relPage = null orElse relYPos + ROW_SPACE_BEFORE + titleHeight + headerHeight + rowHeight > PAGE_VLIMIT then
+	if relPage = null orElse relYPos + ROW_SPACE_BEFORE + titleHeight + headerHeight + rowHeight > PAGE_BOTTOM then
 		criarPaginaRelatorio(true)
 	end if
 	
@@ -753,7 +770,7 @@ sub efd.gerarResumoRelatorio()
 	
 	var soma = cast(RelSomatorioLR ptr, relSomaLRList.head)
 	do while soma <> null
-		if relYPos + rowHeight > PAGE_VLIMIT then
+		if relYPos + rowHeight > PAGE_BOTTOM then
 			criarPaginaRelatorio(true)
 			gerarResumoRelatorioHeader()
 		end if
@@ -789,7 +806,7 @@ sub efd.gerarResumoRelatorio()
 	loop
 	
 	'' totais
-	if relYPos + ROW_SPACE_BEFORE + headerHeight > PAGE_VLIMIT then
+	if relYPos + ROW_SPACE_BEFORE + headerHeight > PAGE_BOTTOM then
 		criarPaginaRelatorio(true)
 		gerarResumoRelatorioHeader()
 	end if

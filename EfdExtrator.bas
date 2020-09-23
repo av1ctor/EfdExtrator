@@ -14,7 +14,7 @@ on error goto exceptionReport
 '''''''''''
 sub mostrarUso()
 	print wstr("Modo de usar:")
-	print wstr("EfdExtrator.exe [-gerarRelatorios] [-complementarDados] [-filtrarCnpj cnpj1,cnpj2,...] [-filtrarChaves chave1,chave2,...] [-formatoDeSaida xml|csv|xlsx|null] [-somenteRessarcimentoST] [-dbEmDisco -manterDB] efd-ou-sintegra.txt [relatorio-bo.csv] [relatorio-bo.xlsx]")
+	print wstr("EfdExtrator.exe [-gerarRelatorios] [-filtrarCnpjs cnpj1,cnpj2,...] [-filtrarChaves chave1,chave2,...] [-realcar] [-formatoDeSaida xml|csv|xlsx|null] [-complementarDados] [-somenteRessarcimentoST] [-dbEmDisco -manterDB] efd-ou-sintegra.txt [relatorio-bo.csv] [relatorio-bo.xlsx]")
 	print wstr("Notas:")
 	print wstr(!"\t1. No lugar do nome dos arquivos, podem ser usadas máscaras,")
 	print wstr(!"\t   como por exemplo: *.txt *.csv *.xlsx")
@@ -29,24 +29,31 @@ sub mostrarUso()
 	print wstr(!"\t   no Excel 2003 ou superior (exceto se o formato de saída for null)")
 	print wstr(!"\t6. A opção -gerarRelatorios gera os relatórios do EFD-ICMS-IPI")
 	print wstr(!"\t   no formato PDF.")
-	print wstr(!"\t7. A opção -complementarDados inclui dados complementares na planilha")
+	print wstr(!"\t7. A opção -filtrarCnpjs fará com que só sejam extraídos os registros")
+	print wstr(!"\t   com os mesmos CNPJs (de emitentes ou destinatários) dos contidos")
+	print wstr(!"\t   na lista de CNPJs informada (separada por vírgula; zeros à esq.)")
+	print wstr(!"\t8. A opção -filtrarChaves fará com que só sejam extraídos os registros")
+	print wstr(!"\t   com as mesmas chaves das contidas na lista (usar @arquivo.txt para")
+	print wstr(!"\t   carregar as chaves de um arquivo, uma chave por linha)")
+	print wstr(!"\t9. A opção -gerarRelatorios gera os relatórios do PVA EFD-ICMS-IPI")
+	print wstr(!"\t   no formato PDF")
+	print wstr(!"\tA. A opção -realcar cria um realce, nos relatórios em PDF gerados, nos")
+	print wstr(!"\t   registros que corresponderem à -filtrarCnpjs ou -filtrarChaves")
+	print wstr(!"\tB. As opções -naoGerarLre, -naoGerarLrs e -naoGerarLraicms deixam de")
+	print wstr(!"\t   gerar os respectivos livros quando -gerarRelatorios é utilizada")
+	print wstr(!"\tC. A opção -formatoDeSaida permite trocar o formato de saída do")
+	print wstr(!"\t   padrão xlsx para csv ou XML (Excel 2003 ou superior)")
+	print wstr(!"\tD. A opção -complementarDados inclui dados complementares na planilha")
 	print wstr(!"\t   (aba Saídas ou Entradas para docs de emissão própria) que será")
 	print wstr(!"\t   gerada e que não constam na EFD, caso os arquivos .csv do SAFI ou")
 	print wstr(!"\t   os .xlsx do Infoview BO sejam fornecidos. AVISO: não utilize as")
 	print wstr(!"\t   informações relacionadas ao ICMS (alíquota, BC, valor, etc), pois")
 	print wstr(!"\t   esses dados serão retirados dos DF-e's e não da escrituração")
-	print wstr(!"\t8. A opção -filtrarCnpj fará com que só sejam extraídos os registros")
-	print wstr(!"\t   com os mesmos CNPJs (de emitentes ou destinatários) dos contidos")
-	print wstr(!"\t   na lista de CNPJs informada (separada por vírgula; zeros à esq.)")
-	print wstr(!"\t9. A opção -filtrarChaves fará com que só sejam extraídos os registros")
-	print wstr(!"\t   com as mesmas chaves das contidas na lista (usar @arquivo.txt para")
-	print wstr(!"\t   carregar as chaves de um arquivo, uma chave por linha)")
-	print wstr(!"\tA. A opção -formatoDeSaida permite trocar o formato de saída do")
-	print wstr(!"\t   padrão xlsx para csv ou XML (Excel 2003 ou superior)")
-	print wstr(!"\tB. A opção -somenteRessarcimentoST extrairá somente documentos do LRS")
+	print wstr(!"\tE. A opção -somenteRessarcimentoST extrairá somente documentos do LRS")
 	print wstr(!"\t   que contenham o registro C176 relativo ao ressarcimento ST")
-	print wstr(!"\tC. A opção -dbEmDisco gravará os dados intermediários em disco,")
+	print wstr(!"\tF. A opção -dbEmDisco gravará os dados intermediários em disco,")
 	print wstr(!"\t   poupando memória (utilize -manterDB para preservar o arquivo)")
+	
 	print 
 end sub
 
@@ -119,7 +126,9 @@ sub main()
 			case "-naogerarlraicms"
 				opcoes.pularLRaicmsAoGerarRelatorios = true
 				nroOpcoes += 1
-			case "-filtrarcnpj"
+			case "-realcar"
+				opcoes.highlight = true
+			case "-filtrarcnpjs"
 				i += 1
 				var listaCnpj = command(i)
 				if( len(listaCnpj) > 0 ) then
@@ -134,7 +143,11 @@ sub main()
 				var listaChaves = command(i)
 				if( len(listaChaves) > 0 ) then
 					if left(listaChaves, 1) = "@" then
-						loadstrings(mid(listaChaves, 2), opcoes.listaChaves())
+						var lista = mid(listaChaves, 2)
+						if not loadstrings(lista, opcoes.listaChaves()) then
+							print wstr("Erro: ao carregar arquivo: " + lista)
+							exit sub
+						end if
 					else
 						splitstr(listaChaves, ",", opcoes.listaChaves())
 					end if
