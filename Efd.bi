@@ -1070,7 +1070,6 @@ declare sub splitstr(Text As String, Delim As String = ",", Ret() As String)
 declare function strreplace(byref text as string, byref a as string, byref b as string) as string
 declare function UF_SIGLA2COD(s as zstring ptr) as integer
 declare sub loadstrings(fromFile as string, toArray() as string)
-declare function utf8ToUtf16le(src as zstring ptr) as wstring ptr
 
 extern as string ufCod2Sigla(11 to 53)
 extern as TDict ufSigla2CodDict

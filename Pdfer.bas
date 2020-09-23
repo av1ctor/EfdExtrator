@@ -468,7 +468,7 @@ sub PdfTemplateNode.setAttrib(name_ as string, value as wstring ptr)
 				*attrib = allocate((len(*value)+1) * len(wstring))
 				**cast(wstring ptr ptr, attrib) = *value
 			else
-				*value = null
+				*attrib = null
 			end if
 		end if
 	end if
@@ -484,10 +484,9 @@ sub PdfTemplateNode.setAttrib(name_ as string, value as zstring ptr)
 			end if
 			if value <> null then
 				if len(*value) > 0 then
-					*attrib = allocate((len(*value)+1) * len(wstring))
-					**cast(wstring ptr ptr, attrib) = *value
+					*attrib = utf8ToUtf16le(value)
 				else
-					*value = null
+					*attrib = null
 				end if
 			end if
 		end if
