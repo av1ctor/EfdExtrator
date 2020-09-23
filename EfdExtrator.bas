@@ -205,12 +205,12 @@ sub main()
 	   do while len(arquivoEntrada) > 0
 			if lcase(right(arquivoEntrada,3)) = "csv" then
 				if not e.carregarCsv( arquivoEntrada, @mostrarProgresso ) then
-					print !"\r\nErro ao carregar arquivo!"
+					print !"\r\nErro ao carregar arquivo: "; arquivoEntrada
 					end -1
 				end if
 			elseif lcase(right(arquivoEntrada,4)) = "xlsx" then
 				if not e.carregarXlsx( arquivoEntrada, @mostrarProgresso ) then
-					print !"\r\nErro ao carregar arquivo!"
+					print !"\r\nErro ao carregar arquivo: "; arquivoEntrada
 					end -1
 				end if
 			end if 
@@ -225,7 +225,7 @@ sub main()
 	   do while len(arquivoEntrada) > 0
 			if lcase(right(arquivoEntrada,3)) = "txt" then
 				if not e.carregarTxt( arquivoEntrada, @mostrarProgresso ) then
-					print !"\r\nErro ao carregar arquivo!"
+					print !"\r\nErro ao carregar arquivo: "; arquivoEntrada
 					end -1
 				end if
 				

@@ -374,7 +374,7 @@ sub Efd.gerarRelatorioApuracaoICMS(nomeArquivo as string, reg as TRegistro ptr)
 	
 	setNodeText(relPage, "NOME", regMestre->mestre.nome)
 	setNodeText(relPage, "CNPJ", STR2CNPJ(regMestre->mestre.cnpj))
-	setNodeText(relPage, "IE", STR2IE(regMestre->mestre.ie))
+	setNodeText(relPage, "IE", regMestre->mestre.ie)
 	setNodeText(relPage, "ESCRIT", YyyyMmDd2DatetimeBR(regMestre->mestre.dataIni) + " a " + YyyyMmDd2DatetimeBR(regMestre->mestre.dataFim))
 	setNodeText(relPage, "APU", YyyyMmDd2DatetimeBR(reg->apuIcms.dataIni) + " a " + YyyyMmDd2DatetimeBR(reg->apuIcms.dataFim))
 	
@@ -406,7 +406,7 @@ sub Efd.gerarRelatorioApuracaoICMSST(nomeArquivo as string, reg as TRegistro ptr
 	
 	setNodeText(relPage, "NOME", regMestre->mestre.nome)
 	setNodeText(relPage, "CNPJ", STR2CNPJ(regMestre->mestre.cnpj))
-	setNodeText(relPage, "IE", STR2IE(regMestre->mestre.ie))
+	setNodeText(relPage, "IE", regMestre->mestre.ie)
 	setNodeText(relPage, "ESCRIT", YyyyMmDd2DatetimeBR(regMestre->mestre.dataIni) + " a " + YyyyMmDd2DatetimeBR(regMestre->mestre.dataFim))
 	setNodeText(relPage, "APU", YyyyMmDd2DatetimeBR(reg->apuIcmsST.dataIni) + " a " + YyyyMmDd2DatetimeBR(reg->apuIcmsST.dataFim))
 	setNodeText(relPage, "UF", reg->apuIcmsST.UF)
@@ -465,14 +465,12 @@ sub Efd.iniciarRelatorio(relatorio as TipoRelatorio, nomeRelatorio as string, su
 	
 	setNodeText(page, "NOME", regMestre->mestre.nome)
 	setNodeText(page, "CNPJ", STR2CNPJ(regMestre->mestre.cnpj))
-	setNodeText(page, "IE", STR2IE(regMestre->mestre.ie))
+	setNodeText(page, "IE", regMestre->mestre.ie)
 	
 	select case relatorio
 	case REL_LRE, REL_LRS
 		setNodeText(page, "UF", MUNICIPIO2SIGLA(regMestre->mestre.municip))
-		var mun = utf8ToUtf16le(codMunicipio2Nome(regMestre->mestre.municip))
-		setNodeText(page, "MUNICIPIO", mun)
-		deallocate mun
+		setNodeText(page, "MUNICIPIO", codMunicipio2Nome(regMestre->mestre.municip))
 		setNodeText(page, "APU", YyyyMmDd2DatetimeBR(regMestre->mestre.dataIni) + " a " + YyyyMmDd2DatetimeBR(regMestre->mestre.dataFim))
 	end select
 
@@ -669,7 +667,7 @@ sub Efd.adicionarDocRelatorioSaidas(doc as TDocDF ptr, part as TParticipante ptr
 	case REGULAR, EXTEMPORANEO
 		if part <> null then
 			setChildText(row, "CNPJDEST", iif(len(part->cpf) > 0, STR2CPF(part->cpf), STR2CNPJ(part->cnpj)))
-			setChildText(row, "IEDEST", STR2IE(part->ie))
+			setChildText(row, "IEDEST", part->ie)
 			setChildText(row, "UFDEST", MUNICIPIO2SIGLA(part->municip))
 			setChildText(row, "MUNDEST", str(part->municip))
 			setChildText(row, "RAZAODEST", left(part->nome, 36))
@@ -690,11 +688,9 @@ sub Efd.adicionarDocRelatorioEntradas(doc as TDocDF ptr, part as TParticipante p
 	setChildText(row, "SIT", format(cdbl(doc->situacao), "00"))
 	if part <> null then
 		setChildText(row, "CNPJEMI", iif(len(part->cpf) > 0, STR2CPF(part->cpf), STR2CNPJ(part->cnpj)))
-		setChildText(row, "IEEMI", STR2IE(part->ie))
+		setChildText(row, "IEEMI", part->ie)
 		setChildText(row, "UFEMI", MUNICIPIO2SIGLA(part->municip))
-		var mun = utf8ToUtf16le(codMunicipio2Nome(part->municip))
-		setChildText(row, "MUNEMI", mun)
-		deallocate mun
+		setChildText(row, "MUNEMI", codMunicipio2Nome(part->municip))
 		setChildText(row, "RAZAOEMI", left(part->nome, 34))
 	end if
 end sub

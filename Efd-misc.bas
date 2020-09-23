@@ -3,15 +3,6 @@
 dim shared as string ufCod2Sigla(11 to 53)
 dim shared as TDict ufSigla2CodDict
 dim shared as string codSituacao2Str(0 to __TipoSituacao__LEN__-1)
-dim shared cd8to16le as iconv_t
-
-private sub initialize() constructor
-	cd8to16le = iconv_open("UTF-16LE", "UTF-8")
-end sub
-
-private sub shutdown() destructor
-	iconv_close(cd8to16le)
-end sub
 
 private sub tablesCtor constructor
 	ufCod2Sigla(11)="RO"
@@ -307,16 +298,4 @@ function strreplace _
 	loop
 
 	function = result
-end function
-
-function utf8ToUtf16le(src as zstring ptr) as wstring ptr
-	var bytes = len(*src)
-	var dst = allocate((bytes+1) * len(ushort))
-	var srcp = src
-	var srcleft = bytes
-	var dstp = dst
-	var dstleft = bytes*2
-	iconv(cd8to16le, @srcp, @srcleft, @dstp, @dstleft)
-	*cast(ushort ptr, dstp) = 0
-	function = dst
 end function
