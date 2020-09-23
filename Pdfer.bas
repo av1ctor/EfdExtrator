@@ -9,6 +9,7 @@
 	dim shared cd16leto8 as iconv_t
 #endif	
 
+'''''
 private sub initialize() constructor
 	FPDF_InitLibrary()
 #ifdef WITH_PARSER
@@ -23,6 +24,17 @@ private sub shutdown() destructor
 	iconv_close(cd8to16le)
 #endif
 	FPDF_DestroyLibrary()
+end sub
+
+private sub highlight(left_ as single, bottom as single, right_ as single, top as single, page as FPDF_PAGE)
+	var annot = FPDFPage_CreateAnnot(page, FPDF_ANNOT_HIGHLIGHT)
+	FPDFAnnot_SetFlags(annot, FPDF_ANNOT_FLAG_PRINT or FPDF_ANNOT_FLAG_READONLY)
+	dim rectf as FS_RECTF = (left_-1, top-1, right_+1, bottom+1)
+	FPDFAnnot_SetRect(annot, @rectf)
+	dim quad as FS_QUADPOINTSF = (left_-1, top+1, right_+1, top+1, left_-1, bottom-1, right_+1, bottom-1)
+	FPDFAnnot_AppendAttachmentPoints(annot, @quad)
+	FPDFAnnot_SetColor(annot, FPDFANNOT_COLORTYPE_Color, 255, 209, 0, 102)
+	FPDFPage_CloseAnnot(annot)
 end sub
 
 '''''
@@ -148,14 +160,7 @@ property PdfPage.text() as PdfText ptr
 end property
 
 sub PdfPage.highlight(rect as PdfRectCoords ptr)
-	var annot = FPDFPage_CreateAnnot(page, FPDF_ANNOT_HIGHLIGHT)
-	FPDFAnnot_SetFlags(annot, FPDF_ANNOT_FLAG_PRINT or FPDF_ANNOT_FLAG_READONLY)
-	dim rectf as FS_RECTF = (rect->left-1, rect->top-1, rect->right+1, rect->bottom+1)
-	FPDFAnnot_SetRect(annot, @rectf)
-	dim quad as FS_QUADPOINTSF = (rect->left-1, rect->top+1, rect->right+1, rect->top+1, rect->left-1, rect->bottom-1, rect->right+1, rect->bottom-1)
-	FPDFAnnot_AppendAttachmentPoints(annot, @quad)
-	FPDFAnnot_SetColor(annot, FPDFANNOT_COLORTYPE_Color, 255, 209, 0, 102)
-	FPDFPage_CloseAnnot(annot)
+	..highlight(rect->left, rect->bottom, rect->right, rect->top, page)
 end sub
 
 sub PdfPage.highlight(txt as PdfText ptr, byref res as PdfFinderResult)
@@ -821,6 +826,43 @@ end function
 
 function PdfTemplateClosePathNode.emit(doc as FPDF_DOCUMENT, page as FPDF_PAGE, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
 	FPDFPath_Close(parent)
+	return null
+end function
+
+'''''
+constructor PdfTemplateHighlightNode(left as single, bottom as single, right as single, top as single, parent as PdfTemplateNode ptr)
+	base(PdfTemplateNodeType.HIGHLIGHT, parent)
+	this.left = left
+	this.bottom = bottom
+	this.right = right
+	this.top = top
+end constructor
+
+function PdfTemplateHighlightNode.clone(parent as PdfTemplateNode ptr, page as PdfTemplatePageNode ptr) as PdfTemplateNode ptr
+	var dup = new PdfTemplateHighlightNode(left, bottom, right, top, parent)
+	cloneChildren(dup, page)
+	return dup
+end function
+
+sub PdfTemplateHighlightNode.translate(xi as single, yi as single)
+	this.left += xi
+	this.bottom += yi
+	this.right += xi
+	this.top += yi
+end sub
+
+sub PdfTemplateHighlightNode.translateX(xi as single)
+	this.left += xi
+	this.right += xi
+end sub
+
+sub PdfTemplateHighlightNode.translateY(yi as single)
+	this.bottom += yi
+	this.top += yi
+end sub
+
+function PdfTemplateHighlightNode.emit(doc as FPDF_DOCUMENT, page as FPDF_PAGE, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
+	highlight(left, bottom, right, top, page)
 	return null
 end function
 

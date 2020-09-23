@@ -3,7 +3,7 @@ Copyleft 2017-2020 by André Vicentini (avtvicentini)
 
 Modo de usar:
 
-    EfdExtrator.exe [-gerarRelatorios] [-complementarDados] [-filtrarCnpj cnpj1,cnpj2,...] [-filtrarChaves chave1,chave2,...] -formatoDeSaida xml|csv|xlsx|null -somenteRessarcimentoST -dbEmDisco -manterDB arquivo.txt [arquivo.csv] [arquivo.xlsx]
+	EfdExtrator.exe [-gerarRelatorios] [-filtrarCnpjs cnpj1,cnpj2,...] [-filtrarChaves chave1,chave2,...] [-realcar] [-formatoDeSaida xml|csv|xlsx|null] [-complementarDados] [-somenteRessarcimentoST] [-dbEmDisco -manterDB] efd-ou-sintegra.txt [relatorio-bo.csv] [relatorio-bo.xlsx]
 
     Notas:
 	1. No lugar do nome dos arquivos, podem ser usadas máscaras,
@@ -11,33 +11,39 @@ Modo de usar:
 	2. Os arquivos .txt podem ser em formato Sintegra ou EFD
 	3. Os arquivos .csv do SAFI devem manter o padrão de nome dado pelo
 	   Infoview BO, mas podem ser usados prefixos e sufixos no nome,
-	   como por exemplo: "2017 SAFI_NFe_Emitente_Itens parte 1.csv"
+	   como por exemplo: \"2017 SAFI_NFe_Emitente_Itens parte 1.csv\"
 	4. Os arquivos .xlsx devem manter o padrão de nome dado pelo
 	   Infoview BO, mas podem ser usados prefixos e sufixos no nome,
-	   como por exemplo: "2019 NFe_Emitente_Itens_OSF parte 1.xlsx"
+	   como por exemplo: \"2019 NFe_Emitente_Itens_OSF parte 1.xlsx\"
 	5. No final da extração será gerado um arquivo .xlsx para ser aberto
 	   no Excel 2003 ou superior (exceto se o formato de saída for null)
 	6. A opção -gerarRelatorios gera os relatórios do EFD-ICMS-IPI
 	   no formato PDF.
-	7. A opção -complementarDados inclui dados complementares na planilha
-	   (aba Saídas ou Entradas para docs de emissão própria) que será 
-	   gerada e que não constam na EFD, caso os arquivos .csv do SAFI ou 
-	   os .xlsx do Infoview BO sejam fornecidos. AVISO: não utilize as
-	   informações relacionadas ao ICMS (alíquota, BC, valor, etc), pois
-           esses dados serão retirados dos DF-e's e não da escrituração
-	8. A opção -filtrarCnpj fará com que só sejam extraídos os registros 
+	7. A opção -filtrarCnpjs fará com que só sejam extraídos os registros
 	   com os mesmos CNPJs (de emitentes ou destinatários) dos contidos
-	   na lista de CNPJs informada (separada por vírgula; com zeros à esq.) 
-	9. A opção -filtrarChaves fará com que só sejam extraídos os registros
+	   na lista de CNPJs informada (separada por vírgula; zeros à esq.)
+	8. A opção -filtrarChaves fará com que só sejam extraídos os registros
 	   com as mesmas chaves das contidas na lista (usar @arquivo.txt para
 	   carregar as chaves de um arquivo, uma chave por linha)
-	A. A opção -formatoDeSaida permite trocar o formato de saída do
+	9. A opção -gerarRelatorios gera os relatórios do PVA EFD-ICMS-IPI
+	   no formato PDF
+	A. A opção -realcar cria um realce, nos relatórios em PDF gerados, nos
+	   registros que corresponderem à -filtrarCnpjs ou -filtrarChaves
+	B. As opções -naoGerarLre, -naoGerarLrs e -naoGerarLraicms deixam de
+	   gerar os respectivos livros quando -gerarRelatorios é utilizada
+	C. A opção -formatoDeSaida permite trocar o formato de saída do
 	   padrão xlsx para csv ou XML (Excel 2003 ou superior)
-	B. A opção -somenteRessarcimentoST extrairá somente documentos do LRS
+	D. A opção -complementarDados inclui dados complementares na planilha
+	   (aba Saídas ou Entradas para docs de emissão própria) que será
+	   gerada e que não constam na EFD, caso os arquivos .csv do SAFI ou
+	   os .xlsx do Infoview BO sejam fornecidos. AVISO: não utilize as
+	   informações relacionadas ao ICMS (alíquota, BC, valor, etc), pois
+	   esses dados serão retirados dos DF-e's e não da escrituração
+	E. A opção -somenteRessarcimentoST extrairá somente documentos do LRS
 	   que contenham o registro C176 relativo ao ressarcimento ST
-	C. A opção -dbEmDisco gravará os dados intermediários em disco,
+	F. A opção -dbEmDisco gravará os dados intermediários em disco,
 	   poupando memória (utilize -manterDB para preservar o arquivo)
-
+	
    Sobre as análises e cruzamentos:
 
     As análises e os cruzamentos são realizados em Lua scripting (ver scripts/analises.lua). 
@@ -45,3 +51,14 @@ Modo de usar:
     A sintaxe SQL utilizada nas queries deve ser a do SQLite. 
     O formato das tabelas criadas internamente pode ser visto em scripts/config.lua.
 
+   Dicas:
+   
+    Como processar EFDs de grandes contribuintes:
+		1. Utilize a opção -manterDB caso o número de registros seja > 1.048.576 (limite do Excel)
+			- o DB é gerado no formato do SQLite3. Para acessá-lo no Power Query ou Access, é necessário instalar o driver disponível em http://www.ch-werner.de/sqliteodbc/
+		2. Utilize o Power Query para filtrar os dados do DB e importá-los no Excel, ou carregue o DB no Access e faça a seleção dos dados:
+			- instalador do Power Query: https://www.microsoft.com/pt-BR/download/details.aspx?id=39379
+		3. Utilize as opções -filtrarCnpjs e/ou -filtrarChaves para limitar os registros que serão extraídos, quando já estiver com a relação de chaves e/ou CNPJs (passso 3)
+		4. Utilize a opção -formatoDeSaida null para não gerar a planilha de extração, quando estiver gerando apenas os relatórios do EDF-ICMS-IPI
+		
+		

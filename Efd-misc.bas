@@ -241,31 +241,36 @@ end sub
 
 
 '''''''
-sub loadstrings(fromFile as string, toArray() as string)
+function loadstrings(fromFile as string, toArray() as string) as boolean
 	
-	dim as bfile f
-	f.abrir(fromFile)
+	var fnum = FreeFile
+	if open(fromFile for input as #fnum) <> 0 then
+		return false
+	end if
 
 	var items = 10
 	redim toArray(0 to items-1)
 	
 	var i = 0
-	do while f.temProximo()
+	do while not eof(fnum)
 		if( i >= items ) then
 			items += 10
 			redim preserve toArray(0 to items-1)
 		end if
-	
-		toArray(i) = f.varchar(13)
-		f.char1			'' skip \n
+		
+		line input #fnum, toArray(i)
+		if len(toArray(i)) = 0 then
+			exit do
+		end if
 		i += 1
 	loop
 	
 	redim preserve toArray(0 to i-1)
 	
-	f.fechar()
-
-end sub
+	close #fnum
+	
+	return true
+end function
 
 function strreplace _
 	( _

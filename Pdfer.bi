@@ -128,6 +128,7 @@ enum PdfTemplateNodeType explicit
 	BEZIER_TO
 	CLOSE_PATH
 	TEXT
+	HIGHLIGHT
 end enum
 
 enum PdfTemplateAttribType explicit
@@ -289,6 +290,21 @@ public:
 	declare virtual function clone(parent as PdfTemplateNode ptr, page as PdfTemplatePageNode ptr) as PdfTemplateNode ptr
 	declare virtual function emit(doc as FPDF_DOCUMENT, page as FPDF_PAGE, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
 private:
+end type
+
+type PdfTemplateHighlightNode extends PdfTemplateNode
+public:
+	declare constructor(left as single, bottom as single, right as single, top as single, parent as PdfTemplateNode ptr = null)
+	declare virtual function clone(parent as PdfTemplateNode ptr, page as PdfTemplatePageNode ptr) as PdfTemplateNode ptr
+	declare virtual function emit(doc as FPDF_DOCUMENT, page as FPDF_PAGE, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
+	declare virtual sub translate(xi as single, yi as single)
+	declare virtual sub translateX(xi as single)
+	declare virtual sub translateY(yi as single)
+private:
+	left as single
+	bottom as single
+	right as single
+	top as single
 end type
 
 enum PdfTextAlignment explicit
