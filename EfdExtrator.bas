@@ -8,6 +8,7 @@ declare sub main()
 declare sub importarGia()
 declare sub importarCadContribuinte()
 declare sub importarCadContribuinteRegime()
+declare sub importarCadInidoneo()
 
 on error goto exceptionReport
 
@@ -173,6 +174,9 @@ sub main()
 			case "-importarcadregime"
 				importarCadContribuinteRegime()
 				exit sub
+			case "-importarcadinidoneo"
+				importarCadInidoneo()
+				exit sub
 			case "-formatodesaida"
 				i += 1
 				select case command(i)
@@ -308,7 +312,10 @@ sub importarGia()
 		end if
 		
 		dim as bfile inf
-		inf.abrir(arquivo)
+		if not inf.abrir(arquivo) then
+			print wstr("Erro: ao carregar arquivo: " + arquivo)
+			exit do
+		end if
 		
 		'' encontrar ano na 1a linha
 		inf.varint(SEP)
@@ -424,20 +431,23 @@ sub importarCadContribuinte()
 
 	const SEP = asc("|")
 	
-	var db = new TDb
-	
-	db->open(ExePath + "\db\CadContribuinte.db")
-	db->execNonQuery("PRAGMA JOURNAL_MODE=OFF")
-	db->execNonQuery("PRAGMA SYNCHRONOUS=0")
-	db->execNonQuery("PRAGMA LOCKING_MODE=EXCLUSIVE")
-	
 	var arquivo = command(2)
 	if len(arquivo) = 0 then
 		return
 	end if
 		
 	dim as bfile inf
-	inf.abrir(arquivo)
+	if not inf.abrir(arquivo) then
+		print wstr("Erro: ao carregar arquivo: " + arquivo)
+		return
+	end if
+	
+	var db = new TDb
+	
+	db->open(ExePath + "\db\CadContribuinte.db")
+	db->execNonQuery("PRAGMA JOURNAL_MODE=OFF")
+	db->execNonQuery("PRAGMA SYNCHRONOUS=0")
+	db->execNonQuery("PRAGMA LOCKING_MODE=EXCLUSIVE")
 	
 	'' pular as 2 primeiras linhas
 	inf.varchar(10)
@@ -513,20 +523,23 @@ sub importarCadContribuinteRegime()
 
 	const SEP = asc("|")
 	
-	var db = new TDb
-	
-	db->open(ExePath + "\db\CadContribuinte.db")
-	db->execNonQuery("PRAGMA JOURNAL_MODE=OFF")
-	db->execNonQuery("PRAGMA SYNCHRONOUS=0")
-	db->execNonQuery("PRAGMA LOCKING_MODE=EXCLUSIVE")
-	
 	var arquivo = command(2)
 	if len(arquivo) = 0 then
 		return
 	end if
 		
 	dim as bfile inf
-	inf.abrir(arquivo)
+	if not inf.abrir(arquivo) then
+		print wstr("Erro: ao carregar arquivo: " + arquivo)
+		return
+	end if
+	
+	var db = new TDb
+	
+	db->open(ExePath + "\db\CadContribuinte.db")
+	db->execNonQuery("PRAGMA JOURNAL_MODE=OFF")
+	db->execNonQuery("PRAGMA SYNCHRONOUS=0")
+	db->execNonQuery("PRAGMA LOCKING_MODE=EXCLUSIVE")
 	
 	'' pular a primeira linha
 	inf.varchar(10)
@@ -560,6 +573,92 @@ sub importarCadContribuinteRegime()
 		stmt->bind(3, dataIni) '' yyyymm
 		stmt->bind(4, dataFim) '' yyyymm
 		db->execNonQuery(stmt)
+		
+		if l = 100000 then
+			mostrarProgresso(0, inf.posicao / arqTamanho)
+			db->execNonQuery("end")
+			l = -1
+		end if
+		
+		l += 1
+	loop
+	
+	if l > 0 then
+		mostrarProgresso(0, 1)
+		db->execNonQuery("end")
+	end if
+	
+	inf.fechar()
+	
+	db->close()
+	
+end sub
+
+'''''''''''
+sub importarCadInidoneo()   
+
+	const SEP = asc(";")
+	
+	var arquivo = command(2)
+	if len(arquivo) = 0 then
+		return
+	end if
+		
+	dim as bfile inf
+	if not inf.abrir(arquivo) then
+		print wstr("Erro: ao carregar arquivo: " + arquivo)
+		return 
+	end if
+	
+	var db = new TDb
+	
+	db->open(ExePath + "\db\Inidoneos.db")
+	db->execNonQuery("PRAGMA JOURNAL_MODE=OFF")
+	db->execNonQuery("PRAGMA SYNCHRONOUS=0")
+	db->execNonQuery("PRAGMA LOCKING_MODE=EXCLUSIVE")
+	
+	'' pular a primeira linha
+	inf.varchar(10)
+	
+	mostrarProgresso("Carregando Cadastro de Inidôneos (" & arquivo & ")", 0)
+	
+	'' remover todos os registros
+	db->execNonQuery("delete from Inidoneos")
+	
+	var stmt = db->prepare("insert into Inidoneos (ie, cnpj, nome, dataof, dtinidon, uf, cod_inid) values (?,?,?,?,?,?,?)")
+	
+	var arqTamanho = inf.tamanho
+	var l = 0
+	do while inf.temProximo()
+		
+		if l = 0 then
+			db->execNonQuery("begin")
+		end if
+		
+		'' carregar cada registro
+		'' formato: "OFICIO";"NUMORD";"IE";"CGC";"NOME";"dataof";"dtinidon";"UF";"OCORRENCIAS";"ENDERECO";"MUNICIPIO";"PROCESSO"
+		inf.charCsv(SEP)
+		inf.intCsv(SEP, 0)
+		var ie = vallng(inf.charCsv(SEP))
+		var cnpj = vallng(inf.charCsv(SEP))
+		var nome = inf.charCsv(SEP)
+		var dataoficio = csvDate2YYYYMMDD(inf.charCsv(SEP, 0))
+		var datainicio = csvDate2YYYYMMDD(inf.charCsv(SEP, 0))
+		var uf = inf.charCsv(SEP)
+		inf.varchar(13)
+		inf.char1 '' skip \n
+		
+		if ie <> 0 andalso cnpj <> 0 then
+			stmt->reset()
+			stmt->bind(1, ie)
+			stmt->bind(2, cnpj)
+			stmt->bind(3, nome)
+			stmt->bind(4, dataoficio) '' yyyymm
+			stmt->bind(5, datainicio) '' yyyymm
+			stmt->bind(6, uf)
+			stmt->bind(7, 0)
+			db->execNonQuery(stmt)
+		end if
 		
 		if l = 100000 then
 			mostrarProgresso(0, inf.posicao / arqTamanho)
