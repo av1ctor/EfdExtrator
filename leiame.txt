@@ -2,10 +2,10 @@ Extrator de EFD/Sintegra para Excel/Word
 Copyleft 2017-2020 by André Vicentini (avtvicentini)
 
 Modo de usar:
-
-	EfdExtrator.exe [-gerarRelatorios] [-filtrarCnpjs cnpj1,cnpj2,...] [-filtrarChaves chave1,chave2,...] [-realcar] [-formatoDeSaida xml|csv|xlsx|null] [-complementarDados] [-somenteRessarcimentoST] [-dbEmDisco -manterDB] efd-ou-sintegra.txt [relatorio-bo.csv] [relatorio-bo.xlsx]
-
-    Notas:
+	
+	EfdExtrator.exe Opções efd-ou-sintegra.txt [relatorio-bo.csv] [relatorio-bo.xlsx]
+	
+	Notas:
 	1. No lugar do nome dos arquivos, podem ser usadas máscaras,
 	   como por exemplo: *.txt *.csv *.xlsx
 	2. Os arquivos .txt podem ser em formato Sintegra ou EFD
@@ -17,32 +17,47 @@ Modo de usar:
 	   como por exemplo: \"2019 NFe_Emitente_Itens_OSF parte 1.xlsx\"
 	5. No final da extração será gerado um arquivo .xlsx para ser aberto
 	   no Excel 2003 ou superior (exceto se o formato de saída for null)
-	6. A opção -gerarRelatorios gera os relatórios do EFD-ICMS-IPI
-	   no formato PDF.
-	7. A opção -filtrarCnpjs fará com que só sejam extraídos os registros
-	   com os mesmos CNPJs (de emitentes ou destinatários) dos contidos
-	   na lista de CNPJs informada (separada por vírgula; zeros à esq.)
-	8. A opção -filtrarChaves fará com que só sejam extraídos os registros
-	   com as mesmas chaves das contidas na lista (usar @arquivo.txt para
-	   carregar as chaves de um arquivo, uma chave por linha)
-	9. A opção -gerarRelatorios gera os relatórios do PVA EFD-ICMS-IPI
-	   no formato PDF
-	A. A opção -realcar cria um realce, nos relatórios em PDF gerados, nos
-	   registros que corresponderem à -filtrarCnpjs ou -filtrarChaves
-	B. As opções -naoGerarLre, -naoGerarLrs e -naoGerarLraicms deixam de
-	   gerar os respectivos livros quando -gerarRelatorios é utilizada
-	C. A opção -formatoDeSaida permite trocar o formato de saída do
-	   padrão xlsx para csv ou XML (Excel 2003 ou superior)
-	D. A opção -complementarDados inclui dados complementares na planilha
-	   (aba Saídas ou Entradas para docs de emissão própria) que será
-	   gerada e que não constam na EFD, caso os arquivos .csv do SAFI ou
-	   os .xlsx do Infoview BO sejam fornecidos. AVISO: não utilize as
-	   informações relacionadas ao ICMS (alíquota, BC, valor, etc), pois
-	   esses dados serão retirados dos DF-e's e não da escrituração
-	E. A opção -somenteRessarcimentoST extrairá somente documentos do LRS
-	   que contenham o registro C176 relativo ao ressarcimento ST
-	F. A opção -dbEmDisco gravará os dados intermediários em disco,
-	   poupando memória (utilize -manterDB para preservar o arquivo)
+	
+	Opções:
+	-gerarRelatorios:
+	 Gera os relatórios do EFD-ICMS-IPI no formato PDF.
+	 
+	-filtrarCnpjs cnpj1,cnpj2,...:
+	 Extrai somente os registros com os mesmos CNPJs (de emitentes ou
+	 destinatários) dos contidos na lista de CNPJs informada (separada por
+	 vírgula; zeros à esq).
+	 
+	-filtrarChaves chave1,chave2,... ou @arquivo:
+	 Extrai somente os registros com as mesmas chaves das contidas na lista
+	 (utilizar @arquivo.txt para carregar as chaves de um arquivo, com uma
+	 chave por linha, sem linhas vazias ou espaços entre as chaves).
+	 
+	-realcar:
+	 Cria um realce, nos relatórios em PDF, nos registros que corresponderem
+	 à -filtrarCnpjs ou -filtrarChaves.
+	 
+	-naoGerarLre, -naoGerarLrs e -naoGerarLraicms:
+	 Deixam de gerar os respectivos livros quando -gerarRelatorios é utilizada.
+	 
+	-formatoDeSaida xml|csv|xlsx|null:
+	 Altera o formato de saída do padrão xlsx para csv ou XML.
+	 
+	-complementarDados:
+	 Inclui dados complementares na planilha (aba Saídas ou Entradas para docs
+	 de emissão própria) que será gerada e que não constam na EFD, caso os
+	 arquivos .csv do SAFI ou os .xlsx do Infoview BO sejam fornecidos. AVISO:
+	 não utilize as informações relacionadas ao ICMS (alíquota, BC, valor, etc),
+	 pois esses dados serão retirados dos DF-e's e não da escrituração.
+	 
+	-somenteRessarcimentoST:
+	 Extrai somente documentos do LRS que contenham o registro C176 relativo ao
+	 ressarcimento ST.
+	 
+	-dbEmDisco:
+	 Grava os dados intermediários em disco, poupando memória.
+	 
+	-manterDB:
+	 Preserva o arquivo de dados intermediários (formato SQLite3).
 	
    Sobre as análises e cruzamentos:
 
