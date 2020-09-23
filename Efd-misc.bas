@@ -141,6 +141,38 @@ function YyyyMmDd2DatetimeBR(s as const zstring ptr) as string
 end function
 
 ''''''''
+function csvDate2YYYYMMDD(s as zstring ptr) as string 
+	''         01234567
+	var res = "00000000T00:00:00.000"
+	
+	var p = 0
+	if s[0+1] = asc("/") then
+		res[7] = s[0]
+		p += 1+1
+	else
+		res[6] = s[0]
+		res[7] = s[1]
+		p += 2+1
+	end if
+
+	if s[p+1] = asc("/") then
+		res[5] = s[p]
+		p += 1+1
+	else
+		res[4] = s[p]
+		res[5] = s[p+1]
+		p += 2+1
+	end if
+	
+	res[0] = s[p]
+	res[1] = s[p+1]
+	res[2] = s[p+2]
+	res[3] = s[p+3]
+	
+	function = res
+end function
+
+''''''''
 function STR2IE(ie as string) as string
 	var ie2 = right(string(12,"0") + ie, 12)
 	function = left(ie2,3) + "." + mid(ie2,4,3) + "." + mid(ie2,4+3,3) + "." + right(ie2,3)
@@ -304,3 +336,4 @@ function strreplace _
 
 	function = result
 end function
+

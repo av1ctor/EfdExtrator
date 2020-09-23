@@ -2882,38 +2882,6 @@ function Efd.carregarTxt(nomeArquivo as String, mostrarProgresso as ProgressoCB)
 end function
 
 ''''''''
-private function csvDate2YYYYMMDD(s as zstring ptr) as string 
-	''         01234567
-	var res = "00000000T00:00:00.000"
-	
-	var p = 0
-	if s[0+1] = asc("/") then
-		res[7] = s[0]
-		p += 1+1
-	else
-		res[6] = s[0]
-		res[7] = s[1]
-		p += 2+1
-	end if
-
-	if s[p+1] = asc("/") then
-		res[5] = s[p]
-		p += 1+1
-	else
-		res[4] = s[p]
-		res[5] = s[p+1]
-		p += 2+1
-	end if
-	
-	res[0] = s[p]
-	res[1] = s[p+1]
-	res[2] = s[p+2]
-	res[3] = s[p+3]
-	
-	function = res
-end function
-
-''''''''
 function Efd.carregarCsvNFeDestSAFI(bf as bfile, emModoOutrasUFs as boolean) as TDFe ptr
 	
 	var dfe = new TDFe

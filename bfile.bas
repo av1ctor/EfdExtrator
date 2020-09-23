@@ -450,25 +450,26 @@ function bfile.charcsv(separador as uInteger, qualificador as uInteger) as strin
 	var res = ""
 	var c1 = " "
    
-	'' pular qualificador
+	'' qualificador?
 	if peek1 = qualificador then
-		char1		
+		'' pular qualificador
+		char1
+
+		do
+			c1[0] = char1
+			if c1[0] = qualificador then
+				'' dois qualificadores, um seguido do outro? considerar como parte do texto
+				if peek1 = qualificador then
+					char1
+				else
+					exit do
+				end if
+			end if
+			res += c1
+		loop
 	end if
    
-	do
-		c1[0] = char1
-		if c1[0] = qualificador then
-			'' dois qualificadores, um seguido do outro? considerar como parte do texto
-			if peek1 = qualificador then
-				char1
-			else
-				exit do
-			end if
-		end if
-		res += c1
-	loop
-   	
-	select case peek1 
+	select case peek1
 	'' separador? pular
 	case separador
 		char1		
@@ -478,11 +479,15 @@ function bfile.charcsv(separador as uInteger, qualificador as uInteger) as strin
 	'' se não for o separador, e não for final de linha, concatenar ao texto até encontar o separador
 	case else
 		do
-			c1[0] = char1
-			select case c1[0] 
-			case separador, 13, 10
+			select case peek1
+			case separador
+				char1
+				exit do
+			case 13, 10
 				exit do
 			end select
+			
+			c1[0] = char1
 			res += c1
 		loop
 	end select
@@ -494,33 +499,44 @@ end function
 ''''''''
 function bfile.intCsv(separador as uInteger, qualificador as uInteger) as longint
 
-	'' pular qualificador
+	'' qualificador?
 	if peek1 = qualificador then
-		char1		
+		'' pular qualificador
+		char1
+		
+		function = varint(qualificador)
+		
+		'' separador? pular
+		if peek1 = separador then
+			char1		
+		end if
+	
+	'' sem qualificador.. 
+	else
+		function = valint(charcsv(separador, qualificador))
 	end if
 
-	function = varint(qualificador)
-	
-	'' separador? pular
-	if peek1 = separador then
-		char1		
-	end if
 
 end function
 
 ''''''''
 function bfile.dblCsv(separador as uInteger, qualificador as uInteger) as double
 
-	'' pular qualificador
-	if peek1 = qualificador then
-		char1		
-	end if
 
-	function = vardbl(qualificador)
-  
-	'' separador? pular
-	if peek1 = separador then
-		char1		
+	'' qualificador?
+	if peek1 = qualificador then
+		'' pular qualificador
+		char1
+		function = vardbl(qualificador)
+	  
+		'' separador? pular
+		if peek1 = separador then
+			char1		
+		end if
+
+	'' sem qualificador.. 
+	else
+		function = val(charcsv(separador, qualificador))
 	end if
   
 end function
