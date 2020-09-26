@@ -69,11 +69,12 @@ Modo de usar:
    Dicas:
    
     Como processar EFDs de grandes contribuintes:
-		1. Utilize a opção -manterDB caso o número de registros seja > 1.048.576 (limite do Excel)
-			- o DB é gerado no formato do SQLite3. Para acessá-lo no Power Query ou Access, é necessário instalar o driver disponível em http://www.ch-werner.de/sqliteodbc/
-		2. Utilize o Power Query para filtrar os dados do DB e importá-los no Excel, ou carregue o DB no Access e faça a seleção dos dados:
-			- instalador do Power Query: https://www.microsoft.com/pt-BR/download/details.aspx?id=39379
-		3. Utilize as opções -filtrarCnpjs e/ou -filtrarChaves para limitar os registros que serão extraídos, quando já estiver com a relação de chaves e/ou CNPJs (passso 3)
-		4. Utilize a opção -formatoDeSaida null para não gerar a planilha de extração, quando estiver gerando apenas os relatórios do EDF-ICMS-IPI
+    1. Utilize a opção -manterDB caso o número de registros seja > 1.048.576 (limite do Excel)
+       - o DB é gerado no formato do SQLite3. Para acessá-lo no Power Query ou Access, é necessário instalar o driver disponível em http://www.ch-werner.de/sqliteodbc/
+    2. Utilize o Power Query para filtrar os dados do DB e importá-los no Excel, ou carregue o DB no Access e faça a seleção dos dados:
+       - instalador do Power Query: https://www.microsoft.com/pt-BR/download/details.aspx?id=39379
+       - ou utilizar o https://sqlitestudio.pl/ para abrir o DB e fazer a seleção dos registros diretamente
+    3. Utilize as opções -filtrarCnpjs e/ou -filtrarChaves para limitar os registros que serão extraídos, quando já estiver com a relação de chaves e/ou CNPJs (passo 3)
+    4. Utilize a opção -formatoDeSaida null para não gerar a planilha de extração, quando estiver gerando apenas os relatórios do EDF-ICMS-IPI
 		
 		

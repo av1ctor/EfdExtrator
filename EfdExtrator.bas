@@ -65,7 +65,7 @@ end sub
 
 '''''''''''   
 sub mostrarCopyright()
-	print wstr("Extrator de EFD/Sintegra para Excel, versão 0.7 beta")
+	print wstr("Extrator de EFD/Sintegra para Excel, versão 0.8 beta")
 	print wstr("Copyleft 2017-2020 by André Vicentini (avtvicentini)")
 	print
 end sub
@@ -642,8 +642,8 @@ sub importarCadInidoneo()
 		var ie = vallng(inf.charCsv(SEP))
 		var cnpj = vallng(inf.charCsv(SEP))
 		var nome = inf.charCsv(SEP)
-		var dataoficio = csvDate2YYYYMMDD(inf.charCsv(SEP, 0))
-		var datainicio = csvDate2YYYYMMDD(inf.charCsv(SEP, 0))
+		var dataoficio = valint(left(csvDate2YYYYMMDD(inf.charCsv(SEP, 0)), 4+2+2))
+		var datainicio = valint(left(csvDate2YYYYMMDD(inf.charCsv(SEP, 0)), 4+2+2))
 		var uf = inf.charCsv(SEP)
 		inf.varchar(13)
 		inf.char1 '' skip \n
