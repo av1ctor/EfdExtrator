@@ -11,13 +11,66 @@ const PAGE_BOTTOM = 441.9
 const ROW_SPACE_BEFORE = 3
 const STROKE_WIDTH = 0.5
 const ROW_HEIGHT = STROKE_WIDTH + 9.5 + STROKE_WIDTH + 0.5 	'' espaço anterior, linha superior, conteúdo, linha inferior, espaço posterior
+const ROW_HEIGHT_LG = ROW_HEIGHT + 5.5						'' linha larga (quando len(razãoSocial) > MAX_NAME_LEN)
 const ANAL_HEIGHT = STROKE_WIDTH + 9.5 						'' linha superior, conteúdo, linha inferior
+const LRE_MAX_NAME_LEN = 31.25
+const LRS_MAX_NAME_LEN = 34.50
 const LRE_RESUMO_TITLE_HEIGHT = 9
 const LRE_RESUMO_HEADER_HEIGHT = 10
 const LRE_RESUMO_ROW_HEIGHT = 10.0
 const LRS_RESUMO_TITLE_HEIGHT = 9.0
 const LRS_RESUMO_HEADER_HEIGHT = 9.0
 const LRS_RESUMO_ROW_HEIGHT = 12.0
+
+	dim shared charSize(0 to 255) as single = {_
+		0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,_
+		0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,_
+		0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,_
+		0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,_
+		0.50,0.25,0.25,1.00,1.00,1.00,1.00,0.25,_ 		'   ,!   ,"   ,#   ,$   ,%   ,&   ,'   
+		0.25,0.25,0.25,0.25,0.25,0.25,0.25,0.50,_		'(  ,)   ,*   ,+   ,,   ,-   ,.   ,/   
+		1.00,1.00,1.00,1.00,1.00,1.00,1.00,1.00,_		'0  ,1   ,2   ,3   ,4   ,5   ,6   ,7
+		1.00,1.00,0.25,0.25,1.00,1.00,1.00,0.50,_		'8  ,9   ,:   ,;   ,<   ,=   ,>   ,?
+		1.00,1.00,1.00,1.00,1.00,1.00,1.00,1.00,_		'@  ,A   ,B   ,C   ,D   ,E   ,F   ,G
+		1.00,0.25,0.75,1.00,1.00,1.00,1.00,1.00,_		'H  ,I   ,J   ,K   ,L   ,M   ,N   ,O
+		1.00,1.00,1.00,1.00,1.00,1.00,1.00,1.00,_		'P  ,Q   ,R   ,S   ,T   ,U   ,V   ,W
+		1.00,1.00,1.00,0.25,0.25,0.25,0.50,0.50,_		'X  ,Y   ,Z   ,[   ,\   ,]   ,^   ,_
+		0.25,1.00,1.00,1.00,1.00,1.00,1.00,1.00,_		'`  ,a   ,b   ,c   ,d   ,e   ,f   ,g
+		1.00,0.25,0.25,1.00,0.25,1.25,1.00,1.00,_		'h  ,i   ,j   ,k   ,l   ,m   ,n   ,o
+		1.00,1.00,1.00,1.00,1.00,1.00,1.00,1.00,_		'p  ,q   ,r   ,s   ,t   ,u   ,v   ,w
+		1.00,1.00,1.00,0.25,0.25,0.25,0.50,0.00,_		'x  ,y   ,z   ,{   ,|   ,}   ,~   , 
+		1.00,1.00,1.00,1.00,1.00,1.00,1.00,1.00,_
+		1.00,1.00,1.00,1.00,1.00,1.00,1.00,1.00,_
+		1.00,1.00,1.00,1.00,1.00,1.00,1.00,1.00,_
+		1.00,1.00,1.00,1.00,1.00,1.00,1.00,1.00,_
+		1.00,1.00,1.00,1.00,1.00,1.00,1.00,1.00,_
+		1.00,1.00,1.00,1.00,1.00,1.00,1.00,1.00,_
+		1.00,1.00,1.00,1.00,1.00,1.00,1.00,1.00,_
+		1.00,1.00,1.00,1.00,1.00,1.00,1.00,1.00 _
+	}
+
+private function calcLen(src as const zstring ptr) as double
+	var lgt = 0.0
+	for i as integer = 0 to len(*src) - 1
+		lgt += charSize(cast(ubyte ptr, src)[i])
+	next
+	return lgt
+end function
+
+private function substr(src as const zstring ptr, start as single, chars as single) as string
+	var res = ""
+	var lgt = 0.0
+	var i = 0
+	do while lgt < start+chars
+		var size = charSize(src[i])
+		if lgt >= start then
+			res += chr(cast(ubyte ptr, src)[i])
+		end if
+		lgt += size
+		i += 1
+	loop
+	return res
+end function
 
 #macro list_add_ANAL(__doc, __sit)
 	var anal = __doc.itemAnalListHead
@@ -36,10 +89,13 @@ const LRS_RESUMO_ROW_HEIGHT = 12.0
 	loop
 #endmacro
 
+#define calcHeight() iif(relNroLinhas > 0, ROW_SPACE_BEFORE, 0) + ROW_HEIGHT
+
+#define calcHeightWithPart(part, maxLen) (iif(relNroLinhas > 0, ROW_SPACE_BEFORE, 0) + iif(part <> null andalso calcLen(part->nome) > cint(maxLen + 0.5), ROW_HEIGHT_LG, ROW_HEIGHT))
+
 #macro list_add_DF_ENTRADA(__doc, __part)
 	scope
-		var height = iif(relNroLinhas > 0, ROW_SPACE_BEFORE, 0) + ROW_HEIGHT
-		if relYPos + height > PAGE_BOTTOM then
+		if relYPos + calcHeightWithPart(__part, LRE_MAX_NAME_LEN) > PAGE_BOTTOM then
 			gerarPaginaRelatorio()
 		end if
 		var lin = cast(RelLinha ptr, relLinhasList.add())
@@ -47,7 +103,7 @@ const LRS_RESUMO_ROW_HEIGHT = 12.0
 		lin->highlight = false
 		lin->df.doc = @__doc
 		lin->df.part = __part
-		relYPos += iif(relNroLinhas > 0, ROW_SPACE_BEFORE, 0) + ROW_HEIGHT
+		relYPos += calcHeightWithPart(__part, LRE_MAX_NAME_LEN)
 		relNroLinhas += 1
 		nroRegistrosRel += 1
 		list_add_ANAL(__doc, __doc.situacao)
@@ -56,8 +112,7 @@ const LRS_RESUMO_ROW_HEIGHT = 12.0
 
 #macro list_add_DF_SAIDA(__doc, __part)
 	scope
-		var height = iif(relNroLinhas > 0, ROW_SPACE_BEFORE, 0) + ROW_HEIGHT
-		if relYPos + height > PAGE_BOTTOM then
+		if relYPos + calcHeightWithPart(__part, LRS_MAX_NAME_LEN) > PAGE_BOTTOM then
 			gerarPaginaRelatorio()
 		end if
 		var lin = cast(RelLinha ptr, relLinhasList.add())
@@ -65,7 +120,7 @@ const LRS_RESUMO_ROW_HEIGHT = 12.0
 		lin->highlight = false
 		lin->df.doc = @__doc
 		lin->df.part = __part
-		relYPos += iif(relNroLinhas > 0, ROW_SPACE_BEFORE, 0) + ROW_HEIGHT
+		relYPos += calcHeightWithPart(__part, LRS_MAX_NAME_LEN)
 		relNroLinhas += 1
 		nroRegistrosRel += 1
 		list_add_ANAL(__doc, __doc.situacao)
@@ -74,15 +129,14 @@ const LRS_RESUMO_ROW_HEIGHT = 12.0
 
 #macro list_add_REDZ(__doc)
 	scope
-		var height = iif(relNroLinhas > 0, ROW_SPACE_BEFORE, 0) + ROW_HEIGHT
-		if relYPos + height > PAGE_BOTTOM then
+		if relYPos + calcHeight() > PAGE_BOTTOM then
 			gerarPaginaRelatorio()
 		end if
 		var lin = cast(RelLinha ptr, relLinhasList.add())
 		lin->tipo = REL_LIN_DF_REDZ
 		lin->highlight = false
 		lin->redz.doc = @__doc
-		relYPos += iif(relNroLinhas > 0, ROW_SPACE_BEFORE, 0) + ROW_HEIGHT
+		relYPos += calcHeight()
 		relNroLinhas += 1
 		nroRegistrosRel += 1
 		list_add_ANAL(__doc, REGULAR)
@@ -91,15 +145,14 @@ const LRS_RESUMO_ROW_HEIGHT = 12.0
 
 #macro list_add_SAT(__doc)
 	scope
-		var height = iif(relNroLinhas > 0, ROW_SPACE_BEFORE, 0) + ROW_HEIGHT
-		if relYPos + height > PAGE_BOTTOM then
+		if relYPos + calcHeight() > PAGE_BOTTOM then
 			gerarPaginaRelatorio()
 		end if
 		var lin = cast(RelLinha ptr, relLinhasList.add())
 		lin->tipo = REL_LIN_DF_SAT
 		lin->highlight = false
 		lin->sat.doc = @__doc
-		relYPos += iif(relNroLinhas > 0, ROW_SPACE_BEFORE, 0) + ROW_HEIGHT
+		relYPos += calcHeight()
 		relNroLinhas += 1
 		nroRegistrosRel += 1
 		list_add_ANAL(__doc, REGULAR)
@@ -358,7 +411,11 @@ private sub efd.gerarPaginaRelatorio(lastPage as boolean)
 			end select
 		else
 			select case as const n->tipo
-			case REL_LIN_DF_ENTRADA, REL_LIN_DF_SAIDA, REL_LIN_DF_REDZ, REL_LIN_DF_SAT
+			case REL_LIN_DF_ENTRADA, REL_LIN_DF_SAIDA
+				var part = n->df.part
+				var maxLen = iif(n->tipo = REL_LIN_DF_ENTRADA, LRE_MAX_NAME_LEN, LRS_MAX_NAME_LEN)
+				relYPos += ROW_SPACE_BEFORE + iif(part = null orelse calcLen(part->nome) <= maxLen, ROW_HEIGHT, ROW_HEIGHT_LG)
+			case REL_LIN_DF_REDZ, REL_LIN_DF_SAT
 				relYPos += ROW_SPACE_BEFORE + ROW_HEIGHT
 			case REL_LIN_DF_ITEM_ANAL
 				relYPos += ANAL_HEIGHT
@@ -506,21 +563,23 @@ private function cmpFunc(key as any ptr, node as any ptr) as boolean
 end function
 
 ''''''''
-function Efd.gerarLinhaDFe(highlight as boolean) as PdfTemplateNode ptr
+function Efd.gerarLinhaDFe(lg as boolean, highlight as boolean) as PdfTemplateNode ptr
 	if relNroLinhas > 0 then
 		relYPos += ROW_SPACE_BEFORE
 	end if
 	
+	var height = iif(lg, ROW_HEIGHT_LG, ROW_HEIGHT)
+	
 	if highlight then
-		var hl = new PdfTemplateHighlightNode(PAGE_LEFT, (PAGE_TOP-relYpos-ROW_HEIGHT), PAGE_RIGHT, (PAGE_TOP-relYPos), relPage)
+		var hl = new PdfTemplateHighlightNode(PAGE_LEFT, (PAGE_TOP-relYpos-height), PAGE_RIGHT, (PAGE_TOP-relYPos), relPage)
 	end if
 	
-	var row = relPage->getNode("row")
+	var row = relPage->getNode(iif(lg, "row-lg", "row"))
 	var clone = row->clone(relPage, relPage)
 	clone->setAttrib("hidden", false)
 	clone->translateY(-relYPos)
 	
-	relYPos += ROW_HEIGHT
+	relYPos += height
 	relNroLinhas += 1
 	
 	return clone
@@ -666,49 +725,57 @@ end function
 
 ''''''''
 sub Efd.adicionarDocRelatorioSaidas(doc as TDocDF ptr, part as TParticipante ptr, highlight as boolean)
-	var row = gerarLinhaDFe(highlight)
+	var lg = part <> null andalso calcLen(part->nome) > LRS_MAX_NAME_LEN
+	var row = gerarLinhaDFe(lg, highlight)
 	
 	if len(doc->dataEmi) > 0 then
-		setChildText(row, "DEMI", YyyyMmDd2DatetimeBR(doc->dataEmi))
+		setChildText(row, iif(lg, "DEMI-LG", "DEMI"), YyyyMmDd2DatetimeBR(doc->dataEmi))
 	end if
 	if len(doc->dataEntSaida) > 0 then
-		setChildText(row, "DSAIDA", YyyyMmDd2DatetimeBR(doc->dataEntSaida))
+		setChildText(row, iif(lg, "DSAIDA-LG", "DSAIDA"), YyyyMmDd2DatetimeBR(doc->dataEntSaida))
 	end if
-	setChildText(row, "NRINI", str(doc->numero))
-	setChildText(row, "MD", str(doc->modelo))
-	setChildText(row, "SR", doc->serie)
-	setChildText(row, "SUB", doc->subserie)
-	setChildText(row, "SIT", format(cdbl(doc->situacao), "00"))
+	setChildText(row, iif(lg, "NRINI-LG", "NRINI"), str(doc->numero))
+	setChildText(row, iif(lg, "MD-LG", "MD"), str(doc->modelo))
+	setChildText(row, iif(lg, "SR-LG", "SR"), doc->serie)
+	setChildText(row, iif(lg, "SUB-LG", "SUB"), doc->subserie)
+	setChildText(row, iif(lg, "SIT-LG", "SIT"), format(cdbl(doc->situacao), "00"))
 	
 	select case doc->situacao
 	case REGULAR, EXTEMPORANEO
 		if part <> null then
-			setChildText(row, "CNPJDEST", iif(len(part->cpf) > 0, STR2CPF(part->cpf), STR2CNPJ(part->cnpj)))
-			setChildText(row, "IEDEST", part->ie)
-			setChildText(row, "UFDEST", MUNICIPIO2SIGLA(part->municip))
-			setChildText(row, "MUNDEST", str(part->municip))
-			setChildText(row, "RAZAODEST", left(part->nome, 36))
+			setChildText(row, iif(lg, "CNPJDEST-LG", "CNPJDEST"), iif(len(part->cpf) > 0, STR2CPF(part->cpf), STR2CNPJ(part->cnpj)))
+			setChildText(row, iif(lg, "IEDEST-LG", "IEDEST"), part->ie)
+			setChildText(row, iif(lg, "UFDEST-LG", "UFDEST"), MUNICIPIO2SIGLA(part->municip))
+			setChildText(row, iif(lg, "MUNDEST-LG", "MUNDEST"), str(part->municip))
+			setChildText(row, iif(lg, "RAZAODEST-LG", "RAZAODEST"), substr(part->nome, 0, LRS_MAX_NAME_LEN))
+			if lg then
+				setChildText(row, "RAZAODEST2-LG", substr(part->nome, LRS_MAX_NAME_LEN, LRS_MAX_NAME_LEN))
+			end if
 		end if
 	end select
 end sub
 
 ''''''''
 sub Efd.adicionarDocRelatorioEntradas(doc as TDocDF ptr, part as TParticipante ptr, highlight as boolean)
-	var row = gerarLinhaDFe(highlight)
+	var lg = part <> null andalso calcLen(part->nome) > LRE_MAX_NAME_LEN
+	var row = gerarLinhaDFe(lg, highlight)
 	
-	setChildText(row, "DEMI", YyyyMmDd2DatetimeBR(doc->dataEmi))
-	setChildText(row, "DENT", YyyyMmDd2DatetimeBR(doc->dataEntSaida))
-	setChildText(row, "NRO", str(doc->numero))
-	setChildText(row, "MOD", str(doc->modelo))
-	setChildText(row, "SER", doc->serie)
-	setChildText(row, "SUBSER", doc->subserie)
-	setChildText(row, "SIT", format(cdbl(doc->situacao), "00"))
+	setChildText(row, iif(lg, "DEMI-LG", "DEMI"), YyyyMmDd2DatetimeBR(doc->dataEmi))
+	setChildText(row, iif(lg, "DENT-LG", "DENT"), YyyyMmDd2DatetimeBR(doc->dataEntSaida))
+	setChildText(row, iif(lg, "NRO-LG", "NRO"), str(doc->numero))
+	setChildText(row, iif(lg, "MOD-LG", "MOD"), str(doc->modelo))
+	setChildText(row, iif(lg, "SER-LG", "SER"), doc->serie)
+	setChildText(row, iif(lg, "SUBSER-LG", "SUBSER"), doc->subserie)
+	setChildText(row, iif(lg, "SIT-LG", "SIT"), format(cdbl(doc->situacao), "00"))
 	if part <> null then
-		setChildText(row, "CNPJEMI", iif(len(part->cpf) > 0, STR2CPF(part->cpf), STR2CNPJ(part->cnpj)))
-		setChildText(row, "IEEMI", part->ie)
-		setChildText(row, "UFEMI", MUNICIPIO2SIGLA(part->municip))
-		setChildText(row, "MUNEMI", codMunicipio2Nome(part->municip))
-		setChildText(row, "RAZAOEMI", left(part->nome, 34))
+		setChildText(row, iif(lg, "CNPJEMI-LG", "CNPJEMI"), iif(len(part->cpf) > 0, STR2CPF(part->cpf), STR2CNPJ(part->cnpj)))
+		setChildText(row, iif(lg, "IEEMI-LG", "IEEMI"), part->ie)
+		setChildText(row, iif(lg, "UFEMI-LG", "UFEMI"), MUNICIPIO2SIGLA(part->municip))
+		setChildText(row, iif(lg, "MUNEMI-LG", "MUNEMI"), codMunicipio2Nome(part->municip))
+		setChildText(row, iif(lg, "RAZAOEMI-LG", "RAZAOEMI"), substr(part->nome, 0, LRE_MAX_NAME_LEN))
+		if lg then
+			setChildText(row, "RAZAOEMI2-LG", substr(part->nome, LRE_MAX_NAME_LEN, LRS_MAX_NAME_LEN))
+		end if
 	end if
 end sub
 
@@ -716,11 +783,11 @@ end sub
 sub Efd.adicionarDocRelatorioSaidas(doc as TECFReducaoZ ptr, highlight as boolean)
 	var equip = doc->equipECF
 
-	var row = gerarLinhaDFe(highlight)
+	var row = gerarLinhaDFe(false, highlight)
 	
 	setChildText(row, "DEMI", YyyyMmDd2DatetimeBR(doc->dataMov))
 	setChildText(row, "NRINI", str(doc->numIni))
-	setChildText(row, "NRINI", str(doc->numFim))
+	setChildText(row, "NRFIM", str(doc->numFim))
 	setChildText(row, "NCAIXA", str(equip->numCaixa))
 	setChildText(row, "ECF", equip->numSerie)
 	setChildText(row, "MD", iif(equip->modelo = &h2D, "2D", str(equip->modelo)))
@@ -729,7 +796,7 @@ end sub
 
 ''''''''
 sub Efd.adicionarDocRelatorioSaidas(doc as TDocSAT ptr, highlight as boolean)
-	var row = gerarLinhaDFe(highlight)
+	var row = gerarLinhaDFe(false, highlight)
 	
 	setChildText(row, "DEMI", YyyyMmDd2DatetimeBR(doc->dataEmi))
 	setChildText(row, "NRINI", str(doc->numero))

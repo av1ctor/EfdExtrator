@@ -2644,24 +2644,24 @@ sub Efd.addRegistroAoDB(reg as TRegistro ptr)
 end sub
 
 ''''''''
-private function yyyyMmDd2Days(d as const zstring ptr) as integer
+private function yyyyMmDd2Days(d as const zstring ptr) as uinteger
 
 	if d = null then
 		d = @"19000101"
 	end if
 	
-	var days = (cint(d[0] - asc("0")) * 1000 + _
-				cint(d[1] - asc("0")) * 0100 + _
-				cint(d[2] - asc("0")) * 0010 + _
-				cint(d[3] - asc("0")) * 0001) * (31*12)
+	var days = (cuint(d[0] - asc("0")) * 1000 + _
+				cuint(d[1] - asc("0")) * 0100 + _
+				cuint(d[2] - asc("0")) * 0010 + _
+				cuint(d[3] - asc("0")) * 0001) * (31*12)
 	
 	days = days + _
-			   ((cint(d[4] - asc("0")) * 10 + _
-				 cint(d[5] - asc("0")) * 01) - 1) * 31
+			   ((cuint(d[4] - asc("0")) * 10 + _
+				 cuint(d[5] - asc("0")) * 01) - 1) * 31
 
 	days = days + _
-			   (cint(d[6] - asc("0")) * 10 + _
-				cint(d[7] - asc("0")) * 01) 
+			   (cuint(d[6] - asc("0")) * 10 + _
+				cuint(d[7] - asc("0")) * 01) 
 				
 	function = days
 
@@ -2678,54 +2678,55 @@ private function mergeLists(pSrc1 as TRegistro ptr, pSrc2 as TRegistro ptr) as T
         return pSrc1
 	end if
     
-	dim as zstring ptr dEmi, dReg
+	dim as zstring ptr dReg = null
+	dim as longint nro = 0
 
 	do while true
 		select case as const pSrc1->tipo
 		case DOC_NF
 			dReg = @pSrc1->nf.dataEntSaida
-			dEmi = @pSrc1->nf.dataEmi
+			nro = pSrc1->nf.numero
 		case DOC_CT
 			dReg = @pSrc1->ct.dataEntSaida
-			dEmi = @pSrc1->ct.dataEmi
+			nro = pSrc1->ct.numero
 		case DOC_NF_ITEM
 			dReg = @pSrc1->itemNF.documentoPai->dataEntSaida
-			dEmi = @pSrc1->itemNF.documentoPai->dataEmi
+			nro = pSrc1->itemNF.documentoPai->numero
 		case ECF_REDUCAO_Z
 			dReg = @pSrc1->ecfRedZ.dataMov
-			dEmi = dReg
+			nro = pSrc1->ecfRedZ.numIni
 		case DOC_SAT
-			dReg = @pSrc1->ct.dataEmi
-			dEmi = dReg
+			dReg = @pSrc1->sat.dataEntSaida
+			nro = pSrc1->sat.numero
 		case else
 			dReg = null
-			dEmi = null
+			nro = 0
 		end select
 		
-		var date1 = yyyyMmDd2Days(dReg) + yyyyMmDd2Days(dEmi)
+		var date1 = yyyyMmDd2Days(dReg) shl 32 + nro
 
 		select case as const pSrc2->tipo
 		case DOC_NF
 			dReg = @pSrc2->nf.dataEntSaida
-			dEmi = @pSrc2->nf.dataEmi
+			nro = pSrc2->nf.numero
 		case DOC_CT
 			dReg = @pSrc2->ct.dataEntSaida
-			dEmi = @pSrc2->ct.dataEmi
+			nro = pSrc2->ct.numero
 		case DOC_NF_ITEM
 			dReg = @pSrc2->itemNF.documentoPai->dataEntSaida
-			dEmi = @pSrc2->itemNF.documentoPai->dataEmi
+			nro = pSrc2->itemNF.documentoPai->numero
 		case ECF_REDUCAO_Z
 			dReg = @pSrc2->ecfRedZ.dataMov
-			dEmi = dReg
+			nro = pSrc2->ecfRedZ.numIni
 		case DOC_SAT
-			dReg = @pSrc2->sat.dataEmi
-			dEmi = dReg
+			dReg = @pSrc2->sat.dataEntSaida
+			nro = pSrc2->sat.numero
 		case else
 			dReg = null
-			dEmi = null
+			nro = 0
 		end select
 
-		var date2 = yyyyMmDd2Days(dReg) + yyyyMmDd2Days(dEmi)
+		var date2 = yyyyMmDd2Days(dReg) shl 32 + nro
 
 		if date2 < date1 then
 			*ppDst = pSrc2
