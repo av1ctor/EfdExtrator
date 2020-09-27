@@ -1026,7 +1026,7 @@ constructor PdfTemplatePageNode(x1 as single, y1 as single, x2 as single, y2 as 
 	this.y1 = y1
 	this.x2 = x2
 	this.y2 = y2
-	idDict.init(2^10)
+	idDict.init(64)
 end constructor
 
 destructor PdfTemplatePageNode()

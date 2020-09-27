@@ -952,7 +952,7 @@ private:
 	declare sub setNodeText(page as PdfTemplatePageNode ptr, id as string, value as wstring ptr)
 	declare sub setChildText(row as PdfTemplateNode ptr, id as string, value as string)
 	declare sub setChildText(row as PdfTemplateNode ptr, id as string, value as wstring ptr)
-	declare function gerarLinhaDFe(highlight as boolean) as PdfTemplateNode ptr
+	declare function gerarLinhaDFe(lg as boolean, highlight as boolean) as PdfTemplateNode ptr
 	declare function gerarLinhaAnal() as PdfTemplateNode ptr
 	declare function criarPaginaRelatorio(emitir as boolean) as RelPagina ptr
 	
@@ -1058,7 +1058,7 @@ end type
 
 #define STR2CPF(s) (left(s,3) + "." + mid(s,4,3) + "." + mid(s,4+3,3) + "-" + right(s,2))
 
-#define DBL2MONEYBR(d) (format(d,"#,#,#.00"))
+#define DBL2MONEYBR(d) (format(d,"#,#,0.00"))
 
 #define MUNICIPIO2SIGLA(m) (iif(m >= 1100000 and m <= 5399999, ufCod2Sigla(m \ 100000), "EX"))
 
