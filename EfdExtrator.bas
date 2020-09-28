@@ -65,7 +65,7 @@ end sub
 
 '''''''''''   
 sub mostrarCopyright()
-	print wstr("Extrator de EFD/Sintegra para Excel, versão 0.8 beta")
+	print wstr("Extrator de EFD/Sintegra para Excel, versão 0.9 beta")
 	print wstr("Copyleft 2017-2020 by André Vicentini (avtvicentini)")
 	print
 end sub

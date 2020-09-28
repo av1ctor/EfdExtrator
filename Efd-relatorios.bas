@@ -22,7 +22,7 @@ const LRS_RESUMO_TITLE_HEIGHT = 9.0
 const LRS_RESUMO_HEADER_HEIGHT = 9.0
 const LRS_RESUMO_ROW_HEIGHT = 12.0
 
-	dim shared charSize(0 to 255) as single = {_
+	dim shared charWidth(0 to 255) as single = {_
 		0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,_
 		0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,_
 		0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,_
@@ -52,22 +52,33 @@ const LRS_RESUMO_ROW_HEIGHT = 12.0
 private function calcLen(src as const zstring ptr) as double
 	var lgt = 0.0
 	for i as integer = 0 to len(*src) - 1
-		lgt += charSize(cast(ubyte ptr, src)[i])
+		lgt += charWidth(cast(ubyte ptr, src)[i])
 	next
 	return lgt
 end function
 
-private function substr(src as const zstring ptr, start as single, chars as single) as string
+private function substr(src as const zstring ptr, byref start as single, maxWidth as single) as string
 	var res = ""
-	var lgt = 0.0
 	var i = 0
-	do while lgt < start+chars
-		var size = charSize(src[i])
-		if lgt >= start then
-			res += chr(cast(ubyte ptr, src)[i])
+	var width_ = 0.0
+	do 
+		var c = cast(ubyte ptr, src)[i]
+		if c = 0 then
+			exit do
 		end if
-		lgt += size
 		i += 1
+		
+		var cw = charWidth(c)
+		if width_+cw > start+maxWidth then
+			start = width_
+			exit do
+		end if
+		
+		if width_ >= start then
+			res += chr(c)
+		end if
+		
+		width_ += cw
 	loop
 	return res
 end function
@@ -747,9 +758,10 @@ sub Efd.adicionarDocRelatorioSaidas(doc as TDocDF ptr, part as TParticipante ptr
 			setChildText(row, iif(lg, "IEDEST-LG", "IEDEST"), part->ie)
 			setChildText(row, iif(lg, "UFDEST-LG", "UFDEST"), MUNICIPIO2SIGLA(part->municip))
 			setChildText(row, iif(lg, "MUNDEST-LG", "MUNDEST"), str(part->municip))
-			setChildText(row, iif(lg, "RAZAODEST-LG", "RAZAODEST"), substr(part->nome, 0, LRS_MAX_NAME_LEN))
+			var start = 0.0!
+			setChildText(row, iif(lg, "RAZAODEST-LG", "RAZAODEST"), substr(part->nome, start, LRS_MAX_NAME_LEN))
 			if lg then
-				setChildText(row, "RAZAODEST2-LG", substr(part->nome, LRS_MAX_NAME_LEN, LRS_MAX_NAME_LEN))
+				setChildText(row, "RAZAODEST2-LG", substr(part->nome, start, LRS_MAX_NAME_LEN))
 			end if
 		end if
 	end select
@@ -772,9 +784,10 @@ sub Efd.adicionarDocRelatorioEntradas(doc as TDocDF ptr, part as TParticipante p
 		setChildText(row, iif(lg, "IEEMI-LG", "IEEMI"), part->ie)
 		setChildText(row, iif(lg, "UFEMI-LG", "UFEMI"), MUNICIPIO2SIGLA(part->municip))
 		setChildText(row, iif(lg, "MUNEMI-LG", "MUNEMI"), codMunicipio2Nome(part->municip))
-		setChildText(row, iif(lg, "RAZAOEMI-LG", "RAZAOEMI"), substr(part->nome, 0, LRE_MAX_NAME_LEN))
+		var start = 0.0!
+		setChildText(row, iif(lg, "RAZAOEMI-LG", "RAZAOEMI"), substr(part->nome, start, LRE_MAX_NAME_LEN))
 		if lg then
-			setChildText(row, "RAZAOEMI2-LG", substr(part->nome, LRE_MAX_NAME_LEN, LRS_MAX_NAME_LEN))
+			setChildText(row, "RAZAOEMI2-LG", substr(part->nome, start, LRS_MAX_NAME_LEN))
 		end if
 	end if
 end sub
