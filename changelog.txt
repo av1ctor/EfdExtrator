@@ -1,3 +1,7 @@
+versão 0.9 beta:
+- corrigido: ordenação do relatório da LRE não estava seguindo o EFD-ICMS-IPI
+- corrigido: razão social nos relatório LRE e LRS estava sendo cortada (deveria criar uma linha dupla)
+
 versão 0.8 beta:
 - alterado: a geração dos relatórios do PVA EFD-ICMS-IPI agora é feita diretamente em PDF. Com isso, os relatórios são gerados mais rapidamente e os arquivos são mais compactos, devido a não utilização do MS Word na conversão
 - corrigido: com a geração dos relatórios diretamente em PDF, agora o número das páginas é mantido, mesmo que as opções -filtrarCnpjs ou -filtrarChaves sejam usadas
