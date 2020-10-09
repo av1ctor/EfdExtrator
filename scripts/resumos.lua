@@ -11,6 +11,7 @@ function LRE_cfop(db, ws)
 		select
 			an.cfop, 
 			(select descricao from conf.cfop c where c.cfop = an.cfop) descricao, 
+			(select operacao from conf.cfop c where c.cfop = an.cfop) operacao,
 			sum(an.valorOp) vlOper, 
 			sum(an.bc) bcIcms, 
 			sum(an.icms) vlIcms,
@@ -50,7 +51,8 @@ function LRE_cst(db, ws)
 	ds = db_exec( db, [[
 		select
 			an.cst, 
-			(select origem || ' (' || tributacao || ')' from conf.cst c where c.cst = an.cst) descricao, 
+			(select origem from conf.cst c where c.cst = an.cst) origem, 
+			(select tributacao from conf.cst c where c.cst = an.cst) tributacao, 
 			sum(an.valorOp) vlOper, 
 			sum(an.bc) bcIcms, 
 			sum(an.icms) vlIcms,
@@ -106,6 +108,7 @@ function LRS_cfop(db, ws)
 		select
 			an.cfop, 
 			(select descricao from conf.cfop c where c.cfop = an.cfop) descricao, 
+			(select operacao from conf.cfop c where c.cfop = an.cfop) operacao,
 			sum(an.valorOp) vlOper, 
 			sum(an.bc) bcIcms, 
 			sum(an.icms) vlIcms,
@@ -145,7 +148,8 @@ function LRS_cst(db, ws)
 	ds = db_exec( db, [[
 		select
 			an.cst, 
-			(select origem || ' (' || tributacao || ')' from conf.cst c where c.cst = an.cst) descricao, 
+			(select origem from conf.cst c where c.cst = an.cst) origem, 
+			(select tributacao from conf.cst c where c.cst = an.cst) tributacao, 
 			sum(an.valorOp) vlOper, 
 			sum(an.bc) bcIcms, 
 			sum(an.icms) vlIcms,

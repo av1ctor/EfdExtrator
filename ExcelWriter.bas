@@ -235,26 +235,43 @@ function ExcelWriter.Flush(showProgress as ProgressCB) as boolean
 					case FT_XML
 						print #fnum, !"<Row>"
 						var cell = row->cellListHead
+						var colNum = 0
 						do while cell <> null
+							do while cell->num > colNum
+								print #fnum, "<Cell><Data></Data></Cell>"
+								colNum += 1
+							loop
+
 							print #fnum, !"<Cell><Data ss:Type=\"String\">" + cell->content + "</Data></Cell>"
 							cell = cell->next_
+							colNum += 1
 						loop
 						print #fnum, !"</Row>"
 					
 					case FT_CSV
 						var cell = row->cellListHead
+						var colNum = 0
 						do while cell <> null
+							do while cell->num > colNum
+								print #fnum, ";";
+								colNum += 1
+							loop
 							print #fnum, cell->content + ";";
+							colNum += 1
 							cell = cell->next_
 						loop
 						print #fnum, chr(13, 10);
 					
 					case FT_XLSX
 						var cell = row->cellListHead
-						var col = 0
+						var colNum = 0
 						do while cell <> null
-							worksheet_write_string(xlsXWorksheet, rowNum, col, cell->content, NULL)
-							col += 1
+							do while cell->num > colNum
+								worksheet_write_string(xlsXWorksheet, rowNum, colNum, "", NULL)
+								colNum += 1
+							loop
+							worksheet_write_string(xlsXWorksheet, rowNum, colNum, cell->content, NULL)
+							colNum += 1
 							cell = cell->next_
 						loop
 					end select
@@ -266,7 +283,16 @@ function ExcelWriter.Flush(showProgress as ProgressCB) as boolean
 						'' para cada celula da linha..
 						var cell = row->cellListHead
 						var ct = sheet->cellTypeListHead
+						var colNum = 0
 						do while cell <> null
+							do while cell->num > colNum
+								print #fnum, "<Cell><Data></Data></Cell>"
+								colNum += 1
+								if ct <> null then
+									ct = ct->next_
+								end if
+							loop
+							
 							var content = cell->content
 							select case ct->type_
 							case CT_STRING, CT_STRING_UTF8
@@ -274,6 +300,7 @@ function ExcelWriter.Flush(showProgress as ProgressCB) as boolean
 							end select
 							print #fnum, !"<Cell><Data ss:Type=\"" + CellType2String(iif(ct <> null, ct->type_, CT_STRING)) + !"\">" + content + "</Data></Cell>"
 							cell = cell->next_
+							colNum += 1
 							if ct <> null then
 								ct = ct->next_
 							end if
@@ -285,9 +312,18 @@ function ExcelWriter.Flush(showProgress as ProgressCB) as boolean
 						'' para cada celula da linha..
 						var cell = row->cellListHead
 						var ct = sheet->cellTypeListHead
+						var colNum = 0
 						do while cell <> null
+							do while cell->num > colNum
+								print #fnum, ";";
+								colNum += 1
+								if ct <> null then
+									ct = ct->next_
+								end if
+							loop
 							print #fnum, cell->content + ";";
 							cell = cell->next_
+							colNum += 1
 							if ct <> null then
 								ct = ct->next_
 							end if
@@ -300,6 +336,14 @@ function ExcelWriter.Flush(showProgress as ProgressCB) as boolean
 						var ct = sheet->cellTypeListHead
 						var colNum = 0
 						do while cell <> null
+							do while cell->num > colNum
+								worksheet_write_string(xlsXWorksheet, rowNum, colNum, "", NULL)
+								colNum += 1
+								if ct <> null then
+									ct = ct->next_
+								end if
+							loop
+						
 							if cell->width_ > 1 then
 								worksheet_merge_range(xlsXWorksheet, rowNum, colNum, rowNum, colNum+cell->width_-1, cell->content, NULL)
 								colNum += cell->width_
@@ -493,9 +537,9 @@ constructor ExcelRow(num as integer, asIs as boolean)
 end constructor
 
 ''
-function ExcelRow.AddCell(content as const zstring ptr, width_ as integer) as ExcelCell ptr
+function ExcelRow.AddCell(content as const zstring ptr, width_ as integer, num as integer) as ExcelCell ptr
 
-	var cell = new ExcelCell(content)
+	var cell = new ExcelCell(content, num)
 	cell->width_ = width_
 	
 	if cellListHead = null then
@@ -511,23 +555,23 @@ function ExcelRow.AddCell(content as const zstring ptr, width_ as integer) as Ex
 end function
 
 ''
-function ExcelRow.AddCell(content as integer) as ExcelCell ptr
+function ExcelRow.AddCell(content as integer, num as integer) as ExcelCell ptr
 
-	function = AddCell(str(content))
-
-end function
-
-''
-function ExcelRow.AddCell(content as longint) as ExcelCell ptr
-
-	function = AddCell(str(content))
+	function = AddCell(str(content), num)
 
 end function
 
 ''
-function ExcelRow.AddCell(content as double) as ExcelCell ptr
+function ExcelRow.AddCell(content as longint, num as integer) as ExcelCell ptr
 
-	function = AddCell(str(content))
+	function = AddCell(str(content), num)
+
+end function
+
+''
+function ExcelRow.AddCell(content as double, num as integer) as ExcelCell ptr
+
+	function = AddCell(str(content), num)
 
 end function
 
@@ -546,7 +590,8 @@ end destructor
 ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
 ''
-constructor ExcelCell(content as const zstring ptr)
+constructor ExcelCell(content as const zstring ptr, num as integer)
+	this.num = num
 	this.content = *content
 end constructor
 

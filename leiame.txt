@@ -65,7 +65,7 @@ Modo de usar:
     Com isso, é possível realizar novos cruzamentos apenas atualizando os scripts, sem necessidade de recompilar o aplicativo. 
     A sintaxe SQL utilizada nas queries deve ser a do SQLite. 
     O formato das tabelas criadas internamente pode ser visto em scripts/config.lua.
-    As tabelas de descrição de CFOP e CST foram retiradas no AUD 2.0.
+    As tabelas de descrição de CFOP e CST foram baseadas nas respectivas tabelas do AUD 2.0.
 
    Dicas:
    

@@ -24,11 +24,12 @@ type ExcelCellType
 end type
 
 type ExcelCell
+	num						as integer
 	content			   		as string
 	width_					as integer
 	next_				   	as ExcelCell ptr = null
 	
-	declare constructor(content as const zstring ptr)
+	declare constructor(content as const zstring ptr, num as integer = -1)
 end type
 
 type ExcelRow
@@ -40,10 +41,10 @@ type ExcelRow
 	
 	declare constructor(num as integer, asIs as boolean = false)
 	declare destructor
-	declare function AddCell(content as const zstring ptr, width_ as integer = 1) as ExcelCell ptr
-	declare function AddCell(content as integer) as ExcelCell ptr
-	declare function AddCell(content as longint) as ExcelCell ptr
-	declare function AddCell(content as double) as ExcelCell ptr
+	declare function AddCell(content as const zstring ptr, width_ as integer = 1, num as integer = -1) as ExcelCell ptr
+	declare function AddCell(content as integer, num as integer = -1) as ExcelCell ptr
+	declare function AddCell(content as longint, num as integer = -1) as ExcelCell ptr
+	declare function AddCell(content as double, num as integer = -1) as ExcelCell ptr
 end type
 
 type ExcelWorksheet

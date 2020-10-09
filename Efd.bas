@@ -5346,12 +5346,12 @@ sub Efd.gerarPlanilhas(nomeArquivo as string, mostrarProgresso as ProgressoCB)
 				row->addCell(avo->valorTributExpSoma)
 				row->addCell(avo->valorTotalSaidas)
 				
-				var bemCiap = cast( TBemCiap ptr, bemCiapDict[reg->ciapItem.bemId] )
+				var bemCiap = cast( TBemCiap ptr, bemCiapDict[pai->bemId] )
 				if bemCiap <> null then 
 					row->addCell(bemCiap->id)
 					row->addCell(bemCiap->descricao)
 				else
-					row->addCell(reg->ciapItem.bemId)
+					row->addCell(pai->bemId)
 					row->addCell("")
 				end if
 				
@@ -5368,6 +5368,7 @@ sub Efd.gerarPlanilhas(nomeArquivo as string, mostrarProgresso as ProgressoCB)
 				row->addCell(reg->ciapItemDoc.serie)
 				row->addCell(reg->ciapItemDoc.numero)
 				row->addCell(YyyyMmDd2Datetime(reg->ciapItemDoc.dataEmi))
+				row->addCell(reg->ciapItemDoc.chaveNfe)
 				
 				var part = cast( TParticipante ptr, participanteDict[reg->ciapItemDoc.idParticipante] )
 				if part <> null then
