@@ -1,6 +1,6 @@
 '' Extrator de EFD
 '' Copyleft 2017-2020 André Vicentini (avtvicentini)
-'' fbc.exe EfdExtrator.bas Efd.bas Efd-analises.bas Efd-relatorios.bas Efd-misc.bas bfile.bas ExcelReader.bas ExcelWriter.bas list.bas Dict.bas Pdfer.bas DB.bas VarBox.bas trycatch.bas -d WITH_PARSER
+'' fbc.exe EfdExtrator.bas Efd.bas Efd-analises.bas Efd-resumos.bas Efd-relatorios.bas Efd-misc.bas bfile.bas ExcelReader.bas ExcelWriter.bas list.bas Dict.bas Pdfer.bas DB.bas VarBox.bas trycatch.bas -d WITH_PARSER -o 3
 
 #include once "EFD.bi"
 
@@ -120,17 +120,17 @@ sub main()
 				opcoes.gerarRelatorios = true
 				nroOpcoes += 1
 			case "-naogerarlre"
-				opcoes.pularLreAoGerarRelatorios = true
+				opcoes.pularLre = true
 				nroOpcoes += 1
 			case "-naogerarlrs"
-				opcoes.pularLrsAoGerarRelatorios = true
+				opcoes.pularLrs = true
 				nroOpcoes += 1
 			case "-naogerarlrelrs"
-				opcoes.pularLreAoGerarRelatorios = true
-				opcoes.pularLrsAoGerarRelatorios = true
+				opcoes.pularLre = true
+				opcoes.pularLrs = true
 				nroOpcoes += 1
 			case "-naogerarlraicms"
-				opcoes.pularLRaicmsAoGerarRelatorios = true
+				opcoes.pularLraicms = true
 				nroOpcoes += 1
 			case "-realcar"
 				opcoes.highlight = true
@@ -281,6 +281,9 @@ sub main()
 	if opcoes.formatoDeSaida <> FT_NULL then
 		print "Analisando:"
 		e.analisar(@mostrarProgresso)
+
+		print "Resumindo:"
+		e.criarResumos(@mostrarProgresso)
 	end if
    
 	''

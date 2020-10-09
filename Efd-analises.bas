@@ -9,16 +9,28 @@
 
 ''''''''
 private sub inconsistenciaAddHeader(ws as ExcelWorksheet ptr)
-	ws->AddCellType(CT_STRING, "Chave")
-	ws->AddCellType(CT_DATE, "Data")
-	ws->AddCellType(CT_STRING, "CNPJ")
-	ws->AddCellType(CT_STRING, "UF")
-	ws->AddCellType(CT_INTNUMBER, "Modelo")
-	ws->AddCellType(CT_STRING, "Serie")
-	ws->AddCellType(CT_INTNUMBER, "Numero")
-	ws->AddCellType(CT_MONEY, "Valor Operacao")
-	ws->AddCellType(CT_INTNUMBER, "Tipo Inconsistencia")
-	ws->AddCellType(CT_STRING, "Descricao Inconsistencia")
+	var row = ws->addRow(true)
+	row->addCell("Chave")
+	row->addCell("Data")
+	row->addCell("CNPJ")
+	row->addCell("UF")
+	row->addCell("Modelo")
+	row->addCell("Serie")
+	row->addCell("Numero")
+	row->addCell("Valor Operacao")
+	row->addCell("Tipo Inconsistencia")
+	row->addCell("Descricao Inconsistencia")
+	
+	ws->AddCellType(CT_STRING)
+	ws->AddCellType(CT_DATE)
+	ws->AddCellType(CT_STRING)
+	ws->AddCellType(CT_STRING)
+	ws->AddCellType(CT_INTNUMBER)
+	ws->AddCellType(CT_STRING)
+	ws->AddCellType(CT_INTNUMBER)
+	ws->AddCellType(CT_MONEY)
+	ws->AddCellType(CT_INTNUMBER)
+	ws->AddCellType(CT_STRING)
 end sub
 
 ''''''''
@@ -83,7 +95,7 @@ sub Efd.analisarInconsistenciasLRE(mostrarProgresso as ProgressoCB)
 	mostrarProgresso(wstr(!"\tInconsistências nas entradas"), 0)
 	
 	try
-		lua_getglobal(lua, "analisarInconsistenciasLRE")
+		lua_getglobal(lua, "LRE_analisarInconsistencias")
 		lua_pushlightuserdata(lua, db)
 		lua_pushlightuserdata(lua, inconsistenciasLRE)
 		lua_call(lua, 2, 0)
@@ -103,7 +115,7 @@ sub Efd.analisarInconsistenciasLRS(mostrarProgresso as ProgressoCB)
 	mostrarProgresso(wstr(!"\tInconsistências nas saídas"), 0)
 
 	try
-		lua_getglobal(lua, "analisarInconsistenciasLRS")
+		lua_getglobal(lua, "LRS_analisarInconsistencias")
 		lua_pushlightuserdata(lua, db)
 		lua_pushlightuserdata(lua, inconsistenciasLRS)
 		lua_call(lua, 2, 0)

@@ -151,12 +151,12 @@ private function lua_criarTabela(lua as lua_State ptr, db as TDb ptr, tabela as 
 		lua_call(lua, 1, 1)
 		var res = db->prepare(lua_tostring(lua, -1))
 		if res = null then
-			print wstr("Erro ao executar script lua de criação de tabela" + "criarTabela_" + *tabela + ": " + *db->getErrorMsg())
+			print wstr("Erro ao executar script lua de criação de tabela: " + "criarTabela_" + *tabela + ": " + *db->getErrorMsg())
 		end if
 		function = res
 		lua_pop(lua, 1)
 	catch
-		print wstr("Erro ao executar script lua de criação de tabela" + "criarTabela_" + *tabela + ". Verifique erros de sintaxe")
+		print wstr("Erro ao executar script lua de criação de tabela: " + "criarTabela_" + *tabela + ". Verifique erros de sintaxe")
 	endtry
 
 end function
@@ -185,21 +185,23 @@ sub Efd.configurarDB()
 		lua_call(lua, 2, 0)
 
 		'' criar tabelas
-		db_dfeEntradaInsertStmt = lua_criarTabela(lua, db, "dfeEntrada")
+		db_dfeEntradaInsertStmt = lua_criarTabela(lua, db, "DFe_Entradas")
 
-		db_dfeSaidaInsertStmt = lua_criarTabela(lua, db, "dfeSaida")
+		db_dfeSaidaInsertStmt = lua_criarTabela(lua, db, "DFe_Saidas")
 		
-		db_itensDfeSaidaInsertStmt = lua_criarTabela(lua, db, "itensDfeSaida")
+		db_itensDfeSaidaInsertStmt = lua_criarTabela(lua, db, "DFe_Saidas_Itens")
 		
-		db_LREInsertStmt = lua_criarTabela(lua, db, "LRE")
+		db_LREInsertStmt = lua_criarTabela(lua, db, "EFD_LRE")
 
-		db_itensNfLRInsertStmt = lua_criarTabela(lua, db, "itensNfLR")
+		db_itensNfLRInsertStmt = lua_criarTabela(lua, db, "EFD_Itens")
 
-		db_LRSInsertStmt = lua_criarTabela(lua, db, "LRS")
-
-		db_ressarcStItensNfLRSInsertStmt = lua_criarTabela(lua, db, "ressarcStItensNfLRS")
+		db_LRSInsertStmt = lua_criarTabela(lua, db, "EFD_LRS")
 		
-		db_itensIdInsertStmt = lua_criarTabela(lua, db, "itensId")
+		db_analInsertStmt = lua_criarTabela(lua, db, "EFD_Anal")
+
+		db_ressarcStItensNfLRSInsertStmt = lua_criarTabela(lua, db, "EFD_Ressarc_Itens")
+		
+		db_itensIdInsertStmt = lua_criarTabela(lua, db, "EFD_ItensId")
 		
 		if db_dfeEntradaInsertStmt = null or _
 			db_dfeSaidaInsertStmt = null or _
@@ -208,7 +210,8 @@ sub Efd.configurarDB()
 			   db_itensNfLRInsertStmt = null or _
 			    db_LRSInsertStmt = null or _
 				 db_ressarcStItensNfLRSInsertStmt = null or _
-					db_itensIdInsertStmt = null then
+					db_itensIdInsertStmt = null or _
+						db_analInsertStmt = null then
 			
 		end if
 	catch
@@ -643,7 +646,9 @@ private function lerRegDocNFItemAnal(bf as bfile, reg as TRegistro ptr, document
 	bf.char1		'pular |
 
 	reg->itemAnal.documentoPai	= documentoPai
-   
+	reg->itemAnal.num		= documentoPai->nf.itemAnalCnt
+	documentoPai->nf.itemAnalCnt += 1
+	
 	reg->itemAnal.cst		= bf.varint
 	reg->itemAnal.cfop		= bf.varint
 	reg->itemAnal.aliq		= bf.vardbl
@@ -787,6 +792,7 @@ private function lerRegDocCT(bf as bfile, reg as TRegistro ptr) as Boolean
 	
 	reg->ct.itemAnalListHead = null
 	reg->ct.itemAnalListTail = null
+	reg->ct.itemAnalCnt = 0
 
 	'pular \r\n
 	if bf.peek1 = 13 then
@@ -1116,6 +1122,7 @@ private function lerRegDocNFSCT(bf as bfile, reg as TRegistro ptr) as Boolean
 
 	reg->nf.itemAnalListHead = null
 	reg->nf.itemAnalListTail = null
+	reg->nf.itemAnalCnt = 0
 
 	'pular \r\n
 	if bf.peek1 = 13 then
@@ -1210,6 +1217,7 @@ private function efd.lerRegDocNFElet(bf as bfile, reg as TRegistro ptr) as Boole
 
 	reg->nf.itemAnalListHead = null
 	reg->nf.itemAnalListTail = null
+	reg->nf.itemAnalCnt = 0
 
 	'pular \r\n
 	if bf.peek1 = 13 then
@@ -2403,7 +2411,7 @@ sub Efd.adicionarDocEscriturado(doc as TDocDF ptr)
 			end if
 			
 			if not db->execNonQuery(db_LREInsertStmt) then
-				print "Erro ao inserir registro na LRE: "; *db->getErrorMsg()
+				print "Erro ao inserir registro na EFD_LRE: "; *db->getErrorMsg()
 			end if
 		else
 			'' (periodo, cnpjDest, ufDest, serie, numero, modelo, chave, dataEmit, valorOp, IE)
@@ -2428,7 +2436,7 @@ sub Efd.adicionarDocEscriturado(doc as TDocDF ptr)
 			end if
 		
 			if not db->execNonQuery(db_LRSInsertStmt) then
-				print "Erro ao inserir registro na LRS: "; *db->getErrorMsg()
+				print "Erro ao inserir registro na EFD_LRS: "; *db->getErrorMsg()
 			end if
 		end if
 	
@@ -2463,7 +2471,7 @@ sub Efd.adicionarDocEscriturado(doc as TDocECF ptr)
 			db_dfeSaidaInsertStmt->bindNull(10)
 		
 			if not db->execNonQuery(db_LRSInsertStmt) then
-				print "Erro ao inserir registro na LRS: "; *db->getErrorMsg()
+				print "Erro ao inserir registro na EFD_LRS: "; *db->getErrorMsg()
 			end if
 		end if
 	
@@ -2498,7 +2506,7 @@ sub Efd.adicionarDocEscriturado(doc as TDocSAT ptr)
 			db_dfeSaidaInsertStmt->bindNull(10)
 		
 			if not db->execNonQuery(db_LRSInsertStmt) then
-				print "Erro ao inserir registro na LRS: "; *db->getErrorMsg()
+				print "Erro ao inserir registro na EFD_LRS: "; *db->getErrorMsg()
 			end if
 		end if
 	
@@ -2521,7 +2529,7 @@ sub Efd.adicionarItemNFEscriturado(item as TDocNFItem ptr)
 		
 		var uf = iif(part->municip >= 1100000 and part->municip <= 5399999, part->municip \ 100000, 99)
 
-		'' (periodo, cnpjEmit, ufEmit, serie, numero, modelo, numItem, cst_origem, cst_tribut, cfop, qtd, valorProd, valorDesc, bc, aliq, icms, bcIcmsST, aliqIcmsST, icmsST, itemId)
+		'' (periodo, cnpjEmit, ufEmit, serie, numero, modelo, numItem, cst, cst_origem, cst_tribut, cfop, qtd, valorProd, valorDesc, bc, aliq, icms, bcIcmsST, aliqIcmsST, icmsST, itemId)
 		db_itensNfLRInsertStmt->reset()
 		db_itensNfLRInsertStmt->bind(1, valint(regMestre->mestre.dataIni))
 		db_itensNfLRInsertStmt->bind(2, iif(len(part->cpf) > 0, part->cpf, part->cnpj))
@@ -2530,26 +2538,27 @@ sub Efd.adicionarItemNFEscriturado(item as TDocNFItem ptr)
 		db_itensNfLRInsertStmt->bind(5, doc->numero)
 		db_itensNfLRInsertStmt->bind(6, doc->modelo)
 		db_itensNfLRInsertStmt->bind(7, item->numItem)
-		db_itensNfLRInsertStmt->bind(8, item->cstIcms \ 100)
-		db_itensNfLRInsertStmt->bind(9, item->cstIcms mod 100)
-		db_itensNfLRInsertStmt->bind(10, item->cfop)
-		db_itensNfLRInsertStmt->bind(11, item->qtd)
-		db_itensNfLRInsertStmt->bind(12, item->valor)
-		db_itensNfLRInsertStmt->bind(13, item->desconto)
-		db_itensNfLRInsertStmt->bind(14, item->bcICMS)
-		db_itensNfLRInsertStmt->bind(15, item->aliqICMS)
-		db_itensNfLRInsertStmt->bind(16, item->icms)
-		db_itensNfLRInsertStmt->bind(17, item->bcICMSST)
-		db_itensNfLRInsertStmt->bind(18, item->aliqICMSST)
-		db_itensNfLRInsertStmt->bind(19, item->icmsST)
+		db_itensNfLRInsertStmt->bind(8, item->cstIcms)
+		db_itensNfLRInsertStmt->bind(9, item->cstIcms \ 100)
+		db_itensNfLRInsertStmt->bind(10, item->cstIcms mod 100)
+		db_itensNfLRInsertStmt->bind(11, item->cfop)
+		db_itensNfLRInsertStmt->bind(12, item->qtd)
+		db_itensNfLRInsertStmt->bind(13, item->valor)
+		db_itensNfLRInsertStmt->bind(14, item->desconto)
+		db_itensNfLRInsertStmt->bind(15, item->bcICMS)
+		db_itensNfLRInsertStmt->bind(16, item->aliqICMS)
+		db_itensNfLRInsertStmt->bind(17, item->icms)
+		db_itensNfLRInsertStmt->bind(18, item->bcICMSST)
+		db_itensNfLRInsertStmt->bind(19, item->aliqICMSST)
+		db_itensNfLRInsertStmt->bind(20, item->icmsST)
 		if opcoes.manterDb then
-			db_itensNfLRInsertStmt->bind(20, item->itemId)
+			db_itensNfLRInsertStmt->bind(21, item->itemId)
 		else
-			db_itensNfLRInsertStmt->bind(20, null)
+			db_itensNfLRInsertStmt->bind(21, null)
 		end if
 		
 		if not db->execNonQuery(db_itensNfLRInsertStmt) then
-			print "Erro ao inserir registro na Item NFe: "; *db->getErrorMsg()
+			print "Erro ao inserir registro na EFD_Itens: "; *db->getErrorMsg()
 		end if
 	end select
 	
@@ -2597,7 +2606,7 @@ sub Efd.adicionarRessarcStEscriturado(doc as TDocNFItemRessarcSt ptr)
 	end if
 
 	if not db->execNonQuery(db_ressarcStItensNfLRSInsertStmt) then
-		print "Erro ao inserir registro na Item Ressarcimento ST: "; *db->getErrorMsg()
+		print "Erro ao inserir registro na EFD_Ressarc_Itens: "; *db->getErrorMsg()
 	end if
 	
 end sub
@@ -2614,7 +2623,41 @@ sub Efd.adicionarItemEscriturado(item as TItemId ptr)
 	db_itensIdInsertStmt->bind(5, item->aliqICMSInt)
 	
 	if not db->execNonQuery(db_itensIdInsertStmt) then
-		print "Erro ao inserir registro na Item Id: "; *db->getErrorMsg()
+		print "Erro ao inserir registro na EFD_ItensId: "; *db->getErrorMsg()
+	end if
+
+end sub
+
+''''''''
+sub Efd.adicionarAnalEscriturado(anal as TDocItemAnal ptr)
+
+	var doc = @anal->documentoPai->nf
+	var part = cast( TParticipante ptr, participanteDict[doc->idParticipante] )
+	
+	var uf = iif(part->municip >= 1100000 and part->municip <= 5399999, part->municip \ 100000, 99)
+
+	'' (periodo, cnpj, uf, serie, numero, modelo, numReg, cst, cfop, aliq, valorOp, bc, icms, bcIcmsST, icmsST, redBC, ipi)
+	db_analInsertStmt->reset()
+	db_analInsertStmt->bind(1, valint(regMestre->mestre.dataIni))
+	db_analInsertStmt->bind(2, iif(len(part->cpf) > 0, part->cpf, part->cnpj))
+	db_analInsertStmt->bind(3, uf)
+	db_analInsertStmt->bind(4, doc->serie)
+	db_analInsertStmt->bind(5, doc->numero)
+	db_analInsertStmt->bind(6, doc->modelo)
+	db_analInsertStmt->bind(7, anal->num)
+	db_analInsertStmt->bind(8, anal->cst)
+	db_analInsertStmt->bind(9, anal->cfop)
+	db_analInsertStmt->bind(10, anal->aliq)
+	db_analInsertStmt->bind(11, anal->valorOp)
+	db_analInsertStmt->bind(12, anal->bc)
+	db_analInsertStmt->bind(13, anal->ICMS)
+	db_analInsertStmt->bind(14, anal->bcST)
+	db_analInsertStmt->bind(15, anal->ICMSST)
+	db_analInsertStmt->bind(16, anal->redBC)
+	db_analInsertStmt->bind(17, anal->IPI)
+	
+	if not db->execNonQuery(db_analInsertStmt) then
+		print "Erro ao inserir registro na EDF_Anal: "; *db->getErrorMsg()
 	end if
 
 end sub
@@ -2627,6 +2670,8 @@ sub Efd.addRegistroAoDB(reg as TRegistro ptr)
 		adicionarDocEscriturado(@reg->nf)
 	case DOC_NF_ITEM
 		adicionarItemNFEscriturado(@reg->itemNF)
+	case DOC_NF_ANAL
+		adicionarAnalEscriturado(@reg->itemAnal)
 	case DOC_CT
 		adicionarDocEscriturado(@reg->ct)
 	case DOC_ECF
@@ -2838,6 +2883,7 @@ function Efd.carregarTxt(nomeArquivo as String, mostrarProgresso as ProgressoCB)
 						'' adicionar ao DB
 						case DOC_NF, _
 							 DOC_NF_ITEM, _
+							 DOC_NF_ANAL, _
 							 DOC_CT, _
 							 ECF_REDUCAO_Z, _
 							 DOC_SAT, _
@@ -4110,43 +4156,76 @@ end function
 
 ''''''''
 private sub adicionarColunasComuns(sheet as ExcelWorksheet ptr, ehEntrada as Boolean, itemNFeSafiFornecido as boolean)
-	
-	sheet->AddCellType(CT_STRING, "CNPJ " + iif(ehEntrada, "Emitente", "Destinatario"))
-	sheet->AddCellType(CT_STRING, "IE " + iif(ehEntrada, "Emitente", "Destinatario"))
-	sheet->AddCellType(CT_STRING, "UF " + iif(ehEntrada, "Emitente", "Destinatario"))
-	sheet->AddCellType(CT_STRING, "Razao Social " + iif(ehEntrada, "Emitente", "Destinatario"))
-	sheet->AddCellType(CT_STRING, "Modelo")
-	sheet->AddCellType(CT_STRING, "Serie")
-	sheet->AddCellType(CT_INTNUMBER, "Numero")
-	sheet->AddCellType(CT_DATE, "Data Emissao")
-	sheet->AddCellType(CT_DATE, "Data " + iif(ehEntrada, "Entrada", "Saida"))
-	sheet->AddCellType(CT_STRING, "Chave")
-	sheet->AddCellType(CT_STRING, "Situacao")
 
-	sheet->AddCellType(CT_MONEY, "BC ICMS")
-	sheet->AddCellType(CT_NUMBER, "Aliq ICMS")
-	sheet->AddCellType(CT_MONEY, "Valor ICMS")
-	sheet->AddCellType(CT_MONEY, "BC ICMS ST")
-	sheet->AddCellType(CT_NUMBER, "Aliq ICMS ST")
-	sheet->AddCellType(CT_MONEY, "Valor ICMS ST")
-	sheet->AddCellType(CT_MONEY, "Valor IPI")
-	sheet->AddCellType(CT_MONEY, "Valor Item")
-	sheet->AddCellType(CT_INTNUMBER, "Nro Item")
-	sheet->AddCellType(CT_NUMBER, "Qtd")
-	sheet->AddCellType(CT_STRING, "Unidade")
-	sheet->AddCellType(CT_INTNUMBER, "CFOP")
-	sheet->AddCellType(CT_INTNUMBER, "CST")
-	sheet->AddCellType(CT_INTNUMBER, "NCM")
-	sheet->AddCellType(CT_STRING, "Codigo Item")
-	sheet->AddCellType(CT_STRING, "Descricao Item")
+	var row = sheet->addRow(true)
+	row->addCell("CNPJ " + iif(ehEntrada, "Emitente", "Destinatario"))
+	row->addCell("IE " + iif(ehEntrada, "Emitente", "Destinatario"))
+	row->addCell("UF " + iif(ehEntrada, "Emitente", "Destinatario"))
+	row->addCell("Razao Social " + iif(ehEntrada, "Emitente", "Destinatario"))
+	row->addCell("Modelo")
+	row->addCell("Serie")
+	row->addCell("Numero")
+	row->addCell("Data Emissao")
+	row->addCell("Data " + iif(ehEntrada, "Entrada", "Saida"))
+	row->addCell("Chave")
+	row->addCell("Situacao")
+	row->addCell("BC ICMS")
+	row->addCell("Aliq ICMS")
+	row->addCell("Valor ICMS")
+	row->addCell("BC ICMS ST")
+	row->addCell("Aliq ICMS ST")
+	row->addCell("Valor ICMS ST")
+	row->addCell("Valor IPI")
+	row->addCell("Valor Item")
+	row->addCell("Nro Item")
+	row->addCell("Qtd")
+	row->addCell("Unidade")
+	row->addCell("CFOP")
+	row->addCell("CST")
+	row->addCell("NCM")
+	row->addCell("Codigo Item")
+	row->addCell("Descricao Item")
+	
+	sheet->AddCellType(CT_STRING)
+	sheet->AddCellType(CT_STRING)
+	sheet->AddCellType(CT_STRING)
+	sheet->AddCellType(CT_STRING)
+	sheet->AddCellType(CT_STRING)
+	sheet->AddCellType(CT_STRING)
+	sheet->AddCellType(CT_INTNUMBER)
+	sheet->AddCellType(CT_DATE)
+	sheet->AddCellType(CT_DATE)
+	sheet->AddCellType(CT_STRING)
+	sheet->AddCellType(CT_STRING)
+	sheet->AddCellType(CT_MONEY)
+	sheet->AddCellType(CT_NUMBER)
+	sheet->AddCellType(CT_MONEY)
+	sheet->AddCellType(CT_MONEY)
+	sheet->AddCellType(CT_NUMBER)
+	sheet->AddCellType(CT_MONEY)
+	sheet->AddCellType(CT_MONEY)
+	sheet->AddCellType(CT_MONEY)
+	sheet->AddCellType(CT_INTNUMBER)
+	sheet->AddCellType(CT_NUMBER)
+	sheet->AddCellType(CT_STRING)
+	sheet->AddCellType(CT_INTNUMBER)
+	sheet->AddCellType(CT_INTNUMBER)
+	sheet->AddCellType(CT_INTNUMBER)
+	sheet->AddCellType(CT_STRING)
+	sheet->AddCellType(CT_STRING)
    
 	if not ehEntrada then
-		sheet->AddCellType(CT_MONEY, "DifAl FCP")
-		sheet->AddCellType(CT_MONEY, "DifAl ICMS Orig")
-		sheet->AddCellType(CT_MONEY, "DifAl ICMS Dest")
+		row->addCell("DifAl FCP")
+		row->addCell("DifAl ICMS Orig")
+		row->addCell("DifAl ICMS Dest")
+		
+		sheet->AddCellType(CT_MONEY)
+		sheet->AddCellType(CT_MONEY)
+		sheet->AddCellType(CT_MONEY)
 	end if
 	
-	sheet->AddCellType(CT_STRING, "Info. complementares")
+	row->addCell("Info. complementares")
+	sheet->AddCellType(CT_STRING)
 end sub
    
 ''''''''
@@ -4161,6 +4240,223 @@ private sub lua_setarGlobal overload (lua as lua_State ptr, varName as const zst
 	lua_setglobal(lua, varName)
 end sub
 
+private sub criarColunasApuracaoIcms(sheet as ExcelWorksheet ptr)
+	var row = sheet->addRow(true)
+	row->addCell("Inicio")
+	row->addCell("Fim")
+	row->addCell("Total Debitos")
+	row->addCell("Ajustes Debitos")
+	row->addCell("Total Ajuste Deb")
+	row->addCell("Estornos Credito")
+	row->addCell("Total Creditos")
+	row->addCell("Ajustes Creditos")
+	row->addCell("Total Ajuste Cred")
+	row->addCell("Estornos Debito")
+	row->addCell("Saldo Cred Anterior")
+	row->addCell("Saldo Devedor Apurado")
+	row->addCell("Total Deducoes")
+	row->addCell("ICMS a Recolher")
+	row->addCell("Saldo Credor a Transportar")
+	row->addCell("Deb Extra Apuracao")
+	
+	sheet->AddCellType(CT_DATE)
+	sheet->AddCellType(CT_DATE)
+	sheet->AddCellType(CT_MONEY)
+	sheet->AddCellType(CT_MONEY)
+	sheet->AddCellType(CT_MONEY)
+	sheet->AddCellType(CT_MONEY)
+	sheet->AddCellType(CT_MONEY)
+	sheet->AddCellType(CT_MONEY)
+	sheet->AddCellType(CT_MONEY)
+	sheet->AddCellType(CT_MONEY)
+	sheet->AddCellType(CT_MONEY)
+	sheet->AddCellType(CT_MONEY)
+	sheet->AddCellType(CT_MONEY)
+	sheet->AddCellType(CT_MONEY)
+	sheet->AddCellType(CT_MONEY)
+	sheet->AddCellType(CT_MONEY)
+end sub
+
+private sub criarColunasApuracaoIcmsST(sheet as ExcelWorksheet ptr)
+	var row = sheet->addRow(true)
+	row->addCell("Inicio")
+	row->addCell("Fim")
+	row->addCell("UF")
+	row->addCell("Movimentacao")
+	row->addCell("Saldo Credor Anterior")
+	row->addCell("Total Devolucao Merc")
+	row->addCell("Total Ressarcimentos")
+	row->addCell("Total Ajustes Cred")
+	row->addCell("Total Ajustes Cred Docs")
+	row->addCell("Total Retencao")
+	row->addCell("Total Ajustes Deb")
+	row->addCell("Total Ajustes Deb Docs")
+	row->addCell("Saldo Devedor ant. Deducoes")
+	row->addCell("Total Deducoes")
+	row->addCell("ICMS a Recolher")
+	row->addCell("Saldo Credor a Transportar")
+	row->addCell("Deb Extra Apuracao")
+
+	sheet->AddCellType(CT_DATE)
+	sheet->AddCellType(CT_DATE)
+	sheet->AddCellType(CT_STRING)
+	sheet->AddCellType(CT_STRING)
+	sheet->AddCellType(CT_MONEY)
+	sheet->AddCellType(CT_MONEY)
+	sheet->AddCellType(CT_MONEY)
+	sheet->AddCellType(CT_MONEY)
+	sheet->AddCellType(CT_MONEY)
+	sheet->AddCellType(CT_MONEY)
+	sheet->AddCellType(CT_MONEY)
+	sheet->AddCellType(CT_MONEY)
+	sheet->AddCellType(CT_MONEY)
+	sheet->AddCellType(CT_MONEY)
+	sheet->AddCellType(CT_MONEY)
+	sheet->AddCellType(CT_MONEY)
+	sheet->AddCellType(CT_MONEY)
+end sub
+
+private sub criarColunasInventario(sheet as ExcelWorksheet ptr)
+	var row = sheet->addRow(true)
+	row->addCell("Data Inventario")
+	row->addCell("Codigo")
+	row->addCell("NCM")
+	row->addCell("Tipo")
+	row->addCell("Tipo (Descricao)")
+	row->addCell("Descricao")
+	row->addCell("Unidade")
+	row->addCell("Qtd")
+	row->addCell("Valor Unitario")
+	row->addCell("Valor Item")
+	row->addCell("Ind. Propriedade")
+	row->addCell("CNPJ Proprietario")
+	row->addCell("Texto Complementar")
+	row->addCell("Codigo Conta Contabil")
+	row->addCell("Valor Item IR")
+
+	sheet->AddCellType(CT_DATE)
+	sheet->AddCellType(CT_STRING)
+	sheet->AddCellType(CT_INTNUMBER)
+	sheet->AddCellType(CT_INTNUMBER)
+	sheet->AddCellType(CT_STRING)
+	sheet->AddCellType(CT_STRING)
+	sheet->AddCellType(CT_STRING)
+	sheet->AddCellType(CT_NUMBER)
+	sheet->AddCellType(CT_MONEY)
+	sheet->AddCellType(CT_MONEY)
+	sheet->AddCellType(CT_INTNUMBER)
+	sheet->AddCellType(CT_STRING)
+	sheet->AddCellType(CT_STRING)
+	sheet->AddCellType(CT_STRING)
+	sheet->AddCellType(CT_MONEY)
+end sub
+
+private sub criarColunasCIAP(sheet as ExcelWorksheet ptr)
+	var row = sheet->addRow(true)
+	row->addCell("Data Inicial")
+	row->addCell("Data Final")
+	row->addCell("Soma Total Saidas Tributadas")
+	row->addCell("Soma Total Saidas")
+	row->addCell("Codigo Bem")
+	row->addCell("Descricao Bem")
+	row->addCell("Data Movimentacao")
+	row->addCell("Tipo Movimentacao")
+	row->addCell("Valor ICMS")
+	row->addCell("Valor ICMS ST")
+	row->addCell("Valor ICMS Frete")
+	row->addCell("Valor ICMS Difal")
+	row->addCell("Num. Parcela")
+	row->addCell("Valor Parcela")
+	row->addCell("Modelo")
+	row->addCell("Serie")
+	row->addCell("Numero")
+	row->addCell("Data Emissao")
+	row->addCell("Chave NF-e")
+	row->addCell("CNPJ")
+	row->addCell("IE")
+	row->addCell("UF")
+	row->addCell("Razao Social")
+	
+	sheet->AddCellType(CT_DATE)
+	sheet->AddCellType(CT_DATE)
+	sheet->AddCellType(CT_MONEY)
+	sheet->AddCellType(CT_MONEY)
+	sheet->AddCellType(CT_STRING)
+	sheet->AddCellType(CT_STRING)
+	sheet->AddCellType(CT_DATE)
+	sheet->AddCellType(CT_STRING)
+	sheet->AddCellType(CT_MONEY)
+	sheet->AddCellType(CT_MONEY)
+	sheet->AddCellType(CT_MONEY)
+	sheet->AddCellType(CT_MONEY)
+	sheet->AddCellType(CT_INTNUMBER)
+	sheet->AddCellType(CT_MONEY)
+	sheet->AddCellType(CT_STRING)
+	sheet->AddCellType(CT_STRING)
+	sheet->AddCellType(CT_INTNUMBER)
+	sheet->AddCellType(CT_DATE)
+	sheet->AddCellType(CT_STRING)
+	sheet->AddCellType(CT_STRING)
+	sheet->AddCellType(CT_STRING)
+	sheet->AddCellType(CT_STRING)
+	sheet->AddCellType(CT_STRING)
+end sub
+
+private sub criarColunasRessarcST(sheet as ExcelWorksheet ptr)
+	var row = sheet->addRow(true)
+	row->addCell("CNPJ Emitente Ult NF-e Ent")
+	row->addCell("IE Emitente Ult NF-e Ent")
+	row->addCell("UF Emitente Ult NF-e Ent")
+	row->addCell("Razao Social Emitente Ult NF-e Ent")
+	row->addCell("Modelo Ult NF-e Ent")
+	row->addCell("Serie Ult NF-e Ent")
+	row->addCell("Numero Ult NF-e Ent")
+	row->addCell("Data Emissao Ult NF-e Ent")
+	row->addCell("Qtd Ult Ent")
+	row->addCell("Valor Ult Ent")
+	row->addCell("BC ICMS ST")
+	row->addCell("Chave Ult NF-e Ent")
+	row->addCell("Num Item Ult NF-e Ent")
+	row->addCell("BC ICMS")
+	row->addCell("Aliq ICMS")
+	row->addCell("Lim BC ICMS")
+	row->addCell("ICMS")
+	row->addCell("Aliq ICMS ST")
+	row->addCell("Ressarcimento")
+	row->addCell("Responsavel")
+	row->addCell("Motivo")
+	row->addCell("Tipo Doc Arrecad")
+	row->addCell("Num Doc Arrecad")
+	row->addCell("Chave NF-e Saida")
+	row->addCell("Num Item NF-e Saida")
+	
+	sheet->AddCellType(CT_STRING)
+	sheet->AddCellType(CT_STRING)
+	sheet->AddCellType(CT_STRING)
+	sheet->AddCellType(CT_STRING)
+	sheet->AddCellType(CT_STRING)
+	sheet->AddCellType(CT_STRING)
+	sheet->AddCellType(CT_INTNUMBER)
+	sheet->AddCellType(CT_DATE)
+	sheet->AddCellType(CT_NUMBER)
+	sheet->AddCellType(CT_MONEY)
+	sheet->AddCellType(CT_MONEY)
+	sheet->AddCellType(CT_STRING)
+	sheet->AddCellType(CT_INTNUMBER)
+	sheet->AddCellType(CT_MONEY)
+	sheet->AddCellType(CT_NUMBER)
+	sheet->AddCellType(CT_MONEY)
+	sheet->AddCellType(CT_MONEY)
+	sheet->AddCellType(CT_NUMBER)
+	sheet->AddCellType(CT_MONEY)
+	sheet->AddCellType(CT_STRING)
+	sheet->AddCellType(CT_STRING)
+	sheet->AddCellType(CT_STRING)
+	sheet->AddCellType(CT_STRING)
+	sheet->AddCellType(CT_STRING)
+	sheet->AddCellType(CT_INTNUMBER)
+end sub
+
 ''''''''
 sub Efd.criarPlanilhas()
 	'' planilha de entradas
@@ -4173,120 +4469,35 @@ sub Efd.criarPlanilhas()
 
 	'' apuração do ICMS
 	apuracaoIcms = ew->AddWorksheet("Apuracao ICMS")
-	apuracaoIcms->AddCellType(CT_DATE, "Inicio")
-	apuracaoIcms->AddCellType(CT_DATE, "Fim")
-	apuracaoIcms->AddCellType(CT_MONEY, "Total Debitos")
-	apuracaoIcms->AddCellType(CT_MONEY, "Ajustes Debitos")
-	apuracaoIcms->AddCellType(CT_MONEY, "Total Ajuste Deb")
-	apuracaoIcms->AddCellType(CT_MONEY, "Estornos Credito")
-	apuracaoIcms->AddCellType(CT_MONEY, "Total Creditos")
-	apuracaoIcms->AddCellType(CT_MONEY, "Ajustes Creditos")
-	apuracaoIcms->AddCellType(CT_MONEY, "Total Ajuste Cred")
-	apuracaoIcms->AddCellType(CT_MONEY, "Estornos Debito")
-	apuracaoIcms->AddCellType(CT_MONEY, "Saldo Cred Anterior")
-	apuracaoIcms->AddCellType(CT_MONEY, "Saldo Devedor Apurado")
-	apuracaoIcms->AddCellType(CT_MONEY, "Total Deducoes")
-	apuracaoIcms->AddCellType(CT_MONEY, "ICMS a Recolher")
-	apuracaoIcms->AddCellType(CT_MONEY, "Saldo Credor a Transportar")
-	apuracaoIcms->AddCellType(CT_MONEY, "Deb Extra Apuracao")
+	criarColunasApuracaoIcms(apuracaoIcms)
    
 	'' apuração do ICMS ST
 	apuracaoIcmsST = ew->AddWorksheet("Apuracao ICMS ST")
-	apuracaoIcmsST->AddCellType(CT_DATE, "Inicio")
-	apuracaoIcmsST->AddCellType(CT_DATE, "Fim")
-	apuracaoIcmsST->AddCellType(CT_STRING, "UF")
-	apuracaoIcmsST->AddCellType(CT_STRING, "Movimentacao")
-	apuracaoIcmsST->AddCellType(CT_MONEY, "Saldo Credor Anterior")
-	apuracaoIcmsST->AddCellType(CT_MONEY, "Total Devolucao Merc")
-	apuracaoIcmsST->AddCellType(CT_MONEY, "Total Ressarcimentos")
-	apuracaoIcmsST->AddCellType(CT_MONEY, "Total Ajustes Cred")
-	apuracaoIcmsST->AddCellType(CT_MONEY, "Total Ajustes Cred Docs")
-	apuracaoIcmsST->AddCellType(CT_MONEY, "Total Retencao")
-	apuracaoIcmsST->AddCellType(CT_MONEY, "Total Ajustes Deb")
-	apuracaoIcmsST->AddCellType(CT_MONEY, "Total Ajustes Deb Docs")
-	apuracaoIcmsST->AddCellType(CT_MONEY, "Saldo Devedor ant. Deducoes")
-	apuracaoIcmsST->AddCellType(CT_MONEY, "Total Deducoes")
-	apuracaoIcmsST->AddCellType(CT_MONEY, "ICMS a Recolher")
-	apuracaoIcmsST->AddCellType(CT_MONEY, "Saldo Credor a Transportar")
-	apuracaoIcmsST->AddCellType(CT_MONEY, "Deb Extra Apuracao")
+	criarColunasApuracaoIcmsST(apuracaoIcmsST)
 	
 	'' Inventário
 	inventario = ew->AddWorksheet("Inventario")
-	inventario->AddCellType(CT_DATE, "Data Inventario")
-	inventario->AddCellType(CT_STRING, "Codigo")
-	inventario->AddCellType(CT_INTNUMBER, "NCM")
-	inventario->AddCellType(CT_INTNUMBER, "Tipo")
-	inventario->AddCellType(CT_STRING, "Tipo (Descricao)")
-	inventario->AddCellType(CT_STRING, "Descricao")
-	inventario->AddCellType(CT_STRING, "Unidade")
-	inventario->AddCellType(CT_NUMBER, "Qtd")
-	inventario->AddCellType(CT_MONEY, "Valor Unitario")
-	inventario->AddCellType(CT_MONEY, "Valor Item")
-	inventario->AddCellType(CT_INTNUMBER, "Ind. Propriedade")
-	inventario->AddCellType(CT_STRING, "CNPJ Proprietario")
-	inventario->AddCellType(CT_STRING, "Texto Complementar")
-	inventario->AddCellType(CT_STRING, "Codigo Conta Contabil")
-	inventario->AddCellType(CT_MONEY, "Valor Item IR")
+	criarColunasInventario(inventario)
 
 	'' CIAP
 	ciap = ew->AddWorksheet("CIAP")
-	ciap->AddCellType(CT_DATE, "Data Inicial")
-	ciap->AddCellType(CT_DATE, "Data Final")
-	ciap->AddCellType(CT_MONEY, "Soma Total Saidas Tributadas")
-	ciap->AddCellType(CT_MONEY, "Soma Total Saidas")
-	ciap->AddCellType(CT_STRING, "Codigo Bem")
-	ciap->AddCellType(CT_STRING, "Descricao Bem")
-	ciap->AddCellType(CT_DATE, "Data Movimentacao")
-	ciap->AddCellType(CT_STRING, "Tipo Movimentacao")
-	ciap->AddCellType(CT_MONEY, "Valor ICMS")
-	ciap->AddCellType(CT_MONEY, "Valor ICMS ST")
-	ciap->AddCellType(CT_MONEY, "Valor ICMS Frete")
-	ciap->AddCellType(CT_MONEY, "Valor ICMS Difal")
-	ciap->AddCellType(CT_INTNUMBER, "Num. Parcela")
-	ciap->AddCellType(CT_MONEY, "Valor Parcela")
-	ciap->AddCellType(CT_STRING, "Modelo")
-	ciap->AddCellType(CT_STRING, "Serie")
-	ciap->AddCellType(CT_INTNUMBER, "Numero")
-	ciap->AddCellType(CT_DATE, "Data Emissao")
-	ciap->AddCellType(CT_STRING, "Chave NF-e")
-	ciap->AddCellType(CT_STRING, "CNPJ")
-	ciap->AddCellType(CT_STRING, "IE")
-	ciap->AddCellType(CT_STRING, "UF")
-	ciap->AddCellType(CT_STRING, "Razao Social")
+	criarColunasCIAP(ciap)
 
 	'' Ressarcimento ST
 	ressarcST = ew->AddWorksheet("Ressarcimento ST")
-	ressarcST->AddCellType(CT_STRING, "CNPJ Emitente Ult NF-e Ent")
-	ressarcST->AddCellType(CT_STRING, "IE Emitente Ult NF-e Ent")
-	ressarcST->AddCellType(CT_STRING, "UF Emitente Ult NF-e Ent")
-	ressarcST->AddCellType(CT_STRING, "Razao Social Emitente Ult NF-e Ent")
-	ressarcST->AddCellType(CT_STRING, "Modelo Ult NF-e Ent")
-	ressarcST->AddCellType(CT_STRING, "Serie Ult NF-e Ent")
-	ressarcST->AddCellType(CT_INTNUMBER, "Numero Ult NF-e Ent")
-	ressarcST->AddCellType(CT_DATE, "Data Emissao Ult NF-e Ent")
-	ressarcST->AddCellType(CT_NUMBER, "Qtd Ult Ent")
-	ressarcST->AddCellType(CT_MONEY, "Valor Ult Ent")
-	ressarcST->AddCellType(CT_MONEY, "BC ICMS ST")
-	ressarcST->AddCellType(CT_STRING, "Chave Ult NF-e Ent")
-	ressarcST->AddCellType(CT_INTNUMBER, "Num Item Ult NF-e Ent")
-	ressarcST->AddCellType(CT_MONEY, "BC ICMS")
-	ressarcST->AddCellType(CT_NUMBER, "Aliq ICMS")
-	ressarcST->AddCellType(CT_MONEY, "Lim BC ICMS")
-	ressarcST->AddCellType(CT_MONEY, "ICMS")
-	ressarcST->AddCellType(CT_NUMBER, "Aliq ICMS ST")
-	ressarcST->AddCellType(CT_MONEY, "Ressarcimento")
-	ressarcST->AddCellType(CT_STRING, "Responsavel")
-	ressarcST->AddCellType(CT_STRING, "Motivo")
-	ressarcST->AddCellType(CT_STRING, "Tipo Doc Arrecad")
-	ressarcST->AddCellType(CT_STRING, "Num Doc Arrecad")
-	ressarcST->AddCellType(CT_STRING, "Chave NF-e Saida")
-	ressarcST->AddCellType(CT_INTNUMBER, "Num Item NF-e Saida")
+	criarColunasRessarcST(ressarcST)
 	
 	'' Inconsistencias LRE
 	inconsistenciasLRE = ew->AddWorksheet("Inconsistencias LRE")
 
 	'' Inconsistencias LRS
 	inconsistenciasLRS = ew->AddWorksheet("Inconsistencias LRS")
+	
+	'' Resumos LRE
+	resumosLRE = ew->AddWorksheet("Resumos LRE")
+
+	'' Resumos LRS
+	resumosLRS = ew->AddWorksheet("Resumos LRS")
 	
 	''
 	lua_getglobal(lua, "criarPlanilhas")
@@ -4447,8 +4658,8 @@ sub Efd.gerarPlanilhas(nomeArquivo as string, mostrarProgresso as ProgressoCB)
 				case REGULAR, EXTEMPORANEO
 					var part = cast( TParticipante ptr, participanteDict[doc->idParticipante] )
 
-					var emitirLinha = true
-					if opcoes.filtrarCnpj then
+					var emitirLinha = iif(doc->operacao = SAIDA, not opcoes.pularLrs, not opcoes.pularLre)
+					if opcoes.filtrarCnpj andalso emitirLinha then
 						if part <> null then
 							emitirLinha = filtrarPorCnpj(part->cnpj)
 						end if
@@ -4531,7 +4742,8 @@ sub Efd.gerarPlanilhas(nomeArquivo as string, mostrarProgresso as ProgressoCB)
 
 						var part = cast( TParticipante ptr, participanteDict[reg->nf.idParticipante] )
 
-						var emitirLinhas = (opcoes.somenteRessarcimentoST = false)
+						var emitirLinhas = (opcoes.somenteRessarcimentoST = false) and _
+							iif(reg->nf.operacao = SAIDA, not opcoes.pularLrs, not opcoes.pularLre)
 						if opcoes.filtrarCnpj andalso emitirLinhas then
 							if part <> null then
 								emitirLinhas = filtrarPorCnpj(part->cnpj)
@@ -4652,7 +4864,10 @@ sub Efd.gerarPlanilhas(nomeArquivo as string, mostrarProgresso as ProgressoCB)
 			   
 				case CANCELADO, CANCELADO_EXT, DENEGADO, INUTILIZADO
 					if reg->nf.operacao = SAIDA then
-						if opcoes.somenteRessarcimentoST = false then
+						var emitirLinha = (opcoes.somenteRessarcimentoST = false) and _
+							(not opcoes.pularLrs)
+						
+						if emitirLinha then
 							var row = saidas->AddRow()
 
 							row->addCell("")
@@ -4678,8 +4893,8 @@ sub Efd.gerarPlanilhas(nomeArquivo as string, mostrarProgresso as ProgressoCB)
 				var doc = @reg->itemRessarcSt
 				var part = cast( TParticipante ptr, participanteDict[doc->idParticipanteUlt] )
 
-				var emitirLinha = true
-				if opcoes.filtrarCnpj then
+				var emitirLinha = iif(reg->ct.operacao = SAIDA, not opcoes.pularLrs, not opcoes.pularLre)
+				if opcoes.filtrarCnpj andalso emitirLinha then
 					if part <> null then
 						emitirLinha = filtrarPorCnpj(part->cnpj)
 					end if
@@ -4728,7 +4943,9 @@ sub Efd.gerarPlanilhas(nomeArquivo as string, mostrarProgresso as ProgressoCB)
 				case REGULAR, EXTEMPORANEO
 					var part = cast( TParticipante ptr, participanteDict[reg->ct.idParticipante] )
 
-					var emitirLinhas = (opcoes.somenteRessarcimentoST = false)
+					var emitirLinhas = (opcoes.somenteRessarcimentoST = false) and _
+						iif(reg->ct.operacao = SAIDA, not opcoes.pularLrs, not opcoes.pularLre)
+					
 					if opcoes.filtrarCnpj andalso emitirLinhas then
 						if part <> null then
 							emitirLinhas = filtrarPorCnpj(part->cnpj)
@@ -4857,195 +5074,203 @@ sub Efd.gerarPlanilhas(nomeArquivo as string, mostrarProgresso as ProgressoCB)
 				
 			'item de ECF?
 			case DOC_ECF_ITEM
-				var doc = reg->itemECF.documentoPai
-				select case as const doc->situacao
-				case REGULAR, EXTEMPORANEO
-					'só existe cupom para saída
-					if doc->operacao = SAIDA then
-						var emitirLinha = (opcoes.somenteRessarcimentoST = false)
-						if opcoes.filtrarCnpj andalso emitirLinha then
-							emitirLinha = filtrarPorCnpj(doc->cpfCnpjAdquirente)
-						end if
-
-						if opcoes.filtrarChaves andalso emitirLinha then
-							emitirLinha = filtrarPorChave(doc->chave)
-						end if
-						
-						if emitirLinha then
-							var row = saidas->AddRow()
-
-							row->addCell(doc->cpfCnpjAdquirente)
-							row->addCell("")
-							row->addCell("SP")
-							row->addCell(doc->nomeAdquirente)
-							row->addCell(iif(doc->modelo = &h2D, "2D", str(doc->modelo)))
-							row->addCell("")
-							row->addCell(doc->numero)
-							row->addCell(YyyyMmDd2Datetime(doc->dataEmi))
-							row->addCell(YyyyMmDd2Datetime(doc->dataEntSaida))
-							row->addCell(doc->chave)
-							row->addCell(codSituacao2Str(doc->situacao))
-							row->addCell("")
-							row->addCell(reg->itemECF.aliqICMS)
-							row->addCell("")
-							row->addCell("")
-							row->addCell("")
-							row->addCell("")
-							row->addCell("")
-							row->addCell(reg->itemECF.valor)
-							row->addCell(reg->itemECF.numItem)
-							row->addCell(reg->itemECF.qtd)
-							row->addCell(reg->itemECF.unidade)
-							row->addCell(reg->itemECF.cfop)
-							row->addCell(reg->itemECF.cstICMS)
-							var itemId = cast( TItemId ptr, itemIdDict[reg->itemECF.itemId] )
-							if itemId <> null then 
-								row->addCell(itemId->ncm)
-								row->addCell(itemId->id)
-								row->addCell(itemId->descricao)
+				if not opcoes.pularLrs then
+					var doc = reg->itemECF.documentoPai
+					select case as const doc->situacao
+					case REGULAR, EXTEMPORANEO
+						'só existe cupom para saída
+						if doc->operacao = SAIDA then
+							var emitirLinha = (opcoes.somenteRessarcimentoST = false)
+							if opcoes.filtrarCnpj andalso emitirLinha then
+								emitirLinha = filtrarPorCnpj(doc->cpfCnpjAdquirente)
 							end if
-						end if
-					end if
-				end select
-				
-			'SAT?
-			case DOC_SAT
-				var doc = @reg->sat
-				select case as const doc->situacao
-				case REGULAR, EXTEMPORANEO
-					'só existe cupom para saída
-					if doc->operacao = SAIDA then
-						var emitirLinha = (opcoes.somenteRessarcimentoST = false)
-						if opcoes.filtrarCnpj andalso emitirLinha then
-							emitirLinha = filtrarPorCnpj(doc->cpfCnpjAdquirente)
-						end if
-						
-						if opcoes.filtrarChaves andalso emitirLinha then
-							emitirLinha = filtrarPorChave(doc->chave)
-						end if
-						
-						if emitirLinha then
-							dim as TDFe_NFeItem ptr item = null
-							if itemNFeSafiFornecido and opcoes.acrescentarDados then
-								var dfe = cast( TDFe ptr, chaveDFeDict[doc->chave] )
-								if dfe <> null then
-									item = dfe->nfe.itemListHead
-								end if
+
+							if opcoes.filtrarChaves andalso emitirLinha then
+								emitirLinha = filtrarPorChave(doc->chave)
 							end if
 							
-							var anal = iif(item = null, doc->itemAnalListHead, null)
-							
-							var analCnt = 1
-							do
+							if emitirLinha then
 								var row = saidas->AddRow()
 
 								row->addCell(doc->cpfCnpjAdquirente)
 								row->addCell("")
 								row->addCell("SP")
-								row->addCell("")
-								row->addCell(str(doc->modelo))
+								row->addCell(doc->nomeAdquirente)
+								row->addCell(iif(doc->modelo = &h2D, "2D", str(doc->modelo)))
 								row->addCell("")
 								row->addCell(doc->numero)
 								row->addCell(YyyyMmDd2Datetime(doc->dataEmi))
-								row->addCell(YyyyMmDd2Datetime(doc->dataEmi))
+								row->addCell(YyyyMmDd2Datetime(doc->dataEntSaida))
 								row->addCell(doc->chave)
 								row->addCell(codSituacao2Str(doc->situacao))
-								if item <> null then
-									row->addCell(item->bcICMS)
-									row->addCell(item->aliqICMS)
-									row->addCell(item->ICMS)
-									row->addCell("")
-									row->addCell("")
-									row->addCell("")
-									row->addCell("")
-									row->addCell(item->valorProduto)
-									row->addCell(item->nroItem)
-									row->addCell(item->qtd)
-									row->addCell(item->unidade)
-									row->addCell(item->cfop)
-									row->addCell(item->cst)
-									row->addCell(item->ncm)
-									row->addCell(item->codProduto)
-									row->addCell(item->descricao)
-									
-									item = item->next_
-									if item = null then
-										exit do
-									end if
-									
-								else
-									if anal = null then
-										exit do
-									end if
-										
-									row->addCell("")
-									row->addCell(anal->aliq)
-									row->addCell("")
-									row->addCell("")
-									row->addCell("")
-									row->addCell("")
-									row->addCell("")
-									row->addCell(anal->valorOp)
-									row->addCell(analCnt)
-									row->addCell("")
-									row->addCell("")
-									row->addCell(anal->cfop)
-									row->addCell(anal->cst)
-									row->addCell("")
-									row->addCell("")
-									row->addCell("")
-									
-									analCnt += 1
-									anal = anal->next_
-									if anal = null then
-										exit do
+								row->addCell("")
+								row->addCell(reg->itemECF.aliqICMS)
+								row->addCell("")
+								row->addCell("")
+								row->addCell("")
+								row->addCell("")
+								row->addCell("")
+								row->addCell(reg->itemECF.valor)
+								row->addCell(reg->itemECF.numItem)
+								row->addCell(reg->itemECF.qtd)
+								row->addCell(reg->itemECF.unidade)
+								row->addCell(reg->itemECF.cfop)
+								row->addCell(reg->itemECF.cstICMS)
+								var itemId = cast( TItemId ptr, itemIdDict[reg->itemECF.itemId] )
+								if itemId <> null then 
+									row->addCell(itemId->ncm)
+									row->addCell(itemId->id)
+									row->addCell(itemId->descricao)
+								end if
+							end if
+						end if
+					end select
+				end if
+				
+			'SAT?
+			case DOC_SAT
+				if not opcoes.pularLrs then
+					var doc = @reg->sat
+					select case as const doc->situacao
+					case REGULAR, EXTEMPORANEO
+						'só existe cupom para saída
+						if doc->operacao = SAIDA then
+							var emitirLinha = (opcoes.somenteRessarcimentoST = false)
+							if opcoes.filtrarCnpj andalso emitirLinha then
+								emitirLinha = filtrarPorCnpj(doc->cpfCnpjAdquirente)
+							end if
+							
+							if opcoes.filtrarChaves andalso emitirLinha then
+								emitirLinha = filtrarPorChave(doc->chave)
+							end if
+							
+							if emitirLinha then
+								dim as TDFe_NFeItem ptr item = null
+								if itemNFeSafiFornecido and opcoes.acrescentarDados then
+									var dfe = cast( TDFe ptr, chaveDFeDict[doc->chave] )
+									if dfe <> null then
+										item = dfe->nfe.itemListHead
 									end if
 								end if
-							loop
+								
+								var anal = iif(item = null, doc->itemAnalListHead, null)
+								
+								var analCnt = 1
+								do
+									var row = saidas->AddRow()
+
+									row->addCell(doc->cpfCnpjAdquirente)
+									row->addCell("")
+									row->addCell("SP")
+									row->addCell("")
+									row->addCell(str(doc->modelo))
+									row->addCell("")
+									row->addCell(doc->numero)
+									row->addCell(YyyyMmDd2Datetime(doc->dataEmi))
+									row->addCell(YyyyMmDd2Datetime(doc->dataEmi))
+									row->addCell(doc->chave)
+									row->addCell(codSituacao2Str(doc->situacao))
+									if item <> null then
+										row->addCell(item->bcICMS)
+										row->addCell(item->aliqICMS)
+										row->addCell(item->ICMS)
+										row->addCell("")
+										row->addCell("")
+										row->addCell("")
+										row->addCell("")
+										row->addCell(item->valorProduto)
+										row->addCell(item->nroItem)
+										row->addCell(item->qtd)
+										row->addCell(item->unidade)
+										row->addCell(item->cfop)
+										row->addCell(item->cst)
+										row->addCell(item->ncm)
+										row->addCell(item->codProduto)
+										row->addCell(item->descricao)
+										
+										item = item->next_
+										if item = null then
+											exit do
+										end if
+										
+									else
+										if anal = null then
+											exit do
+										end if
+											
+										row->addCell("")
+										row->addCell(anal->aliq)
+										row->addCell("")
+										row->addCell("")
+										row->addCell("")
+										row->addCell("")
+										row->addCell("")
+										row->addCell(anal->valorOp)
+										row->addCell(analCnt)
+										row->addCell("")
+										row->addCell("")
+										row->addCell(anal->cfop)
+										row->addCell(anal->cst)
+										row->addCell("")
+										row->addCell("")
+										row->addCell("")
+										
+										analCnt += 1
+										anal = anal->next_
+										if anal = null then
+											exit do
+										end if
+									end if
+								loop
+							end if
 						end if
-					end if
-				end select
+					end select
+				end if
 				
 			case APURACAO_ICMS_PERIODO
-				var row = apuracaoIcms->AddRow()
+				if not opcoes.pularLraicms then
+					var row = apuracaoIcms->AddRow()
 
-				row->addCell(YyyyMmDd2Datetime(reg->apuIcms.dataIni))
-				row->addCell(YyyyMmDd2Datetime(reg->apuIcms.dataFim))
-				row->addCell(reg->apuIcms.totalDebitos)
-				row->addCell(reg->apuIcms.ajustesDebitos)
-				row->addCell(reg->apuIcms.totalAjusteDeb)
-				row->addCell(reg->apuIcms.estornosCredito)
-				row->addCell(reg->apuIcms.totalCreditos)
-				row->addCell(reg->apuIcms.ajustesCreditos)
-				row->addCell(reg->apuIcms.totalAjusteCred)
-				row->addCell(reg->apuIcms.estornoDebitos)
-				row->addCell(reg->apuIcms.saldoCredAnterior)
-				row->addCell(reg->apuIcms.saldoDevedorApurado)
-				row->addCell(reg->apuIcms.totalDeducoes)
-				row->addCell(reg->apuIcms.icmsRecolher)
-				row->addCell(reg->apuIcms.saldoCredTransportar)
-				row->addCell(reg->apuIcms.debExtraApuracao)
+					row->addCell(YyyyMmDd2Datetime(reg->apuIcms.dataIni))
+					row->addCell(YyyyMmDd2Datetime(reg->apuIcms.dataFim))
+					row->addCell(reg->apuIcms.totalDebitos)
+					row->addCell(reg->apuIcms.ajustesDebitos)
+					row->addCell(reg->apuIcms.totalAjusteDeb)
+					row->addCell(reg->apuIcms.estornosCredito)
+					row->addCell(reg->apuIcms.totalCreditos)
+					row->addCell(reg->apuIcms.ajustesCreditos)
+					row->addCell(reg->apuIcms.totalAjusteCred)
+					row->addCell(reg->apuIcms.estornoDebitos)
+					row->addCell(reg->apuIcms.saldoCredAnterior)
+					row->addCell(reg->apuIcms.saldoDevedorApurado)
+					row->addCell(reg->apuIcms.totalDeducoes)
+					row->addCell(reg->apuIcms.icmsRecolher)
+					row->addCell(reg->apuIcms.saldoCredTransportar)
+					row->addCell(reg->apuIcms.debExtraApuracao)
+				end if
 				
 			case APURACAO_ICMS_ST_PERIODO
-				var row = apuracaoIcmsST->AddRow()
+				if not opcoes.pularLraicms then
+					var row = apuracaoIcmsST->AddRow()
 
-				row->addCell(YyyyMmDd2Datetime(reg->apuIcmsST.dataIni))
-				row->addCell(YyyyMmDd2Datetime(reg->apuIcmsST.dataFim))
-				row->addCell(reg->apuIcmsST.UF)
-				row->addCell(iif(reg->apuIcmsST.mov=0, "N", "S"))
-				row->addCell(reg->apuIcmsST.saldoCredAnterior)
-				row->addCell(reg->apuIcmsST.devolMercadorias)
-				row->addCell(reg->apuIcmsST.totalRessarciment)
-				row->addCell(reg->apuIcmsST.totalOutrosCred)
-				row->addCell(reg->apuIcmsST.ajusteCred)
-				row->addCell(reg->apuIcmsST.totalRetencao)
-				row->addCell(reg->apuIcmsST.totalOutrosDeb)
-				row->addCell(reg->apuIcmsST.ajusteDeb)
-				row->addCell(reg->apuIcmsST.saldoAntesDed)
-				row->addCell(reg->apuIcmsST.totalDeducoes)
-				row->addCell(reg->apuIcmsST.icmsRecolher)
-				row->addCell(reg->apuIcmsST.saldoCredTransportar)
-				row->addCell(reg->apuIcmsST.debExtraApuracao)
+					row->addCell(YyyyMmDd2Datetime(reg->apuIcmsST.dataIni))
+					row->addCell(YyyyMmDd2Datetime(reg->apuIcmsST.dataFim))
+					row->addCell(reg->apuIcmsST.UF)
+					row->addCell(iif(reg->apuIcmsST.mov=0, "N", "S"))
+					row->addCell(reg->apuIcmsST.saldoCredAnterior)
+					row->addCell(reg->apuIcmsST.devolMercadorias)
+					row->addCell(reg->apuIcmsST.totalRessarciment)
+					row->addCell(reg->apuIcmsST.totalOutrosCred)
+					row->addCell(reg->apuIcmsST.ajusteCred)
+					row->addCell(reg->apuIcmsST.totalRetencao)
+					row->addCell(reg->apuIcmsST.totalOutrosDeb)
+					row->addCell(reg->apuIcmsST.ajusteDeb)
+					row->addCell(reg->apuIcmsST.saldoAntesDed)
+					row->addCell(reg->apuIcmsST.totalDeducoes)
+					row->addCell(reg->apuIcmsST.icmsRecolher)
+					row->addCell(reg->apuIcmsST.saldoCredTransportar)
+					row->addCell(reg->apuIcmsST.debExtraApuracao)
+				end if
 
 			case INVENTARIO_ITEM
 				var row = inventario->AddRow()
@@ -5160,54 +5385,56 @@ sub Efd.gerarPlanilhas(nomeArquivo as string, mostrarProgresso as ProgressoCB)
 
 			'item de documento do sintegra?
 			case SINTEGRA_DOCUMENTO_ITEM
-				var doc = reg->docItemSint.doc
-				
-				select case as const doc->situacao
-				case REGULAR, EXTEMPORANEO, CANCELADO, CANCELADO_EXT, DENEGADO, INUTILIZADO
-					dim as ExcelRow ptr row 
-					if doc->operacao = SAIDA then
-						row = saidas->AddRow()
-					else
-						row = entradas->AddRow()
-					end if
+				if not opcoes.pularLrs then
+					var doc = reg->docItemSint.doc
 					
-					var itemId = cast( TItemId ptr, itemIdDict[reg->docItemSint.codMercadoria] )
-					  
-					row->addCell(doc->cnpj)
-					row->addCell(doc->ie)
-					row->addCell(ufCod2Sigla(doc->uf))
-					row->addCell("")
-					row->addCell(doc->modelo)
-					row->addCell(doc->serie)
-					row->addCell(doc->numero)
-					row->addCell(YyyyMmDd2Datetime(doc->dataEmi))
-					row->addCell("")
-					row->addCell("")
-					row->addCell(codSituacao2Str(doc->situacao))
-					row->addCell(reg->docItemSint.bcICMS)
-					row->addCell(reg->docItemSint.aliqICMS)
-					row->addCell(reg->docItemSint.bcICMS * reg->docItemSint.aliqICMS / 100)
-					row->addCell(reg->docItemSint.bcICMSST)
-					row->addCell("")
-					row->addCell(reg->docSint.ICMSST)
-					row->addCell(reg->docItemSint.valorIPI)
-					row->addCell(reg->docItemSint.valor)
-					row->addCell(reg->docItemSint.nroItem)
-					row->addCell(reg->docItemSint.qtd)
-					if itemId <> null then 
-						row->addCell(rtrim(itemId->unidInventario))
-					else
+					select case as const doc->situacao
+					case REGULAR, EXTEMPORANEO, CANCELADO, CANCELADO_EXT, DENEGADO, INUTILIZADO
+						dim as ExcelRow ptr row 
+						if doc->operacao = SAIDA then
+							row = saidas->AddRow()
+						else
+							row = entradas->AddRow()
+						end if
+						
+						var itemId = cast( TItemId ptr, itemIdDict[reg->docItemSint.codMercadoria] )
+						  
+						row->addCell(doc->cnpj)
+						row->addCell(doc->ie)
+						row->addCell(ufCod2Sigla(doc->uf))
 						row->addCell("")
-					end if
-					row->addCell(reg->docItemSint.cfop)
-					row->addCell(reg->docItemSint.cst)
-					if itemId <> null then 
-						row->addCell(itemId->ncm)
-						row->addCell(rtrim(itemId->id))
-						row->addCell(rtrim(itemId->descricao))
-					end if
-					
-				end select
+						row->addCell(doc->modelo)
+						row->addCell(doc->serie)
+						row->addCell(doc->numero)
+						row->addCell(YyyyMmDd2Datetime(doc->dataEmi))
+						row->addCell("")
+						row->addCell("")
+						row->addCell(codSituacao2Str(doc->situacao))
+						row->addCell(reg->docItemSint.bcICMS)
+						row->addCell(reg->docItemSint.aliqICMS)
+						row->addCell(reg->docItemSint.bcICMS * reg->docItemSint.aliqICMS / 100)
+						row->addCell(reg->docItemSint.bcICMSST)
+						row->addCell("")
+						row->addCell(reg->docSint.ICMSST)
+						row->addCell(reg->docItemSint.valorIPI)
+						row->addCell(reg->docItemSint.valor)
+						row->addCell(reg->docItemSint.nroItem)
+						row->addCell(reg->docItemSint.qtd)
+						if itemId <> null then 
+							row->addCell(rtrim(itemId->unidInventario))
+						else
+							row->addCell("")
+						end if
+						row->addCell(reg->docItemSint.cfop)
+						row->addCell(reg->docItemSint.cst)
+						if itemId <> null then 
+							row->addCell(itemId->ncm)
+							row->addCell(rtrim(itemId->id))
+							row->addCell(rtrim(itemId->descricao))
+						end if
+						
+					end select
+				end if
 
 			case LUA_CUSTOM
 				
@@ -5248,6 +5475,10 @@ function EFd.getPlanilha(nome as const zstring ptr) as ExcelWorksheet ptr
 			plan = inconsistenciasLRE
 		case "inconsistencias LRS"
 			plan = inconsistenciasLRS
+		case "resumos LRE"
+			plan = resumosLRE
+		case "resumos LRS"
+			plan = resumosLRS
 		end select
 		function = plan
 end function
@@ -5331,6 +5562,12 @@ sub Efd.exportAPI(L as lua_State ptr)
 	lua_setarGlobal(L, "TI_SEL", TI_SEL)
 	lua_setarGlobal(L, "TI_DEB", TI_DEB)
 	
+	lua_setarGlobal(L, "TL_ENTRADAS", TL_ENTRADAS)
+	lua_setarGlobal(L, "TL_SAIDAS", TL_SAIDAS)
+
+	lua_setarGlobal(L, "TR_CFOP", TR_CFOP)
+	lua_setarGlobal(L, "TR_CST", TR_CST)
+
 	lua_setarGlobal(L, "DFE_NFE_DEST_FORNECIDO", MASK_SAFI_NFE_DEST_FORNECIDO)
 	lua_setarGlobal(L, "DFE_NFE_EMIT_FORNECIDO", MASK_SAFI_NFE_EMIT_FORNECIDO)
 	lua_setarGlobal(L, "DFE_ITEM_NFE_FORNECIDO", MASK_SAFI_ITEM_NFE_FORNECIDO)
