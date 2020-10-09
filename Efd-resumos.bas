@@ -8,8 +8,8 @@
 
 ''''''''
 private sub resumoAddHeaderCfopLRE(ws as ExcelWorksheet ptr)
-	var row = ws->AddRow(false, 0)
-	row->addCell("Resumo por CFOP", 7)
+	var row = ws->AddRow()
+	row->addCell("Resumo por CFOP", 8)
 	
 	row = ws->addRow(true)
 	row->addCell("CFOP")
@@ -33,15 +33,12 @@ end sub
 
 ''''''''
 private sub resumoAddHeaderCstLRE(ws as ExcelWorksheet ptr)
-	var row = ws->AddRow(false, 0)
-	row->addCell("")
-	row->addCell("Resumo por CST", 9)
+	var row = ws->AddRow()
+	row->addCell("Resumo por CST", 8)
 	
 	row = ws->addRow(true)
-	row->addCell("")
 	row->addCell("CST")
-	row->addCell("Origem")
-	row->addCell("Tributacao")
+	row->addCell("Descricao")
 	row->addCell("Vl Oper")
 	row->addCell("BC ICMS")
 	row->addCell("Vl ICMS")
@@ -49,9 +46,7 @@ private sub resumoAddHeaderCstLRE(ws as ExcelWorksheet ptr)
 	row->addCell("Aliq ICMS")
 	row->addCell("Vl IPI")
 	
-	ws->AddCellType(CT_STRING)
 	ws->AddCellType(CT_INTNUMBER)
-	ws->AddCellType(CT_STRING_UTF8)
 	ws->AddCellType(CT_STRING_UTF8)
 	ws->AddCellType(CT_MONEY)
 	ws->AddCellType(CT_MONEY)
@@ -63,7 +58,7 @@ end sub
 
 ''''''''
 private sub resumoAddHeaderCfopLRS(ws as ExcelWorksheet ptr)
-	var row = ws->AddRow(false, 0)
+	var row = ws->AddRow()
 	row->addCell("Resumo por CFOP", 11)
 
 	row = ws->addRow(true)
@@ -76,7 +71,6 @@ private sub resumoAddHeaderCfopLRS(ws as ExcelWorksheet ptr)
 	row->addCell("Aliq ICMS")
 	row->addCell("BC ICMS ST")
 	row->addCell("Vl ICMS ST")
-	row->addCell("RedBC ICMS ST")
 	row->addCell("Aliq ICMS ST")
 	row->addCell("Vl IPI")
 	
@@ -90,21 +84,17 @@ private sub resumoAddHeaderCfopLRS(ws as ExcelWorksheet ptr)
 	ws->AddCellType(CT_MONEY)
 	ws->AddCellType(CT_MONEY)
 	ws->AddCellType(CT_PERCENT)
-	ws->AddCellType(CT_PERCENT)
 	ws->AddCellType(CT_MONEY)
 end sub
 
 ''''''''
 private sub resumoAddHeaderCstLRS(ws as ExcelWorksheet ptr)
-	var row = ws->AddRow(false, 0)
-	row->addCell("")
-	row->addCell("Resumo por CST", 12)
+	var row = ws->AddRow()
+	row->addCell("Resumo por CST", 11)
 
 	row = ws->addRow(true)
-	row->addCell("")
 	row->addCell("CST")
-	row->addCell("Origem")
-	row->addCell("Tributacao")
+	row->addCell("Descricao")
 	row->addCell("Vl Oper")
 	row->addCell("BC ICMS")
 	row->addCell("Vl ICMS")
@@ -112,14 +102,11 @@ private sub resumoAddHeaderCstLRS(ws as ExcelWorksheet ptr)
 	row->addCell("Aliq ICMS")
 	row->addCell("BC ICMS ST")
 	row->addCell("Vl ICMS ST")
-	row->addCell("RedBC ICMS ST")
 	row->addCell("Aliq ICMS ST")
 	row->addCell("Vl IPI")
 	
-	ws->AddCellType(CT_STRING)
 	ws->AddCellType(CT_INTNUMBER)
 	ws->AddCellType(CT_STRING_UTF8)
-	ws->AddCellType(CT_STRING_UTF8)
 	ws->AddCellType(CT_MONEY)
 	ws->AddCellType(CT_MONEY)
 	ws->AddCellType(CT_MONEY)
@@ -127,7 +114,6 @@ private sub resumoAddHeaderCstLRS(ws as ExcelWorksheet ptr)
 	ws->AddCellType(CT_PERCENT)
 	ws->AddCellType(CT_MONEY)
 	ws->AddCellType(CT_MONEY)
-	ws->AddCellType(CT_PERCENT)
 	ws->AddCellType(CT_PERCENT)
 	ws->AddCellType(CT_MONEY)
 end sub
@@ -145,10 +131,8 @@ private sub resumoAddRowLRE(xrow as ExcelRow ptr, byref drow as TDataSetRow, tip
 		xrow->addCell(drow["aliqIcms"])
 		xrow->addCell(drow["vlIpi"])
 	case TR_CST
-		xrow->addCell("")
 		xrow->addCell(drow["cst"])
-		xrow->addCell(drow["origem"])
-		xrow->addCell(drow["tributacao"])
+		xrow->addCell(drow["descricao"])
 		xrow->addCell(drow["vlOper"])
 		xrow->addCell(drow["bcIcms"])
 		xrow->addCell(drow["vlIcms"])
@@ -171,14 +155,11 @@ private sub resumoAddRowLRS(xrow as ExcelRow ptr, byref drow as TDataSetRow, tip
 		xrow->addCell(drow["aliqIcms"])
 		xrow->addCell(drow["bcIcmsST"])
 		xrow->addCell(drow["vlIcmsST"])
-		xrow->addCell(drow["redBcIcmsST"])
 		xrow->addCell(drow["aliqIcmsST"])
 		xrow->addCell(drow["vlIpi"])
 	case TR_CST
-		xrow->addCell("")
 		xrow->addCell(drow["cst"])
-		xrow->addCell(drow["origem"])
-		xrow->addCell(drow["tributacao"])
+		xrow->addCell(drow["descricao"])
 		xrow->addCell(drow["vlOper"])
 		xrow->addCell(drow["bcIcms"])
 		xrow->addCell(drow["vlIcms"])
@@ -186,7 +167,6 @@ private sub resumoAddRowLRS(xrow as ExcelRow ptr, byref drow as TDataSetRow, tip
 		xrow->addCell(drow["aliqIcms"])
 		xrow->addCell(drow["bcIcmsST"])
 		xrow->addCell(drow["vlIcmsST"])
-		xrow->addCell(drow["redBcIcmsST"])
 		xrow->addCell(drow["aliqIcmsST"])
 		xrow->addCell(drow["vlIpi"])
 	end select
@@ -254,13 +234,26 @@ end sub
 ''''''''
 sub Efd.criarResumosLRE(mostrarProgresso as ProgressoCB)
 
-	resumoAddHeaderCfopLRE(resumosLRE)
-	resumoAddHeaderCstLRE(resumosLRE)
 	
 	mostrarProgresso(wstr(!"\tResumos das entradas"), 0)
 	
+	' CFOP
+	resumoAddHeaderCfopLRE(resumosLRE)
 	try
-		lua_getglobal(lua, "LRE_criarResumos")
+		lua_getglobal(lua, "LRE_criarResumoCFOP")
+		lua_pushlightuserdata(lua, db)
+		lua_pushlightuserdata(lua, resumosLRE)
+		lua_call(lua, 2, 0)
+	catch
+		print "Erro no script lua!"
+	endtry
+	
+	mostrarProgresso(null, 0.5)
+
+	' CST
+	resumoAddHeaderCstLRE(resumosLRE)
+	try
+		lua_getglobal(lua, "LRE_criarResumoCST")
 		lua_pushlightuserdata(lua, db)
 		lua_pushlightuserdata(lua, resumosLRE)
 		lua_call(lua, 2, 0)
@@ -275,13 +268,25 @@ end sub
 ''''''''
 sub Efd.criarResumosLRS(mostrarProgresso as ProgressoCB)
 	
-	resumoAddHeaderCfopLRS(resumosLRS)
-	resumoAddHeaderCstLRS(resumosLRS)
-	
 	mostrarProgresso(wstr(!"\tResumos das saídas"), 0)
 
+	' CFOP
+	resumoAddHeaderCfopLRS(resumosLRS)
 	try
-		lua_getglobal(lua, "LRS_criarResumos")
+		lua_getglobal(lua, "LRS_criarResumoCFOP")
+		lua_pushlightuserdata(lua, db)
+		lua_pushlightuserdata(lua, resumosLRS)
+		lua_call(lua, 2, 0)
+	catch
+		print "Erro no script lua!"
+	endtry
+	
+	mostrarProgresso(null, 0.5)
+
+	' CST
+	resumoAddHeaderCstLRS(resumosLRS)
+	try
+		lua_getglobal(lua, "LRS_criarResumoCST")
 		lua_pushlightuserdata(lua, db)
 		lua_pushlightuserdata(lua, resumosLRS)
 		lua_call(lua, 2, 0)
