@@ -1,8 +1,10 @@
 #include once "Efd.bi"
+#include once "libiconv.bi"
 
 dim shared as string ufCod2Sigla(11 to 53)
 dim shared as TDict ufSigla2CodDict
 dim shared as string codSituacao2Str(0 to __TipoSituacao__LEN__-1)
+dim shared cdLatin2UTF16Le as iconv_t
 
 private sub tablesCtor constructor
 	ufCod2Sigla(11)="RO"
@@ -56,7 +58,27 @@ private sub tablesCtor constructor
 	codSituacao2Str(COMPLEMENTAR_EXT) 	= "COMPL EXTEMP"
 	codSituacao2Str(REGIME_ESPECIAL) 	= "REG ESP"
 	codSituacao2Str(SUBSTITUIDO) 		= "SUBST"
+	
+	''
+	cdLatin2UTF16Le = iconv_open("UTF-16LE", "ISO_8859-1")
 end sub
+
+private sub shutdown() destructor
+	iconv_close(cdLatin2UTF16Le)
+end sub
+
+'''''
+function latinToUtf16le(src as zstring ptr) as wstring ptr
+	var bytes = len(*src)
+	var dst = allocate((bytes+1) * len(wstring))
+	var srcp = src
+	var srcleft = bytes
+	var dstp = dst
+	var dstleft = bytes*2
+	iconv(cdLatin2UTF16Le, @srcp, @srcleft, @dstp, @dstleft)
+	*cast(wstring ptr, dstp) = 0
+	function = dst
+end function
 
 '''''
 function UF_SIGLA2COD(s as zstring ptr) as integer

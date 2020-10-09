@@ -14,9 +14,9 @@ end enum
 
 type OpcoesExtracao
 	gerarRelatorios 				as boolean = false
-	pularLreAoGerarRelatorios 		as boolean = false
-	pularLrsAoGerarRelatorios 		as boolean = false
-	pularLRaicmsAoGerarRelatorios	as boolean = false
+	pularLre 						as boolean = false
+	pularLrs 						as boolean = false
+	pularLraicms					as boolean = false
 	acrescentarDados				as boolean = false
 	formatoDeSaida 					as FileType = FT_XLSX
 	somenteRessarcimentoST 			as boolean = false
@@ -357,6 +357,7 @@ end type
 
 type TDocItemAnal
 	documentoPai   			as TRegistro_
+	num						as integer
 	cst						as integer
 	cfop					as integer
 	aliq					as double
@@ -396,6 +397,7 @@ type TDocDF
 	infoComplListTail		as TDocInfoCompl ptr
 	itemAnalListHead 		as TDocItemAnal ptr
 	itemAnalListTail 		as TDocItemAnal ptr
+	itemAnalCnt				as integer
 end type
 
 type TDocNF extends TDocDF
@@ -829,6 +831,7 @@ end type
 type RelLinha
 	tipo			as RelLinhaTipo
 	highlight		as boolean
+	large			as boolean
 	union
 		df			as RelLinhaDF
 		anal		as RelLinhaAnal
@@ -844,6 +847,11 @@ end type
 
 type ProgressoCB as sub(estagio as const wstring ptr, porCompleto as double)
 
+enum TipoLivro
+	TL_ENTRADAS
+	TL_SAIDAS
+end enum
+
 enum TipoInconsistencia
 	TI_ESCRIT_FALTA
 	TI_ESCRIT_FANTASMA
@@ -854,6 +862,11 @@ enum TipoInconsistencia
 	TI_CRED
 	TI_SEL
 	TI_DEB
+end enum
+
+enum TipoResumo
+	TR_CFOP
+	TR_CST
 end enum
 
 enum TipoRegime
@@ -889,6 +902,7 @@ public:
 	declare function carregarXlsx(nomeArquivo as String, mostrarProgresso as ProgressoCB) as Boolean
 	declare function processar(nomeArquivo as string, mostrarProgresso as ProgressoCB) as Boolean
 	declare sub analisar(mostrarProgresso as ProgressoCB)
+	declare sub criarResumos(mostrarProgresso as ProgressoCB)
 	declare function getPlanilha(nome as const zstring ptr) as ExcelWorksheet ptr
    
 private:
@@ -922,6 +936,7 @@ private:
 	declare sub adicionarDocEscriturado(doc as TDocECF ptr)
 	declare sub adicionarDocEscriturado(doc as TDocSAT ptr)
 	declare sub adicionarItemNFEscriturado(item as TDocNFItem ptr)
+	declare sub adicionarAnalEscriturado(item as TDocItemAnal ptr)
 	declare sub adicionarRessarcStEscriturado(doc as TDocNFItemRessarcSt ptr)
 	declare sub adicionarItemEscriturado(item as TItemId ptr)
 	declare function filtrarPorCnpj(idParticipante as const zstring ptr) as boolean
@@ -937,20 +952,20 @@ private:
 	declare sub gerarRelatorioApuracaoICMS(nomeArquivo as string, reg as TRegistro ptr)
 	declare sub gerarRelatorioApuracaoICMSST(nomeArquivo as string, reg as TRegistro ptr)
 	declare sub iniciarRelatorio(relatorio as TipoRelatorio, nomeRelatorio as string, sufixo as string)
-	declare sub adicionarDocRelatorioEntradas(doc as TDocDF ptr, part as TParticipante ptr, highlight as boolean)
-	declare sub adicionarDocRelatorioSaidas(doc as TDocDF ptr, part as TParticipante ptr, highlight as boolean)
+	declare sub adicionarDocRelatorioEntradas(doc as TDocDF ptr, part as TParticipante ptr, highlight as boolean, lg as boolean)
+	declare sub adicionarDocRelatorioSaidas(doc as TDocDF ptr, part as TParticipante ptr, highlight as boolean, lg as boolean)
 	declare sub adicionarDocRelatorioSaidas(doc as TECFReducaoZ ptr, highlight as boolean)
 	declare sub adicionarDocRelatorioSaidas(doc as TDocSAT ptr, highlight as boolean)
 	declare sub adicionarDocRelatorioItemAnal(sit as TipoSituacao, anal as TDocItemAnal ptr)
 	declare sub finalizarRelatorio()
 	declare sub relatorioSomarLR(sit as TipoSituacao, anal as TDocItemAnal ptr)
 	declare function codMunicipio2Nome(cod as integer) as string
-	declare sub gerarPaginaRelatorio(lastPage as boolean = false)
-	declare sub gerarResumoRelatorio()
-	declare sub gerarResumoRelatorioHeader()
-	declare sub setNodeText(page as PdfTemplatePageNode ptr, id as string, value as string)
+	declare function gerarPaginaRelatorio(lastPage as boolean = false) as boolean
+	declare sub gerarResumoRelatorio(emitir as boolean)
+	declare sub gerarResumoRelatorioHeader(emitir as boolean)
+	declare sub setNodeText(page as PdfTemplatePageNode ptr, id as string, value as string, convert as boolean = false)
 	declare sub setNodeText(page as PdfTemplatePageNode ptr, id as string, value as wstring ptr)
-	declare sub setChildText(row as PdfTemplateNode ptr, id as string, value as string)
+	declare sub setChildText(row as PdfTemplateNode ptr, id as string, value as string, convert as boolean = false)
 	declare sub setChildText(row as PdfTemplateNode ptr, id as string, value as wstring ptr)
 	declare function gerarLinhaDFe(lg as boolean, highlight as boolean) as PdfTemplateNode ptr
 	declare function gerarLinhaAnal() as PdfTemplateNode ptr
@@ -958,6 +973,9 @@ private:
 	
 	declare sub analisarInconsistenciasLRE(mostrarProgresso as ProgressoCB)
 	declare sub analisarInconsistenciasLRS(mostrarProgresso as ProgressoCB)
+	
+	declare sub criarResumosLRE(mostrarProgresso as ProgressoCB)
+	declare sub criarResumosLRS(mostrarProgresso as ProgressoCB)
 	
 	declare sub exportAPI(L as lua_State ptr)
 	declare static function luacb_efd_rel_addItemAnalitico cdecl(L as lua_State ptr) as long
@@ -995,6 +1013,8 @@ private:
 	ressarcST				as ExcelWorksheet ptr
 	inconsistenciasLRE		as ExcelWorksheet ptr
 	inconsistenciasLRS		as ExcelWorksheet ptr
+	resumosLRE				as ExcelWorksheet ptr
+	resumosLRS				as ExcelWorksheet ptr
 	nomeArquivoSaida		as string
 	opcoes					as OpcoesExtracao
 
@@ -1021,6 +1041,7 @@ private:
 	db_LREInsertStmt		as TDbStmt ptr
 	db_itensNfLRInsertStmt	as TDbStmt ptr
 	db_LRSInsertStmt		as TDbStmt ptr
+	db_analInsertStmt		as TDbStmt ptr
 	db_ressarcStItensNfLRSInsertStmt as TDbStmt ptr
 	db_itensIdInsertStmt as TDbStmt ptr
 	
@@ -1073,6 +1094,7 @@ declare sub splitstr(Text As String, Delim As String = ",", Ret() As String)
 declare function strreplace(byref text as string, byref a as string, byref b as string) as string
 declare function UF_SIGLA2COD(s as zstring ptr) as integer
 declare function loadstrings(fromFile as string, toArray() as string) as boolean
+declare function latinToUtf16le(src as zstring ptr) as wstring ptr
 
 extern as string ufCod2Sigla(11 to 53)
 extern as TDict ufSigla2CodDict

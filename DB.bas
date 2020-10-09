@@ -1,3 +1,4 @@
+
 #include once "DB.bi" 
 
 ''''''''
@@ -534,6 +535,66 @@ private function luacb_db_exec cdecl(byval L as lua_State ptr) as long
 end function
 
 ''''''''
+private function luacb_db_execScalarInt cdecl(byval L as lua_State ptr) as long
+	var args = lua_gettop(L)
+	
+	if args = 2 then
+		var db = cast(TDb ptr, lua_touserdata(L, 1))
+		
+		dim as zstring ptr res = null
+		if lua_isstring(L, 2) then
+			var query = lua_tostring(L, 2)
+			res = db->execScalar(query)
+			if res = null then
+				print "SQL error: "; *db->getErrorMsg(); " at query: "; *query
+			end if
+		end if
+		
+		if res = null then
+			lua_pushnil(L)
+		else
+			lua_pushinteger(L, vallng(*res))
+			deallocate res
+		end if
+	else
+		 lua_pushnil(L)
+	end if
+	
+	function = 1
+	
+end function
+
+''''''''
+private function luacb_db_execScalarDbl cdecl(byval L as lua_State ptr) as long
+	var args = lua_gettop(L)
+	
+	if args = 2 then
+		var db = cast(TDb ptr, lua_touserdata(L, 1))
+		
+		dim as zstring ptr res = null
+		if lua_isstring(L, 2) then
+			var query = lua_tostring(L, 2)
+			res = db->execScalar(query)
+			if res = null then
+				print "SQL error: "; *db->getErrorMsg(); " at query: "; *query
+			end if
+		end if
+		
+		if res = null then
+			lua_pushnil(L)
+		else
+			lua_pushnumber(L, val(*res))
+			deallocate res
+		end if
+	else
+		 lua_pushnil(L)
+	end if
+	
+	function = 1
+	
+end function
+
+''''''''
 private function luacb_db_prepare cdecl(byval L as lua_State ptr) as long
 	var args = lua_gettop(L)
 	
@@ -647,6 +708,8 @@ static sub TDb.exportAPI(L as lua_State ptr)
 	lua_register(L, "db_close", @luacb_db_close)
 	lua_register(L, "db_execNonQuery", @luacb_db_execNonQuery)
 	lua_register(L, "db_exec", @luacb_db_exec)
+	lua_register(L, "db_execScalarInt", @luacb_db_execScalarInt)
+	lua_register(L, "db_execScalarDbl", @luacb_db_execScalarDbl)
 	lua_register(L, "db_prepare", @luacb_db_prepare)
 	
 	lua_register(L, "ds_hasNext", @luacb_ds_hasNext)

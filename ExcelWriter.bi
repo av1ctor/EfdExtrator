@@ -7,8 +7,10 @@
 
 enum CellType
 	CT_STRING
+	CT_STRING_UTF8
 	CT_NUMBER
 	CT_INTNUMBER
+	CT_PERCENT
 	CT_DATE	
 	CT_MONEY
 	__CT_LEN__
@@ -16,26 +18,29 @@ end enum
 
 type ExcelCellType
 	type_				   	as CellType = CT_STRING
-	name				   	as string
 	next_				   	as ExcelCellType ptr = null
 	
-	declare constructor(type_ as CellType, name as string)
+	declare constructor(type_ as CellType)
 end type
 
 type ExcelCell
 	content			   		as string
+	width_					as integer
 	next_				   	as ExcelCell ptr = null
 	
 	declare constructor(content as const zstring ptr)
 end type
 
 type ExcelRow
+	asIs					as boolean = false
+	num						as integer
 	cellListHead	   		as ExcelCell ptr = null
 	cellListTail	   		as ExcelCell ptr = null
 	next_				   	as ExcelRow ptr = null
 	
+	declare constructor(num as integer, asIs as boolean = false)
 	declare destructor
-	declare function AddCell(content as const zstring ptr) as ExcelCell ptr
+	declare function AddCell(content as const zstring ptr, width_ as integer = 1) as ExcelCell ptr
 	declare function AddCell(content as integer) as ExcelCell ptr
 	declare function AddCell(content as longint) as ExcelCell ptr
 	declare function AddCell(content as double) as ExcelCell ptr
@@ -47,13 +52,15 @@ type ExcelWorksheet
 	cellTypeListTail		as ExcelCellType ptr = null
 	rowListHead				as ExcelRow ptr = null
 	rowListTail				as ExcelRow ptr = null
-	nRows					as integer
+	rows(any)				as ExcelRow ptr
+	curRow					as integer
 	next_					as ExcelWorksheet ptr = null
 	
 	declare constructor(name as string)
 	declare destructor
-	declare function AddCellType(type_ as CellType, name as string) as ExcelCellType ptr
-	declare function AddRow() as ExcelRow ptr
+	declare function AddCellType(type_ as CellType) as ExcelCellType ptr
+	declare function AddRow(asIs as boolean = false, num as integer = -1) as ExcelRow ptr
+	declare sub setRow(num as integer)
 end type
 
 type ExcelWorkbook

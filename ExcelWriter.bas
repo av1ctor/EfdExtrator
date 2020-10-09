@@ -9,10 +9,12 @@ constructor ExcelWriter()
 	xlsxWorkbook = null
 	
 	CellType2String(CT_STRING) 		= "String"
+	CellType2String(CT_STRING_UTF8)	= "String"
 	CellType2String(CT_NUMBER) 		= "Number"
 	CellType2String(CT_INTNUMBER)   = "Number"
 	CellType2String(CT_DATE) 		= "DateTime"
 	CellType2String(CT_MONEY) 		= "Number"
+	CellType2String(CT_PERCENT)		= "Number"
 
 	cd = iconv_open("UTF-8", "ISO_8859-1")
 end constructor
@@ -78,6 +80,8 @@ function ExcelWriter.Create(fileName as string, ftype as FileType) as boolean
 		format_set_num_format(xlsxFormats(CT_MONEY), !"\"R$\" #,##0.00")
 		format_set_num_format(xlsxFormats(CT_DATE), "dd/mm/yyyy")
 		format_set_num_format(xlsxFormats(CT_INTNUMBER), "0")
+		format_set_num_format(xlsxFormats(CT_NUMBER), "0.00")
+		format_set_num_format(xlsxFormats(CT_PERCENT), "0.00%")
 		function = true
 		
 	case else
@@ -129,7 +133,7 @@ function ExcelWriter.Flush(showProgress as ProgressCB) as boolean
 	var sheet = workbook->worksheetListHead
 	do while sheet <> null
    
-		totalRows += sheet->nRows
+		totalRows += sheet->curRow
 	
 		select case ftype
 		case FT_XML
@@ -144,6 +148,10 @@ function ExcelWriter.Flush(showProgress as ProgressCB) as boolean
 						print #fnum, !"<NumberFormat ss:Format=\"Short Date\"/>"
 					case CT_INTNUMBER
 						print #fnum, !"<NumberFormat ss:Format=\"0\"/>"
+					case CT_NUMBER
+						print #fnum, !"<NumberFormat ss:Format=\"0.00\"/>"
+					case CT_PERCENT
+						print #fnum, !"<NumberFormat ss:Format=\"0.00%\"/>"
 					case CT_MONEY
 						print #fnum, !"<NumberFormat ss:Format=\"_-&quot;R$&quot;\\ * #,##0.00_-;\\-&quot;R$&quot;\\ * #,##0.00_-;_-&quot;R$&quot;\\ * &quot;-&quot;??_-;_-@_-\"/>"
 					end select
@@ -185,17 +193,6 @@ function ExcelWriter.Flush(showProgress as ProgressCB) as boolean
 				 loop
 			end if
 			
-			'' para cada cell type..
-			if sheet->cellTypeListHead <> null then
-				print #fnum, !"<Row>"
-				var ct = sheet->cellTypeListHead
-				do while ct <> null
-					print #fnum, !"<Cell><Data ss:Type=\"String\">" + ct->name + "</Data></Cell>"
-					ct = ct->next_
-				loop
-				print #fnum, !"</Row>"
-			end if
-			
 		case FT_CSV
 			fnum = FreeFile
 
@@ -206,19 +203,9 @@ function ExcelWriter.Flush(showProgress as ProgressCB) as boolean
 				return false
 			end if
 
-			'' para cada cell type..
-			if sheet->cellTypeListHead <> null then
-				var ct = sheet->cellTypeListHead
-				do while ct <> null
-					print #fnum, ct->name + ";";
-					ct = ct->next_
-				loop
-				print #fnum, chr(13, 10);
-			end if
-			
 		case FT_XLSX
 			xlsXWorksheet = workbook_add_worksheet(xlsxWorkbook, sheet->name)
-
+			
 			'' para cada cell type..
 			if sheet->cellTypeListHead <> null then
 				var ct = sheet->cellTypeListHead
@@ -226,7 +213,6 @@ function ExcelWriter.Flush(showProgress as ProgressCB) as boolean
 				do while ct <> null
 					var colName = chr(asc("A") + col)
 					worksheet_set_column(xlsXWorksheet, LXW_MAKE_COLS(colName + ":" + colName), LXW_DEF_COL_WIDTH, xlsxFormats(ct->type_))
-					worksheet_write_string(xlsXWorksheet, 0, col, ct->name, NULL)
 					col += 1
 					ct = ct->next_
 				loop
@@ -236,76 +222,116 @@ function ExcelWriter.Flush(showProgress as ProgressCB) as boolean
 
 		'' para cada linha..
 		if sheet->rowListHead <> null then
-			var rowNum = 1
+			var rowNum = 0
 			var row = sheet->rowListHead
 			do while row <> null
-				
 				curRow += 1
 				if showProgress <> null then
 					showProgress(null, curRow / totalRows)
 				end if
 				
-				select case ftype
-				case FT_XML
-					print #fnum, !"<Row>"
-					'' para cada célula da linha..
-					var cell = row->cellListHead
-					var ct = sheet->cellTypeListHead
-					do while cell <> null
-						var content = cell->content
-						if ct->type_ = CT_STRING then
-							content = escapeContent(content)
-						end if
-						print #fnum, !"<Cell><Data ss:Type=\"" + CellType2String(iif(ct <> null, ct->type_, CT_STRING)) + !"\">" + content + "</Data></Cell>"
-						cell = cell->next_
-						if ct <> null then
-							ct = ct->next_
-						end if
-					loop
+				if row->asIs then
+					select case ftype
+					case FT_XML
+						print #fnum, !"<Row>"
+						var cell = row->cellListHead
+						do while cell <> null
+							print #fnum, !"<Cell><Data ss:Type=\"String\">" + cell->content + "</Data></Cell>"
+							cell = cell->next_
+						loop
+						print #fnum, !"</Row>"
+					
+					case FT_CSV
+						var cell = row->cellListHead
+						do while cell <> null
+							print #fnum, cell->content + ";";
+							cell = cell->next_
+						loop
+						print #fnum, chr(13, 10);
+					
+					case FT_XLSX
+						var cell = row->cellListHead
+						var col = 0
+						do while cell <> null
+							worksheet_write_string(xlsXWorksheet, rowNum, col, cell->content, NULL)
+							col += 1
+							cell = cell->next_
+						loop
+					end select
 				
-					print #fnum, !"</Row>"
+				else
+					select case ftype
+					case FT_XML
+						print #fnum, !"<Row>"
+						'' para cada celula da linha..
+						var cell = row->cellListHead
+						var ct = sheet->cellTypeListHead
+						do while cell <> null
+							var content = cell->content
+							select case ct->type_
+							case CT_STRING, CT_STRING_UTF8
+								content = escapeContent(content)
+							end select
+							print #fnum, !"<Cell><Data ss:Type=\"" + CellType2String(iif(ct <> null, ct->type_, CT_STRING)) + !"\">" + content + "</Data></Cell>"
+							cell = cell->next_
+							if ct <> null then
+								ct = ct->next_
+							end if
+						loop
+					
+						print #fnum, !"</Row>"
 
-				case FT_CSV
-					'' para cada célula da linha..
-					var cell = row->cellListHead
-					var ct = sheet->cellTypeListHead
-					do while cell <> null
-						print #fnum, cell->content + ";";
-						cell = cell->next_
-						if ct <> null then
-							ct = ct->next_
-						end if
-					loop
-					print #fnum, chr(13, 10);
+					case FT_CSV
+						'' para cada celula da linha..
+						var cell = row->cellListHead
+						var ct = sheet->cellTypeListHead
+						do while cell <> null
+							print #fnum, cell->content + ";";
+							cell = cell->next_
+							if ct <> null then
+								ct = ct->next_
+							end if
+						loop
+						print #fnum, chr(13, 10);
 
-				case FT_XLSX
-					'' para cada célula da linha..
-					var cell = row->cellListHead
-					var ct = sheet->cellTypeListHead
-					var colNum = 0
-					do while cell <> null
-						select case as const iif(ct <> null, ct->type_, CT_STRING)
-						case CT_STRING
-							worksheet_write_string(xlsXWorksheet, rowNum, colNum, latin2UTF8(cell->content, cd), NULL)
-						case CT_NUMBER, _
-							 CT_MONEY
-							 worksheet_write_number(xlsXWorksheet, rowNum, colNum, cdbl(cell->content), NULL)
-						case CT_INTNUMBER
-							 worksheet_write_number(xlsXWorksheet, rowNum, colNum, clngint(cell->content), NULL)
-						case CT_DATE
-							var value = cell->content
-							dim as lxw_datetime date = (valint(left(value, 4)), valint(mid(value, 6, 2)), valint(mid(value, 9, 2)))
-							worksheet_write_datetime(xlsXWorksheet, rowNum, colNum, @date, NULL)
-						end select
-						
-						colNum += 1
-						cell = cell->next_
-						if ct <> null then
-							ct = ct->next_
-						end if
-					loop
-				
-				end select
+					case FT_XLSX
+						'' para cada celula da linha..
+						var cell = row->cellListHead
+						var ct = sheet->cellTypeListHead
+						var colNum = 0
+						do while cell <> null
+							if cell->width_ > 1 then
+								worksheet_merge_range(xlsXWorksheet, rowNum, colNum, rowNum, colNum+cell->width_-1, cell->content, NULL)
+								colNum += cell->width_
+							else
+								select case as const iif(ct <> null, ct->type_, CT_STRING)
+								case CT_STRING
+									worksheet_write_string(xlsXWorksheet, rowNum, colNum, latin2UTF8(cell->content, cd), NULL)
+								case CT_STRING_UTF8
+									worksheet_write_string(xlsXWorksheet, rowNum, colNum, cell->content, NULL)
+								case CT_NUMBER, _
+									 CT_MONEY, _
+									 CT_PERCENT
+									 worksheet_write_number(xlsXWorksheet, rowNum, colNum, cdbl(cell->content), NULL)
+								case CT_INTNUMBER
+									 worksheet_write_number(xlsXWorksheet, rowNum, colNum, clngint(cell->content), NULL)
+								case CT_DATE
+									var value = cell->content
+									dim as lxw_datetime date = (valint(left(value, 4)), valint(mid(value, 6, 2)), valint(mid(value, 9, 2)))
+									worksheet_write_datetime(xlsXWorksheet, rowNum, colNum, @date, NULL)
+								end select
+								
+								colNum += 1
+							end if
+							
+							cell = cell->next_
+							if ct <> null then
+								ct = ct->next_
+							end if
+						loop
+					
+					end select
+				end if
 				
 				rowNum += 1
 				row = row->next_
@@ -347,9 +373,8 @@ end sub
 ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
 ''
-constructor ExcelCellType(type_ as CellType, name_ as string)
+constructor ExcelCellType(type_ as CellType)
 	this.type_ = type_
-	this.name = name_
 end constructor
 
 ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
@@ -357,7 +382,8 @@ end constructor
 ''
 constructor ExcelWorksheet(name as string)
 	this.name = name
-	nRows = 0
+	curRow = 0
+	redim rows(0 to 9999)
 end constructor
 
 ''
@@ -378,9 +404,9 @@ destructor ExcelWorksheet()
 end destructor
 
 ''
-function ExcelWorksheet.AddCellType(type_ as CellType, name_ as string) as ExcelCellType ptr
+function ExcelWorksheet.AddCellType(type_ as CellType) as ExcelCellType ptr
 
-	var ct = new ExcelCellType(type_, name_)
+	var ct = new ExcelCellType(type_)
 	
 	if cellTypeListHead = null then
 		cellTypeListHead = ct
@@ -395,23 +421,40 @@ function ExcelWorksheet.AddCellType(type_ as CellType, name_ as string) as Excel
 end function
 
 ''
-function ExcelWorksheet.AddRow() as ExcelRow ptr
+function ExcelWorksheet.AddRow(asIs as boolean, num as integer) as ExcelRow ptr
 
-	var row = new ExcelRow()
-	
-	if rowListHead = null then
-		rowListHead = row
-		rowListTail = row
-	else
-		rowListTail->next_ = row
-		rowListTail = row
+	if num >= 0 then
+		curRow = num
 	end if
 	
-	nRows += 1
+	if curRow > ubound(rows) then
+		redim preserve rows(0 to curRow + 10000)
+	end if
+	
+	var row = rows(curRow)
+	if row = null then
+		row = new ExcelRow(curRow, asIs)
+		rows(curRow) = row
+		
+		if rowListHead = null then
+			rowListHead = row
+			rowListTail = row
+		else
+			rowListTail->next_ = row
+			rowListTail = row
+		end if
+	end if
+	
+	curRow += 1
 	
 	function = row
-
+	
 end function
+
+''
+sub ExcelWorksheet.setRow(num as integer)
+	curRow = num
+end sub
 
 ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
@@ -444,9 +487,16 @@ end function
 ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
 ''
-function ExcelRow.AddCell(content as const zstring ptr) as ExcelCell ptr
+constructor ExcelRow(num as integer, asIs as boolean)
+	this.num = num
+	this.asIs = asIs
+end constructor
+
+''
+function ExcelRow.AddCell(content as const zstring ptr, width_ as integer) as ExcelCell ptr
 
 	var cell = new ExcelCell(content)
+	cell->width_ = width_
 	
 	if cellListHead = null then
 		cellListHead = cell
@@ -580,10 +630,12 @@ end function
 private function luacb_ws_addRow cdecl(byval L as lua_State ptr) as long
 	var args = lua_gettop(L)
 	
-	if args = 1 then
+	if args = 3 then
 		var ws = cast(ExcelWorksheet ptr, lua_touserdata(L, 1))
+		var num = lua_tointeger(L, 2)
+		var asIs = lua_tointeger(L, 3)
 		
-		lua_pushlightuserdata(L, ws->addRow())
+		lua_pushlightuserdata(L, ws->addRow(num, asIs))
 	else
 		lua_pushnil(L)
 	end if
@@ -596,12 +648,11 @@ end function
 private function luacb_ws_addCellType cdecl(byval L as lua_State ptr) as long
 	var args = lua_gettop(L)
 	
-	if args = 3 then
+	if args = 2 then
 		var ws = cast(ExcelWorksheet ptr, lua_touserdata(L, 1))
 		var type_ = lua_tointeger(L, 2)
-		var ctname = cast(zstring ptr, lua_tostring(L, 3))
 		
-		ws->addCellType(type_, *ctname)
+		ws->addCellType(type_)
 	end if
 	
 	function = 0
@@ -638,10 +689,12 @@ end function
 static sub ExcelWriter.exportAPI(L as lua_State ptr)
 	
 	lua_defGlobal(L, "CT_STRING", CT_STRING)
+	lua_defGlobal(L, "CT_STRING_UTF8", CT_STRING_UTF8)
 	lua_defGlobal(L, "CT_NUMBER", CT_NUMBER)
 	lua_defGlobal(L, "CT_INTNUMBER", CT_INTNUMBER)
 	lua_defGlobal(L, "CT_DATE", CT_DATE)
 	lua_defGlobal(L, "CT_MONEY", CT_MONEY)
+	lua_defGlobal(L, "CT_PERCENT", CT_PERCENT)
 	
 	lua_register(L, "ew_new", @luacb_ew_new)
 	lua_register(L, "ew_del", @luacb_ew_del)

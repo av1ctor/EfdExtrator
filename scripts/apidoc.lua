@@ -9,6 +9,8 @@
 	ds = db_exec(db, stmt)					-- executa o statement e retorna um DataSet (nil se erro); stmt retornado pelo db_prepare
 	db_execNonQuery(db, query)				-- executa a query
 	db_execNonQuery(db, stmt)				-- executa o statemnt; stmt retornado pelo db_prepare
+	res = db_execScalarInt(db, query)		-- executa a query e retorna um inteiro (nil se erro)
+	res = db_execScalarDbl(db, query)		-- executa a query e retorna um double (nil se erro)
 	stmt = db_prepare(db, query)			-- compila a query e retorna o statement (nil se erro)
 	
 -- DB DataSet:
@@ -22,23 +24,24 @@
 -- ExcelWriter:
 	ew = ew_new()							-- construtor
 	ew_del(ew)								-- destrutor
-	bool = ew_create(ew, filename)			-- criar um arquivo (.xml para Excel 2003+)
+	bool = ew_create(ew, filename)			-- criar um arquivo (Excel 2003+)
 	ew_close(ew)							-- fecha o arquivo
 	ws = ew_addWorksheet(ew, name)			-- cria uma planilha (aba)
 	
 -- ExcelWriter Worksheet:
-	er = ws_addRow(ws)						-- adiciona uma linha à planilha
-	ws_addCellType(typ, name)				-- adiciona um CellType (header de uma coluna), com tipo (CT_STRING,CT_NUMBER,CT_INTNUMBER,CT_DATE,CT_MONEY) e nome
+	er = ws_addRow(ws, num, asIs)			-- adiciona uma linha à planilha; num = número da linha (0 = primeira), asIs = 1 se é para gravar sem converter valores
+	ws_addCellType(typ)						-- adiciona um CellType (tipo da coluna), com tipo (CT_STRING,CT_STRING_UTF8,CT_NUMBER,CT_INTNUMBER,CT_DATE,CT_MONEY,CT_PERCENT)
 	
 -- ExcelWriter Row:
 	ec = er_addCell(er, contents)			-- adiciona uma célula à linha da planilha; 'contents' pode ser string ou número
 	
 
 -- efd	
-	ws = efd_plan_get(nome)					-- retorna uma planilha interna, pesquisando pelo nome (entradas, saidas, inconsistenciasLRE, inconsistenciasLRS)
+	ws = efd_plan_get(nome)					-- retorna uma planilha interna, pesquisando pelo nome (entradas, saidas, inconsistencias LRE, inconsistencias LRS, resumos LRE, resumos LRS)
 	efd_plan_entradas						-- planilha de entradas (variável global)
 	efd_plan_saidas							-- planilha de saidas (variável global)
 	efd_plan_inconsistencias_AddRow(ws, ds, tipoInconsistencia, descricao)	-- tipo in (TI_ESCRIT_FALTA,TI_ESCRIT_FANTASMA,TI_ALIQ,TI_DUP,TI_DIF)
+	efd_plan_resumos_AddRow(ws, ds, livro)	-- livro in (TL_ENTRADAS, TL_SAIDAS)
 	part = efd_participante_get(id, formatar) -- retorna o objeto participante { cnpj, ie, nome, uf, municip }; formatar = true formatará os campos cnpj, ie etc
 	
 
@@ -49,7 +52,3 @@
 	dbl = bf_vardbl(bf[, separador])		-- ler um double até encontrar o separador; separador padrão = asc("|")
 	str = bf_varchar(bf[, separador])		-- ler uma string até encontrar o separador; separador padrão = asc("|")
 	
-	
--- DocxFactory
-	dfw_setClipboardValueByStr(dfw, item, campo, valor) -- troca o valor de um campo dentro de um item do template
-	dfw_paste(dfw, item)					-- faz um paste no relatório do conteúdo do item
