@@ -2,6 +2,7 @@ versão 0.9 beta:
 - corrigido: a ordenação do relatório da LRE não estava seguindo a da EFD-ICMS-IPI
 - corrigido: a razão social nos relatórios LRE e LRS estava sendo cortada (deveria criar uma linha dupla)
 - corrigido: os nomes com acentuação ou caracteres especiais latinos estavam sendo cortados nos relatórios
+- corrigido: colunas código, descrição e chave NF-e não estavam sendo gravadas na planilha CIAP
 - alterado: ao usar -filtrarCnpjs ou -filtrarChaves, as páginas de resumo não são mais geradas nos relatórios de LRE ou LRS
 - alterado: -naoGerarLre, -naoGerarLrs e -naoGerarLraicms deixam de gerar também as respectivas planilhas, além dos relatórios
 - adicionado: abas de resumos dos livros de entradas e saídas (agrupamentos por CFOP e CST)

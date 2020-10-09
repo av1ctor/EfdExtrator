@@ -8,12 +8,13 @@
 
 ''''''''
 private sub resumoAddHeaderCfopLRE(ws as ExcelWorksheet ptr)
-	var row = ws->AddRow()
-	row->addCell("Resumo por CFOP", 8)
+	var row = ws->AddRow(false, 0)
+	row->addCell("Resumo por CFOP", 9)
 	
 	row = ws->addRow(true)
 	row->addCell("CFOP")
 	row->addCell("Descricao")
+	row->addCell("Operacao")
 	row->addCell("Vl Oper")
 	row->addCell("BC ICMS")
 	row->addCell("Vl ICMS")
@@ -22,6 +23,7 @@ private sub resumoAddHeaderCfopLRE(ws as ExcelWorksheet ptr)
 	row->addCell("Vl IPI")
 	
 	ws->AddCellType(CT_INTNUMBER)
+	ws->AddCellType(CT_STRING_UTF8)
 	ws->AddCellType(CT_STRING_UTF8)
 	ws->AddCellType(CT_MONEY)
 	ws->AddCellType(CT_MONEY)
@@ -33,12 +35,13 @@ end sub
 
 ''''''''
 private sub resumoAddHeaderCstLRE(ws as ExcelWorksheet ptr)
-	var row = ws->AddRow()
-	row->addCell("Resumo por CST", 8)
+	var row = ws->AddRow(false, 0)
+	row->addCell("Resumo por CST", 9, 10)
 	
 	row = ws->addRow(true)
-	row->addCell("CST")
-	row->addCell("Descricao")
+	row->addCell("CST", 1, 10)
+	row->addCell("Origem")
+	row->addCell("Tributacao")
 	row->addCell("Vl Oper")
 	row->addCell("BC ICMS")
 	row->addCell("Vl ICMS")
@@ -46,7 +49,9 @@ private sub resumoAddHeaderCstLRE(ws as ExcelWorksheet ptr)
 	row->addCell("Aliq ICMS")
 	row->addCell("Vl IPI")
 	
+	ws->AddCellType(CT_STRING_UTF8)
 	ws->AddCellType(CT_INTNUMBER)
+	ws->AddCellType(CT_STRING_UTF8)
 	ws->AddCellType(CT_STRING_UTF8)
 	ws->AddCellType(CT_MONEY)
 	ws->AddCellType(CT_MONEY)
@@ -58,12 +63,13 @@ end sub
 
 ''''''''
 private sub resumoAddHeaderCfopLRS(ws as ExcelWorksheet ptr)
-	var row = ws->AddRow()
-	row->addCell("Resumo por CFOP", 11)
+	var row = ws->AddRow(false, 0)
+	row->addCell("Resumo por CFOP", 12)
 
 	row = ws->addRow(true)
 	row->addCell("CFOP")
 	row->addCell("Descricao")
+	row->addCell("Operacao")
 	row->addCell("Vl Oper")
 	row->addCell("BC ICMS")
 	row->addCell("Vl ICMS")
@@ -75,6 +81,7 @@ private sub resumoAddHeaderCfopLRS(ws as ExcelWorksheet ptr)
 	row->addCell("Vl IPI")
 	
 	ws->AddCellType(CT_INTNUMBER)
+	ws->AddCellType(CT_STRING_UTF8)
 	ws->AddCellType(CT_STRING_UTF8)
 	ws->AddCellType(CT_MONEY)
 	ws->AddCellType(CT_MONEY)
@@ -89,12 +96,13 @@ end sub
 
 ''''''''
 private sub resumoAddHeaderCstLRS(ws as ExcelWorksheet ptr)
-	var row = ws->AddRow()
-	row->addCell("Resumo por CST", 11)
+	var row = ws->AddRow(false, 0)
+	row->addCell("Resumo por CST", 12, 13)
 
 	row = ws->addRow(true)
-	row->addCell("CST")
-	row->addCell("Descricao")
+	row->addCell("CST", 1, 13)
+	row->addCell("Origem")
+	row->addCell("Tributacao")
 	row->addCell("Vl Oper")
 	row->addCell("BC ICMS")
 	row->addCell("Vl ICMS")
@@ -105,7 +113,9 @@ private sub resumoAddHeaderCstLRS(ws as ExcelWorksheet ptr)
 	row->addCell("Aliq ICMS ST")
 	row->addCell("Vl IPI")
 	
+	ws->AddCellType(CT_STRING_UTF8)
 	ws->AddCellType(CT_INTNUMBER)
+	ws->AddCellType(CT_STRING_UTF8)
 	ws->AddCellType(CT_STRING_UTF8)
 	ws->AddCellType(CT_MONEY)
 	ws->AddCellType(CT_MONEY)
@@ -124,6 +134,7 @@ private sub resumoAddRowLRE(xrow as ExcelRow ptr, byref drow as TDataSetRow, tip
 	case TR_CFOP
 		xrow->addCell(drow["cfop"])
 		xrow->addCell(drow["descricao"])
+		xrow->addCell(drow["operacao"])
 		xrow->addCell(drow["vlOper"])
 		xrow->addCell(drow["bcIcms"])
 		xrow->addCell(drow["vlIcms"])
@@ -131,8 +142,9 @@ private sub resumoAddRowLRE(xrow as ExcelRow ptr, byref drow as TDataSetRow, tip
 		xrow->addCell(drow["aliqIcms"])
 		xrow->addCell(drow["vlIpi"])
 	case TR_CST
-		xrow->addCell(drow["cst"])
-		xrow->addCell(drow["descricao"])
+		xrow->addCell(drow["cst"], 1, 10)
+		xrow->addCell(drow["origem"])
+		xrow->addCell(drow["tributacao"])
 		xrow->addCell(drow["vlOper"])
 		xrow->addCell(drow["bcIcms"])
 		xrow->addCell(drow["vlIcms"])
@@ -148,6 +160,7 @@ private sub resumoAddRowLRS(xrow as ExcelRow ptr, byref drow as TDataSetRow, tip
 	case TR_CFOP
 		xrow->addCell(drow["cfop"])
 		xrow->addCell(drow["descricao"])
+		xrow->addCell(drow["operacao"])
 		xrow->addCell(drow["vlOper"])
 		xrow->addCell(drow["bcIcms"])
 		xrow->addCell(drow["vlIcms"])
@@ -158,8 +171,9 @@ private sub resumoAddRowLRS(xrow as ExcelRow ptr, byref drow as TDataSetRow, tip
 		xrow->addCell(drow["aliqIcmsST"])
 		xrow->addCell(drow["vlIpi"])
 	case TR_CST
-		xrow->addCell(drow["cst"])
-		xrow->addCell(drow["descricao"])
+		xrow->addCell(drow["cst"], 1, 13)
+		xrow->addCell(drow["origem"])
+		xrow->addCell(drow["tributacao"])
 		xrow->addCell(drow["vlOper"])
 		xrow->addCell(drow["bcIcms"])
 		xrow->addCell(drow["vlIcms"])
