@@ -55,6 +55,7 @@ type ExcelWorksheet
 	rowListTail				as ExcelRow ptr = null
 	rows(any)				as ExcelRow ptr
 	curRow					as integer
+	nRows					as integer
 	next_					as ExcelWorksheet ptr = null
 	
 	declare constructor(name as string)

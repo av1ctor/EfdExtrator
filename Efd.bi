@@ -66,6 +66,9 @@ enum TipoRegistro
 	CIAP_TOTAL
 	CIAP_ITEM
 	CIAP_ITEM_DOC
+	ESTOQUE_PERIODO
+	ESTOQUE_ITEM
+	ESTOQUE_ORDEM_PROD
 	FIM_DO_ARQUIVO								'' NOTA: anterior à assinatura digital que fica no final no arquivo
 	DESCONHECIDO   				
 	LUA_CUSTOM									'' tratado no script Lua
@@ -616,6 +619,34 @@ type TCiapItemDoc
 	dataEmi					as zstring * 8+1
 end type
 
+enum TipoItemEstoque
+	PROPRIO_PROPRIO
+	PROPRIO_TERCEIRO
+	TERCEIRO_PROPRIO
+end enum
+
+type TEstoquePeriodo
+	dataIni					as zstring * 8+1
+	dataFim					as zstring * 8+1
+end type
+
+type TEstoqueItem
+	pai         			as TEstoquePeriodo ptr
+	itemId					as zstring * 60+1
+	qtd						as double
+	tipoEst					as TipoItemEstoque
+	idParticipante			as zstring * 60+1
+end type
+
+type TEstoqueOrdemProd
+	pai         			as TEstoquePeriodo ptr
+	dataIni					as zstring * 8+1
+	dataFim					as zstring * 8+1
+	idOrdem					as zstring * 30+1
+	itemId					as zstring * 60+1
+	qtd						as double
+end type
+
 type TLuaReg
 	tipo					as zstring * 4+1
 	table					as integer
@@ -655,6 +686,9 @@ type TRegistro
 		ciapTotal			as TCiapTotal
 		ciapItem			as TCiapItem
 		ciapItemDoc			as TCiapItemDoc
+		estPeriod			as TEstoquePeriodo
+		estItem				as TEstoqueItem
+		estOrdem			as TEstoqueOrdemProd
 		lua					as TLuaReg
 	end union
 	next_          			as TRegistro ptr
@@ -1001,6 +1035,7 @@ private:
 	ultimoInventario		as TInventarioTotais ptr
 	ultimoCiap				as TCiapTotal ptr
 	ultimoCiapItem			as TCiapItem ptr
+	ultimoEstoque			as TEstoquePeriodo ptr
 	nroLinha				as integer
 	regMestre				as TRegistro ptr
 
@@ -1012,6 +1047,8 @@ private:
 	apuracaoIcmsST			as ExcelWorksheet ptr
 	inventario				as ExcelWorksheet ptr
 	ciap					as ExcelWorksheet ptr
+	estoque					as ExcelWorksheet ptr
+	producao				as ExcelWorksheet ptr
 	ressarcST				as ExcelWorksheet ptr
 	inconsistenciasLRE		as ExcelWorksheet ptr
 	inconsistenciasLRS		as ExcelWorksheet ptr
