@@ -57,10 +57,11 @@ enum TipoRegistro
 	DOC_NF_ELETRIC_ANAL
 	APURACAO_ICMS_PERIODO		
 	APURACAO_ICMS_PROPRIO		
-	APURACAO_ICMS_AJUSTE		
 	APURACAO_ICMS_PROPRIO_OBRIG	
 	APURACAO_ICMS_ST_PERIODO	
-	APURACAO_ICMS_ST			
+	APURACAO_ICMS_ST
+	APURACAO_ICMS_AJUSTE
+	APURACAO_ICMS_AJUSTE_EXTRA
 	INVENTARIO_TOTAIS
 	INVENTARIO_ITEM
 	CIAP_TOTAL
@@ -502,43 +503,46 @@ type TDocumentoItemSintegra extends TDocumentoSintegraBase
 	aliqIcms		as double
 end type
 
+type TApuracaoIcmsAjuste
+	codigo					as zstring * 8+1
+	descricao				as zstring * 255+1
+	valor					as double
+	next_					as TApuracaoIcmsAjuste ptr
+end type
+
 type TApuracaoIcmsPeriodo
 	dataIni					as zstring * 8+1
 	dataFim					as zstring * 8+1
-	totalDebitos			as double
+	saldoCredAnterior		as double
 	ajustesDebitos			as double
+	ajustesCreditos			as double
+	totalDeducoes			as double
+	icmsRecolher			as double
+	saldoCredTransportar	as double
+	debExtraApuracao		as double
+	ajustesListHead 		as TApuracaoIcmsAjuste ptr
+	ajustesListTail 		as TApuracaoIcmsAjuste ptr
+end type
+
+type TApuracaoIcmsPropPeriodo extends TApuracaoIcmsPeriodo
+	totalDebitos			as double
 	totalAjusteDeb			as double
 	estornosCredito			as double
 	totalCreditos			as double
-	ajustesCreditos			as double
 	totalAjusteCred			as double
 	estornoDebitos			as double
-	saldoCredAnterior		as double
 	saldoDevedorApurado		as double
-	totalDeducoes			as double
-	icmsRecolher			as double
-	saldoCredTransportar	as double
-	debExtraApuracao		as double
 end type
 
-type TApuracaoIcmsSTPeriodo
-	dataIni					as zstring * 8+1
-	dataFim					as zstring * 8+1
+type TApuracaoIcmsSTPeriodo extends TApuracaoIcmsPeriodo
 	UF						as zstring * 2+1
 	mov						as boolean
-	saldoCredAnterior		as double
 	devolMercadorias		as double
 	totalRessarciment		as double
 	totalOutrosCred			as double
-	ajusteCred				as double
 	totalRetencao			as double
 	totalOutrosDeb			as double
-	ajusteDeb				as double
 	saldoAntesDed			as double
-	totalDeducoes			as double
-	icmsRecolher			as double
-	saldoCredTransportar	as double
-	debExtraApuracao		as double
 end type
 
 type TEquipECF
@@ -675,8 +679,9 @@ type TRegistro
 		itemId      		as TItemId
 		bemCiap				as TBemCiap
 		infoCompl			as TInfoCompl
-		apuIcms	  			as TApuracaoIcmsPeriodo
+		apuIcms	  			as TApuracaoIcmsPropPeriodo
 		apuIcmsST  			as TApuracaoIcmsSTPeriodo
+		apuIcmsAjust  		as TApuracaoIcmsAjuste
 		itemAnal			as TDocItemAnal
 		itemRessarcSt		as TDocNFItemRessarcSt
 		equipECF			as TEquipECF
