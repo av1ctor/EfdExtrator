@@ -388,6 +388,8 @@ function Efd.lerTipo(bf as bfile, tipo as zstring ptr) as TipoRegistro
 			tp = APURACAO_ICMS_PERIODO
 		case 110
 			tp = APURACAO_ICMS_PROPRIO
+		case 111
+			tp = APURACAO_ICMS_AJUSTE
 		case 200
 			tp = APURACAO_ICMS_ST_PERIODO
 		case 210
@@ -1401,6 +1403,32 @@ private function lerRegApuIcmsProprio(bf as bfile, reg as TRegistro ptr) as Bool
 	reg->apuIcms.saldoCredTransportar	= bf.vardbl
 	reg->apuIcms.debExtraApuracao		= bf.vardbl
 
+	reg->apuIcms.ajustesListHead 		= null
+	reg->apuIcms.ajustesListTail 		= null
+	
+	'pular \r\n
+	if bf.peek1 = 13 then
+		bf.char1
+	end if
+	if bf.peek1 <> 10 then
+		print "Erro: esperado \n, encontrado "; bf.peek1
+	else
+		bf.char1
+	end if
+
+	function = true
+
+end function
+
+''''''''
+private function lerRegApuIcmsAjuste(bf as bfile, reg as TRegistro ptr, pai as TApuracaoIcmsPeriodo ptr) as Boolean
+
+	bf.char1		'pular |
+	
+	reg->apuIcmsAjust.codigo 	= bf.varchar
+	reg->apuIcmsAjust.descricao = bf.varchar
+	reg->apuIcmsAjust.valor 	= bf.vardbl
+	
 	'pular \r\n
 	if bf.peek1 = 13 then
 		bf.char1
@@ -1448,16 +1476,19 @@ private function lerRegApuIcmsST(bf as bfile, reg as TRegistro ptr) as Boolean
 	reg->apuIcmsST.devolMercadorias			= bf.vardbl
 	reg->apuIcmsST.totalRessarciment		= bf.vardbl
 	reg->apuIcmsST.totalOutrosCred			= bf.vardbl
-	reg->apuIcmsST.ajusteCred				= bf.vardbl
+	reg->apuIcmsST.ajustesCreditos			= bf.vardbl
 	reg->apuIcmsST.totalRetencao			= bf.vardbl
 	reg->apuIcmsST.totalOutrosDeb			= bf.vardbl
-	reg->apuIcmsST.ajusteDeb				= bf.vardbl
+	reg->apuIcmsST.ajustesDebitos			= bf.vardbl
 	reg->apuIcmsST.saldoAntesDed			= bf.vardbl
 	reg->apuIcmsST.totalDeducoes			= bf.vardbl
 	reg->apuIcmsST.icmsRecolher				= bf.vardbl
 	reg->apuIcmsST.saldoCredTransportar		= bf.vardbl
 	reg->apuIcmsST.debExtraApuracao			= bf.vardbl
 
+	reg->apuIcmsST.ajustesListHead 			= null
+	reg->apuIcmsST.ajustesListTail 			= null
+	
 	'pular \r\n
 	if bf.peek1 = 13 then
 		bf.char1
@@ -2067,6 +2098,21 @@ private function Efd.lerRegistro(bf as bfile, reg as TRegistro ptr) as Boolean
 		end if
 		
 		reg->tipo = DESCONHECIDO			'' deletar registro, já que vamos reusar o registro pai
+
+	case APURACAO_ICMS_AJUSTE
+		'' nota: como apuIcms e apuIcmsST estendem a mesma classe, pode-se acessar os campos comuns de qualquer classe filha
+		if not lerRegApuIcmsAjuste(bf, reg, @ultimoReg->apuIcms) then
+			return false
+		end if
+
+		if ultimoReg->apuIcms.ajustesListHead = null then
+			ultimoReg->apuIcms.ajustesListHead = @reg->apuIcmsAjust
+		else
+			ultimoReg->apuIcms.ajustesListTail->next_ = @reg->apuIcmsAjust
+		end if
+
+		ultimoReg->apuIcms.ajustesListTail = @reg->apuIcmsAjust
+		reg->apuIcmsAjust.next_ = null
 
 	case APURACAO_ICMS_ST_PERIODO
 		if not lerRegApuIcmsSTPeriodo(bf, reg) then
@@ -4387,6 +4433,7 @@ private sub criarColunasApuracaoIcms(sheet as ExcelWorksheet ptr)
 	row->addCell("ICMS a Recolher")
 	row->addCell("Saldo Credor a Transportar")
 	row->addCell("Deb Extra Apuracao")
+	row->addCell("Detalhes Ajustes")
 	
 	sheet->AddCellType(CT_DATE)
 	sheet->AddCellType(CT_DATE)
@@ -4404,6 +4451,7 @@ private sub criarColunasApuracaoIcms(sheet as ExcelWorksheet ptr)
 	sheet->AddCellType(CT_MONEY)
 	sheet->AddCellType(CT_MONEY)
 	sheet->AddCellType(CT_MONEY)
+	sheet->AddCellType(CT_STRING)
 end sub
 
 private sub criarColunasApuracaoIcmsST(sheet as ExcelWorksheet ptr)
@@ -4425,6 +4473,7 @@ private sub criarColunasApuracaoIcmsST(sheet as ExcelWorksheet ptr)
 	row->addCell("ICMS a Recolher")
 	row->addCell("Saldo Credor a Transportar")
 	row->addCell("Deb Extra Apuracao")
+	row->addCell("Detalhes Ajustes")
 
 	sheet->AddCellType(CT_DATE)
 	sheet->AddCellType(CT_DATE)
@@ -4443,6 +4492,7 @@ private sub criarColunasApuracaoIcmsST(sheet as ExcelWorksheet ptr)
 	sheet->AddCellType(CT_MONEY)
 	sheet->AddCellType(CT_MONEY)
 	sheet->AddCellType(CT_MONEY)
+	sheet->AddCellType(CT_STRING)
 end sub
 
 private sub criarColunasInventario(sheet as ExcelWorksheet ptr)
@@ -5438,6 +5488,19 @@ sub Efd.gerarPlanilhas(nomeArquivo as string, mostrarProgresso as ProgressoCB)
 					row->addCell(reg->apuIcms.icmsRecolher)
 					row->addCell(reg->apuIcms.saldoCredTransportar)
 					row->addCell(reg->apuIcms.debExtraApuracao)
+					
+					var detalhe = ""
+					var ajuste = reg->apuIcms.ajustesListHead
+					var cnt = 0
+					do while ajuste <> null
+						detalhe += iif(cnt > 0, ",", "[") & "{'codigo':'" & ajuste->codigo & "', 'valor':'" & DBL2MONEYBR(ajuste->valor) & "', 'descricao':'" & ajuste->descricao & "'}"
+						ajuste = ajuste->next_
+						cnt += 1
+					loop
+					if cnt > 0 then
+						detalhe += "]"
+					end if
+					row->addCell(detalhe)
 				end if
 				
 			case APURACAO_ICMS_ST_PERIODO
@@ -5452,10 +5515,10 @@ sub Efd.gerarPlanilhas(nomeArquivo as string, mostrarProgresso as ProgressoCB)
 					row->addCell(reg->apuIcmsST.devolMercadorias)
 					row->addCell(reg->apuIcmsST.totalRessarciment)
 					row->addCell(reg->apuIcmsST.totalOutrosCred)
-					row->addCell(reg->apuIcmsST.ajusteCred)
+					row->addCell(reg->apuIcmsST.ajustesCreditos)
 					row->addCell(reg->apuIcmsST.totalRetencao)
 					row->addCell(reg->apuIcmsST.totalOutrosDeb)
-					row->addCell(reg->apuIcmsST.ajusteDeb)
+					row->addCell(reg->apuIcmsST.ajustesDebitos)
 					row->addCell(reg->apuIcmsST.saldoAntesDed)
 					row->addCell(reg->apuIcmsST.totalDeducoes)
 					row->addCell(reg->apuIcmsST.icmsRecolher)

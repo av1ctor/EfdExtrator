@@ -1,7 +1,8 @@
 versão 0.9.1 beta:
 - adicionado: novas análises do roteiro 3.01
 - adicionado: extração do bloco K (Estoque e produção, registros K100, K200 e K230)
-- adicionado: extração dos registros E111 e E112 (ajuste de débito/crédito no LRAICMS)
+- adicionado: extração do registro E111 (ajuste de débito/crédito no LRAICMS)
+- alterado: quando uma planilha estiver vazia, ela não mais será gerada
 
 versão 0.9 beta:
 - corrigido: a ordenação do relatório da LRE não estava seguindo a da EFD-ICMS-IPI
