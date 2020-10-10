@@ -132,35 +132,37 @@ function ExcelWriter.Flush(showProgress as ProgressCB) as boolean
 	'' para cada planilha..
 	var sheet = workbook->worksheetListHead
 	do while sheet <> null
-   
-		totalRows += sheet->curRow
-	
-		select case ftype
-		case FT_XML
-			'' para cada cell type..
-			if sheet->cellTypeListHead <> null then
-				var ct = sheet->cellTypeListHead
-				var i = 1
-				do while ct <> null
-					print #fnum, !"<Style ss:ID=\"colStyle_" & p & "_" & i & !"\">"
-					select case as const ct->type_
-					case CT_DATE
-						print #fnum, !"<NumberFormat ss:Format=\"Short Date\"/>"
-					case CT_INTNUMBER
-						print #fnum, !"<NumberFormat ss:Format=\"0\"/>"
-					case CT_NUMBER
-						print #fnum, !"<NumberFormat ss:Format=\"0.00\"/>"
-					case CT_PERCENT
-						print #fnum, !"<NumberFormat ss:Format=\"0.00%\"/>"
-					case CT_MONEY
-						print #fnum, !"<NumberFormat ss:Format=\"_-&quot;R$&quot;\\ * #,##0.00_-;\\-&quot;R$&quot;\\ * #,##0.00_-;_-&quot;R$&quot;\\ * &quot;-&quot;??_-;_-@_-\"/>"
-					end select
-					print #fnum, !"</Style>"
-					ct = ct->next_
-					i += 1
-				loop
-			end if
-		end select
+		
+		if sheet->nRows > 1 then
+			totalRows += sheet->nRows
+		
+			select case ftype
+			case FT_XML
+				'' para cada cell type..
+				if sheet->cellTypeListHead <> null then
+					var ct = sheet->cellTypeListHead
+					var i = 1
+					do while ct <> null
+						print #fnum, !"<Style ss:ID=\"colStyle_" & p & "_" & i & !"\">"
+						select case as const ct->type_
+						case CT_DATE
+							print #fnum, !"<NumberFormat ss:Format=\"Short Date\"/>"
+						case CT_INTNUMBER
+							print #fnum, !"<NumberFormat ss:Format=\"0\"/>"
+						case CT_NUMBER
+							print #fnum, !"<NumberFormat ss:Format=\"0.00\"/>"
+						case CT_PERCENT
+							print #fnum, !"<NumberFormat ss:Format=\"0.00%\"/>"
+						case CT_MONEY
+							print #fnum, !"<NumberFormat ss:Format=\"_-&quot;R$&quot;\\ * #,##0.00_-;\\-&quot;R$&quot;\\ * #,##0.00_-;_-&quot;R$&quot;\\ * &quot;-&quot;??_-;_-@_-\"/>"
+						end select
+						print #fnum, !"</Style>"
+						ct = ct->next_
+						i += 1
+					loop
+				end if
+			end select
+		end if
       
 		sheet = sheet->next_
 		p += 1
@@ -176,218 +178,221 @@ function ExcelWriter.Flush(showProgress as ProgressCB) as boolean
 	var curRow = 0
 	sheet = workbook->worksheetListHead
 	do while sheet <> null
-		dim as lxw_worksheet ptr xlsXWorksheet
+		
+		if sheet->nRows > 1 then
+			dim as lxw_worksheet ptr xlsXWorksheet
 	
-		select case ftype
-		case FT_XML
-			print #fnum, !"<Worksheet ss:Name=\"" + sheet->name + !"\">"
-			print #fnum, !"<Table>"
+			select case ftype
+			case FT_XML
+				print #fnum, !"<Worksheet ss:Name=\"" + sheet->name + !"\">"
+				print #fnum, !"<Table>"
 
-			if sheet->cellTypeListHead <> null then
-				var ct = sheet->cellTypeListHead
-				var i = 1
-				 do while ct <> null
-					print #fnum, !"<Column ss:Index=\"" & i & !"\" ss:StyleID=\"colStyle_" & p & "_" & i & !"\" ss:AutoFitWidth=\"1\" />"
-					ct = ct->next_
-					i += 1
-				 loop
-			end if
-			
-		case FT_CSV
-			fnum = FreeFile
-
-			var csvName = fileName + "_" + sheet->name + ".csv"
-			var res = open(csvName for output as #fnum) = 0
-			if not res then
-				print wstr("Erro: não foi possível criar arquivo " + csvName)
-				return false
-			end if
-
-		case FT_XLSX
-			xlsXWorksheet = workbook_add_worksheet(xlsxWorkbook, sheet->name)
-			
-			'' para cada cell type..
-			if sheet->cellTypeListHead <> null then
-				var ct = sheet->cellTypeListHead
-				var colNum = 0
-				do while ct <> null
-					worksheet_set_column(xlsXWorksheet, colNum, colNum, LXW_DEF_COL_WIDTH, xlsxFormats(ct->type_))
-					colNum += 1
-					ct = ct->next_
-				loop
-			end if
-			
-		end select
-
-		'' para cada linha..
-		if sheet->rowListHead <> null then
-			var rowNum = 0
-			var row = sheet->rowListHead
-			do while row <> null
-				curRow += 1
-				if showProgress <> null then
-					showProgress(null, curRow / totalRows)
+				if sheet->cellTypeListHead <> null then
+					var ct = sheet->cellTypeListHead
+					var i = 1
+					 do while ct <> null
+						print #fnum, !"<Column ss:Index=\"" & i & !"\" ss:StyleID=\"colStyle_" & p & "_" & i & !"\" ss:AutoFitWidth=\"1\" />"
+						ct = ct->next_
+						i += 1
+					 loop
 				end if
 				
-				if row->asIs then
-					select case ftype
-					case FT_XML
-						print #fnum, !"<Row>"
-						var cell = row->cellListHead
-						var colNum = 0
-						do while cell <> null
-							do while cell->num > colNum
-								print #fnum, "<Cell><Data></Data></Cell>"
-								colNum += 1
-							loop
+			case FT_CSV
+				fnum = FreeFile
 
-							print #fnum, !"<Cell><Data ss:Type=\"String\">" + cell->content + "</Data></Cell>"
-							cell = cell->next_
-							colNum += 1
-						loop
-						print #fnum, !"</Row>"
-					
-					case FT_CSV
-						var cell = row->cellListHead
-						var colNum = 0
-						do while cell <> null
-							do while cell->num > colNum
-								print #fnum, ";";
-								colNum += 1
-							loop
-							print #fnum, cell->content + ";";
-							colNum += 1
-							cell = cell->next_
-						loop
-						print #fnum, chr(13, 10);
-					
-					case FT_XLSX
-						var cell = row->cellListHead
-						var colNum = 0
-						do while cell <> null
-							do while cell->num > colNum
-								worksheet_write_string(xlsXWorksheet, rowNum, colNum, "", NULL)
-								colNum += 1
-							loop
-							worksheet_write_string(xlsXWorksheet, rowNum, colNum, cell->content, NULL)
-							colNum += 1
-							cell = cell->next_
-						loop
-					end select
+				var csvName = fileName + "_" + sheet->name + ".csv"
+				var res = open(csvName for output as #fnum) = 0
+				if not res then
+					print wstr("Erro: não foi possível criar arquivo " + csvName)
+					return false
+				end if
+
+			case FT_XLSX
+				xlsXWorksheet = workbook_add_worksheet(xlsxWorkbook, sheet->name)
 				
-				else
-					select case ftype
-					case FT_XML
-						print #fnum, !"<Row>"
-						'' para cada celula da linha..
-						var cell = row->cellListHead
-						var ct = sheet->cellTypeListHead
-						var colNum = 0
-						do while cell <> null
-							do while cell->num > colNum
-								print #fnum, "<Cell><Data></Data></Cell>"
-								colNum += 1
-								if ct <> null then
-									ct = ct->next_
-								end if
-							loop
-							
-							var content = cell->content
-							select case ct->type_
-							case CT_STRING, CT_STRING_UTF8
-								content = escapeContent(content)
-							end select
-							print #fnum, !"<Cell><Data ss:Type=\"" + CellType2String(iif(ct <> null, ct->type_, CT_STRING)) + !"\">" + content + "</Data></Cell>"
-							cell = cell->next_
-							colNum += 1
-							if ct <> null then
-								ct = ct->next_
-							end if
-						loop
+				'' para cada cell type..
+				if sheet->cellTypeListHead <> null then
+					var ct = sheet->cellTypeListHead
+					var colNum = 0
+					do while ct <> null
+						worksheet_set_column(xlsXWorksheet, colNum, colNum, LXW_DEF_COL_WIDTH+2, xlsxFormats(ct->type_))
+						colNum += 1
+						ct = ct->next_
+					loop
+				end if
+				
+			end select
+
+			'' para cada linha..
+			if sheet->rowListHead <> null then
+				var rowNum = 0
+				var row = sheet->rowListHead
+				do while row <> null
+					curRow += 1
+					if showProgress <> null then
+						showProgress(null, curRow / totalRows)
+					end if
 					
-						print #fnum, !"</Row>"
+					if row->asIs then
+						select case ftype
+						case FT_XML
+							print #fnum, !"<Row>"
+							var cell = row->cellListHead
+							var colNum = 0
+							do while cell <> null
+								do while cell->num > colNum
+									print #fnum, "<Cell><Data></Data></Cell>"
+									colNum += 1
+								loop
 
-					case FT_CSV
-						'' para cada celula da linha..
-						var cell = row->cellListHead
-						var ct = sheet->cellTypeListHead
-						var colNum = 0
-						do while cell <> null
-							do while cell->num > colNum
-								print #fnum, ";";
+								print #fnum, !"<Cell><Data ss:Type=\"String\">" + cell->content + "</Data></Cell>"
+								cell = cell->next_
 								colNum += 1
-								if ct <> null then
-									ct = ct->next_
-								end if
 							loop
-							print #fnum, cell->content + ";";
-							cell = cell->next_
-							colNum += 1
-							if ct <> null then
-								ct = ct->next_
-							end if
-						loop
-						print #fnum, chr(13, 10);
-
-					case FT_XLSX
-						'' para cada celula da linha..
-						var cell = row->cellListHead
-						var ct = sheet->cellTypeListHead
-						var colNum = 0
-						do while cell <> null
-							do while cell->num > colNum
-								worksheet_write_string(xlsXWorksheet, rowNum, colNum, "", NULL)
+							print #fnum, !"</Row>"
+						
+						case FT_CSV
+							var cell = row->cellListHead
+							var colNum = 0
+							do while cell <> null
+								do while cell->num > colNum
+									print #fnum, ";";
+									colNum += 1
+								loop
+								print #fnum, cell->content + ";";
+								colNum += 1
+								cell = cell->next_
+							loop
+							print #fnum, chr(13, 10);
+						
+						case FT_XLSX
+							var cell = row->cellListHead
+							var colNum = 0
+							do while cell <> null
+								do while cell->num > colNum
+									worksheet_write_string(xlsXWorksheet, rowNum, colNum, "", NULL)
+									colNum += 1
+								loop
+								worksheet_write_string(xlsXWorksheet, rowNum, colNum, cell->content, NULL)
+								colNum += 1
+								cell = cell->next_
+							loop
+						end select
+					
+					else
+						select case ftype
+						case FT_XML
+							print #fnum, !"<Row>"
+							'' para cada celula da linha..
+							var cell = row->cellListHead
+							var ct = sheet->cellTypeListHead
+							var colNum = 0
+							do while cell <> null
+								do while cell->num > colNum
+									print #fnum, "<Cell><Data></Data></Cell>"
+									colNum += 1
+									if ct <> null then
+										ct = ct->next_
+									end if
+								loop
+								
+								var content = cell->content
+								select case ct->type_
+								case CT_STRING, CT_STRING_UTF8
+									content = escapeContent(content)
+								end select
+								print #fnum, !"<Cell><Data ss:Type=\"" + CellType2String(iif(ct <> null, ct->type_, CT_STRING)) + !"\">" + content + "</Data></Cell>"
+								cell = cell->next_
 								colNum += 1
 								if ct <> null then
 									ct = ct->next_
 								end if
 							loop
 						
-							if cell->width_ > 1 then
-								worksheet_merge_range(xlsXWorksheet, rowNum, colNum, rowNum, colNum+cell->width_-1, cell->content, NULL)
-								colNum += cell->width_
-							else
-								select case as const iif(ct <> null, ct->type_, CT_STRING)
-								case CT_STRING
-									worksheet_write_string(xlsXWorksheet, rowNum, colNum, latin2UTF8(cell->content, cd), NULL)
-								case CT_STRING_UTF8
-									worksheet_write_string(xlsXWorksheet, rowNum, colNum, cell->content, NULL)
-								case CT_NUMBER, _
-									 CT_MONEY, _
-									 CT_PERCENT
-									 worksheet_write_number(xlsXWorksheet, rowNum, colNum, cdbl(cell->content), NULL)
-								case CT_INTNUMBER
-									 worksheet_write_number(xlsXWorksheet, rowNum, colNum, clngint(cell->content), NULL)
-								case CT_DATE
-									var value = cell->content
-									dim as lxw_datetime date = (valint(left(value, 4)), valint(mid(value, 6, 2)), valint(mid(value, 9, 2)))
-									worksheet_write_datetime(xlsXWorksheet, rowNum, colNum, @date, NULL)
-								end select
-								
+							print #fnum, !"</Row>"
+
+						case FT_CSV
+							'' para cada celula da linha..
+							var cell = row->cellListHead
+							var ct = sheet->cellTypeListHead
+							var colNum = 0
+							do while cell <> null
+								do while cell->num > colNum
+									print #fnum, ";";
+									colNum += 1
+									if ct <> null then
+										ct = ct->next_
+									end if
+								loop
+								print #fnum, cell->content + ";";
+								cell = cell->next_
 								colNum += 1
-							end if
+								if ct <> null then
+									ct = ct->next_
+								end if
+							loop
+							print #fnum, chr(13, 10);
+
+						case FT_XLSX
+							'' para cada celula da linha..
+							var cell = row->cellListHead
+							var ct = sheet->cellTypeListHead
+							var colNum = 0
+							do while cell <> null
+								do while cell->num > colNum
+									worksheet_write_string(xlsXWorksheet, rowNum, colNum, "", NULL)
+									colNum += 1
+									if ct <> null then
+										ct = ct->next_
+									end if
+								loop
 							
-							cell = cell->next_
-							if ct <> null then
-								ct = ct->next_
-							end if
-						loop
+								if cell->width_ > 1 then
+									worksheet_merge_range(xlsXWorksheet, rowNum, colNum, rowNum, colNum+cell->width_-1, cell->content, NULL)
+									colNum += cell->width_
+								else
+									select case as const iif(ct <> null, ct->type_, CT_STRING)
+									case CT_STRING
+										worksheet_write_string(xlsXWorksheet, rowNum, colNum, latin2UTF8(cell->content, cd), NULL)
+									case CT_STRING_UTF8
+										worksheet_write_string(xlsXWorksheet, rowNum, colNum, cell->content, NULL)
+									case CT_NUMBER, _
+										 CT_MONEY, _
+										 CT_PERCENT
+										 worksheet_write_number(xlsXWorksheet, rowNum, colNum, cdbl(cell->content), NULL)
+									case CT_INTNUMBER
+										 worksheet_write_number(xlsXWorksheet, rowNum, colNum, clngint(cell->content), NULL)
+									case CT_DATE
+										var value = cell->content
+										dim as lxw_datetime date = (valint(left(value, 4)), valint(mid(value, 6, 2)), valint(mid(value, 9, 2)))
+										worksheet_write_datetime(xlsXWorksheet, rowNum, colNum, @date, NULL)
+									end select
+									
+									colNum += 1
+								end if
+								
+								cell = cell->next_
+								if ct <> null then
+									ct = ct->next_
+								end if
+							loop
+						
+						end select
+					end if
 					
-					end select
-				end if
-				
-				rowNum += 1
-				row = row->next_
-			loop
+					rowNum += 1
+					row = row->next_
+				loop
+			end if
+			
+			select case ftype
+			case FT_XML
+				print #fnum, !"</Table>"
+				print #fnum, !"</Worksheet>"
+			case FT_CSV
+				..close #fnum
+			end select
 		end if
-		
-		select case ftype
-		case FT_XML
-			print #fnum, !"</Table>"
-			print #fnum, !"</Worksheet>"
-		case FT_CSV
-			..close #fnum
-		end select
 		
 		sheet = sheet->next_
 		p += 1
@@ -426,6 +431,7 @@ end constructor
 constructor ExcelWorksheet(name as string)
 	this.name = name
 	curRow = 0
+	nRows = 0
 	redim rows(0 to 9999)
 end constructor
 
@@ -486,6 +492,8 @@ function ExcelWorksheet.AddRow(asIs as boolean, num as integer) as ExcelRow ptr
 			rowListTail->next_ = row
 			rowListTail = row
 		end if
+		
+		nRows += 1
 	end if
 	
 	curRow += 1

@@ -409,6 +409,15 @@ function Efd.lerTipo(bf as bfile, tipo as zstring ptr) as TipoRegistro
 		case 010
 			tp =  INVENTARIO_ITEM
 		end select
+	case asc("K")
+		select case subtipo
+		case 100
+			tp = ESTOQUE_PERIODO
+		case 200
+			tp = ESTOQUE_ITEM
+		case 230
+			tp = ESTOQUE_ORDEM_PROD
+		end select
 	case asc("9")
 		select case subtipo
 		case 999
@@ -1607,6 +1616,81 @@ private function lerRegCiapItemDoc(bf as bfile, reg as TRegistro ptr, pai as TCi
 end function
 
 ''''''''
+private function lerRegEstoquePeriodo(bf as bfile, reg as TRegistro ptr) as Boolean
+
+	bf.char1		'pular |
+
+	reg->estPeriod.dataIni 	 		= ddMmYyyy2YyyyMmDd(bf.varchar)
+	reg->estPeriod.dataFim 	 		= ddMmYyyy2YyyyMmDd(bf.varchar)
+
+	'pular \r\n
+	if bf.peek1 = 13 then
+		bf.char1
+	end if
+	if bf.peek1 <> 10 then
+		print "Erro: esperado \n, encontrado "; bf.peek1
+	else
+		bf.char1
+	end if
+
+	function = true
+
+end function
+
+''''''''
+private function lerRegEstoqueItem(bf as bfile, reg as TRegistro ptr, pai as TEstoquePeriodo ptr) as Boolean
+
+	bf.char1		'pular |
+
+	reg->estItem.pai				= pai
+	bf.varchar		'pular DT_EST (é a mesma do DT_FIN do K100)
+	reg->estItem.itemId 	 		= bf.varchar
+	reg->estItem.qtd 				= bf.vardbl
+	reg->estItem.tipoEst			= bf.varint
+	reg->estItem.idParticipante		= bf.varchar
+
+	'pular \r\n
+	if bf.peek1 = 13 then
+		bf.char1
+	end if
+	if bf.peek1 <> 10 then
+		print "Erro: esperado \n, encontrado "; bf.peek1
+	else
+		bf.char1
+	end if
+
+	function = true
+
+end function
+
+''''''''
+private function lerRegEstoqueOrdemProd(bf as bfile, reg as TRegistro ptr, pai as TEstoquePeriodo ptr) as Boolean
+
+	bf.char1		'pular |
+
+	reg->estOrdem.pai			= pai
+	reg->estOrdem.dataIni 	 	= ddMmYyyy2YyyyMmDd(bf.varchar)
+	var dtFim = bf.varchar
+	reg->estOrdem.dataFim 	 	= iif(len(dtFim) > 0, ddMmYyyy2YyyyMmDd(dtFim), "99991231")
+	reg->estOrdem.idOrdem		= bf.varchar
+	reg->estOrdem.itemId 	 	= bf.varchar
+	reg->estOrdem.qtd 			= bf.vardbl
+
+	'pular \r\n
+	if bf.peek1 = 13 then
+		bf.char1
+	end if
+	if bf.peek1 <> 10 then
+		print "Erro: esperado \n, encontrado "; bf.peek1
+	else
+		bf.char1
+	end if
+
+	function = true
+
+end function
+
+''''''''
 private sub Efd.lerAssinatura(bf as bfile)
 
 	'' verificar header
@@ -2029,6 +2113,23 @@ private function Efd.lerRegistro(bf as bfile, reg as TRegistro ptr) as Boolean
 			return false
 		end if
 
+	case ESTOQUE_PERIODO
+		if not lerRegEstoquePeriodo(bf, reg) then
+			return false
+		end if
+		
+		ultimoEstoque = @reg->estPeriod
+	
+	case ESTOQUE_ITEM
+		if not lerRegEstoqueItem(bf, reg, ultimoEstoque) then
+			return false
+		end if
+		
+	case ESTOQUE_ORDEM_PROD
+		if not lerRegEstoqueOrdemProd(bf, reg, ultimoEstoque) then
+			return false
+		end if
+	
 	case MESTRE
 		if not lerRegMestre(bf, reg) then
 			return false
@@ -4430,6 +4531,60 @@ private sub criarColunasCIAP(sheet as ExcelWorksheet ptr)
 	sheet->AddCellType(CT_STRING)
 end sub
 
+private sub criarColunasEstoque(sheet as ExcelWorksheet ptr)
+	var row = sheet->addRow(true)
+	row->addCell("Data Inicial")
+	row->addCell("Data Final")
+	row->addCell("Codigo Item")
+	row->addCell("NCM Item")
+	row->addCell("Tipo Item")
+	row->addCell("Tipo Item (Descricao)")
+	row->addCell("Descricao Item")
+	row->addCell("Qtd")
+	row->addCell("Tipo")
+	row->addCell("Prop CNPJ")
+	row->addCell("Prop IE")
+	row->addCell("Prop UF")
+	row->addCell("Prop Razao Social")
+	
+	sheet->AddCellType(CT_DATE)
+	sheet->AddCellType(CT_DATE)
+	sheet->AddCellType(CT_STRING)
+	sheet->AddCellType(CT_INTNUMBER)
+	sheet->AddCellType(CT_INTNUMBER)
+	sheet->AddCellType(CT_STRING)
+	sheet->AddCellType(CT_STRING)
+	sheet->AddCellType(CT_NUMBER)
+	sheet->AddCellType(CT_INTNUMBER)
+	sheet->AddCellType(CT_STRING)
+	sheet->AddCellType(CT_STRING)
+	sheet->AddCellType(CT_STRING)
+	sheet->AddCellType(CT_STRING)
+end sub
+
+private sub criarColunasProducao(sheet as ExcelWorksheet ptr)
+	var row = sheet->addRow(true)
+	row->addCell("Data Inicial")
+	row->addCell("Data Final")
+	row->addCell("Codigo Item")
+	row->addCell("NCM Item")
+	row->addCell("Tipo Item")
+	row->addCell("Tipo Item (Descricao)")
+	row->addCell("Descricao Item")
+	row->addCell("Qtd")
+	row->addCell("Codigo Ordem")
+	
+	sheet->AddCellType(CT_DATE)
+	sheet->AddCellType(CT_DATE)
+	sheet->AddCellType(CT_STRING)
+	sheet->AddCellType(CT_INTNUMBER)
+	sheet->AddCellType(CT_INTNUMBER)
+	sheet->AddCellType(CT_STRING)
+	sheet->AddCellType(CT_STRING)
+	sheet->AddCellType(CT_NUMBER)
+	sheet->AddCellType(CT_STRING)
+end sub
+
 private sub criarColunasRessarcST(sheet as ExcelWorksheet ptr)
 	var row = sheet->addRow(true)
 	row->addCell("CNPJ Emitente Ult NF-e Ent")
@@ -4510,6 +4665,14 @@ sub Efd.criarPlanilhas()
 	'' CIAP
 	ciap = ew->AddWorksheet("CIAP")
 	criarColunasCIAP(ciap)
+
+	'' Estoque
+	estoque = ew->AddWorksheet("Estoque")
+	criarColunasEstoque(estoque)
+
+	'' Producao
+	producao = ew->AddWorksheet("Producao")
+	criarColunasProducao(producao)
 
 	'' Ressarcimento ST
 	ressarcST = ew->AddWorksheet("Ressarcimento ST")
@@ -5411,6 +5574,67 @@ sub Efd.gerarPlanilhas(nomeArquivo as string, mostrarProgresso as ProgressoCB)
 					row->addCell("")
 				end if
 
+			case ESTOQUE_ITEM
+				var row = estoque->AddRow()
+				
+				var pai = reg->estItem.pai
+				row->addCell(YyyyMmDd2Datetime(pai->dataIni))
+				row->addCell(YyyyMmDd2Datetime(pai->dataFim))
+				
+				var itemId = cast( TItemId ptr, itemIdDict[reg->estItem.itemId] )
+				if itemId <> null then 
+					row->addCell(itemId->id)
+					row->addCell(itemId->ncm)
+					row->addCell(itemId->tipoItem)
+					row->addCell(tipoItem2Str(itemId->tipoItem))
+					row->addCell(itemId->descricao)
+				else
+					row->addCell(reg->estItem.itemId)
+					row->addCell("")
+					row->addCell("")
+					row->addCell("")
+					row->addCell("")
+				end if
+				
+				row->addCell(reg->estItem.qtd)
+				row->addCell(reg->estItem.tipoEst)
+
+				var part = cast( TParticipante ptr, participanteDict[reg->estItem.idParticipante] )
+				if part <> null then
+					row->addCell(iif(len(part->cpf) > 0, part->cpf, part->cnpj))
+					row->addCell(part->ie)
+					row->addCell(MUNICIPIO2SIGLA(part->municip))
+					row->addCell(part->nome)
+				else
+					row->addCell("")
+					row->addCell("")
+					row->addCell("")
+					row->addCell("")
+				end if
+
+			case ESTOQUE_ORDEM_PROD
+				var row = producao->AddRow()
+				
+				row->addCell(YyyyMmDd2Datetime(reg->estOrdem.dataIni))
+				row->addCell(YyyyMmDd2Datetime(reg->estOrdem.dataFim))
+				
+				var itemId = cast( TItemId ptr, itemIdDict[reg->estOrdem.itemId] )
+				if itemId <> null then 
+					row->addCell(itemId->id)
+					row->addCell(itemId->ncm)
+					row->addCell(itemId->tipoItem)
+					row->addCell(tipoItem2Str(itemId->tipoItem))
+					row->addCell(itemId->descricao)
+				else
+					row->addCell(reg->estOrdem.itemId)
+					row->addCell("")
+					row->addCell("")
+					row->addCell("")
+					row->addCell("")
+				end if
+				
+				row->addCell(reg->estOrdem.qtd)
+				row->addCell(reg->estOrdem.idOrdem)
 
 			'item de documento do sintegra?
 			case SINTEGRA_DOCUMENTO_ITEM
@@ -5488,8 +5712,6 @@ sub Efd.gerarPlanilhas(nomeArquivo as string, mostrarProgresso as ProgressoCB)
 	
 	mostrarProgresso(null, 1)
 	
-	exit sub
-	
 end sub
 
 ''''''''
@@ -5508,6 +5730,14 @@ function EFd.getPlanilha(nome as const zstring ptr) as ExcelWorksheet ptr
 			plan = resumosLRE
 		case "resumos LRS"
 			plan = resumosLRS
+		case "ciap"
+			plan = ciap
+		case "estoque"
+			plan = estoque
+		case "producao"
+			plan = producao
+		case "inventario"
+			plan = inventario
 		end select
 		function = plan
 end function
