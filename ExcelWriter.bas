@@ -209,11 +209,10 @@ function ExcelWriter.Flush(showProgress as ProgressCB) as boolean
 			'' para cada cell type..
 			if sheet->cellTypeListHead <> null then
 				var ct = sheet->cellTypeListHead
-				var col = 0
+				var colNum = 0
 				do while ct <> null
-					var colName = chr(asc("A") + col)
-					worksheet_set_column(xlsXWorksheet, LXW_MAKE_COLS(colName + ":" + colName), LXW_DEF_COL_WIDTH, xlsxFormats(ct->type_))
-					col += 1
+					worksheet_set_column(xlsXWorksheet, colNum, colNum, LXW_DEF_COL_WIDTH, xlsxFormats(ct->type_))
+					colNum += 1
 					ct = ct->next_
 				loop
 			end if

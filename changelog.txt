@@ -1,3 +1,8 @@
+versão 0.9.1 beta:
+- adicionado: novas análises do roteiro 3.01
+- adicionado: extração do bloco K (Estoque)
+- adicionado: extração do registro E111 (estorno de débito/crédito no LRAICMS)
+
 versão 0.9 beta:
 - corrigido: a ordenação do relatório da LRE não estava seguindo a da EFD-ICMS-IPI
 - corrigido: a razão social nos relatórios LRE e LRS estava sendo cortada (deveria criar uma linha dupla)
@@ -5,7 +10,7 @@ versão 0.9 beta:
 - corrigido: colunas código, descrição e chave NF-e não estavam sendo gravadas na planilha CIAP
 - alterado: ao usar -filtrarCnpjs ou -filtrarChaves, as páginas de resumo não são mais geradas nos relatórios de LRE ou LRS
 - alterado: -naoGerarLre, -naoGerarLrs e -naoGerarLraicms deixam de gerar também as respectivas planilhas, além dos relatórios
-- adicionado: abas de resumos dos livros de entradas e saídas (agrupamentos por CFOP e CST)
+- adicionado: abas de resumos dos livros de entradas e saídas (agrupamentos por CFOP, CST e CST+CFOP)
 
 versão 0.8 beta:
 - alterado: a geração dos relatórios do PVA EFD-ICMS-IPI agora é feita diretamente em PDF. Com isso, os relatórios são gerados mais rapidamente e os arquivos são mais compactos, devido a não utilização do MS Word na conversão

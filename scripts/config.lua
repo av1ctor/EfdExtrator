@@ -421,6 +421,7 @@ function criarTabela_EFD_Anal(db)
 
 	db_execNonQuery( db, [[
 		create table EFD_Anal( 
+			operacao	short not null,
 			periodo		integer not null,
 			cnpj		bigint not null,
 			uf			short not null,
@@ -429,6 +430,8 @@ function criarTabela_EFD_Anal(db)
 			modelo		short not null,
 			numReg		short not null,
 			cst			short not null,
+			cst_origem	short not null,
+			cst_tribut	short not null,
 			cfop		short not null,
 			aliq		real not null,
 			valorOp		real not null,
@@ -451,16 +454,35 @@ function criarTabela_EFD_Anal(db)
 	]])
 
 	db_execNonQuery( db, [[
+		CREATE INDEX EFD_Anal_opIdx ON EFD_Anal (
+			operacao
+		) 
+	]])
+
+	db_execNonQuery( db, [[
 		CREATE INDEX EFD_Anal_cfopIdx ON EFD_Anal (
 			cfop
+		) 
+	]])
+
+	db_execNonQuery( db, [[
+		CREATE INDEX EFD_Anal_cstIdx ON EFD_Anal (
+			cst
+		) 
+	]])
+
+	db_execNonQuery( db, [[
+		CREATE INDEX EFD_Anal_cst2Idx ON EFD_Anal (
+			cst_origem,
+			cst_tribut
 		) 
 	]])
 
 	-- retornar a query que será usada no insert
 	return [[
 		insert into EFD_Anal 
-			(periodo, cnpj, uf, serie, numero, modelo, numReg, cst, cfop, aliq, valorOp, bc, icms, bcIcmsST, icmsST, redBC, ipi) 
-			values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+			(operacao, periodo, cnpj, uf, serie, numero, modelo, numReg, cst, cst_origem, cst_tribut, cfop, aliq, valorOp, bc, icms, bcIcmsST, icmsST, redBC, ipi) 
+			values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
 	]]
 	
 end
@@ -554,6 +576,36 @@ function criarTabela_EFD_ItensId(db)
 		insert into EFD_ItensId 
 			(id, descricao, ncm, cest, aliqInt) 
 			values (?,?,?,?,?)
+	]]
+	
+end
+
+-- criar tabela mestre
+function criarTabela_EFD_Mestre(db)
+
+	db_execNonQuery( db, [[
+		create table EFD_Mestre( 
+			versao		integer not null,
+			original	bit not null,
+			dataIni		integer not null,
+			dataFim		integer not null,
+			nome		varchar(100) not null,
+			cnpj        bigint not null,
+			uf			char(2) not null,
+			ie			varchar(14) null,
+			PRIMARY KEY (
+				cnpj,
+				dataIni,
+				dataFim
+			)
+		) 
+	]])
+	
+	-- retornar a query que será usada no insert
+	return [[
+		insert into EFD_Mestre 
+			(versao, original, dataIni, dataFim, nome, cnpj, uf, ie) 
+			values (?,?,?,?,?,?,?,?)
 	]]
 	
 end
