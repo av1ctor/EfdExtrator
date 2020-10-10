@@ -203,6 +203,8 @@ sub Efd.configurarDB()
 		
 		db_itensIdInsertStmt = lua_criarTabela(lua, db, "EFD_ItensId")
 		
+		db_mestreInsertStmt = lua_criarTabela(lua, db, "EFD_Mestre")
+		
 		if db_dfeEntradaInsertStmt = null or _
 			db_dfeSaidaInsertStmt = null or _
 			 db_itensDfeSaidaInsertStmt = null or _
@@ -2379,6 +2381,26 @@ function Efd.carregarSintegra(bf as bfile, mostrarProgresso as ProgressoCB) as B
 end function
 
 ''''''''
+sub Efd.adicionarMestre(reg as TMestre ptr)
+
+	'' (versao, original, dataIni, dataFim, nome, cnpj, uf, ie)
+	db_mestreInsertStmt->reset()
+	db_mestreInsertStmt->bind(1, reg->versaoLayout)
+	db_mestreInsertStmt->bind(2, cint(reg->original))
+	db_mestreInsertStmt->bind(3, reg->dataIni)
+	db_mestreInsertStmt->bind(4, reg->dataFim)
+	db_mestreInsertStmt->bind(5, reg->nome)
+	db_mestreInsertStmt->bind(6, reg->cnpj)
+	db_mestreInsertStmt->bind(7, reg->uf)
+	db_mestreInsertStmt->bind(8, reg->ie)
+	
+	if not db->execNonQuery(db_mestreInsertStmt) then
+		print "Erro ao inserir registro na EFD_Mestre: "; *db->getErrorMsg()
+	end if
+
+end sub
+
+''''''''
 sub Efd.adicionarDocEscriturado(doc as TDocDF ptr)
 	
 	select case as const doc->situacao
@@ -2636,25 +2658,28 @@ sub Efd.adicionarAnalEscriturado(anal as TDocItemAnal ptr)
 	
 	var uf = iif(part->municip >= 1100000 and part->municip <= 5399999, part->municip \ 100000, 99)
 
-	'' (periodo, cnpj, uf, serie, numero, modelo, numReg, cst, cfop, aliq, valorOp, bc, icms, bcIcmsST, icmsST, redBC, ipi)
+	'' (operacao, periodo, cnpj, uf, serie, numero, modelo, numReg, cst, cst_origem, cst_tribut, cfop, aliq, valorOp, bc, icms, bcIcmsST, icmsST, redBC, ipi)
 	db_analInsertStmt->reset()
-	db_analInsertStmt->bind(1, valint(regMestre->mestre.dataIni))
-	db_analInsertStmt->bind(2, iif(len(part->cpf) > 0, part->cpf, part->cnpj))
-	db_analInsertStmt->bind(3, uf)
-	db_analInsertStmt->bind(4, doc->serie)
-	db_analInsertStmt->bind(5, doc->numero)
-	db_analInsertStmt->bind(6, doc->modelo)
-	db_analInsertStmt->bind(7, anal->num)
-	db_analInsertStmt->bind(8, anal->cst)
-	db_analInsertStmt->bind(9, anal->cfop)
-	db_analInsertStmt->bind(10, anal->aliq)
-	db_analInsertStmt->bind(11, anal->valorOp)
-	db_analInsertStmt->bind(12, anal->bc)
-	db_analInsertStmt->bind(13, anal->ICMS)
-	db_analInsertStmt->bind(14, anal->bcST)
-	db_analInsertStmt->bind(15, anal->ICMSST)
-	db_analInsertStmt->bind(16, anal->redBC)
-	db_analInsertStmt->bind(17, anal->IPI)
+	db_analInsertStmt->bind(1, doc->operacao)
+	db_analInsertStmt->bind(2, valint(regMestre->mestre.dataIni))
+	db_analInsertStmt->bind(3, iif(len(part->cpf) > 0, part->cpf, part->cnpj))
+	db_analInsertStmt->bind(4, uf)
+	db_analInsertStmt->bind(5, doc->serie)
+	db_analInsertStmt->bind(6, doc->numero)
+	db_analInsertStmt->bind(7, doc->modelo)
+	db_analInsertStmt->bind(8, anal->num)
+	db_analInsertStmt->bind(9, anal->cst)
+	db_analInsertStmt->bind(10, anal->cst \ 100)
+	db_analInsertStmt->bind(11, anal->cst mod 100)
+	db_analInsertStmt->bind(12, anal->cfop)
+	db_analInsertStmt->bind(13, anal->aliq)
+	db_analInsertStmt->bind(14, anal->valorOp)
+	db_analInsertStmt->bind(15, anal->bc)
+	db_analInsertStmt->bind(16, anal->ICMS)
+	db_analInsertStmt->bind(17, anal->bcST)
+	db_analInsertStmt->bind(18, anal->ICMSST)
+	db_analInsertStmt->bind(19, anal->redBC)
+	db_analInsertStmt->bind(20, anal->IPI)
 	
 	if not db->execNonQuery(db_analInsertStmt) then
 		print "Erro ao inserir registro na EDF_Anal: "; *db->getErrorMsg()
@@ -2684,6 +2709,8 @@ sub Efd.addRegistroAoDB(reg as TRegistro ptr)
 		if opcoes.manterDb then
 			adicionarItemEscriturado(@reg->itemId)
 		end if
+	case MESTRE
+		adicionarMestre(@reg->mestre)
 	end select
 	
 end sub
@@ -2888,7 +2915,8 @@ function Efd.carregarTxt(nomeArquivo as String, mostrarProgresso as ProgressoCB)
 							 ECF_REDUCAO_Z, _
 							 DOC_SAT, _
 							 DOC_NF_ITEM_RESSARC_ST, _
-							 ITEM_ID
+							 ITEM_ID, _
+							 MESTRE
 							addRegistroAoDB(reg)
 						end select
 						
@@ -5568,6 +5596,7 @@ sub Efd.exportAPI(L as lua_State ptr)
 
 	lua_setarGlobal(L, "TR_CFOP", TR_CFOP)
 	lua_setarGlobal(L, "TR_CST", TR_CST)
+	lua_setarGlobal(L, "TR_CST_CFOP", TR_CST_CFOP)
 
 	lua_setarGlobal(L, "DFE_NFE_DEST_FORNECIDO", MASK_SAFI_NFE_DEST_FORNECIDO)
 	lua_setarGlobal(L, "DFE_NFE_EMIT_FORNECIDO", MASK_SAFI_NFE_EMIT_FORNECIDO)

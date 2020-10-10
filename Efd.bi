@@ -867,6 +867,7 @@ end enum
 enum TipoResumo
 	TR_CFOP
 	TR_CST
+	TR_CST_CFOP
 end enum
 
 enum TipoRegime
@@ -939,6 +940,7 @@ private:
 	declare sub adicionarAnalEscriturado(item as TDocItemAnal ptr)
 	declare sub adicionarRessarcStEscriturado(doc as TDocNFItemRessarcSt ptr)
 	declare sub adicionarItemEscriturado(item as TItemId ptr)
+	declare sub adicionarMestre(reg as TMestre ptr)
 	declare function filtrarPorCnpj(idParticipante as const zstring ptr) as boolean
 	declare function filtrarPorChave(chave as const zstring ptr) as boolean
 	declare function getInfoCompl(info as TDocInfoCompl ptr) as string
@@ -1043,7 +1045,8 @@ private:
 	db_LRSInsertStmt		as TDbStmt ptr
 	db_analInsertStmt		as TDbStmt ptr
 	db_ressarcStItensNfLRSInsertStmt as TDbStmt ptr
-	db_itensIdInsertStmt as TDbStmt ptr
+	db_itensIdInsertStmt 	as TDbStmt ptr
+	db_mestreInsertStmt 	as TDbStmt ptr
 	
 	'' geração de relatórios em formato PDF com o layout do programa EFD-ICMS-IPI da RFB
 	baseTemplatesDir		as string

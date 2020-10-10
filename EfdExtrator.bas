@@ -12,6 +12,13 @@ declare sub importarCadInidoneo()
 
 on error goto exceptionReport
 
+'''''''''''   
+sub mostrarCopyright()
+	print wstr("Extrator de EFD/Sintegra para Excel, versão 0.9.1 beta")
+	print wstr("Copyleft 2017-2020 by André Vicentini (avtvicentini)")
+	print
+end sub
+
 '''''''''''
 sub mostrarUso()
 	print wstr("Modo de usar:")
@@ -61,13 +68,6 @@ sub mostrarUso()
 	print wstr(!"  Preserva o arquivo de dados intermediários (formato SQLite3).")
 	
 	print 
-end sub
-
-'''''''''''   
-sub mostrarCopyright()
-	print wstr("Extrator de EFD/Sintegra para Excel, versão 0.9 beta")
-	print wstr("Copyleft 2017-2020 by André Vicentini (avtvicentini)")
-	print
 end sub
 
 '''''''''''
