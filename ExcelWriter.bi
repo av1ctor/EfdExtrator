@@ -18,9 +18,10 @@ end enum
 
 type ExcelCellType
 	type_				   	as CellType = CT_STRING
+	width_					as integer
 	next_				   	as ExcelCellType ptr = null
 	
-	declare constructor(type_ as CellType)
+	declare constructor(type_ as CellType, width_ as integer = 0)
 end type
 
 type ExcelCell
@@ -60,7 +61,7 @@ type ExcelWorksheet
 	
 	declare constructor(name as string)
 	declare destructor
-	declare function AddCellType(type_ as CellType) as ExcelCellType ptr
+	declare function AddCellType(type_ as CellType, width_ as integer = 0) as ExcelCellType ptr
 	declare function AddRow(asIs as boolean = false, num as integer = -1) as ExcelRow ptr
 	declare sub setRow(num as integer)
 end type
@@ -100,6 +101,7 @@ private:
 	cd						as iconv_t
 	
 	workbook 				as ExcelWorkbook ptr = null
-	CellType2String(0 to __CT_LEN__-1) as string
+	cellType2String(0 to __CT_LEN__-1) as string
+	cellWidth(0 to __CT_LEN__-1) as integer
 	
 end type

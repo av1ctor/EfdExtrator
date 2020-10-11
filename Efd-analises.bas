@@ -21,16 +21,16 @@ private sub inconsistenciaAddHeader(ws as ExcelWorksheet ptr)
 	row->addCell("Tipo Inconsistencia")
 	row->addCell("Descricao Inconsistencia")
 	
-	ws->AddCellType(CT_STRING)
+	ws->AddCellType(CT_STRING, 45)
 	ws->AddCellType(CT_DATE)
 	ws->AddCellType(CT_STRING)
-	ws->AddCellType(CT_STRING)
-	ws->AddCellType(CT_INTNUMBER)
-	ws->AddCellType(CT_STRING)
+	ws->AddCellType(CT_STRING, 4)
+	ws->AddCellType(CT_STRING, 4)
+	ws->AddCellType(CT_STRING, 6)
 	ws->AddCellType(CT_INTNUMBER)
 	ws->AddCellType(CT_MONEY)
 	ws->AddCellType(CT_INTNUMBER)
-	ws->AddCellType(CT_STRING)
+	ws->AddCellType(CT_STRING, 60)
 end sub
 
 ''''''''
@@ -65,7 +65,7 @@ private function luacb_efd_plan_inconsistencias_AddRow cdecl(byval L as lua_Stat
 end function
 
 ''''''''
-sub Efd.analisar(mostrarProgresso as ProgressoCB) 
+sub Efd.analisar(onProgress as OnProgressCB) 
 
 	'' configurar lua
 	lua_register(lua, "efd_plan_inconsistencias_AddRow", @luacb_efd_plan_inconsistencias_AddRow)
@@ -73,26 +73,26 @@ sub Efd.analisar(mostrarProgresso as ProgressoCB)
 	luaL_dofile(lua, ExePath + "\scripts\analises.lua")
 	
 	''
-	var safiFornecidoMask = iif(nfeDestSafiFornecido, MASK_SAFI_NFE_DEST_FORNECIDO, 0)
-	safiFornecidoMask or= iif(nfeEmitSafiFornecido, MASK_SAFI_NFE_EMIT_FORNECIDO, 0)
-	safiFornecidoMask or= iif(itemNFeSafiFornecido, MASK_SAFI_ITEM_NFE_FORNECIDO, 0)
-	safiFornecidoMask or= iif(cteSafiFornecido, MASK_SAFI_CTE_FORNECIDO, 0)
+	var safiFornecidoMask = iif(nfeDestSafiFornecido, MASK_BO_NFe_DEST_FORNECIDO, 0)
+	safiFornecidoMask or= iif(nfeEmitSafiFornecido, MASK_BO_NFe_EMIT_FORNECIDO, 0)
+	safiFornecidoMask or= iif(itemNFeSafiFornecido, MASK_BO_ITEM_NFE_FORNECIDO, 0)
+	safiFornecidoMask or= iif(cteSafiFornecido, MASK_BO_CTe_FORNECIDO, 0)
 	
 	lua_pushnumber(lua, safiFornecidoMask)
 	lua_setglobal(lua, "dfeFornecidoMask")
 	
 	''
-	analisarInconsistenciasLRE(mostrarProgresso)
-	analisarInconsistenciasLRS(mostrarProgresso)
+	analisarInconsistenciasLRE(onProgress)
+	analisarInconsistenciasLRS(onProgress)
 	
 end sub
 
 ''''''''
-sub Efd.analisarInconsistenciasLRE(mostrarProgresso as ProgressoCB)
+sub Efd.analisarInconsistenciasLRE(onProgress as OnProgressCB)
 
 	inconsistenciaAddHeader(inconsistenciasLRE)
 	
-	mostrarProgresso(wstr(!"\tInconsistências nas entradas"), 0)
+	onProgress(wstr(!"\tInconsistências nas entradas"), 0)
 	
 	try
 		lua_getglobal(lua, "LRE_analisarInconsistencias")
@@ -103,16 +103,16 @@ sub Efd.analisarInconsistenciasLRE(mostrarProgresso as ProgressoCB)
 		print "Erro no script lua!"
 	endtry
 	
-	mostrarProgresso(null, 1)
+	onProgress(null, 1)
 
 end sub
 
 ''''''''
-sub Efd.analisarInconsistenciasLRS(mostrarProgresso as ProgressoCB)
+sub Efd.analisarInconsistenciasLRS(onProgress as OnProgressCB)
 	
 	inconsistenciaAddHeader(inconsistenciasLRS)
 	
-	mostrarProgresso(wstr(!"\tInconsistências nas saídas"), 0)
+	onProgress(wstr(!"\tInconsistências nas saídas"), 0)
 
 	try
 		lua_getglobal(lua, "LRS_analisarInconsistencias")
@@ -123,7 +123,7 @@ sub Efd.analisarInconsistenciasLRS(mostrarProgresso as ProgressoCB)
 		print "Erro no script lua!"
 	endtry
 	
-	mostrarProgresso(null, 1)
+	onProgress(null, 1)
 end sub
 
 

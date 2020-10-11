@@ -503,6 +503,8 @@ type TDocumentoItemSintegra extends TDocumentoSintegraBase
 	aliqIcms		as double
 end type
 
+const MAX_AJUSTES = 20
+
 type TApuracaoIcmsAjuste
 	codigo					as zstring * 8+1
 	descricao				as zstring * 255+1
@@ -699,23 +701,23 @@ type TRegistro
 	next_          			as TRegistro ptr
 end type
 
-enum SAFI_TipoArquivo
-	SAFI_NFe_Dest
-	SAFI_NFe_Emit
-	SAFI_NFe_Emit_Itens
-	SAFI_CTe
-	SAFI_SAT
-	SAFI_SAT_Itens
-	SAFI_NFCe_Itens
+enum BO_TipoArquivo
+	BO_NFe_Dest
+	BO_NFe_Emit
+	BO_NFe_Emit_Itens
+	BO_CTe
+	BO_SAT
+	BO_SAT_Itens
+	BO_NFCe_Itens
 	SAFI_ECF
-	SAFI_ECF_Itens
+	BO_ECF_Itens
 end enum
 
-enum SAFI_Dfe_Fornecido
-	MASK_SAFI_NFE_DEST_FORNECIDO = &b00000001
-	MASK_SAFI_NFE_EMIT_FORNECIDO = &b00000010
-	MASK_SAFI_ITEM_NFE_FORNECIDO = &b00000100
-	MASK_SAFI_CTE_FORNECIDO 	 = &b00001000
+enum BO_Dfe_Fornecido
+	MASK_BO_NFe_DEST_FORNECIDO = &b00000001
+	MASK_BO_NFe_EMIT_FORNECIDO = &b00000010
+	MASK_BO_ITEM_NFE_FORNECIDO = &b00000100
+	MASK_BO_CTe_FORNECIDO 	 = &b00001000
 end enum
 
 type TDFe_ as TDFe
@@ -884,7 +886,7 @@ type RelPagina
 	emitir			as boolean
 end type
 
-type ProgressoCB as sub(estagio as const wstring ptr, porCompleto as double)
+type OnProgressCB as sub(estagio as const wstring ptr, porCompleto as double)
 
 enum TipoLivro
 	TL_ENTRADAS
@@ -936,13 +938,13 @@ public:
 	declare constructor ()
 	declare destructor ()
 	declare sub iniciarExtracao(nomeArquivo as String, opcoes as OpcoesExtracao)
-	declare sub finalizarExtracao(mostrarProgresso as ProgressoCB)
-	declare function carregarTxt(nomeArquivo as String, mostrarProgresso as ProgressoCB) as Boolean
-	declare function carregarCsv(nomeArquivo as String, mostrarProgresso as ProgressoCB) as Boolean
-	declare function carregarXlsx(nomeArquivo as String, mostrarProgresso as ProgressoCB) as Boolean
-	declare function processar(nomeArquivo as string, mostrarProgresso as ProgressoCB) as Boolean
-	declare sub analisar(mostrarProgresso as ProgressoCB)
-	declare sub criarResumos(mostrarProgresso as ProgressoCB)
+	declare sub finalizarExtracao(onProgress as OnProgressCB)
+	declare function carregarTxt(nomeArquivo as String, onProgress as OnProgressCB) as Boolean
+	declare function carregarCsv(nomeArquivo as String, onProgress as OnProgressCB) as Boolean
+	declare function carregarXlsx(nomeArquivo as String, onProgress as OnProgressCB) as Boolean
+	declare function processar(nomeArquivo as string, onProgress as OnProgressCB) as Boolean
+	declare sub analisar(onProgress as OnProgressCB)
+	declare sub criarResumos(onProgress as OnProgressCB)
 	declare function getPlanilha(nome as const zstring ptr) as ExcelWorksheet ptr
    
 private:
@@ -955,7 +957,7 @@ private:
 	declare function lerRegDocNFItem(bf as bfile, reg as TRegistro ptr, documentoPai as TDocNF ptr) as Boolean
 	declare function lerRegDocNFElet(bf as bfile, reg as TRegistro ptr) as Boolean
 	declare sub lerAssinatura(bf as bfile)
-	declare function carregarSintegra(bf as bfile, mostrarProgresso as ProgressoCB) as Boolean
+	declare function carregarSintegra(bf as bfile, onProgress as OnProgressCB) as Boolean
 	declare function carregarCsvNFeDestSAFI(bf as bfile, emModoOutrasUFs as boolean) as TDFe ptr
 	declare function carregarCsvNFeEmitSAFI(bf as bfile) as TDFe ptr
 	declare function carregarCsvNFeEmitItensSAFI(bf as bfile, chave as string) as TDFe_NFeItem ptr
@@ -987,9 +989,9 @@ private:
 	declare sub addRegistroAoDB(reg as TRegistro ptr)
 	
 	declare sub criarPlanilhas()
-	declare sub gerarPlanilhas(nomeArquivo as string, mostrarProgresso as ProgressoCB)
+	declare sub gerarPlanilhas(nomeArquivo as string, onProgress as OnProgressCB)
 	
-	declare sub gerarRelatorios(nomeArquivo as string, mostrarProgresso as ProgressoCB)
+	declare sub gerarRelatorios(nomeArquivo as string, onProgress as OnProgressCB)
 	declare sub gerarRelatorioApuracaoICMS(nomeArquivo as string, reg as TRegistro ptr)
 	declare sub gerarRelatorioApuracaoICMSST(nomeArquivo as string, reg as TRegistro ptr)
 	declare sub iniciarRelatorio(relatorio as TipoRelatorio, nomeRelatorio as string, sufixo as string)
@@ -1012,11 +1014,11 @@ private:
 	declare function gerarLinhaAnal() as PdfTemplateNode ptr
 	declare function criarPaginaRelatorio(emitir as boolean) as RelPagina ptr
 	
-	declare sub analisarInconsistenciasLRE(mostrarProgresso as ProgressoCB)
-	declare sub analisarInconsistenciasLRS(mostrarProgresso as ProgressoCB)
+	declare sub analisarInconsistenciasLRE(onProgress as OnProgressCB)
+	declare sub analisarInconsistenciasLRS(onProgress as OnProgressCB)
 	
-	declare sub criarResumosLRE(mostrarProgresso as ProgressoCB)
-	declare sub criarResumosLRS(mostrarProgresso as ProgressoCB)
+	declare sub criarResumosLRE(onProgress as OnProgressCB)
+	declare sub criarResumosLRS(onProgress as OnProgressCB)
 	
 	declare sub exportAPI(L as lua_State ptr)
 	declare static function luacb_efd_rel_addItemAnalitico cdecl(L as lua_State ptr) as long

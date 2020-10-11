@@ -8,13 +8,21 @@ constructor ExcelWriter()
 	fnum = 0
 	xlsxWorkbook = null
 	
-	CellType2String(CT_STRING) 		= "String"
-	CellType2String(CT_STRING_UTF8)	= "String"
-	CellType2String(CT_NUMBER) 		= "Number"
-	CellType2String(CT_INTNUMBER)   = "Number"
-	CellType2String(CT_DATE) 		= "DateTime"
-	CellType2String(CT_MONEY) 		= "Number"
-	CellType2String(CT_PERCENT)		= "Number"
+	cellType2String(CT_STRING) 		= "String"
+	cellType2String(CT_STRING_UTF8)	= "String"
+	cellType2String(CT_NUMBER) 		= "Number"
+	cellType2String(CT_INTNUMBER)   = "Number"
+	cellType2String(CT_DATE) 		= "DateTime"
+	cellType2String(CT_MONEY) 		= "Number"
+	cellType2String(CT_PERCENT)		= "Number"
+
+	cellWidth(CT_STRING) 		= LXW_DEF_COL_WIDTH + 8
+	cellWidth(CT_STRING_UTF8)	= LXW_DEF_COL_WIDTH + 8
+	cellWidth(CT_NUMBER) 		= LXW_DEF_COL_WIDTH + 0
+	cellWidth(CT_INTNUMBER)   	= LXW_DEF_COL_WIDTH + 0
+	cellWidth(CT_DATE) 			= LXW_DEF_COL_WIDTH + 2
+	cellWidth(CT_MONEY) 		= LXW_DEF_COL_WIDTH + 6
+	cellWidth(CT_PERCENT)		= LXW_DEF_COL_WIDTH + 0
 
 	cd = iconv_open("UTF-8", "ISO_8859-1")
 end constructor
@@ -215,7 +223,8 @@ function ExcelWriter.Flush(showProgress as ProgressCB) as boolean
 					var ct = sheet->cellTypeListHead
 					var colNum = 0
 					do while ct <> null
-						worksheet_set_column(xlsXWorksheet, colNum, colNum, LXW_DEF_COL_WIDTH+2, xlsxFormats(ct->type_))
+						var wdt = iif(ct->width_ = 0, cellWidth(ct->type_), ct->width_)
+						worksheet_set_column(xlsXWorksheet, colNum, colNum, wdt, xlsxFormats(ct->type_))
 						colNum += 1
 						ct = ct->next_
 					loop
@@ -301,7 +310,7 @@ function ExcelWriter.Flush(showProgress as ProgressCB) as boolean
 								case CT_STRING, CT_STRING_UTF8
 									content = escapeContent(content)
 								end select
-								print #fnum, !"<Cell><Data ss:Type=\"" + CellType2String(iif(ct <> null, ct->type_, CT_STRING)) + !"\">" + content + "</Data></Cell>"
+								print #fnum, !"<Cell><Data ss:Type=\"" + cellType2String(iif(ct <> null, ct->type_, CT_STRING)) + !"\">" + content + "</Data></Cell>"
 								cell = cell->next_
 								colNum += 1
 								if ct <> null then
@@ -421,8 +430,9 @@ end sub
 ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
 ''
-constructor ExcelCellType(type_ as CellType)
+constructor ExcelCellType(type_ as CellType, width_ as integer)
 	this.type_ = type_
+	this.width_ = width_
 end constructor
 
 ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
@@ -453,9 +463,9 @@ destructor ExcelWorksheet()
 end destructor
 
 ''
-function ExcelWorksheet.AddCellType(type_ as CellType) as ExcelCellType ptr
+function ExcelWorksheet.AddCellType(type_ as CellType, width_ as integer) as ExcelCellType ptr
 
-	var ct = new ExcelCellType(type_)
+	var ct = new ExcelCellType(type_, width_)
 	
 	if cellTypeListHead = null then
 		cellTypeListHead = ct

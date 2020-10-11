@@ -23,8 +23,8 @@ private sub resumoAddHeaderCfopLRE(ws as ExcelWorksheet ptr)
 	row->addCell("Vl IPI")
 	
 	ws->AddCellType(CT_INTNUMBER)
-	ws->AddCellType(CT_STRING_UTF8)
-	ws->AddCellType(CT_STRING_UTF8)
+	ws->AddCellType(CT_STRING_UTF8, 45)
+	ws->AddCellType(CT_STRING_UTF8, 15)
 	ws->AddCellType(CT_MONEY)
 	ws->AddCellType(CT_MONEY)
 	ws->AddCellType(CT_MONEY)
@@ -49,10 +49,10 @@ private sub resumoAddHeaderCstLRE(ws as ExcelWorksheet ptr)
 	row->addCell("Aliq ICMS")
 	row->addCell("Vl IPI")
 	
-	ws->AddCellType(CT_STRING_UTF8)
+	ws->AddCellType(CT_STRING_UTF8, 4)
 	ws->AddCellType(CT_INTNUMBER)
-	ws->AddCellType(CT_STRING_UTF8)
-	ws->AddCellType(CT_STRING_UTF8)
+	ws->AddCellType(CT_STRING_UTF8, 45)
+	ws->AddCellType(CT_STRING_UTF8, 30)
 	ws->AddCellType(CT_MONEY)
 	ws->AddCellType(CT_MONEY)
 	ws->AddCellType(CT_MONEY)
@@ -80,13 +80,13 @@ private sub resumoAddHeaderCstCfopLRE(ws as ExcelWorksheet ptr)
 	row->addCell("Aliq ICMS")
 	row->addCell("Vl IPI")
 	
-	ws->AddCellType(CT_STRING_UTF8)
+	ws->AddCellType(CT_STRING_UTF8, 4)
 	ws->AddCellType(CT_INTNUMBER)
-	ws->AddCellType(CT_STRING_UTF8)
-	ws->AddCellType(CT_STRING_UTF8)
+	ws->AddCellType(CT_STRING_UTF8, 45)
+	ws->AddCellType(CT_STRING_UTF8, 30)
 	ws->AddCellType(CT_INTNUMBER)
-	ws->AddCellType(CT_STRING_UTF8)
-	ws->AddCellType(CT_STRING_UTF8)
+	ws->AddCellType(CT_STRING_UTF8, 45)
+	ws->AddCellType(CT_STRING_UTF8, 15)
 	ws->AddCellType(CT_MONEY)
 	ws->AddCellType(CT_MONEY)
 	ws->AddCellType(CT_MONEY)
@@ -115,8 +115,8 @@ private sub resumoAddHeaderCfopLRS(ws as ExcelWorksheet ptr)
 	row->addCell("Vl IPI")
 	
 	ws->AddCellType(CT_INTNUMBER)
-	ws->AddCellType(CT_STRING_UTF8)
-	ws->AddCellType(CT_STRING_UTF8)
+	ws->AddCellType(CT_STRING_UTF8, 45)
+	ws->AddCellType(CT_STRING_UTF8, 15)
 	ws->AddCellType(CT_MONEY)
 	ws->AddCellType(CT_MONEY)
 	ws->AddCellType(CT_MONEY)
@@ -147,10 +147,10 @@ private sub resumoAddHeaderCstLRS(ws as ExcelWorksheet ptr)
 	row->addCell("Aliq ICMS ST")
 	row->addCell("Vl IPI")
 	
-	ws->AddCellType(CT_STRING_UTF8)
+	ws->AddCellType(CT_STRING_UTF8, 4)
 	ws->AddCellType(CT_INTNUMBER)
-	ws->AddCellType(CT_STRING_UTF8)
-	ws->AddCellType(CT_STRING_UTF8)
+	ws->AddCellType(CT_STRING_UTF8, 45)
+	ws->AddCellType(CT_STRING_UTF8, 30)
 	ws->AddCellType(CT_MONEY)
 	ws->AddCellType(CT_MONEY)
 	ws->AddCellType(CT_MONEY)
@@ -184,13 +184,13 @@ private sub resumoAddHeaderCstCfopLRS(ws as ExcelWorksheet ptr)
 	row->addCell("Aliq ICMS ST")
 	row->addCell("Vl IPI")
 	
-	ws->AddCellType(CT_STRING_UTF8)
+	ws->AddCellType(CT_STRING_UTF8, 4)
 	ws->AddCellType(CT_INTNUMBER)
-	ws->AddCellType(CT_STRING_UTF8)
-	ws->AddCellType(CT_STRING_UTF8)
+	ws->AddCellType(CT_STRING_UTF8, 45)
+	ws->AddCellType(CT_STRING_UTF8, 30)
 	ws->AddCellType(CT_INTNUMBER)
-	ws->AddCellType(CT_STRING_UTF8)
-	ws->AddCellType(CT_STRING_UTF8)
+	ws->AddCellType(CT_STRING_UTF8, 45)
+	ws->AddCellType(CT_STRING_UTF8, 15)
 	ws->AddCellType(CT_MONEY)
 	ws->AddCellType(CT_MONEY)
 	ws->AddCellType(CT_MONEY)
@@ -325,7 +325,7 @@ private function luacb_efd_plan_resumos_Reset cdecl(byval L as lua_State ptr) as
 end function
 
 ''''''''
-sub Efd.criarResumos(mostrarProgresso as ProgressoCB) 
+sub Efd.criarResumos(onProgress as OnProgressCB) 
 
 	'' configurar lua
 	lua_register(lua, "efd_plan_resumos_AddRow", @luacb_efd_plan_resumos_AddRow)
@@ -334,25 +334,25 @@ sub Efd.criarResumos(mostrarProgresso as ProgressoCB)
 	luaL_dofile(lua, ExePath + "\scripts\resumos.lua")
 	
 	''
-	var safiFornecidoMask = iif(nfeDestSafiFornecido, MASK_SAFI_NFE_DEST_FORNECIDO, 0)
-	safiFornecidoMask or= iif(nfeEmitSafiFornecido, MASK_SAFI_NFE_EMIT_FORNECIDO, 0)
-	safiFornecidoMask or= iif(itemNFeSafiFornecido, MASK_SAFI_ITEM_NFE_FORNECIDO, 0)
-	safiFornecidoMask or= iif(cteSafiFornecido, MASK_SAFI_CTE_FORNECIDO, 0)
+	var safiFornecidoMask = iif(nfeDestSafiFornecido, MASK_BO_NFe_DEST_FORNECIDO, 0)
+	safiFornecidoMask or= iif(nfeEmitSafiFornecido, MASK_BO_NFe_EMIT_FORNECIDO, 0)
+	safiFornecidoMask or= iif(itemNFeSafiFornecido, MASK_BO_ITEM_NFE_FORNECIDO, 0)
+	safiFornecidoMask or= iif(cteSafiFornecido, MASK_BO_CTe_FORNECIDO, 0)
 	
 	lua_pushnumber(lua, safiFornecidoMask)
 	lua_setglobal(lua, "dfeFornecidoMask")
 	
 	''
-	criarResumosLRE(mostrarProgresso)
-	criarResumosLRS(mostrarProgresso)
+	criarResumosLRE(onProgress)
+	criarResumosLRS(onProgress)
 	
 end sub
 
 ''''''''
-sub Efd.criarResumosLRE(mostrarProgresso as ProgressoCB)
+sub Efd.criarResumosLRE(onProgress as OnProgressCB)
 
 	
-	mostrarProgresso(wstr(!"\tResumos das entradas"), 0)
+	onProgress(wstr(!"\tResumos das entradas"), 0)
 	
 	' CFOP
 	resumoAddHeaderCfopLRE(resumosLRE)
@@ -365,7 +365,7 @@ sub Efd.criarResumosLRE(mostrarProgresso as ProgressoCB)
 		print "Erro no script lua!"
 	endtry
 	
-	mostrarProgresso(null, 0.33)
+	onProgress(null, 0.33)
 
 	' CST
 	resumoAddHeaderCstLRE(resumosLRE)
@@ -378,7 +378,7 @@ sub Efd.criarResumosLRE(mostrarProgresso as ProgressoCB)
 		print "Erro no script lua!"
 	endtry
 
-	mostrarProgresso(null, 0.66)
+	onProgress(null, 0.66)
 
 	' CST e CFOP
 	resumoAddHeaderCstCfopLRE(resumosLRE)
@@ -391,14 +391,14 @@ sub Efd.criarResumosLRE(mostrarProgresso as ProgressoCB)
 		print "Erro no script lua!"
 	endtry
 	
-	mostrarProgresso(null, 1)
+	onProgress(null, 1)
 
 end sub
 
 ''''''''
-sub Efd.criarResumosLRS(mostrarProgresso as ProgressoCB)
+sub Efd.criarResumosLRS(onProgress as OnProgressCB)
 	
-	mostrarProgresso(wstr(!"\tResumos das saídas"), 0)
+	onProgress(wstr(!"\tResumos das saídas"), 0)
 
 	' CFOP
 	resumoAddHeaderCfopLRS(resumosLRS)
@@ -411,7 +411,7 @@ sub Efd.criarResumosLRS(mostrarProgresso as ProgressoCB)
 		print "Erro no script lua!"
 	endtry
 	
-	mostrarProgresso(null, 0.33)
+	onProgress(null, 0.33)
 
 	' CST
 	resumoAddHeaderCstLRS(resumosLRS)
@@ -424,7 +424,7 @@ sub Efd.criarResumosLRS(mostrarProgresso as ProgressoCB)
 		print "Erro no script lua!"
 	endtry
 	
-	mostrarProgresso(null, 0.66)
+	onProgress(null, 0.66)
 
 	' CST
 	resumoAddHeaderCstCfopLRS(resumosLRS)
@@ -437,7 +437,7 @@ sub Efd.criarResumosLRS(mostrarProgresso as ProgressoCB)
 		print "Erro no script lua!"
 	endtry
 	
-	mostrarProgresso(null, 1)
+	onProgress(null, 1)
 end sub
 
 
