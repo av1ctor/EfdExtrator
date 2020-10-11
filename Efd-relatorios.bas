@@ -176,20 +176,20 @@ end function
 #endmacro
 
 ''''''''
-sub Efd.gerarRelatorios(nomeArquivo as string, mostrarProgresso as ProgressoCB)
+sub Efd.gerarRelatorios(nomeArquivo as string, onProgress as OnProgressCB)
 	
 	if opcoes.somenteRessarcimentoST then
 		print wstr(!"\tNão será possivel gerar relatórios porque só foram extraídos os registros com ressarcimento ST")
 	end if
 	
-	mostrarProgresso(wstr(!"\tGerando relatórios"), 0)
+	onProgress(wstr(!"\tGerando relatórios"), 0)
 	
 	ultimoRelatorio = -1
 
 	relLinhasList.init(cint(PAGE_BOTTOM / ROW_HEIGHT + 0.5), len(RelLinha))
 	relPaginasList.init(1000, len(RelPagina))
 	
-	mostrarProgresso(null, .1)
+	onProgress(null, .1)
 	
 	if not opcoes.pularLre then
 		'' LRE
@@ -234,7 +234,7 @@ sub Efd.gerarRelatorios(nomeArquivo as string, mostrarProgresso as ProgressoCB)
 		finalizarRelatorio()
 	end if
 	
-	mostrarProgresso(null, .5)
+	onProgress(null, .5)
 		
 	if not opcoes.pularLrs then
 		'' LRS
@@ -288,7 +288,7 @@ sub Efd.gerarRelatorios(nomeArquivo as string, mostrarProgresso as ProgressoCB)
 	end if
 	
 	'' outros livros..
-	mostrarProgresso(null, .9)
+	onProgress(null, .9)
 	
 	var reg = regListHead
 	try
@@ -325,7 +325,7 @@ sub Efd.gerarRelatorios(nomeArquivo as string, mostrarProgresso as ProgressoCB)
 	relPaginasList.end_()
 	relLinhasList.end_()
 	
-	mostrarProgresso(null, 1)
+	onProgress(null, 1)
 
 end sub
 

@@ -1,6 +1,7 @@
 '' Extrator de EFD
 '' Copyleft 2017-2020 André Vicentini (avtvicentini)
-'' fbc.exe EfdExtrator.bas Efd.bas Efd-analises.bas Efd-resumos.bas Efd-relatorios.bas Efd-misc.bas bfile.bas ExcelReader.bas ExcelWriter.bas list.bas Dict.bas Pdfer.bas DB.bas VarBox.bas trycatch.bas -d WITH_PARSER -o 3
+'' fbc.exe Efd.bas Efd-analises.bas Efd-resumos.bas Efd-relatorios.bas Efd-misc.bas bfile.bas ExcelReader.bas ExcelWriter.bas list.bas Dict.bas Pdfer.bas DB.bas VarBox.bas trycatch.bas -d WITH_PARSER -o 3 -lib
+'' fbc.exe EfdExtrator.bas -o 3 -d WITH_PARSER -l Efd
 
 #include once "EFD.bi"
 
@@ -71,7 +72,7 @@ sub mostrarUso()
 end sub
 
 '''''''''''
-sub mostrarProgresso(estagio as const wstring ptr, porCompleto as double)
+sub onProgress(estagio as const wstring ptr, porCompleto as double)
 	static as double ultPorCompleto = 0
 	
 	if estagio <> null then
@@ -226,12 +227,12 @@ sub main()
 	   var arquivoEntrada = command(i)
 	   do while len(arquivoEntrada) > 0
 			if lcase(right(arquivoEntrada,3)) = "csv" then
-				if not e.carregarCsv( arquivoEntrada, @mostrarProgresso ) then
+				if not e.carregarCsv( arquivoEntrada, @onProgress ) then
 					print !"\r\nErro ao carregar arquivo: "; arquivoEntrada
 					end -1
 				end if
 			elseif lcase(right(arquivoEntrada,4)) = "xlsx" then
-				if not e.carregarXlsx( arquivoEntrada, @mostrarProgresso ) then
+				if not e.carregarXlsx( arquivoEntrada, @onProgress ) then
 					print !"\r\nErro ao carregar arquivo: "; arquivoEntrada
 					end -1
 				end if
@@ -246,13 +247,13 @@ sub main()
 	   arquivoEntrada = command(i)
 	   do while len(arquivoEntrada) > 0
 			if lcase(right(arquivoEntrada,3)) = "txt" then
-				if not e.carregarTxt( arquivoEntrada, @mostrarProgresso ) then
+				if not e.carregarTxt( arquivoEntrada, @onProgress ) then
 					print !"\r\nErro ao carregar arquivo: "; arquivoEntrada
 					end -1
 				end if
 				
 				print "Processando:"
-				if not e.processar( arquivoEntrada, @mostrarProgresso ) then
+				if not e.processar( arquivoEntrada, @onProgress ) then
 					print !"\r\nErro ao extrair arquivo: "; arquivoEntrada
 					end -1
 				end if
@@ -265,13 +266,13 @@ sub main()
 	'' só um arquivo .txt informado..
 	else
 		var arquivoEntrada = command(nroOpcoes+1)
-		if not e.carregarTxt( arquivoEntrada, @mostrarProgresso ) then
+		if not e.carregarTxt( arquivoEntrada, @onProgress ) then
 			print !"\r\nErro ao carregar arquivo: "; arquivoEntrada
 			end -1
 		end if
 	
 		print "Processando:"
-		if not e.processar( arquivoEntrada, @mostrarProgresso ) then
+		if not e.processar( arquivoEntrada, @onProgress ) then
 			print !"\r\nErro ao extrair arquivo: "; arquivoEntrada
 			end -1
 		end if
@@ -280,14 +281,14 @@ sub main()
 	''
 	if opcoes.formatoDeSaida <> FT_NULL then
 		print "Analisando:"
-		e.analisar(@mostrarProgresso)
+		e.analisar(@onProgress)
 
 		print "Resumindo:"
-		e.criarResumos(@mostrarProgresso)
+		e.criarResumos(@onProgress)
 	end if
    
 	''
-	e.finalizarExtracao( @mostrarProgresso )
+	e.finalizarExtracao( @onProgress )
 	
 end sub
 
@@ -328,7 +329,7 @@ sub importarGia()
 		var ano = inf.int4
 		inf.char2			'' skip \r\n
 		
-		mostrarProgresso("Carregando GIA(" & arquivo & ")", 0)
+		onProgress("Carregando GIA(" & arquivo & ")", 0)
 		
 		'' remover todos os registros desse ano
 		db->execNonQuery("delete from GIA where ano = " & ano)
@@ -372,7 +373,7 @@ sub importarGia()
 			
 			inf.char1			'' skip \n
 			
-			mostrarProgresso(0, inf.posicao / arqTamanho)
+			onProgress(0, inf.posicao / arqTamanho)
 			
 			if l = 100000 then
 				db->execNonQuery("end")
@@ -383,7 +384,7 @@ sub importarGia()
 		loop
 
 		if l > 0 then
-			mostrarProgresso(0, 1)
+			onProgress(0, 1)
 			db->execNonQuery("end")
 		end if
 		
@@ -456,7 +457,7 @@ sub importarCadContribuinte()
 	inf.varchar(10)
 	inf.varchar(10)
 	
-	mostrarProgresso("Carregando Cadastro Contribuinte (" & arquivo & ")", 0)
+	onProgress("Carregando Cadastro Contribuinte (" & arquivo & ")", 0)
 	
 	'' remover todos os registros
 	db->execNonQuery("delete from Contribuinte")
@@ -500,7 +501,7 @@ sub importarCadContribuinte()
 		db->execNonQuery(stmt)
 		
 		if l = 100000 then
-			mostrarProgresso(0, inf.posicao / arqTamanho)
+			onProgress(0, inf.posicao / arqTamanho)
 			db->execNonQuery("end")
 			l = -1
 		end if
@@ -509,7 +510,7 @@ sub importarCadContribuinte()
 	loop
 	
 	if l > 0 then
-		mostrarProgresso(0, 1)
+		onProgress(0, 1)
 		db->execNonQuery("end")
 	end if
 	
@@ -547,7 +548,7 @@ sub importarCadContribuinteRegime()
 	'' pular a primeira linha
 	inf.varchar(10)
 	
-	mostrarProgresso("Carregando Cadastro Regimes (" & arquivo & ")", 0)
+	onProgress("Carregando Cadastro Regimes (" & arquivo & ")", 0)
 	
 	'' remover todos os registros
 	db->execNonQuery("delete from Regimes")
@@ -578,7 +579,7 @@ sub importarCadContribuinteRegime()
 		db->execNonQuery(stmt)
 		
 		if l = 100000 then
-			mostrarProgresso(0, inf.posicao / arqTamanho)
+			onProgress(0, inf.posicao / arqTamanho)
 			db->execNonQuery("end")
 			l = -1
 		end if
@@ -587,7 +588,7 @@ sub importarCadContribuinteRegime()
 	loop
 	
 	if l > 0 then
-		mostrarProgresso(0, 1)
+		onProgress(0, 1)
 		db->execNonQuery("end")
 	end if
 	
@@ -623,7 +624,7 @@ sub importarCadInidoneo()
 	'' pular a primeira linha
 	inf.varchar(10)
 	
-	mostrarProgresso("Carregando Cadastro de Inidôneos (" & arquivo & ")", 0)
+	onProgress("Carregando Cadastro de Inidôneos (" & arquivo & ")", 0)
 	
 	'' remover todos os registros
 	db->execNonQuery("delete from Inidoneos")
@@ -664,7 +665,7 @@ sub importarCadInidoneo()
 		end if
 		
 		if l = 100000 then
-			mostrarProgresso(0, inf.posicao / arqTamanho)
+			onProgress(0, inf.posicao / arqTamanho)
 			db->execNonQuery("end")
 			l = -1
 		end if
@@ -673,7 +674,7 @@ sub importarCadInidoneo()
 	loop
 	
 	if l > 0 then
-		mostrarProgresso(0, 1)
+		onProgress(0, 1)
 		db->execNonQuery("end")
 	end if
 	

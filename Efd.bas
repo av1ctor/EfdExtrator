@@ -243,11 +243,11 @@ sub Efd.iniciarExtracao(nomeArquivo as String, opcoes as OpcoesExtracao)
 end sub
 
 ''''''''
-sub Efd.finalizarExtracao(mostrarProgresso as ProgressoCB)
+sub Efd.finalizarExtracao(onProgress as OnProgressCB)
 
 	''
-	mostrarProgresso("Gravando planilha: " + nomeArquivoSaida, 0)
-	ew->Flush(mostrarProgresso)
+	onProgress("Gravando planilha: " + nomeArquivoSaida, 0)
+	ew->Flush(onProgress)
 	ew->Close
 	delete ew
    
@@ -2485,7 +2485,7 @@ private function Efd.lerRegistroSintegra(bf as bfile, reg as TRegistro ptr) as B
 end function
 
 ''''''''
-function Efd.carregarSintegra(bf as bfile, mostrarProgresso as ProgressoCB) as Boolean
+function Efd.carregarSintegra(bf as bfile, onProgress as OnProgressCB) as Boolean
 	
 	var fsize = bf.tamanho
 	
@@ -2499,7 +2499,7 @@ function Efd.carregarSintegra(bf as bfile, mostrarProgresso as ProgressoCB) as B
 			nroLinha += 1
 
 			if lerRegistroSintegra( bf, reg ) then 
-				mostrarProgresso(null, bf.posicao / fsize)
+				onProgress(null, bf.posicao / fsize)
 				
 				if reg->tipo <> DESCONHECIDO then
 					if tail = null then
@@ -3006,7 +3006,7 @@ private function ordenarRegistrosPorData(head as TRegistro ptr) as TRegistro ptr
 end function
 
 ''''''''
-function Efd.carregarTxt(nomeArquivo as String, mostrarProgresso as ProgressoCB) as Boolean
+function Efd.carregarTxt(nomeArquivo as String, onProgress as OnProgressCB) as Boolean
 
 	dim bf as bfile
    
@@ -3026,11 +3026,11 @@ function Efd.carregarTxt(nomeArquivo as String, mostrarProgresso as ProgressoCB)
 	dim as TArquivoInfo ptr arquivo = arquivos.add()
 	arquivo->nome = nomeArquivo
 	
-	mostrarProgresso("Carregando arquivo: " + nomeArquivo, 0)
+	onProgress("Carregando arquivo: " + nomeArquivo, 0)
 
 	if bf.peek1 <> asc("|") then
 		tipoArquivo = TIPO_ARQUIVO_SINTEGRA
-		function = carregarSintegra(bf, mostrarProgresso)
+		function = carregarSintegra(bf, onProgress)
 	else
 		try
 			tipoArquivo = TIPO_ARQUIVO_EFD
@@ -3043,7 +3043,7 @@ function Efd.carregarTxt(nomeArquivo as String, mostrarProgresso as ProgressoCB)
 				var reg = new TRegistro
 				reg->arquivo = arquivo
 
-				mostrarProgresso(null, (bf.posicao / fsize) * 0.66)
+				onProgress(null, (bf.posicao / fsize) * 0.66)
 				
 				if lerRegistro( bf, reg ) then 
 					if reg->tipo <> DESCONHECIDO then
@@ -3051,7 +3051,7 @@ function Efd.carregarTxt(nomeArquivo as String, mostrarProgresso as ProgressoCB)
 						'' fim de arquivo?
 						case FIM_DO_ARQUIVO
 							delete reg
-							mostrarProgresso(null, 1)
+							onProgress(null, 1)
 							exit do
 
 						'' adicionar ao DB
@@ -3093,7 +3093,7 @@ function Efd.carregarTxt(nomeArquivo as String, mostrarProgresso as ProgressoCB)
 		
 		regListHead = ordenarRegistrosPorData(regListHead)
 		
-		mostrarProgresso(null, 1)
+		onProgress(null, 1)
 
 		function = true
 	  
@@ -3478,7 +3478,7 @@ sub Efd.adicionarItemDFe(chave as const zstring ptr, item as TDFe_NFeItem ptr)
 end sub
 
 ''''''''
-function Efd.carregarCsv(nomeArquivo as String, mostrarProgresso as ProgressoCB) as Boolean
+function Efd.carregarCsv(nomeArquivo as String, onProgress as OnProgressCB) as Boolean
 
 	dim bf as bfile
    
@@ -3486,30 +3486,30 @@ function Efd.carregarCsv(nomeArquivo as String, mostrarProgresso as ProgressoCB)
 		return false
 	end if
 	
-	mostrarProgresso("Carregando arquivo: " + nomeArquivo, 0)
+	onProgress("Carregando arquivo: " + nomeArquivo, 0)
 	
 	dim as integer tipoArquivo
 	dim as boolean isSafi = true
-	if instr( nomeArquivo, "SAFI_NFe_Destinatario" ) > 0 then
-		tipoArquivo = SAFI_NFe_Dest
+	if instr( nomeArquivo, "BO_NFe_Destinatario" ) > 0 then
+		tipoArquivo = BO_NFe_Dest
 		nfeDestSafiFornecido = true
 	
-	elseif instr( nomeArquivo, "SAFI_NFe_Emitente_Itens" ) > 0 then
-		tipoArquivo = SAFI_NFe_Emit_Itens
+	elseif instr( nomeArquivo, "BO_NFe_Emitente_Itens" ) > 0 then
+		tipoArquivo = BO_NFe_Emit_Itens
 		itemNFeSafiFornecido = true
 	
-	elseif instr( nomeArquivo, "SAFI_NFe_Emitente" ) > 0 then
-		tipoArquivo = SAFI_NFe_Emit
+	elseif instr( nomeArquivo, "BO_NFe_Emitente" ) > 0 then
+		tipoArquivo = BO_NFe_Emit
 		nfeEmitSafiFornecido = true
 	
-	elseif instr( nomeArquivo, "SAFI_CTe_CNPJ" ) > 0 then
-		tipoArquivo = SAFI_CTe
+	elseif instr( nomeArquivo, "BO_CTe_CNPJ" ) > 0 then
+		tipoArquivo = BO_CTe
 		cteListHead = null
 		cteListTail = null
 		cteSafiFornecido = true
 		
 	elseif instr( nomeArquivo, "NFE_Emitente_Itens_SP_OSF" ) > 0 then
-		tipoArquivo = SAFI_NFe_Emit_Itens
+		tipoArquivo = BO_NFe_Emit_Itens
 		isSafi = false
 		itemNFeSafiFornecido = true
 	
@@ -3530,7 +3530,7 @@ function Efd.carregarCsv(nomeArquivo as String, mostrarProgresso as ProgressoCB)
 		var emModoOutrasUFs = false
 		
 		do while bf.temProximo()		 
-			mostrarProgresso(null, bf.posicao / fsize)
+			onProgress(null, bf.posicao / fsize)
 			
 			if isSafi then
 				'' outro header?
@@ -3539,12 +3539,12 @@ function Efd.carregarCsv(nomeArquivo as String, mostrarProgresso as ProgressoCB)
 					
 					var linha = lcase(lerLinha(bf))
 					if left(linha, 22) = "cnpj base contribuinte" or left(linha, 26) = "cnpj/cpf base contribuinte" then
-						mostrarProgresso(null, 1)
+						onProgress(null, 1)
 						nroLinha += 1
 						
 						'' se for CT-e, temos que ler o CNPJ base do contribuinte para fazer um 
 						'' patch em todos os tipos de operação (saída ou entrada)
-						if tipoArquivo = SAFI_CTe then
+						if tipoArquivo = BO_CTe then
 							var cnpjBase = bf.charCsv
 							var cte = cteListHead
 							do while cte <> null 
@@ -3565,19 +3565,19 @@ function Efd.carregarCsv(nomeArquivo as String, mostrarProgresso as ProgressoCB)
 			end if
 		
 			select case as const tipoArquivo  
-			case SAFI_NFe_Dest
+			case BO_NFe_Dest
 				var dfe = carregarCsvNFeDestSAFI( bf, emModoOutrasUFs )
 				if dfe <> null then
 					adicionarDFe(dfe)
 				end if
 			
-			case SAFI_NFe_Emit
+			case BO_NFe_Emit
 				var dfe = carregarCsvNFeEmitSAFI( bf )
 				if dfe <> null then
 					adicionarDFe(dfe)
 				end if
 				
-			case SAFI_NFe_Emit_Itens
+			case BO_NFe_Emit_Itens
 				var chave = ""
 				var nfeItem = iif(isSafi, _
 					carregarCsvNFeEmitItensSAFI( bf, chave ), _
@@ -3603,7 +3603,7 @@ function Efd.carregarCsv(nomeArquivo as String, mostrarProgresso as ProgressoCB)
 					dfe->nfe.itemListTail = nfeItem
 				end if
 			
-			case SAFI_CTe
+			case BO_CTe
 				var dfe = carregarCsvCTeSAFI( bf, emModoOutrasUFs )
 			end select
 			
@@ -3611,7 +3611,7 @@ function Efd.carregarCsv(nomeArquivo as String, mostrarProgresso as ProgressoCB)
 		loop
 		
 		if not isSafi then
-			mostrarProgresso(null, 1)
+			onProgress(null, 1)
 		end if
 		
 		function = true
@@ -4124,7 +4124,7 @@ function Efd.carregarXlsxSAT(rd as ExcelReader ptr) as TDFe ptr
 end function
 
 ''''''''
-function Efd.carregarXlsx(nomeArquivo as String, mostrarProgresso as ProgressoCB) as Boolean
+function Efd.carregarXlsx(nomeArquivo as String, onProgress as OnProgressCB) as Boolean
 
 	if left(nomeArquivo, 1) = "~" then
 		return true
@@ -4136,44 +4136,44 @@ function Efd.carregarXlsx(nomeArquivo as String, mostrarProgresso as ProgressoCB
 		return true
 	end if
 
-	mostrarProgresso("Carregando arquivo: " + nomeArquivo, 0)
+	onProgress("Carregando arquivo: " + nomeArquivo, 0)
 	
 	dim as integer tipoArquivo
 	dim as string nomePlanilhas(0 to 1)
 	
 	if instr( nomeArquivo, "NFe_Destinatario_OSF" ) > 0 then
-		tipoArquivo = SAFI_NFe_Dest
+		tipoArquivo = BO_NFe_Dest
 		nfeDestSafiFornecido = true
 		nomePlanilhas(0) = "Planilha NF-e por DestinatÃ¡rio"
 
 	elseif instr( nomeArquivo, "NFe_Emitente_Itens_OSF" ) > 0 then
-		tipoArquivo = SAFI_NFe_Emit_Itens
+		tipoArquivo = BO_NFe_Emit_Itens
 		itemNFeSafiFornecido = true
 		nomePlanilhas(0) = "Planilha"
 	
 	elseif instr( nomeArquivo, "NFe_Emitente_OSF" ) > 0 then
-		tipoArquivo = SAFI_NFe_Emit
+		tipoArquivo = BO_NFe_Emit
 		nfeEmitSafiFornecido = true
 		nomePlanilhas(0) = "Planilha NF-e por Emitente"
 	
 	elseif instr( nomeArquivo, "CTe_CNPJ_Emitente_Tomador_Remetente_Destinatario_OSF" ) > 0 then
-		tipoArquivo = SAFI_CTe
+		tipoArquivo = BO_CTe
 		nomePlanilhas(0) = "CT-e por Emitente"
 		nomePlanilhas(1) = "CT-e por Tomador"
 		cteSafiFornecido = true
 	
 	elseif instr( nomeArquivo, "SAT_-_CuponsEmitidosPorContribuinteCNPJ_OSF" ) > 0 then
-		tipoArquivo = SAFI_SAT
+		tipoArquivo = BO_SAT
 		nfeEmitSafiFornecido = true
 		nomePlanilhas(0) = "Cupons emitidos em dado periodo"
 	
 	elseif instr( nomeArquivo, "SAT_-_ItensDeCuponsCNPJ_OSF" ) > 0 then
-		tipoArquivo = SAFI_SAT_Itens
+		tipoArquivo = BO_SAT_Itens
 		itemNFeSafiFornecido = true
 		nomePlanilhas(0) = "Itens de Cupons"
 	
 	elseif instr( nomeArquivo, "NFC-e_itens_OSF" ) > 0 then
-		tipoArquivo = SAFI_NFCe_Itens
+		tipoArquivo = BO_NFCe_Itens
 		itemNFeSafiFornecido = true
 		nomePlanilhas(0) = "Itens"
 		print wstr(!"\n\tErro: relatório não suportado ainda")
@@ -4187,7 +4187,7 @@ function Efd.carregarXlsx(nomeArquivo as String, mostrarProgresso as ProgressoCB
 		return false
 	
 	elseif instr( nomeArquivo, "REDF_-_Consulta_Cupons_Fiscais_ECF_e_itens_do_CF" ) > 0 then
-		tipoArquivo = SAFI_ECF_Itens
+		tipoArquivo = BO_ECF_Itens
 		itemNFeSafiFornecido = true
 		nomePlanilhas(0) = "REDF - Itens dos Cupons Fiscais"
 		print wstr(!"\n\tErro: relatório não suportado ainda")
@@ -4225,19 +4225,19 @@ function Efd.carregarXlsx(nomeArquivo as String, mostrarProgresso as ProgressoCB
 			do while (reader->nextRow()) 
 				if nroLinha > 1 then
 					select case as const tipoArquivo  
-					case SAFI_NFe_Dest
+					case BO_NFe_Dest
 						var dfe = carregarXlsxNFeDest(reader)
 						if dfe <> null then
 							adicionarDFe(dfe)
 						end if
 					
-					case SAFI_NFe_Emit
+					case BO_NFe_Emit
 						var dfe = carregarXlsxNFeEmit( reader )
 						if dfe <> null then
 							adicionarDFe(dfe)
 						end if
 						
-					case SAFI_NFe_Emit_Itens
+					case BO_NFe_Emit_Itens
 						var chave = ""
 						var nfeItem = carregarXlsxNFeEmitItens( reader, chave )
 						if nfeItem <> null then
@@ -4261,19 +4261,19 @@ function Efd.carregarXlsx(nomeArquivo as String, mostrarProgresso as ProgressoCB
 							dfe->nfe.itemListTail = nfeItem
 						end if
 					
-					case SAFI_CTe
+					case BO_CTe
 						var dfe = carregarXlsxCTe( reader, iif(plan = 0, SAIDA, ENTRADA) )
 						if dfe <> null then
 							adicionarDFe(dfe)
 						end if
 						
-					case SAFI_SAT
+					case BO_SAT
 						var dfe = carregarXlsxSAT( reader )
 						if dfe <> null then
 							adicionarDFe(dfe)
 						end if
 						
-					case SAFI_SAT_Itens
+					case BO_SAT_Itens
 						var chave = ""
 						var satItem = carregarXlsxSATItens( reader, chave )
 						if satItem <> null then
@@ -4297,12 +4297,12 @@ function Efd.carregarXlsx(nomeArquivo as String, mostrarProgresso as ProgressoCB
 							dfe->nfe.itemListTail = satItem
 						end if
 						
-					case SAFI_NFCe_Itens
+					case BO_NFCe_Itens
 						''var dfe = carregarXlsxNFCeItens( reader )
 						''if dfe <> null then
 						''end if
 
-					case SAFI_ECF_Itens
+					case BO_ECF_Itens
 						''var dfe = carregarXlsxECFItens( reader )
 						''if dfe <> null then
 						''end if
@@ -4323,7 +4323,7 @@ function Efd.carregarXlsx(nomeArquivo as String, mostrarProgresso as ProgressoCB
 		plan += 1
 	loop while plan <= ubound(nomePlanilhas)
 	
-	mostrarProgresso(null, 1)
+	onProgress(null, 1)
 	
 	delete reader
 	
@@ -4363,15 +4363,15 @@ private sub adicionarColunasComuns(sheet as ExcelWorksheet ptr, ehEntrada as Boo
 	
 	sheet->AddCellType(CT_STRING)
 	sheet->AddCellType(CT_STRING)
-	sheet->AddCellType(CT_STRING)
-	sheet->AddCellType(CT_STRING)
-	sheet->AddCellType(CT_STRING)
-	sheet->AddCellType(CT_STRING)
+	sheet->AddCellType(CT_STRING, 4)
+	sheet->AddCellType(CT_STRING, 30)
+	sheet->AddCellType(CT_STRING, 4)
+	sheet->AddCellType(CT_STRING, 6)
 	sheet->AddCellType(CT_INTNUMBER)
 	sheet->AddCellType(CT_DATE)
 	sheet->AddCellType(CT_DATE)
-	sheet->AddCellType(CT_STRING)
-	sheet->AddCellType(CT_STRING)
+	sheet->AddCellType(CT_STRING, 45)
+	sheet->AddCellType(CT_STRING, 6)
 	sheet->AddCellType(CT_MONEY)
 	sheet->AddCellType(CT_NUMBER)
 	sheet->AddCellType(CT_MONEY)
@@ -4382,12 +4382,12 @@ private sub adicionarColunasComuns(sheet as ExcelWorksheet ptr, ehEntrada as Boo
 	sheet->AddCellType(CT_MONEY)
 	sheet->AddCellType(CT_INTNUMBER)
 	sheet->AddCellType(CT_NUMBER)
-	sheet->AddCellType(CT_STRING)
+	sheet->AddCellType(CT_STRING, 4)
 	sheet->AddCellType(CT_INTNUMBER)
 	sheet->AddCellType(CT_INTNUMBER)
 	sheet->AddCellType(CT_INTNUMBER)
 	sheet->AddCellType(CT_STRING)
-	sheet->AddCellType(CT_STRING)
+	sheet->AddCellType(CT_STRING, 30)
    
 	if not ehEntrada then
 		row->addCell("DifAl FCP")
@@ -4400,7 +4400,7 @@ private sub adicionarColunasComuns(sheet as ExcelWorksheet ptr, ehEntrada as Boo
 	end if
 	
 	row->addCell("Info. complementares")
-	sheet->AddCellType(CT_STRING)
+	sheet->AddCellType(CT_STRING, 40)
 end sub
    
 ''''''''
@@ -4433,7 +4433,9 @@ private sub criarColunasApuracaoIcms(sheet as ExcelWorksheet ptr)
 	row->addCell("ICMS a Recolher")
 	row->addCell("Saldo Credor a Transportar")
 	row->addCell("Deb Extra Apuracao")
-	row->addCell("Detalhes Ajustes")
+	for i as integer = 1 to MAX_AJUSTES
+		row->addCell("Detalhe Ajuste " & i)
+	next
 	
 	sheet->AddCellType(CT_DATE)
 	sheet->AddCellType(CT_DATE)
@@ -4451,7 +4453,9 @@ private sub criarColunasApuracaoIcms(sheet as ExcelWorksheet ptr)
 	sheet->AddCellType(CT_MONEY)
 	sheet->AddCellType(CT_MONEY)
 	sheet->AddCellType(CT_MONEY)
-	sheet->AddCellType(CT_STRING)
+	for i as integer = 1 to MAX_AJUSTES
+		sheet->AddCellType(CT_STRING, 80)
+	next
 end sub
 
 private sub criarColunasApuracaoIcmsST(sheet as ExcelWorksheet ptr)
@@ -4473,12 +4477,14 @@ private sub criarColunasApuracaoIcmsST(sheet as ExcelWorksheet ptr)
 	row->addCell("ICMS a Recolher")
 	row->addCell("Saldo Credor a Transportar")
 	row->addCell("Deb Extra Apuracao")
-	row->addCell("Detalhes Ajustes")
+	for i as integer = 1 to MAX_AJUSTES
+		row->addCell("Detalhe Ajuste " & i)
+	next
 
 	sheet->AddCellType(CT_DATE)
 	sheet->AddCellType(CT_DATE)
+	sheet->AddCellType(CT_STRING, 4)
 	sheet->AddCellType(CT_STRING)
-	sheet->AddCellType(CT_STRING)
 	sheet->AddCellType(CT_MONEY)
 	sheet->AddCellType(CT_MONEY)
 	sheet->AddCellType(CT_MONEY)
@@ -4492,7 +4498,9 @@ private sub criarColunasApuracaoIcmsST(sheet as ExcelWorksheet ptr)
 	sheet->AddCellType(CT_MONEY)
 	sheet->AddCellType(CT_MONEY)
 	sheet->AddCellType(CT_MONEY)
-	sheet->AddCellType(CT_STRING)
+	for i as integer = 1 to MAX_AJUSTES
+		sheet->AddCellType(CT_STRING, 80)
+	next
 end sub
 
 private sub criarColunasInventario(sheet as ExcelWorksheet ptr)
@@ -4518,8 +4526,8 @@ private sub criarColunasInventario(sheet as ExcelWorksheet ptr)
 	sheet->AddCellType(CT_INTNUMBER)
 	sheet->AddCellType(CT_INTNUMBER)
 	sheet->AddCellType(CT_STRING)
-	sheet->AddCellType(CT_STRING)
-	sheet->AddCellType(CT_STRING)
+	sheet->AddCellType(CT_STRING, 30)
+	sheet->AddCellType(CT_STRING, 6)
 	sheet->AddCellType(CT_NUMBER)
 	sheet->AddCellType(CT_MONEY)
 	sheet->AddCellType(CT_MONEY)
@@ -4563,22 +4571,22 @@ private sub criarColunasCIAP(sheet as ExcelWorksheet ptr)
 	sheet->AddCellType(CT_STRING)
 	sheet->AddCellType(CT_STRING)
 	sheet->AddCellType(CT_DATE)
-	sheet->AddCellType(CT_STRING)
+	sheet->AddCellType(CT_STRING, 6)
 	sheet->AddCellType(CT_MONEY)
 	sheet->AddCellType(CT_MONEY)
 	sheet->AddCellType(CT_MONEY)
 	sheet->AddCellType(CT_MONEY)
 	sheet->AddCellType(CT_INTNUMBER)
 	sheet->AddCellType(CT_MONEY)
-	sheet->AddCellType(CT_STRING)
-	sheet->AddCellType(CT_STRING)
+	sheet->AddCellType(CT_STRING, 4)
+	sheet->AddCellType(CT_STRING, 6)
 	sheet->AddCellType(CT_INTNUMBER)
 	sheet->AddCellType(CT_DATE)
+	sheet->AddCellType(CT_STRING, 30)
 	sheet->AddCellType(CT_STRING)
 	sheet->AddCellType(CT_STRING)
-	sheet->AddCellType(CT_STRING)
-	sheet->AddCellType(CT_STRING)
-	sheet->AddCellType(CT_STRING)
+	sheet->AddCellType(CT_STRING, 4)
+	sheet->AddCellType(CT_STRING, 30)
 end sub
 
 private sub criarColunasEstoque(sheet as ExcelWorksheet ptr)
@@ -4603,13 +4611,13 @@ private sub criarColunasEstoque(sheet as ExcelWorksheet ptr)
 	sheet->AddCellType(CT_INTNUMBER)
 	sheet->AddCellType(CT_INTNUMBER)
 	sheet->AddCellType(CT_STRING)
-	sheet->AddCellType(CT_STRING)
+	sheet->AddCellType(CT_STRING, 30)
 	sheet->AddCellType(CT_NUMBER)
 	sheet->AddCellType(CT_INTNUMBER)
 	sheet->AddCellType(CT_STRING)
 	sheet->AddCellType(CT_STRING)
-	sheet->AddCellType(CT_STRING)
-	sheet->AddCellType(CT_STRING)
+	sheet->AddCellType(CT_STRING, 4)
+	sheet->AddCellType(CT_STRING, 30)
 end sub
 
 private sub criarColunasProducao(sheet as ExcelWorksheet ptr)
@@ -4630,7 +4638,7 @@ private sub criarColunasProducao(sheet as ExcelWorksheet ptr)
 	sheet->AddCellType(CT_INTNUMBER)
 	sheet->AddCellType(CT_INTNUMBER)
 	sheet->AddCellType(CT_STRING)
-	sheet->AddCellType(CT_STRING)
+	sheet->AddCellType(CT_STRING, 30)
 	sheet->AddCellType(CT_NUMBER)
 	sheet->AddCellType(CT_STRING)
 end sub
@@ -4665,16 +4673,16 @@ private sub criarColunasRessarcST(sheet as ExcelWorksheet ptr)
 	
 	sheet->AddCellType(CT_STRING)
 	sheet->AddCellType(CT_STRING)
-	sheet->AddCellType(CT_STRING)
-	sheet->AddCellType(CT_STRING)
-	sheet->AddCellType(CT_STRING)
-	sheet->AddCellType(CT_STRING)
+	sheet->AddCellType(CT_STRING, 4)
+	sheet->AddCellType(CT_STRING, 30)
+	sheet->AddCellType(CT_STRING, 4)
+	sheet->AddCellType(CT_STRING, 6)
 	sheet->AddCellType(CT_INTNUMBER)
 	sheet->AddCellType(CT_DATE)
 	sheet->AddCellType(CT_NUMBER)
 	sheet->AddCellType(CT_MONEY)
 	sheet->AddCellType(CT_MONEY)
-	sheet->AddCellType(CT_STRING)
+	sheet->AddCellType(CT_STRING, 45)
 	sheet->AddCellType(CT_INTNUMBER)
 	sheet->AddCellType(CT_MONEY)
 	sheet->AddCellType(CT_NUMBER)
@@ -4686,7 +4694,7 @@ private sub criarColunasRessarcST(sheet as ExcelWorksheet ptr)
 	sheet->AddCellType(CT_STRING)
 	sheet->AddCellType(CT_STRING)
 	sheet->AddCellType(CT_STRING)
-	sheet->AddCellType(CT_STRING)
+	sheet->AddCellType(CT_STRING, 45)
 	sheet->AddCellType(CT_INTNUMBER)
 end sub
 
@@ -4825,19 +4833,19 @@ function lerInfoAssinatura(nomeArquivo as string, assinaturaP7K_DER() as byte) a
 end function
 
 ''''''''
-function Efd.processar(nomeArquivo as string, mostrarProgresso as ProgressoCB) as Boolean
+function Efd.processar(nomeArquivo as string, onProgress as OnProgressCB) as Boolean
    
 	if opcoes.formatoDeSaida <> FT_NULL then
-		gerarPlanilhas(nomeArquivo, mostrarProgresso)
+		gerarPlanilhas(nomeArquivo, onProgress)
 	else
-		mostrarProgresso(null, 1)
+		onProgress(null, 1)
 	end if
 	
 	if opcoes.gerarRelatorios then
 		if tipoArquivo = TIPO_ARQUIVO_EFD then
 			infAssinatura = lerInfoAssinatura(nomeArquivo, assinaturaP7K_DER())
 		
-			gerarRelatorios(nomeArquivo, mostrarProgresso)
+			gerarRelatorios(nomeArquivo, onProgress)
 			
 			if infAssinatura <> NULL then
 				delete infAssinatura
@@ -4877,13 +4885,13 @@ private function efd.getInfoCompl(info as TDocInfoCompl ptr) as string
 end function
 
 ''''''''
-sub Efd.gerarPlanilhas(nomeArquivo as string, mostrarProgresso as ProgressoCB)
+sub Efd.gerarPlanilhas(nomeArquivo as string, onProgress as OnProgressCB)
 	
 	if entradas = null then
 		criarPlanilhas
 	end if
 	
-	mostrarProgresso(!"\tGerando planilhas", 0)
+	onProgress(!"\tGerando planilhas", 0)
 	
 	dim as TRegistro ptr reg = null
 	try
@@ -5491,16 +5499,13 @@ sub Efd.gerarPlanilhas(nomeArquivo as string, mostrarProgresso as ProgressoCB)
 					
 					var detalhe = ""
 					var ajuste = reg->apuIcms.ajustesListHead
-					var cnt = 0
-					do while ajuste <> null
-						detalhe += iif(cnt > 0, ",", "[") & "{'codigo':'" & ajuste->codigo & "', 'valor':'" & DBL2MONEYBR(ajuste->valor) & "', 'descricao':'" & ajuste->descricao & "'}"
+					var cnt = 1
+					do while ajuste <> null andalso cnt <= MAX_AJUSTES
+						row->addCell("{'codigo':'" & ajuste->codigo & "', 'valor':'" & DBL2MONEYBR(ajuste->valor) & "', 'descricao':'" & ajuste->descricao) & "'}"
 						ajuste = ajuste->next_
 						cnt += 1
 					loop
-					if cnt > 0 then
-						detalhe += "]"
-					end if
-					row->addCell(detalhe)
+					
 				end if
 				
 			case APURACAO_ICMS_ST_PERIODO
@@ -5765,7 +5770,7 @@ sub Efd.gerarPlanilhas(nomeArquivo as string, mostrarProgresso as ProgressoCB)
 			end select
 
 			regCnt =+ 1
-			mostrarProgresso(null, regCnt / nroRegs)
+			onProgress(null, regCnt / nroRegs)
 			
 			reg = reg->next_
 		loop
@@ -5773,7 +5778,7 @@ sub Efd.gerarPlanilhas(nomeArquivo as string, mostrarProgresso as ProgressoCB)
 		print !"\r\nErro ao tratar o registro de tipo (" & reg->tipo & !") carregado na linha (" & reg->linha & !")\r\n"
 	endtry
 	
-	mostrarProgresso(null, 1)
+	onProgress(null, 1)
 	
 end sub
 
@@ -5891,10 +5896,10 @@ sub Efd.exportAPI(L as lua_State ptr)
 	lua_setarGlobal(L, "TR_CST", TR_CST)
 	lua_setarGlobal(L, "TR_CST_CFOP", TR_CST_CFOP)
 
-	lua_setarGlobal(L, "DFE_NFE_DEST_FORNECIDO", MASK_SAFI_NFE_DEST_FORNECIDO)
-	lua_setarGlobal(L, "DFE_NFE_EMIT_FORNECIDO", MASK_SAFI_NFE_EMIT_FORNECIDO)
-	lua_setarGlobal(L, "DFE_ITEM_NFE_FORNECIDO", MASK_SAFI_ITEM_NFE_FORNECIDO)
-	lua_setarGlobal(L, "DFE_CTE_FORNECIDO", MASK_SAFI_CTE_FORNECIDO)
+	lua_setarGlobal(L, "DFE_NFE_DEST_FORNECIDO", MASK_BO_NFe_DEST_FORNECIDO)
+	lua_setarGlobal(L, "DFE_NFE_EMIT_FORNECIDO", MASK_BO_NFe_EMIT_FORNECIDO)
+	lua_setarGlobal(L, "DFE_ITEM_NFE_FORNECIDO", MASK_BO_ITEM_NFE_FORNECIDO)
+	lua_setarGlobal(L, "DFE_CTE_FORNECIDO", MASK_BO_CTe_FORNECIDO)
 	
 	lua_setarGlobal(L, "efd", @this)
 	
