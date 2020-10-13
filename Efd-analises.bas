@@ -65,7 +65,7 @@ private function luacb_efd_plan_inconsistencias_AddRow cdecl(byval L as lua_Stat
 end function
 
 ''''''''
-sub Efd.analisar(onProgress as OnProgressCB) 
+sub Efd.analisar() 
 
 	'' configurar lua
 	lua_register(lua, "efd_plan_inconsistencias_AddRow", @luacb_efd_plan_inconsistencias_AddRow)
@@ -82,17 +82,17 @@ sub Efd.analisar(onProgress as OnProgressCB)
 	lua_setglobal(lua, "dfeFornecidoMask")
 	
 	''
-	analisarInconsistenciasLRE(onProgress)
-	analisarInconsistenciasLRS(onProgress)
+	analisarInconsistenciasLRE()
+	analisarInconsistenciasLRS()
 	
 end sub
 
 ''''''''
-sub Efd.analisarInconsistenciasLRE(onProgress as OnProgressCB)
+sub Efd.analisarInconsistenciasLRE()
 
 	inconsistenciaAddHeader(inconsistenciasLRE)
 	
-	onProgress(wstr(!"\tInconsistências nas entradas"), 0)
+	onProgress(!"\tInconsistências nas entradas", 0)
 	
 	try
 		lua_getglobal(lua, "LRE_analisarInconsistencias")
@@ -100,7 +100,7 @@ sub Efd.analisarInconsistenciasLRE(onProgress as OnProgressCB)
 		lua_pushlightuserdata(lua, inconsistenciasLRE)
 		lua_call(lua, 2, 0)
 	catch
-		print "Erro no script lua!"
+		onError("Erro no script lua!")
 	endtry
 	
 	onProgress(null, 1)
@@ -108,11 +108,11 @@ sub Efd.analisarInconsistenciasLRE(onProgress as OnProgressCB)
 end sub
 
 ''''''''
-sub Efd.analisarInconsistenciasLRS(onProgress as OnProgressCB)
+sub Efd.analisarInconsistenciasLRS()
 	
 	inconsistenciaAddHeader(inconsistenciasLRS)
 	
-	onProgress(wstr(!"\tInconsistências nas saídas"), 0)
+	onProgress(!"\tInconsistências nas saídas", 0)
 
 	try
 		lua_getglobal(lua, "LRS_analisarInconsistencias")
@@ -120,7 +120,7 @@ sub Efd.analisarInconsistenciasLRS(onProgress as OnProgressCB)
 		lua_pushlightuserdata(lua, inconsistenciasLRS)
 		lua_call(lua, 2, 0)
 	catch
-		print "Erro no script lua!"
+		onError("Erro no script lua!")
 	endtry
 	
 	onProgress(null, 1)

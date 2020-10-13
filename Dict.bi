@@ -16,8 +16,10 @@ type DictChain
 end type
 
 type TDict
-	declare sub init(nodes as integer, delKey as boolean = false, delVal as boolean = false, allocKey as boolean = false)
-	declare sub end_()
+	declare constructor(nodes as integer, delKey as boolean = false, delVal as boolean = false, allocKey as boolean = false)
+	declare destructor()
+	declare function lookup(key as integer) as any ptr
+	declare function lookup(key as double) as any ptr
 	declare function lookup(key as const zstring ptr) as any ptr
 	declare function lookupEx(key as const zstring ptr, index as uinteger) as any ptr
 	declare operator [](key as integer) as any ptr

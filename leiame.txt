@@ -1,7 +1,10 @@
 Extrator de EFD/Sintegra para Excel/Word
 Copyleft 2017-2020 by André Vicentini (avtvicentini)
 
-Modo de usar:
+Quando o aplicativo é executado sem passar nenhum parâmetro, será mostrada a interface gráfica 
+para seleção dos arquivos e marcação de opções.
+
+Modo de usar (linha de comando):
 	
 	EfdExtrator.exe Opções efd-ou-sintegra.txt [relatorio-bo.csv] [relatorio-bo.xlsx]
 	
@@ -19,6 +22,9 @@ Modo de usar:
 	   no Excel 2003 ou superior (exceto se o formato de saída for null)
 	
 	Opções:
+	-ajuda
+	 Mostra esta tela de ajuda
+	 
 	-gerarRelatorios:
 	 Gera os relatórios do EFD-ICMS-IPI no formato PDF.
 	 

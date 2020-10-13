@@ -74,7 +74,7 @@ type ExcelWorkbook
 	declare function AddWorksheet(name as string) as ExcelWorksheet ptr
 end type
 
-type ProgressCB as sub(stage as const wstring ptr, preComplete as double)
+type OnProgressCB as sub(stage as const zstring ptr, preComplete as double)
 
 enum FileType
 	FT_XLSX
@@ -88,7 +88,7 @@ type ExcelWriter
 	declare destructor
 	declare function AddWorksheet(name as string) as ExcelWorksheet ptr
 	declare function create(fileName as string, ftype as FileType = FT_XLSX) as boolean
-	declare function flush(showProgress as ProgressCB) as boolean
+	declare function flush(onProgress as OnProgressCB) as boolean
 	declare sub close
 	declare static sub exportAPI(L as lua_State ptr)
 	

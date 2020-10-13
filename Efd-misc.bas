@@ -1,10 +1,8 @@
 #include once "Efd.bi"
-#include once "libiconv.bi"
 
 dim shared as string ufCod2Sigla(11 to 53)
-dim shared as TDict ufSigla2CodDict
+dim shared as TDict ptr ufSigla2CodDict
 dim shared as string codSituacao2Str(0 to __TipoSituacao__LEN__-1)
-dim shared cdLatin2UTF16Le as iconv_t
 
 private sub tablesCtor constructor
 	ufCod2Sigla(11)="RO"
@@ -36,16 +34,16 @@ private sub tablesCtor constructor
 	ufCod2Sigla(53)="DF"
 	
 	''
-	ufSigla2CodDict.init(30)
+	ufSigla2CodDict = new TDict(30)
 	for i as integer = 11 to 53
 		if len(ufCod2Sigla(i)) > 0 then
 			var valor = new VarBox(i)
-			ufSigla2CodDict.add(ufCod2Sigla(i), valor)
+			ufSigla2CodDict->add(ufCod2Sigla(i), valor)
 		end if
 	next
 
 	var valor = new VarBox(99)
-	ufSigla2CodDict.add("EX", valor)
+	ufSigla2CodDict->add("EX", valor)
 	
 	''
 	codSituacao2Str(REGULAR) 			= "REG"
@@ -58,27 +56,8 @@ private sub tablesCtor constructor
 	codSituacao2Str(COMPLEMENTAR_EXT) 	= "COMPL EXTEMP"
 	codSituacao2Str(REGIME_ESPECIAL) 	= "REG ESP"
 	codSituacao2Str(SUBSTITUIDO) 		= "SUBST"
-	
-	''
-	cdLatin2UTF16Le = iconv_open("UTF-16LE", "ISO_8859-1")
-end sub
 
-private sub shutdown() destructor
-	iconv_close(cdLatin2UTF16Le)
 end sub
-
-'''''
-function latinToUtf16le(src as zstring ptr) as wstring ptr
-	var bytes = len(*src)
-	var dst = allocate((bytes+1) * len(wstring))
-	var srcp = src
-	var srcleft = bytes
-	var dstp = dst
-	var dstleft = bytes*2
-	iconv(cdLatin2UTF16Le, @srcp, @srcleft, @dstp, @dstleft)
-	*cast(wstring ptr, dstp) = 0
-	function = dst
-end function
 
 '''''
 function UF_SIGLA2COD(s as zstring ptr) as integer
@@ -91,7 +70,7 @@ function UF_SIGLA2COD(s as zstring ptr) as integer
 		return 0
 	end if
 	
-	var cod = cast(VarBox ptr, ufSigla2CodDict[s])
+	var cod = cast(VarBox ptr, ufSigla2CodDict->lookup(s))
 	if cod = null then
 		return 0
 	end if
@@ -203,7 +182,7 @@ end function
 ''''''''
 function EFd.codMunicipio2Nome(cod as integer) as string
 	
-	var nome = cast(zstring ptr, municipDict[cod])
+	var nome = cast(zstring ptr, municipDict->lookup(cod))
 	if nome <> null then
 		return *nome
 	end if
@@ -213,7 +192,7 @@ function EFd.codMunicipio2Nome(cod as integer) as string
 		return ""
 	end if
 	
-	municipDict.add(cod, nomedb)
+	municipDict->add(cod, nomedb)
 	
 	function = *nomedb
 end function
@@ -246,116 +225,5 @@ function tipoItem2Str(tipo as TipoItemId) as string
 	case else
 		return "Outras"
 	end select
-end function
-
-''''''''
-function dupstr(s as const zstring ptr) as zstring ptr
-	dim as zstring ptr d = allocate(len(*s)+1)
-	*d = *s
-	function = d
-end function
-
-''''''''
-sub splitstr(Text as string, Delim as string, Ret() as string)
-
-	var items = 10
-	redim RetVal(0 to items-1) as integer
-	
-	var x = 0
-	var p = 0
-	do 
-		x = InStr(x + 1, Text, Delim)
-		if( x > 0 ) then
-			if( p >= items ) then
-				items += 10
-				redim preserve RetVal(0 to items-1)
-			end if
-			RetVal(p) = x
-		end if
-		p += 1
-	loop until x = 0
-	
-	var cnt = p - 1
-	if( cnt = 0 ) then
-		redim Ret(0 to 0)
-		ret(0) = text
-		return
-	end if
-	
-	redim Ret(0 to cnt)
-	Ret(0) = Left(Text, RetVal(0) - 1 )
-	p = 1
-	do until p = cnt
-		Ret(p) = mid(Text, RetVal(p - 1) + 1, RetVal(p) - RetVal(p - 1) - 1 )
-		p += 1
-	loop
-	Ret(cnt) = mid(Text, RetVal(cnt - 1) + 1)
-   
-end sub
-
-
-'''''''
-function loadstrings(fromFile as string, toArray() as string) as boolean
-	
-	var fnum = FreeFile
-	if open(fromFile for input as #fnum) <> 0 then
-		return false
-	end if
-
-	var items = 10
-	redim toArray(0 to items-1)
-	
-	var i = 0
-	do while not eof(fnum)
-		if( i >= items ) then
-			items += 10
-			redim preserve toArray(0 to items-1)
-		end if
-		
-		line input #fnum, toArray(i)
-		if len(toArray(i)) = 0 then
-			exit do
-		end if
-		i += 1
-	loop
-	
-	redim preserve toArray(0 to i-1)
-	
-	close #fnum
-	
-	return true
-end function
-
-function strreplace _
-	( _
-		byref text as string, _
-		byref a as string, _
-		byref b as string _
-	) as string
-
-	var result = text
-
-	var alen = len(a)
-	var blen = len(b)
-
-	var i = 0
-	do
-		'' Does result contain an occurence of a?
-		i = instr(i + 1, result, a)
-		if i = 0 then
-			exit do
-		end if
-
-		'' Cut out a and insert b in its place
-		'' result  =  front  +  b  +  back
-		var keep = right(result, len(result) - ((i - 1) + alen))
-		result = left(result, i - 1)
-		result += b
-		result += keep
-
-		i += blen - 1
-	loop
-
-	function = result
 end function
 

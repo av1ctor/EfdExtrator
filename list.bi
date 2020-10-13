@@ -15,8 +15,8 @@ type TListTb
 end type
 
 type TList
-	declare sub init(nodes as integer, nodeLen as integer, clearNodes as boolean = true)
-	declare sub end_()
+	declare constructor(nodes as integer, nodeLen as integer, clearNodes as boolean = true)
+	declare destructor()
 	declare function add() as any ptr
 	declare function addOrdAsc(key as any ptr, cmpFunc as function(key as any ptr, node as any ptr) as boolean) as any ptr
 	declare sub del(node as any ptr)

@@ -30,21 +30,26 @@ private function my_lua_Alloc cdecl _
 end function
 
 ''''''''
-constructor Efd()
+constructor Efd(onProgress as OnProgressCB, onError as OnErrorCB)
+	
+	'' eventos
+	this.onProgress = onProgress
+	this.onError = onError
+	
 	''
-	chaveDFeDict.init(2^20)
+	chaveDFeDict = new TDict(2^20)
 	nfeDestSafiFornecido = false
 	nfeEmitSafiFornecido = false
 	itemNFeSafiFornecido = false
 	cteSafiFornecido = false
 	dfeListHead = null
 	dfeListTail = null
-	arquivos.init(10, len(TArquivoInfo))
+	arquivos = new TList(10, len(TArquivoInfo))
 	
 	''
 	baseTemplatesDir = ExePath + "\templates\"
 	
-	municipDict.init(2^10, true, true, true)
+	municipDict = new TDict(2^10, true, true, true)
 	
 	''
 	dbConfig = new TDb
@@ -59,10 +64,10 @@ destructor Efd()
 	delete dbConfig
 	
 	''
-	municipDict.end_()
+	delete municipDict
 	
 	''
-	chaveDFeDict.end_()
+	delete chaveDFeDict
 	
 	do while dfeListHead <> null
 		var next_ = dfeListHead->next_
@@ -77,15 +82,13 @@ destructor Efd()
 		dfeListHead = next_
 	loop
 	
-	arquivos.end_()
+	delete arquivos
 	
 end destructor
 
 ''''''''
 private sub lua_carregarCustoms(d as TDict ptr, L as lua_State ptr) 
 
-	d->init(16, true, true, true)
-	
 	lua_getglobal(L, "getCustomCallbacks")
 	lua_call(L, 0, 1)
 	if lua_isnil(L, -1) = 0 then
@@ -136,14 +139,15 @@ sub EFd.configurarScripting()
 		luaL_dofile(lua, ExePath + "\scripts\config.lua")
 		luaL_dofile(lua, ExePath + "\scripts\customizacao.lua")	
 		
-		lua_carregarCustoms(@customLuaCbDict, lua)
+		customLuaCbDict = new TDict(16, true, true, true)
+		lua_carregarCustoms(customLuaCbDict, lua)
 	catch
-		print "Erro ao carregar script lua. Verifique erros de sintaxe"
+		onError("Erro ao carregar script lua. Verifique erros de sintaxe")
 	endtry
 end sub
 
 ''''''''
-private function lua_criarTabela(lua as lua_State ptr, db as TDb ptr, tabela as const zstring ptr) as TDbStmt ptr
+private function lua_criarTabela(lua as lua_State ptr, db as TDb ptr, tabela as const zstring ptr, onError as OnErrorCB) as TDbStmt ptr
 
 	try
 		lua_getglobal(lua, "criarTabela_" + *tabela)
@@ -151,12 +155,12 @@ private function lua_criarTabela(lua as lua_State ptr, db as TDb ptr, tabela as 
 		lua_call(lua, 1, 1)
 		var res = db->prepare(lua_tostring(lua, -1))
 		if res = null then
-			print wstr("Erro ao executar script lua de criação de tabela: " + "criarTabela_" + *tabela + ": " + *db->getErrorMsg())
+			onError("Erro ao executar script lua de criação de tabela: " + "criarTabela_" + *tabela + ": " + *db->getErrorMsg())
 		end if
 		function = res
 		lua_pop(lua, 1)
 	catch
-		print wstr("Erro ao executar script lua de criação de tabela: " + "criarTabela_" + *tabela + ". Verifique erros de sintaxe")
+		onError("Erro ao executar script lua de criação de tabela: " + "criarTabela_" + *tabela + ". Verifique erros de sintaxe")
 	endtry
 
 end function
@@ -185,25 +189,25 @@ sub Efd.configurarDB()
 		lua_call(lua, 2, 0)
 
 		'' criar tabelas
-		db_dfeEntradaInsertStmt = lua_criarTabela(lua, db, "DFe_Entradas")
+		db_dfeEntradaInsertStmt = lua_criarTabela(lua, db, "DFe_Entradas", onError)
 
-		db_dfeSaidaInsertStmt = lua_criarTabela(lua, db, "DFe_Saidas")
+		db_dfeSaidaInsertStmt = lua_criarTabela(lua, db, "DFe_Saidas", onError)
 		
-		db_itensDfeSaidaInsertStmt = lua_criarTabela(lua, db, "DFe_Saidas_Itens")
+		db_itensDfeSaidaInsertStmt = lua_criarTabela(lua, db, "DFe_Saidas_Itens", onError)
 		
-		db_LREInsertStmt = lua_criarTabela(lua, db, "EFD_LRE")
+		db_LREInsertStmt = lua_criarTabela(lua, db, "EFD_LRE", onError)
 
-		db_itensNfLRInsertStmt = lua_criarTabela(lua, db, "EFD_Itens")
+		db_itensNfLRInsertStmt = lua_criarTabela(lua, db, "EFD_Itens", onError)
 
-		db_LRSInsertStmt = lua_criarTabela(lua, db, "EFD_LRS")
+		db_LRSInsertStmt = lua_criarTabela(lua, db, "EFD_LRS", onError)
 		
-		db_analInsertStmt = lua_criarTabela(lua, db, "EFD_Anal")
+		db_analInsertStmt = lua_criarTabela(lua, db, "EFD_Anal", onError)
 
-		db_ressarcStItensNfLRSInsertStmt = lua_criarTabela(lua, db, "EFD_Ressarc_Itens")
+		db_ressarcStItensNfLRSInsertStmt = lua_criarTabela(lua, db, "EFD_Ressarc_Itens", onError)
 		
-		db_itensIdInsertStmt = lua_criarTabela(lua, db, "EFD_ItensId")
+		db_itensIdInsertStmt = lua_criarTabela(lua, db, "EFD_ItensId", onError)
 		
-		db_mestreInsertStmt = lua_criarTabela(lua, db, "EFD_Mestre")
+		db_mestreInsertStmt = lua_criarTabela(lua, db, "EFD_Mestre", onError)
 		
 		if db_dfeEntradaInsertStmt = null or _
 			db_dfeSaidaInsertStmt = null or _
@@ -217,10 +221,50 @@ sub Efd.configurarDB()
 			
 		end if
 	catch
-		print wstr("Erro ao executar script lua de criação de DB. Verifique erros de sintaxe")
+		onError("Erro ao executar script lua de criação de DB. Verifique erros de sintaxe")
 	endtry
 
 end sub   
+
+''''''''
+sub Efd.fecharDb()
+	if db <> null then
+		if db_dfeEntradaInsertStmt <> null then
+			delete db_dfeEntradaInsertStmt
+		end if
+		if db_dfeSaidaInsertStmt <> null then
+			delete db_dfeSaidaInsertStmt
+		end if
+		if db_itensDfeSaidaInsertStmt <> null then
+			delete db_itensDfeSaidaInsertStmt
+		end if
+		if db_LREInsertStmt <> null then
+			delete db_LREInsertStmt
+		end if
+		if db_itensNfLRInsertStmt <> null then
+			delete db_itensNfLRInsertStmt
+		end if
+		if db_LRSInsertStmt <> null then
+			delete db_LRSInsertStmt
+		end if
+		if db_analInsertStmt <> null then
+			delete db_analInsertStmt
+		end if
+		if db_ressarcStItensNfLRSInsertStmt <> null then
+			delete db_ressarcStItensNfLRSInsertStmt
+		end if
+		if db_itensIdInsertStmt <> null then
+			delete db_itensIdInsertStmt
+		end if
+		if db_mestreInsertStmt <> null then
+			delete db_mestreInsertStmt
+		end if
+		
+		db->close()
+		delete db
+		db = null
+	end if
+end sub
   
 ''''''''
 sub Efd.iniciarExtracao(nomeArquivo as String, opcoes as OpcoesExtracao)
@@ -243,7 +287,7 @@ sub Efd.iniciarExtracao(nomeArquivo as String, opcoes as OpcoesExtracao)
 end sub
 
 ''''''''
-sub Efd.finalizarExtracao(onProgress as OnProgressCB)
+sub Efd.finalizarExtracao()
 
 	''
 	onProgress("Gravando planilha: " + nomeArquivoSaida, 0)
@@ -252,7 +296,7 @@ sub Efd.finalizarExtracao(onProgress as OnProgressCB)
 	delete ew
    
 	''
-	delete db
+	fecharDb()
 	if opcoes.dbEmDisco then
 		if not opcoes.manterDb then
 			kill nomeArquivoSaida + ".db"
@@ -312,7 +356,7 @@ end function
 function Efd.lerTipo(bf as bfile, tipo as zstring ptr) as TipoRegistro
 
 	if bf.peek1 <> asc("|") then
-		print "Erro: fora de sincronia na linha:"; nroLinha
+		onError("Erro: fora de sincronia na linha:" & nroLinha)
 	else
 		bf.char1 ' pular |
 	end if
@@ -428,7 +472,7 @@ function Efd.lerTipo(bf as bfile, tipo as zstring ptr) as TipoRegistro
 	end select
 	
 	if tp = DESCONHECIDO then
-		if customLuaCbDict[*tipo] <> null then
+		if customLuaCbDict->lookup(*tipo) <> null then
 			tp = LUA_CUSTOM
 		end if
 	end if
@@ -438,7 +482,7 @@ function Efd.lerTipo(bf as bfile, tipo as zstring ptr) as TipoRegistro
 end function
 
 ''''''''
-private function lerRegMestre(bf as bfile, reg as TRegistro ptr) as Boolean
+function Efd.lerRegMestre(bf as bfile, reg as TRegistro ptr) as Boolean
    
 	bf.char1		'pular |
 
@@ -465,7 +509,7 @@ private function lerRegMestre(bf as bfile, reg as TRegistro ptr) as Boolean
 		bf.char1
 	end if
 	if bf.peek1 <> 10 then
-		print "Erro: esperado \n, encontrado "; bf.peek1
+		onError("Erro: esperado \n, encontrado " & bf.peek1)
 	else
 		bf.char1
 	end if
@@ -475,7 +519,7 @@ private function lerRegMestre(bf as bfile, reg as TRegistro ptr) as Boolean
 end function
 
 ''''''''
-private function lerRegParticipante(bf as bfile, reg as TRegistro ptr) as Boolean
+function Efd.lerRegParticipante(bf as bfile, reg as TRegistro ptr) as Boolean
    
 	bf.char1		'pular |
 
@@ -497,7 +541,7 @@ private function lerRegParticipante(bf as bfile, reg as TRegistro ptr) as Boolea
 		bf.char1
 	end if
 	if bf.peek1 <> 10 then
-		print "Erro: esperado \n, encontrado "; bf.peek1
+		onError("Erro: esperado \n, encontrado " & bf.peek1)
 	else
 		bf.char1
 	end if
@@ -507,7 +551,7 @@ private function lerRegParticipante(bf as bfile, reg as TRegistro ptr) as Boolea
 end function
 
 ''''''''
-private function lerRegDocNF(bf as bfile, reg as TRegistro ptr) as Boolean
+function Efd.lerRegDocNF(bf as bfile, reg as TRegistro ptr) as Boolean
 
 	bf.char1		'pular |
 
@@ -555,7 +599,7 @@ private function lerRegDocNF(bf as bfile, reg as TRegistro ptr) as Boolean
 		bf.char1
 	end if
 	if bf.peek1 <> 10 then
-		print "Erro: esperado \n, encontrado "; bf.peek1
+		onError("Erro: esperado \n, encontrado " & bf.peek1)
 	else
 		bf.char1
 	end if
@@ -565,7 +609,7 @@ private function lerRegDocNF(bf as bfile, reg as TRegistro ptr) as Boolean
 end function
 
 ''''''''
-private function lerRegDocNFInfo(bf as bfile, reg as TRegistro ptr, pai as TDocNF ptr) as Boolean
+function Efd.lerRegDocNFInfo(bf as bfile, reg as TRegistro ptr, pai as TDocNF ptr) as Boolean
 
 	bf.char1		'pular |
 
@@ -578,7 +622,7 @@ private function lerRegDocNFInfo(bf as bfile, reg as TRegistro ptr, pai as TDocN
 		bf.char1
 	end if
 	if bf.peek1 <> 10 then
-		print "Erro: esperado \n, encontrado "; bf.peek1
+		onError("Erro: esperado \n, encontrado " & bf.peek1)
 	else
 		bf.char1
 	end if
@@ -588,7 +632,7 @@ private function lerRegDocNFInfo(bf as bfile, reg as TRegistro ptr, pai as TDocN
 end function
 
 ''''''''
-private function efd.lerRegDocNFItem(bf as bfile, reg as TRegistro ptr, documentoPai as TDocNF ptr) as Boolean
+function Efd.lerRegDocNFItem(bf as bfile, reg as TRegistro ptr, documentoPai as TDocNF ptr) as Boolean
 
 	bf.char1		'pular |
 
@@ -644,7 +688,7 @@ private function efd.lerRegDocNFItem(bf as bfile, reg as TRegistro ptr, document
 		bf.char1
 	end if
 	if bf.peek1 <> 10 then
-		print "Erro: esperado \n, encontrado "; bf.peek1
+		onError("Erro: esperado \n, encontrado " & bf.peek1)
 	else
 		bf.char1
 	end if
@@ -654,7 +698,7 @@ private function efd.lerRegDocNFItem(bf as bfile, reg as TRegistro ptr, document
 end function
 
 ''''''''
-private function lerRegDocNFItemAnal(bf as bfile, reg as TRegistro ptr, documentoPai as TRegistro ptr) as Boolean
+function Efd.lerRegDocNFItemAnal(bf as bfile, reg as TRegistro ptr, documentoPai as TRegistro ptr) as Boolean
 
 	bf.char1		'pular |
 
@@ -679,7 +723,7 @@ private function lerRegDocNFItemAnal(bf as bfile, reg as TRegistro ptr, document
 		bf.char1
 	end if
 	if bf.peek1 <> 10 then
-		print "Erro: esperado \n, encontrado "; bf.peek1
+		onError("Erro: esperado \n, encontrado " & bf.peek1)
 	else
 		bf.char1
 	end if
@@ -689,7 +733,7 @@ private function lerRegDocNFItemAnal(bf as bfile, reg as TRegistro ptr, document
 end function
 
 ''''''''
-private function lerRegDocNFItemRessarcSt(bf as bfile, reg as TRegistro ptr, documentoPai as TDocNFItem ptr) as Boolean
+function Efd.lerRegDocNFItemRessarcSt(bf as bfile, reg as TRegistro ptr, documentoPai as TDocNFItem ptr) as Boolean
 
 	bf.char1		'pular |
 
@@ -733,7 +777,7 @@ private function lerRegDocNFItemRessarcSt(bf as bfile, reg as TRegistro ptr, doc
 		bf.char1
 	end if
 	if bf.peek1 <> 10 then
-		print "Erro: esperado \n, encontrado "; bf.peek1
+		onError("Erro: esperado \n, encontrado " & bf.peek1)
 	else
 		bf.char1
 	end if
@@ -743,7 +787,7 @@ private function lerRegDocNFItemRessarcSt(bf as bfile, reg as TRegistro ptr, doc
 end function
 
 ''''''''
-private function lerRegDocNFDifal(bf as bfile, reg as TRegistro ptr, documentoPai as TDocNF ptr) as Boolean
+function Efd.lerRegDocNFDifal(bf as bfile, reg as TRegistro ptr, documentoPai as TDocNF ptr) as Boolean
 
 	bf.char1		'pular |
 
@@ -756,7 +800,7 @@ private function lerRegDocNFDifal(bf as bfile, reg as TRegistro ptr, documentoPa
 		bf.char1
 	end if
 	if bf.peek1 <> 10 then
-		print "Erro: esperado \n, encontrado "; bf.peek1
+		onError("Erro: esperado \n, encontrado " & bf.peek1)
 	else
 		bf.char1
 	end if
@@ -766,7 +810,7 @@ private function lerRegDocNFDifal(bf as bfile, reg as TRegistro ptr, documentoPa
 end function
 
 ''''''''
-private function lerRegDocCT(bf as bfile, reg as TRegistro ptr) as Boolean
+function Efd.lerRegDocCT(bf as bfile, reg as TRegistro ptr) as Boolean
 
 	bf.char1		'pular |
 
@@ -812,7 +856,7 @@ private function lerRegDocCT(bf as bfile, reg as TRegistro ptr) as Boolean
 		bf.char1
 	end if
 	if bf.peek1 <> 10 then
-		print "Erro: esperado \n, encontrado "; bf.peek1
+		onError("Erro: esperado \n, encontrado " & bf.peek1)
 	else
 		bf.char1
 	end if
@@ -822,7 +866,7 @@ private function lerRegDocCT(bf as bfile, reg as TRegistro ptr) as Boolean
 end function
 
 ''''''''
-private function lerRegDocCTItemAnal(bf as bfile, reg as TRegistro ptr, docPai as TRegistro ptr) as Boolean
+function Efd.lerRegDocCTItemAnal(bf as bfile, reg as TRegistro ptr, docPai as TRegistro ptr) as Boolean
 
 	bf.char1		'pular |
 
@@ -842,7 +886,7 @@ private function lerRegDocCTItemAnal(bf as bfile, reg as TRegistro ptr, docPai a
 		bf.char1
 	end if
 	if bf.peek1 <> 10 then
-		print "Erro: esperado \n, encontrado "; bf.peek1
+		onError("Erro: esperado \n, encontrado " & bf.peek1)
 	else
 		bf.char1
 	end if
@@ -852,7 +896,7 @@ private function lerRegDocCTItemAnal(bf as bfile, reg as TRegistro ptr, docPai a
 end function
 
 ''''''''
-private function lerRegDocCTDifal(bf as bfile, reg as TRegistro ptr, docPai as TDocCT ptr) as Boolean
+function Efd.lerRegDocCTDifal(bf as bfile, reg as TRegistro ptr, docPai as TDocCT ptr) as Boolean
 
 	bf.char1		'pular |
 
@@ -865,7 +909,7 @@ private function lerRegDocCTDifal(bf as bfile, reg as TRegistro ptr, docPai as T
 		bf.char1
 	end if
 	if bf.peek1 <> 10 then
-		print "Erro: esperado \n, encontrado "; bf.peek1
+		onError("Erro: esperado \n, encontrado " & bf.peek1)
 	else
 		bf.char1
 	end if
@@ -875,7 +919,7 @@ private function lerRegDocCTDifal(bf as bfile, reg as TRegistro ptr, docPai as T
 end function
 
 ''''''''
-private function lerRegEquipECF(bf as bfile, reg as TRegistro ptr) as Boolean
+function Efd.lerRegEquipECF(bf as bfile, reg as TRegistro ptr) as Boolean
 
 	bf.char1		'pular |
 
@@ -890,7 +934,7 @@ private function lerRegEquipECF(bf as bfile, reg as TRegistro ptr) as Boolean
 		bf.char1
 	end if
 	if bf.peek1 <> 10 then
-		print "Erro: esperado \n, encontrado "; bf.peek1
+		onError("Erro: esperado \n, encontrado " & bf.peek1)
 	else
 		bf.char1
 	end if
@@ -900,7 +944,7 @@ private function lerRegEquipECF(bf as bfile, reg as TRegistro ptr) as Boolean
 end function
 
 ''''''''
-private function lerRegDocECF(bf as bfile, reg as TRegistro ptr, equipECF as TEquipECF ptr) as Boolean
+function Efd.lerRegDocECF(bf as bfile, reg as TRegistro ptr, equipECF as TEquipECF ptr) as Boolean
 
 	bf.char1		'pular |
 
@@ -925,7 +969,7 @@ private function lerRegDocECF(bf as bfile, reg as TRegistro ptr, equipECF as TEq
 		bf.char1
 	end if
 	if bf.peek1 <> 10 then
-		print "Erro: esperado \n, encontrado "; bf.peek1
+		onError("Erro: esperado \n, encontrado " & bf.peek1)
 	else
 		bf.char1
 	end if
@@ -935,7 +979,7 @@ private function lerRegDocECF(bf as bfile, reg as TRegistro ptr, equipECF as TEq
 end function
 
 ''''''''
-private function lerRegECFReducaoZ(bf as bfile, reg as TRegistro ptr, equipECF as TEquipECF ptr) as Boolean
+function Efd.lerRegECFReducaoZ(bf as bfile, reg as TRegistro ptr, equipECF as TEquipECF ptr) as Boolean
 
 	bf.char1		'pular |
 
@@ -957,7 +1001,7 @@ private function lerRegECFReducaoZ(bf as bfile, reg as TRegistro ptr, equipECF a
 		bf.char1
 	end if
 	if bf.peek1 <> 10 then
-		print "Erro: esperado \n, encontrado "; bf.peek1
+		onError("Erro: esperado \n, encontrado " & bf.peek1)
 	else
 		bf.char1
 	end if
@@ -967,7 +1011,7 @@ private function lerRegECFReducaoZ(bf as bfile, reg as TRegistro ptr, equipECF a
 end function
 
 ''''''''
-private function lerRegDocECFItem(bf as bfile, reg as TRegistro ptr, documentoPai as TDocECF ptr) as Boolean
+function Efd.lerRegDocECFItem(bf as bfile, reg as TRegistro ptr, documentoPai as TDocECF ptr) as Boolean
 
 	bf.char1		'pular |
 
@@ -992,7 +1036,7 @@ private function lerRegDocECFItem(bf as bfile, reg as TRegistro ptr, documentoPa
 		bf.char1
 	end if
 	if bf.peek1 <> 10 then
-		print "Erro: esperado \n, encontrado "; bf.peek1
+		onError("Erro: esperado \n, encontrado " & bf.peek1)
 	else
 		bf.char1
 	end if
@@ -1002,7 +1046,7 @@ private function lerRegDocECFItem(bf as bfile, reg as TRegistro ptr, documentoPa
 end function
 
 ''''''''
-private function lerRegDocECFItemAnal(bf as bfile, reg as TRegistro ptr, documentoPai as TRegistro ptr) as Boolean
+function Efd.lerRegDocECFItemAnal(bf as bfile, reg as TRegistro ptr, documentoPai as TRegistro ptr) as Boolean
 
 	bf.char1		'pular |
 
@@ -1021,7 +1065,7 @@ private function lerRegDocECFItemAnal(bf as bfile, reg as TRegistro ptr, documen
 		bf.char1
 	end if
 	if bf.peek1 <> 10 then
-		print "Erro: esperado \n, encontrado "; bf.peek1
+		onError("Erro: esperado \n, encontrado " & bf.peek1)
 	else
 		bf.char1
 	end if
@@ -1031,7 +1075,7 @@ private function lerRegDocECFItemAnal(bf as bfile, reg as TRegistro ptr, documen
 end function
 
 ''''''''
-private function lerRegDocSAT(bf as bfile, reg as TRegistro ptr) as Boolean
+function Efd.lerRegDocSAT(bf as bfile, reg as TRegistro ptr) as Boolean
 
 	bf.char1		'pular |
 
@@ -1060,7 +1104,7 @@ private function lerRegDocSAT(bf as bfile, reg as TRegistro ptr) as Boolean
 		bf.char1
 	end if
 	if bf.peek1 <> 10 then
-		print "Erro: esperado \n, encontrado "; bf.peek1
+		onError("Erro: esperado \n, encontrado " & bf.peek1)
 	else
 		bf.char1
 	end if
@@ -1070,7 +1114,7 @@ private function lerRegDocSAT(bf as bfile, reg as TRegistro ptr) as Boolean
 end function
 
 ''''''''
-private function lerRegDocSATItemAnal(bf as bfile, reg as TRegistro ptr, documentoPai as TRegistro ptr) as Boolean
+function Efd.lerRegDocSATItemAnal(bf as bfile, reg as TRegistro ptr, documentoPai as TRegistro ptr) as Boolean
 
 	bf.char1		'pular |
 
@@ -1089,7 +1133,7 @@ private function lerRegDocSATItemAnal(bf as bfile, reg as TRegistro ptr, documen
 		bf.char1
 	end if
 	if bf.peek1 <> 10 then
-		print "Erro: esperado \n, encontrado "; bf.peek1
+		onError("Erro: esperado \n, encontrado " & bf.peek1)
 	else
 		bf.char1
 	end if
@@ -1100,7 +1144,7 @@ end function
 
 
 ''''''''
-private function lerRegDocNFSCT(bf as bfile, reg as TRegistro ptr) as Boolean
+function Efd.lerRegDocNFSCT(bf as bfile, reg as TRegistro ptr) as Boolean
 
 	bf.char1		'pular |
 
@@ -1142,7 +1186,7 @@ private function lerRegDocNFSCT(bf as bfile, reg as TRegistro ptr) as Boolean
 		bf.char1
 	end if
 	if bf.peek1 <> 10 then
-		print "Erro: esperado \n, encontrado "; bf.peek1
+		onError("Erro: esperado \n, encontrado " & bf.peek1)
 	else
 		bf.char1
 	end if
@@ -1152,7 +1196,7 @@ private function lerRegDocNFSCT(bf as bfile, reg as TRegistro ptr) as Boolean
 end function
 
 ''''''''
-private function lerRegDocNFSCTItemAnal(bf as bfile, reg as TRegistro ptr, documentoPai as TRegistro ptr) as Boolean
+function Efd.lerRegDocNFSCTItemAnal(bf as bfile, reg as TRegistro ptr, documentoPai as TRegistro ptr) as Boolean
 
 	bf.char1		'pular |
 
@@ -1174,7 +1218,7 @@ private function lerRegDocNFSCTItemAnal(bf as bfile, reg as TRegistro ptr, docum
 		bf.char1
 	end if
 	if bf.peek1 <> 10 then
-		print "Erro: esperado \n, encontrado "; bf.peek1
+		onError("Erro: esperado \n, encontrado " & bf.peek1)
 	else
 		bf.char1
 	end if
@@ -1184,7 +1228,7 @@ private function lerRegDocNFSCTItemAnal(bf as bfile, reg as TRegistro ptr, docum
 end function
 
 ''''''''
-private function efd.lerRegDocNFElet(bf as bfile, reg as TRegistro ptr) as Boolean
+function Efd.lerRegDocNFElet(bf as bfile, reg as TRegistro ptr) as Boolean
 
 	bf.char1		'pular |
 
@@ -1237,7 +1281,7 @@ private function efd.lerRegDocNFElet(bf as bfile, reg as TRegistro ptr) as Boole
 		bf.char1
 	end if
 	if bf.peek1 <> 10 then
-		print "Erro: esperado \n, encontrado "; bf.peek1
+		onError("Erro: esperado \n, encontrado " & bf.peek1)
 	else
 		bf.char1
 	end if
@@ -1247,7 +1291,7 @@ private function efd.lerRegDocNFElet(bf as bfile, reg as TRegistro ptr) as Boole
 end function
 
 ''''''''
-private function lerRegDocNFEletItemAnal(bf as bfile, reg as TRegistro ptr, documentoPai as TRegistro ptr) as Boolean
+function Efd.lerRegDocNFEletItemAnal(bf as bfile, reg as TRegistro ptr, documentoPai as TRegistro ptr) as Boolean
 
 	bf.char1		'pular |
 
@@ -1269,7 +1313,7 @@ private function lerRegDocNFEletItemAnal(bf as bfile, reg as TRegistro ptr, docu
 		bf.char1
 	end if
 	if bf.peek1 <> 10 then
-		print "Erro: esperado \n, encontrado "; bf.peek1
+		onError("Erro: esperado \n, encontrado " & bf.peek1)
 	else
 		bf.char1
 	end if
@@ -1279,7 +1323,7 @@ private function lerRegDocNFEletItemAnal(bf as bfile, reg as TRegistro ptr, docu
 end function
 
 ''''''''
-private function lerRegItemId(bf as bfile, reg as TRegistro ptr) as Boolean
+function Efd.lerRegItemId(bf as bfile, reg as TRegistro ptr) as Boolean
 
 	bf.char1		'pular |
 
@@ -1304,7 +1348,7 @@ private function lerRegItemId(bf as bfile, reg as TRegistro ptr) as Boolean
 		bf.char1
 	end if
 	if bf.peek1 <> 10 then
-		print "Erro: esperado \n, encontrado "; bf.peek1
+		onError("Erro: esperado \n, encontrado " & bf.peek1)
 	else
 		bf.char1
 	end if
@@ -1314,7 +1358,7 @@ private function lerRegItemId(bf as bfile, reg as TRegistro ptr) as Boolean
 end function
 
 ''''''''
-private function lerRegBemCiap(bf as bfile, reg as TRegistro ptr) as Boolean
+function Efd.lerRegBemCiap(bf as bfile, reg as TRegistro ptr) as Boolean
 
 	bf.char1		'pular |
 
@@ -1330,7 +1374,7 @@ private function lerRegBemCiap(bf as bfile, reg as TRegistro ptr) as Boolean
 		bf.char1
 	end if
 	if bf.peek1 <> 10 then
-		print "Erro: esperado \n, encontrado "; bf.peek1
+		onError("Erro: esperado \n, encontrado " & bf.peek1)
 	else
 		bf.char1
 	end if
@@ -1340,7 +1384,7 @@ private function lerRegBemCiap(bf as bfile, reg as TRegistro ptr) as Boolean
 end function
 
 ''''''''
-private function lerRegInfoCompl(bf as bfile, reg as TRegistro ptr) as Boolean
+function Efd.lerRegInfoCompl(bf as bfile, reg as TRegistro ptr) as Boolean
 
 	bf.char1		'pular |
 
@@ -1352,7 +1396,7 @@ private function lerRegInfoCompl(bf as bfile, reg as TRegistro ptr) as Boolean
 		bf.char1
 	end if
 	if bf.peek1 <> 10 then
-		print "Erro: esperado \n, encontrado "; bf.peek1
+		onError("Erro: esperado \n, encontrado " & bf.peek1)
 	else
 		bf.char1
 	end if
@@ -1362,7 +1406,7 @@ private function lerRegInfoCompl(bf as bfile, reg as TRegistro ptr) as Boolean
 end function
 
 ''''''''
-private function lerRegApuIcmsPeriodo(bf as bfile, reg as TRegistro ptr) as Boolean
+function Efd.lerRegApuIcmsPeriodo(bf as bfile, reg as TRegistro ptr) as Boolean
 
    bf.char1		'pular |
 
@@ -1374,7 +1418,7 @@ private function lerRegApuIcmsPeriodo(bf as bfile, reg as TRegistro ptr) as Bool
 		bf.char1
 	end if
 	if bf.peek1 <> 10 then
-		print "Erro: esperado \n, encontrado "; bf.peek1
+		onError("Erro: esperado \n, encontrado " & bf.peek1)
 	else
 		bf.char1
 	end if
@@ -1384,7 +1428,7 @@ private function lerRegApuIcmsPeriodo(bf as bfile, reg as TRegistro ptr) as Bool
 end function
 
 ''''''''
-private function lerRegApuIcmsProprio(bf as bfile, reg as TRegistro ptr) as Boolean
+function Efd.lerRegApuIcmsProprio(bf as bfile, reg as TRegistro ptr) as Boolean
 
 	bf.char1		'pular |
 
@@ -1411,7 +1455,7 @@ private function lerRegApuIcmsProprio(bf as bfile, reg as TRegistro ptr) as Bool
 		bf.char1
 	end if
 	if bf.peek1 <> 10 then
-		print "Erro: esperado \n, encontrado "; bf.peek1
+		onError("Erro: esperado \n, encontrado " & bf.peek1)
 	else
 		bf.char1
 	end if
@@ -1421,7 +1465,7 @@ private function lerRegApuIcmsProprio(bf as bfile, reg as TRegistro ptr) as Bool
 end function
 
 ''''''''
-private function lerRegApuIcmsAjuste(bf as bfile, reg as TRegistro ptr, pai as TApuracaoIcmsPeriodo ptr) as Boolean
+function Efd.lerRegApuIcmsAjuste(bf as bfile, reg as TRegistro ptr, pai as TApuracaoIcmsPeriodo ptr) as Boolean
 
 	bf.char1		'pular |
 	
@@ -1434,7 +1478,7 @@ private function lerRegApuIcmsAjuste(bf as bfile, reg as TRegistro ptr, pai as T
 		bf.char1
 	end if
 	if bf.peek1 <> 10 then
-		print "Erro: esperado \n, encontrado "; bf.peek1
+		onError("Erro: esperado \n, encontrado " & bf.peek1)
 	else
 		bf.char1
 	end if
@@ -1444,7 +1488,7 @@ private function lerRegApuIcmsAjuste(bf as bfile, reg as TRegistro ptr, pai as T
 end function
 
 ''''''''
-private function lerRegApuIcmsSTPeriodo(bf as bfile, reg as TRegistro ptr) as Boolean
+function Efd.lerRegApuIcmsSTPeriodo(bf as bfile, reg as TRegistro ptr) as Boolean
 
 	bf.char1		'pular |
 
@@ -1457,7 +1501,7 @@ private function lerRegApuIcmsSTPeriodo(bf as bfile, reg as TRegistro ptr) as Bo
 		bf.char1
 	end if
 	if bf.peek1 <> 10 then
-		print "Erro: esperado \n, encontrado "; bf.peek1
+		onError("Erro: esperado \n, encontrado " & bf.peek1)
 	else
 		bf.char1
 	end if
@@ -1467,7 +1511,7 @@ private function lerRegApuIcmsSTPeriodo(bf as bfile, reg as TRegistro ptr) as Bo
 end function
 
 ''''''''
-private function lerRegApuIcmsST(bf as bfile, reg as TRegistro ptr) as Boolean
+function Efd.lerRegApuIcmsST(bf as bfile, reg as TRegistro ptr) as Boolean
 
 	bf.char1		'pular |
 
@@ -1494,7 +1538,7 @@ private function lerRegApuIcmsST(bf as bfile, reg as TRegistro ptr) as Boolean
 		bf.char1
 	end if
 	if bf.peek1 <> 10 then
-		print "Erro: esperado \n, encontrado "; bf.peek1
+		onError("Erro: esperado \n, encontrado " & bf.peek1)
 	else
 		bf.char1
 	end if
@@ -1504,7 +1548,7 @@ private function lerRegApuIcmsST(bf as bfile, reg as TRegistro ptr) as Boolean
 end function
 
 ''''''''
-private function lerRegInventarioTotais(bf as bfile, reg as TRegistro ptr) as Boolean
+function Efd.lerRegInventarioTotais(bf as bfile, reg as TRegistro ptr) as Boolean
 
 	bf.char1		'pular |
 
@@ -1517,7 +1561,7 @@ private function lerRegInventarioTotais(bf as bfile, reg as TRegistro ptr) as Bo
 		bf.char1
 	end if
 	if bf.peek1 <> 10 then
-		print "Erro: esperado \n, encontrado "; bf.peek1
+		onError("Erro: esperado \n, encontrado " & bf.peek1)
 	else
 		bf.char1
 	end if
@@ -1527,7 +1571,7 @@ private function lerRegInventarioTotais(bf as bfile, reg as TRegistro ptr) as Bo
 end function
 
 ''''''''
-private function lerRegInventarioItem(bf as bfile, reg as TRegistro ptr, inventarioPai as TInventarioTotais ptr) as Boolean
+function Efd.lerRegInventarioItem(bf as bfile, reg as TRegistro ptr, inventarioPai as TInventarioTotais ptr) as Boolean
 
 	bf.char1		'pular |
 
@@ -1548,7 +1592,7 @@ private function lerRegInventarioItem(bf as bfile, reg as TRegistro ptr, inventa
 		bf.char1
 	end if
 	if bf.peek1 <> 10 then
-		print "Erro: esperado \n, encontrado "; bf.peek1
+		onError("Erro: esperado \n, encontrado " & bf.peek1)
 	else
 		bf.char1
 	end if
@@ -1558,7 +1602,7 @@ private function lerRegInventarioItem(bf as bfile, reg as TRegistro ptr, inventa
 end function
 
 ''''''''
-private function lerRegCiapTotal(bf as bfile, reg as TRegistro ptr) as Boolean
+function Efd.lerRegCiapTotal(bf as bfile, reg as TRegistro ptr) as Boolean
 
 	bf.char1		'pular |
 
@@ -1577,7 +1621,7 @@ private function lerRegCiapTotal(bf as bfile, reg as TRegistro ptr) as Boolean
 		bf.char1
 	end if
 	if bf.peek1 <> 10 then
-		print "Erro: esperado \n, encontrado "; bf.peek1
+		onError("Erro: esperado \n, encontrado " & bf.peek1)
 	else
 		bf.char1
 	end if
@@ -1587,7 +1631,7 @@ private function lerRegCiapTotal(bf as bfile, reg as TRegistro ptr) as Boolean
 end function
 
 ''''''''
-private function lerRegCiapItem(bf as bfile, reg as TRegistro ptr, pai as TCiapTotal ptr) as Boolean
+function Efd.lerRegCiapItem(bf as bfile, reg as TRegistro ptr, pai as TCiapTotal ptr) as Boolean
 
 	bf.char1		'pular |
 
@@ -1608,7 +1652,7 @@ private function lerRegCiapItem(bf as bfile, reg as TRegistro ptr, pai as TCiapT
 		bf.char1
 	end if
 	if bf.peek1 <> 10 then
-		print "Erro: esperado \n, encontrado "; bf.peek1
+		onError("Erro: esperado \n, encontrado " & bf.peek1)
 	else
 		bf.char1
 	end if
@@ -1618,7 +1662,7 @@ private function lerRegCiapItem(bf as bfile, reg as TRegistro ptr, pai as TCiapT
 end function
 
 ''''''''
-private function lerRegCiapItemDoc(bf as bfile, reg as TRegistro ptr, pai as TCiapItem ptr) as Boolean
+function Efd.lerRegCiapItemDoc(bf as bfile, reg as TRegistro ptr, pai as TCiapItem ptr) as Boolean
 
 	bf.char1		'pular |
 
@@ -1637,7 +1681,7 @@ private function lerRegCiapItemDoc(bf as bfile, reg as TRegistro ptr, pai as TCi
 		bf.char1
 	end if
 	if bf.peek1 <> 10 then
-		print "Erro: esperado \n, encontrado "; bf.peek1
+		onError("Erro: esperado \n, encontrado " & bf.peek1)
 	else
 		bf.char1
 	end if
@@ -1647,7 +1691,7 @@ private function lerRegCiapItemDoc(bf as bfile, reg as TRegistro ptr, pai as TCi
 end function
 
 ''''''''
-private function lerRegEstoquePeriodo(bf as bfile, reg as TRegistro ptr) as Boolean
+function Efd.lerRegEstoquePeriodo(bf as bfile, reg as TRegistro ptr) as Boolean
 
 	bf.char1		'pular |
 
@@ -1659,7 +1703,7 @@ private function lerRegEstoquePeriodo(bf as bfile, reg as TRegistro ptr) as Bool
 		bf.char1
 	end if
 	if bf.peek1 <> 10 then
-		print "Erro: esperado \n, encontrado "; bf.peek1
+		onError("Erro: esperado \n, encontrado " & bf.peek1)
 	else
 		bf.char1
 	end if
@@ -1669,7 +1713,7 @@ private function lerRegEstoquePeriodo(bf as bfile, reg as TRegistro ptr) as Bool
 end function
 
 ''''''''
-private function lerRegEstoqueItem(bf as bfile, reg as TRegistro ptr, pai as TEstoquePeriodo ptr) as Boolean
+function Efd.lerRegEstoqueItem(bf as bfile, reg as TRegistro ptr, pai as TEstoquePeriodo ptr) as Boolean
 
 	bf.char1		'pular |
 
@@ -1685,7 +1729,7 @@ private function lerRegEstoqueItem(bf as bfile, reg as TRegistro ptr, pai as TEs
 		bf.char1
 	end if
 	if bf.peek1 <> 10 then
-		print "Erro: esperado \n, encontrado "; bf.peek1
+		onError("Erro: esperado \n, encontrado " & bf.peek1)
 	else
 		bf.char1
 	end if
@@ -1695,7 +1739,7 @@ private function lerRegEstoqueItem(bf as bfile, reg as TRegistro ptr, pai as TEs
 end function
 
 ''''''''
-private function lerRegEstoqueOrdemProd(bf as bfile, reg as TRegistro ptr, pai as TEstoquePeriodo ptr) as Boolean
+function Efd.lerRegEstoqueOrdemProd(bf as bfile, reg as TRegistro ptr, pai as TEstoquePeriodo ptr) as Boolean
 
 	bf.char1		'pular |
 
@@ -1712,7 +1756,7 @@ private function lerRegEstoqueOrdemProd(bf as bfile, reg as TRegistro ptr, pai a
 		bf.char1
 	end if
 	if bf.peek1 <> 10 then
-		print "Erro: esperado \n, encontrado "; bf.peek1
+		onError("Erro: esperado \n, encontrado " & bf.peek1)
 	else
 		bf.char1
 	end if
@@ -1727,7 +1771,7 @@ private sub Efd.lerAssinatura(bf as bfile)
 	'' verificar header
 	var header = bf.nchar(len(ASSINATURA_P7K_HEADER))
 	if header <> ASSINATURA_P7K_HEADER then
-		print "Erro: header da assinatura P7K não reconhecido"
+		onError("Erro: header da assinatura P7K não reconhecido")
 	end if
 	
 	var lgt = (bf.tamanho - bf.posicao) + 1
@@ -1765,7 +1809,7 @@ function Efd.filtrarPorChave(chave as const zstring ptr) as boolean
 end function
 
 ''''''''
-private function Efd.lerRegistro(bf as bfile, reg as TRegistro ptr) as Boolean
+function Efd.lerRegistro(bf as bfile, reg as TRegistro ptr) as Boolean
 	static as zstring * 4+1 tipo
 	
 	reg->tipo = lerTipo(bf, @tipo)
@@ -2051,8 +2095,8 @@ private function Efd.lerRegistro(bf as bfile, reg as TRegistro ptr) as Boolean
 		end if
 
 		'adicionar ao dicionário
-		if itemIdDict[reg->itemId.id] = null then
-			itemIdDict.add(reg->itemId.id, @reg->itemId)
+		if itemIdDict->lookup(reg->itemId.id) = null then
+			itemIdDict->add(reg->itemId.id, @reg->itemId)
 		end if
 
 	case BEM_CIAP
@@ -2061,8 +2105,8 @@ private function Efd.lerRegistro(bf as bfile, reg as TRegistro ptr) as Boolean
 		end if
 
 		'adicionar ao dicionário
-		if bemCiapDict[reg->bemCiap.id] = null then
-			bemCiapDict.add(reg->bemCiap.id, @reg->bemCiap)
+		if bemCiapDict->lookup(reg->bemCiap.id) = null then
+			bemCiapDict->add(reg->bemCiap.id, @reg->bemCiap)
 		end if
 
 	case INFO_COMPL
@@ -2071,8 +2115,8 @@ private function Efd.lerRegistro(bf as bfile, reg as TRegistro ptr) as Boolean
 		end if
 
 		'adicionar ao dicionário
-		if infoComplDict[reg->infoCompl.id] = null then
-			infoComplDict.add(reg->infoCompl.id, @reg->infoCompl)
+		if infoComplDict->lookup(reg->infoCompl.id) = null then
+			infoComplDict->add(reg->infoCompl.id, @reg->infoCompl)
 		end if
 
 	case PARTICIPANTE
@@ -2081,8 +2125,8 @@ private function Efd.lerRegistro(bf as bfile, reg as TRegistro ptr) as Boolean
 		end if
 
 		'adicionar ao dicionário
-		if participanteDict[reg->part.id] = null then
-			participanteDict.add(reg->part.id, @reg->part)
+		if participanteDict->lookup(reg->part.id) = null then
+			participanteDict->add(reg->part.id, @reg->part)
 		end if
 
 	case APURACAO_ICMS_PERIODO
@@ -2190,7 +2234,7 @@ private function Efd.lerRegistro(bf as bfile, reg as TRegistro ptr) as Boolean
 	
 	case LUA_CUSTOM
 		
-		var luaFunc = cast(customLuaCb ptr, customLuaCbDict[tipo])->reader
+		var luaFunc = cast(customLuaCb ptr, customLuaCbDict->lookup(tipo))->reader
 		
 		if luaFunc <> null then
 			lua_getglobal(lua, luaFunc)
@@ -2387,7 +2431,7 @@ end function
 #define GENSINTEGRAKEY(r) ((r)->cnpj + (r)->serie + str((r)->numero) + str((r)->cfop))
   
 ''''''''
-private function Efd.lerRegistroSintegra(bf as bfile, reg as TRegistro ptr) as Boolean
+function Efd.lerRegistroSintegra(bf as bfile, reg as TRegistro ptr) as Boolean
 
 	var tipo = bf.int2
 
@@ -2400,9 +2444,9 @@ private function Efd.lerRegistroSintegra(bf as bfile, reg as TRegistro ptr) as B
 
 		'adicionar ao dicionário
 		reg->docSint.chaveDict = GENSINTEGRAKEY(@reg->docSint)
-		var antReg = cast(TRegistro ptr, sintegraDict[reg->docSint.chaveDict])
+		var antReg = cast(TRegistro ptr, sintegraDict->lookup(reg->docSint.chaveDict))
 		if antReg = null then
-			sintegraDict.add(reg->docSint.chaveDict, reg)
+			sintegraDict->add(reg->docSint.chaveDict, reg)
 		else
 			'' para cada alíquota diferente há um novo registro 50, mas nós só queremos os valores totais
 			''antReg->docSint.valorTotal	+= reg->docSint.valorTotal
@@ -2421,10 +2465,10 @@ private function Efd.lerRegistroSintegra(bf as bfile, reg as TRegistro ptr) as B
 		end if
 
 		reg->docSint.chaveDict = GENSINTEGRAKEY(@reg->docSint)
-		var antReg = cast(TRegistro ptr, sintegraDict[reg->docSint.chaveDict])
+		var antReg = cast(TRegistro ptr, sintegraDict->lookup(reg->docSint.chaveDict))
 		'' NOTA: pode existir registro 53 sem o correspondente 50, para quando só há ICMS ST, sem destaque ICMS próprio
 		if antReg = null then
-			sintegraDict.add(reg->docSint.chaveDict, reg)
+			sintegraDict->add(reg->docSint.chaveDict, reg)
 		else
 			''antReg->docSint.bcICMSST		+= reg->docSint.bcICMSST
 			''antReg->docSint.ICMSST			+= reg->docSint.ICMSST
@@ -2439,9 +2483,9 @@ private function Efd.lerRegistroSintegra(bf as bfile, reg as TRegistro ptr) as B
 		end if
 
 		reg->docSint.chaveDict = GENSINTEGRAKEY(@reg->docSint)
-		var antReg = cast(TRegistro ptr, sintegraDict[reg->docSint.chaveDict])
+		var antReg = cast(TRegistro ptr, sintegraDict->lookup(reg->docSint.chaveDict))
 		if antReg = null then
-			print "ERRO: Sintegra 53 sem 50: "; reg->docSint.chaveDict
+			onError("ERRO: Sintegra 53 sem 50: " & reg->docSint.chaveDict)
 		else
 			antReg->docSint.valorIPI		= reg->docSint.valorIPI
 			antReg->docSint.valorIsentoIPI	= reg->docSint.valorIsentoIPI
@@ -2457,9 +2501,9 @@ private function Efd.lerRegistroSintegra(bf as bfile, reg as TRegistro ptr) as B
 		end if
 
 		var chaveDict = GENSINTEGRAKEY(@reg->docItemSint)
-		var doc = cast(TRegistro ptr, sintegraDict[chaveDict])
+		var doc = cast(TRegistro ptr, sintegraDict->lookup(chaveDict))
 		if doc = null then
-			print "ERRO: Sintegra 54 sem 50: "; chaveDict
+			onError("ERRO: Sintegra 54 sem 50: " & chaveDict)
 		end if
 		
 		reg->docItemSint.doc = @(doc->docSint)
@@ -2471,8 +2515,8 @@ private function Efd.lerRegistroSintegra(bf as bfile, reg as TRegistro ptr) as B
 		end if
 
 		'adicionar ao dicionário
-		if itemIdDict[reg->itemId.id] = null then
-			itemIdDict.add(reg->itemId.id, @reg->itemId)
+		if itemIdDict->lookup(reg->itemId.id) = null then
+			itemIdDict->add(reg->itemId.id, @reg->itemId)
 		end if
 		
 	case else
@@ -2485,7 +2529,7 @@ private function Efd.lerRegistroSintegra(bf as bfile, reg as TRegistro ptr) as B
 end function
 
 ''''''''
-function Efd.carregarSintegra(bf as bfile, onProgress as OnProgressCB) as Boolean
+function Efd.carregarSintegra(bf as bfile) as Boolean
 	
 	var fsize = bf.tamanho
 	
@@ -2520,7 +2564,7 @@ function Efd.carregarSintegra(bf as bfile, onProgress as OnProgressCB) as Boolea
 			end if
 		loop
 	catch
-		print !"\r\nErro ao carregar o registro da linha (" & nroLinha & !") do arquivo\r\n"
+		onError(!"\r\nErro ao carregar o registro da linha (" & nroLinha & !") do arquivo\r\n")
 	endtry
 	   
 	function = true
@@ -2542,7 +2586,7 @@ sub Efd.adicionarMestre(reg as TMestre ptr)
 	db_mestreInsertStmt->bind(8, reg->ie)
 	
 	if not db->execNonQuery(db_mestreInsertStmt) then
-		print "Erro ao inserir registro na EFD_Mestre: "; *db->getErrorMsg()
+		onError("Erro ao inserir registro na EFD_Mestre: " & *db->getErrorMsg())
 	end if
 
 end sub
@@ -2552,7 +2596,7 @@ sub Efd.adicionarDocEscriturado(doc as TDocDF ptr)
 	
 	select case as const doc->situacao
 	case REGULAR, EXTEMPORANEO
-		var part = cast( TParticipante ptr, participanteDict[doc->idParticipante] )
+		var part = cast( TParticipante ptr, participanteDict->lookup(doc->idParticipante) )
 		
 		var uf = iif(part->municip >= 1100000 and part->municip <= 5399999, part->municip \ 100000, 99)
 		
@@ -2580,7 +2624,7 @@ sub Efd.adicionarDocEscriturado(doc as TDocDF ptr)
 			end if
 			
 			if not db->execNonQuery(db_LREInsertStmt) then
-				print "Erro ao inserir registro na EFD_LRE: "; *db->getErrorMsg()
+				onError("Erro ao inserir registro na EFD_LRE: " & *db->getErrorMsg())
 			end if
 		else
 			'' (periodo, cnpjDest, ufDest, serie, numero, modelo, chave, dataEmit, valorOp, IE)
@@ -2605,7 +2649,7 @@ sub Efd.adicionarDocEscriturado(doc as TDocDF ptr)
 			end if
 		
 			if not db->execNonQuery(db_LRSInsertStmt) then
-				print "Erro ao inserir registro na EFD_LRS: "; *db->getErrorMsg()
+				onError("Erro ao inserir registro na EFD_LRS: " & *db->getErrorMsg())
 			end if
 		end if
 	
@@ -2640,7 +2684,7 @@ sub Efd.adicionarDocEscriturado(doc as TDocECF ptr)
 			db_dfeSaidaInsertStmt->bindNull(10)
 		
 			if not db->execNonQuery(db_LRSInsertStmt) then
-				print "Erro ao inserir registro na EFD_LRS: "; *db->getErrorMsg()
+				onError("Erro ao inserir registro na EFD_LRS: " & *db->getErrorMsg())
 			end if
 		end if
 	
@@ -2675,7 +2719,7 @@ sub Efd.adicionarDocEscriturado(doc as TDocSAT ptr)
 			db_dfeSaidaInsertStmt->bindNull(10)
 		
 			if not db->execNonQuery(db_LRSInsertStmt) then
-				print "Erro ao inserir registro na EFD_LRS: "; *db->getErrorMsg()
+				onError("Erro ao inserir registro na EFD_LRS: " & *db->getErrorMsg())
 			end if
 		end if
 	
@@ -2694,7 +2738,7 @@ sub Efd.adicionarItemNFEscriturado(item as TDocNFItem ptr)
 	var doc = item->documentoPai
 	select case as const doc->situacao
 	case REGULAR, EXTEMPORANEO
-		var part = cast( TParticipante ptr, participanteDict[doc->idParticipante] )
+		var part = cast( TParticipante ptr, participanteDict->lookup(doc->idParticipante) )
 		
 		var uf = iif(part->municip >= 1100000 and part->municip <= 5399999, part->municip \ 100000, 99)
 
@@ -2727,7 +2771,7 @@ sub Efd.adicionarItemNFEscriturado(item as TDocNFItem ptr)
 		end if
 		
 		if not db->execNonQuery(db_itensNfLRInsertStmt) then
-			print "Erro ao inserir registro na EFD_Itens: "; *db->getErrorMsg()
+			onError("Erro ao inserir registro na EFD_Itens: " & *db->getErrorMsg())
 		end if
 	end select
 	
@@ -2739,10 +2783,10 @@ sub Efd.adicionarRessarcStEscriturado(doc as TDocNFItemRessarcSt ptr)
 	var docPai = doc->documentoPai
 	var docAvo = doc->documentoPai->documentoPai
 	
-	var part = cast( TParticipante ptr, participanteDict[docAvo->idParticipante] )
+	var part = cast( TParticipante ptr, participanteDict->lookup(docAvo->idParticipante) )
 	var uf = iif(part->municip >= 1100000 and part->municip <= 5399999, part->municip \ 100000, 99)
 	
-	var partUlt = cast( TParticipante ptr, participanteDict[doc->idParticipanteUlt] )
+	var partUlt = cast( TParticipante ptr, participanteDict->lookup(doc->idParticipanteUlt) )
 	var ufUlt = iif(partUlt->municip >= 1100000 and partUlt->municip <= 5399999, partUlt->municip \ 100000, 99)
 	
 	'' (periodo, cnpjEmit, ufEmit, serie, numero, modelo, nroItem, cnpjUlt, ufUlt, serieUlt, numeroUlt, modeloUlt, chaveUlt, dataUlt, valorUlt, bcSTUlt, qtdUlt, nroItemUlt)
@@ -2775,7 +2819,7 @@ sub Efd.adicionarRessarcStEscriturado(doc as TDocNFItemRessarcSt ptr)
 	end if
 
 	if not db->execNonQuery(db_ressarcStItensNfLRSInsertStmt) then
-		print "Erro ao inserir registro na EFD_Ressarc_Itens: "; *db->getErrorMsg()
+		onError("Erro ao inserir registro na EFD_Ressarc_Itens: " & *db->getErrorMsg())
 	end if
 	
 end sub
@@ -2792,7 +2836,7 @@ sub Efd.adicionarItemEscriturado(item as TItemId ptr)
 	db_itensIdInsertStmt->bind(5, item->aliqICMSInt)
 	
 	if not db->execNonQuery(db_itensIdInsertStmt) then
-		print "Erro ao inserir registro na EFD_ItensId: "; *db->getErrorMsg()
+		onError("Erro ao inserir registro na EFD_ItensId: " & *db->getErrorMsg())
 	end if
 
 end sub
@@ -2801,7 +2845,7 @@ end sub
 sub Efd.adicionarAnalEscriturado(anal as TDocItemAnal ptr)
 
 	var doc = @anal->documentoPai->nf
-	var part = cast( TParticipante ptr, participanteDict[doc->idParticipante] )
+	var part = cast( TParticipante ptr, participanteDict->lookup(doc->idParticipante) )
 	
 	var uf = iif(part->municip >= 1100000 and part->municip <= 5399999, part->municip \ 100000, 99)
 
@@ -2829,7 +2873,7 @@ sub Efd.adicionarAnalEscriturado(anal as TDocItemAnal ptr)
 	db_analInsertStmt->bind(20, anal->IPI)
 	
 	if not db->execNonQuery(db_analInsertStmt) then
-		print "Erro ao inserir registro na EDF_Anal: "; *db->getErrorMsg()
+		onError("Erro ao inserir registro na EDF_Anal: " & *db->getErrorMsg())
 	end if
 
 end sub
@@ -3006,7 +3050,7 @@ private function ordenarRegistrosPorData(head as TRegistro ptr) as TRegistro ptr
 end function
 
 ''''''''
-function Efd.carregarTxt(nomeArquivo as String, onProgress as OnProgressCB) as Boolean
+function Efd.carregarTxt(nomeArquivo as String) as Boolean
 
 	dim bf as bfile
    
@@ -3014,23 +3058,21 @@ function Efd.carregarTxt(nomeArquivo as String, onProgress as OnProgressCB) as B
 		return false
 	end if
 
-	participanteDict.init(2^20)
-	itemIdDict.init(2^20)	 
-	bemCiapDict.init(2^16)
-	infoComplDict.init(2^16)
-	sintegraDict.init(2^20)
+	participanteDict = new TDict(2^20)
+	itemIdDict = new TDict(2^20)	 
+	bemCiapDict = new TDict(2^16)
+	infoComplDict = new TDict(2^16)
+	sintegraDict = new TDict(2^20)
 
 	regListHead = null
 	nroRegs = 0
 	
-	dim as TArquivoInfo ptr arquivo = arquivos.add()
+	dim as TArquivoInfo ptr arquivo = arquivos->add()
 	arquivo->nome = nomeArquivo
 	
-	onProgress("Carregando arquivo: " + nomeArquivo, 0)
-
 	if bf.peek1 <> asc("|") then
 		tipoArquivo = TIPO_ARQUIVO_SINTEGRA
-		function = carregarSintegra(bf, onProgress)
+		function = carregarSintegra(bf)
 	else
 		try
 			tipoArquivo = TIPO_ARQUIVO_EFD
@@ -3088,7 +3130,7 @@ function Efd.carregarTxt(nomeArquivo as String, onProgress as OnProgressCB) as B
 			loop
 		
 		catch
-			print !"\r\nErro ao carregar o registro da linha (" & nroLinha & !") do arquivo\r\n"
+			onError(!"\r\nErro ao carregar o registro da linha (" & nroLinha & !") do arquivo\r\n")
 		endtry
 		
 		regListHead = ordenarRegistrosPorData(regListHead)
@@ -3159,7 +3201,7 @@ end function
 function Efd.carregarCsvNFeEmitSAFI(bf as bfile) as TDFe ptr
 	
 	var chave = bf.charCsv
-	var dfe = cast(TDFe ptr, chaveDFeDict[chave])	
+	var dfe = cast(TDFe ptr, chaveDFeDict->lookup(chave))	
 	if dfe = null then
 		dfe = new TDFe
 	end if
@@ -3388,8 +3430,8 @@ sub Efd.adicionarDFe(dfe as TDFe ptr)
 	dfeListTail = dfe
 	dfe->next_ = null
 	
-	if chaveDFeDict[dfe->chave] = null then
-		chaveDFeDict.add(dfe->chave, dfe)
+	if chaveDFeDict->lookup(dfe->chave) = null then
+		chaveDFeDict->add(dfe->chave, dfe)
 	end if
 
 	'' adicionar ao db
@@ -3412,7 +3454,7 @@ sub Efd.adicionarDFe(dfe as TDFe ptr)
 		end if
 		
 		if not db->execNonQuery(db_dfeEntradaInsertStmt) then
-			print "Erro ao inserir DFe de entrada: "; *db->getErrorMsg()
+			onError("Erro ao inserir DFe de entrada: " & *db->getErrorMsg())
 		end if
 	
 	case SAIDA
@@ -3434,7 +3476,7 @@ sub Efd.adicionarDFe(dfe as TDFe ptr)
 		end if
 	
 		if not db->execNonQuery(db_dfeSaidaInsertStmt) then
-			print "Erro ao inserir DFe de saída: "; *db->getErrorMsg()
+			onError("Erro ao inserir DFe de saída: " & *db->getErrorMsg())
 		end if
 	end select
 	
@@ -3473,20 +3515,18 @@ sub Efd.adicionarItemDFe(chave as const zstring ptr, item as TDFe_NFeItem ptr)
 		end if
 	
 		if not db->execNonQuery(db_itensDfeSaidaInsertStmt) then
-			print "Erro ao inserir Item DFe de entrada: "; *db->getErrorMsg()
+			onError("Erro ao inserir Item DFe de entrada: " & *db->getErrorMsg())
 		end if
 end sub
 
 ''''''''
-function Efd.carregarCsv(nomeArquivo as String, onProgress as OnProgressCB) as Boolean
+function Efd.carregarCsv(nomeArquivo as String) as Boolean
 
 	dim bf as bfile
    
 	if not bf.abrir( nomeArquivo ) then
 		return false
 	end if
-	
-	onProgress("Carregando arquivo: " + nomeArquivo, 0)
 	
 	dim as integer tipoArquivo
 	dim as boolean isSafi = true
@@ -3514,7 +3554,7 @@ function Efd.carregarCsv(nomeArquivo as String, onProgress as OnProgressCB) as B
 		itemNFeSafiFornecido = true
 	
 	else
-		print "Erro: impossível resolver tipo de arquivo pelo nome"
+		onError("Erro: impossível resolver tipo de arquivo pelo nome")
 		return false
 	end if
 
@@ -3585,13 +3625,13 @@ function Efd.carregarCsv(nomeArquivo as String, onProgress as OnProgressCB) as B
 				if nfeItem <> null then
 					adicionarItemDFe(chave, nfeItem)
 
-					var dfe = cast(TDFe ptr, chaveDFeDict[chave])
+					var dfe = cast(TDFe ptr, chaveDFeDict->lookup(chave))
 					'' nf-e não encontrada? pode acontecer se processarmos o csv de itens antes do csv de nf-e
 					if dfe = null then
 						dfe = new TDFe
 						'' só adicionar ao dicionário, depois será adicionado por adicionarDFe() no case acima
 						dfe->chave = chave
-						chaveDFeDict.add(dfe->chave, dfe)
+						chaveDFeDict->add(dfe->chave, dfe)
 					end if
 					
 					if dfe->nfe.itemListHead = null then
@@ -3617,7 +3657,7 @@ function Efd.carregarCsv(nomeArquivo as String, onProgress as OnProgressCB) as B
 		function = true
 	
 	catch
-		print !"\r\n\tErro ao carregar linha " & nroLinha & !"\r\n"
+		onError(!"\r\n\tErro ao carregar linha " & nroLinha & !"\r\n")
 		function = false
 	endtry
 	   
@@ -3652,7 +3692,7 @@ function Efd.carregarXlsxNFeDest(rd as ExcelReader ptr) as TDFe ptr
 		return null
 	end if
 		
-	if chaveDFeDict[chave] <> null then
+	if chaveDFeDict->lookup(chave) <> null then
 		return null
 	end if
 
@@ -3720,7 +3760,7 @@ function Efd.carregarXlsxNFeDestItens(rd as ExcelReader ptr) as TDFe ptr
 		return null
 	end if
 	
-	var dfe = cast(TDFe ptr, chaveDFeDict[chave])	
+	var dfe = cast(TDFe ptr, chaveDFeDict->lookup(chave))	
 	if dfe = null then
 		dfe = new TDFe
 	else
@@ -3786,7 +3826,7 @@ function Efd.carregarXlsxNFeEmit(rd as ExcelReader ptr) as TDFe ptr
 		return null
 	end if
 	
-	var dfe = cast(TDFe ptr, chaveDFeDict[chave])	
+	var dfe = cast(TDFe ptr, chaveDFeDict->lookup(chave))	
 	if dfe = null then
 		dfe = new TDFe
 	end if
@@ -4096,7 +4136,7 @@ function Efd.carregarXlsxSAT(rd as ExcelReader ptr) as TDFe ptr
 	
 	chave = right(chave, 44)
 	
-	var dfe = cast(TDFe ptr, chaveDFeDict[chave])	
+	var dfe = cast(TDFe ptr, chaveDFeDict->lookup(chave))	
 	if dfe = null then
 		dfe = new TDFe
 	end if
@@ -4124,7 +4164,7 @@ function Efd.carregarXlsxSAT(rd as ExcelReader ptr) as TDFe ptr
 end function
 
 ''''''''
-function Efd.carregarXlsx(nomeArquivo as String, onProgress as OnProgressCB) as Boolean
+function Efd.carregarXlsx(nomeArquivo as String) as Boolean
 
 	if left(nomeArquivo, 1) = "~" then
 		return true
@@ -4133,11 +4173,10 @@ function Efd.carregarXlsx(nomeArquivo as String, onProgress as OnProgressCB) as 
 	elseif nomeArquivo = "__efd__.xlsx" then
 		return true
 	elseif instr(nomeArquivo, "NFe_Destinatario_Itens_OSF") > 0 then
+		onProgress(null, 1)
 		return true
 	end if
 
-	onProgress("Carregando arquivo: " + nomeArquivo, 0)
-	
 	dim as integer tipoArquivo
 	dim as string nomePlanilhas(0 to 1)
 	
@@ -4176,32 +4215,32 @@ function Efd.carregarXlsx(nomeArquivo as String, onProgress as OnProgressCB) as 
 		tipoArquivo = BO_NFCe_Itens
 		itemNFeSafiFornecido = true
 		nomePlanilhas(0) = "Itens"
-		print wstr(!"\n\tErro: relatório não suportado ainda")
+		onError(!"\n\tErro: relatório não suportado ainda")
 		return false
 		
 	elseif instr( nomeArquivo, "REDF_consulta_Cupons_Fiscais_ECF" ) > 0 then
 		tipoArquivo = SAFI_ECF
 		nfeEmitSafiFornecido = true
 		nomePlanilhas(0) = "REDF - Cupons Fiscais"
-		print wstr(!"\n\tErro: relatório não suportado ainda")
+		onError(!"\n\tErro: relatório não suportado ainda")
 		return false
 	
 	elseif instr( nomeArquivo, "REDF_-_Consulta_Cupons_Fiscais_ECF_e_itens_do_CF" ) > 0 then
 		tipoArquivo = BO_ECF_Itens
 		itemNFeSafiFornecido = true
 		nomePlanilhas(0) = "REDF - Itens dos Cupons Fiscais"
-		print wstr(!"\n\tErro: relatório não suportado ainda")
+		onError(!"\n\tErro: relatório não suportado ainda")
 		return false
 	
 	else
-		print wstr(!"\n\tErro: impossível resolver tipo de arquivo pelo nome")
+		onError(!"\n\tErro: impossível resolver tipo de arquivo pelo nome")
 		return false
 	end if
 	
 	var reader = new ExcelReader()
 	
 	if not reader->open(nomeArquivo) then
-		print wstr(!"\n\tErro: arquivo não encontrado ou inválido")
+		onError(!"\n\tErro: arquivo não encontrado ou inválido")
 		delete reader
 		return false
 	end if
@@ -4214,7 +4253,7 @@ function Efd.carregarXlsx(nomeArquivo as String, onProgress as OnProgressCB) as 
 		end if
 		
 		if not reader->setSheet(nomePlanilha) then
-			print wstr(!"\n\tErro: planilha não encontrada (" + nomePlanilha + ")")
+			onError(!"\n\tErro: planilha não encontrada (" + nomePlanilha + ")")
 			delete reader
 			return false
 		end if
@@ -4243,13 +4282,13 @@ function Efd.carregarXlsx(nomeArquivo as String, onProgress as OnProgressCB) as 
 						if nfeItem <> null then
 							adicionarItemDFe(chave, nfeItem)
 
-							var dfe = cast(TDFe ptr, chaveDFeDict[chave])
+							var dfe = cast(TDFe ptr, chaveDFeDict->lookup(chave))
 							'' nf-e não encontrada? pode acontecer se processarmos o csv de itens antes do csv de nf-e
 							if dfe = null then
 								dfe = new TDFe
 								'' só adicionar ao dicionário, depois será adicionado por adicionarDFe() no case acima
 								dfe->chave = chave
-								chaveDFeDict.add(dfe->chave, dfe)
+								chaveDFeDict->add(dfe->chave, dfe)
 							end if
 							
 							if dfe->nfe.itemListHead = null then
@@ -4279,13 +4318,13 @@ function Efd.carregarXlsx(nomeArquivo as String, onProgress as OnProgressCB) as 
 						if satItem <> null then
 							adicionarItemDFe(chave, satItem)
 
-							var dfe = cast(TDFe ptr, chaveDFeDict[chave])
+							var dfe = cast(TDFe ptr, chaveDFeDict->lookup(chave))
 							'' sat não encontrado? pode acontecer se processarmos o csv de itens antes do csv de nf-e
 							if dfe = null then
 								dfe = new TDFe
 								'' só adicionar ao dicionário, depois será adicionado por adicionarDFe() no case acima
 								dfe->chave = chave
-								chaveDFeDict.add(dfe->chave, dfe)
+								chaveDFeDict->add(dfe->chave, dfe)
 							end if
 							
 							if dfe->nfe.itemListHead = null then
@@ -4316,7 +4355,7 @@ function Efd.carregarXlsx(nomeArquivo as String, onProgress as OnProgressCB) as 
 			function = true
 		
 		catch
-			print !"\r\n\tErro ao carregar linha " & nroLinha & !"\r\n"
+			onError(!"\r\n\tErro ao carregar linha " & nroLinha & !"\r\n")
 			function = false
 		endtry
 	
@@ -4779,7 +4818,7 @@ private function HashReadCB cdecl(ctx_ as any ptr, buffer as ubyte ptr, maxLen a
 end function
 
 ''''''''
-function lerInfoAssinatura(nomeArquivo as string, assinaturaP7K_DER() as byte) as InfoAssinatura ptr
+function Efd.lerInfoAssinatura(nomeArquivo as string, assinaturaP7K_DER() as byte) as InfoAssinatura ptr
 	
 	try
 		var res = new InfoAssinatura
@@ -4826,17 +4865,17 @@ function lerInfoAssinatura(nomeArquivo as string, assinaturaP7K_DER() as byte) a
 		
 		function = res
 	catch
-		print wstr("Erro ao ler assinatura digital. As informações relativas à assinatura estarão em branco nos relatórios gerados")
+		onError("Erro ao ler assinatura digital. As informações relativas à assinatura estarão em branco nos relatórios gerados")
 		function = null
 	endtry
 	
 end function
 
 ''''''''
-function Efd.processar(nomeArquivo as string, onProgress as OnProgressCB) as Boolean
+function Efd.processar(nomeArquivo as string) as Boolean
    
 	if opcoes.formatoDeSaida <> FT_NULL then
-		gerarPlanilhas(nomeArquivo, onProgress)
+		gerarPlanilhas(nomeArquivo)
 	else
 		onProgress(null, 1)
 	end if
@@ -4845,7 +4884,7 @@ function Efd.processar(nomeArquivo as string, onProgress as OnProgressCB) as Boo
 		if tipoArquivo = TIPO_ARQUIVO_EFD then
 			infAssinatura = lerInfoAssinatura(nomeArquivo, assinaturaP7K_DER())
 		
-			gerarRelatorios(nomeArquivo, onProgress)
+			gerarRelatorios(nomeArquivo)
 			
 			if infAssinatura <> NULL then
 				delete infAssinatura
@@ -4861,11 +4900,11 @@ function Efd.processar(nomeArquivo as string, onProgress as OnProgressCB) as Boo
 
 	regListHead = null
 
-	sintegraDict.end_()
-	infoComplDict.end_()
-	bemCiapDict.end_()
-	itemIdDict.end_()
-	participanteDict.end_()
+	delete sintegraDict
+	delete infoComplDict
+	delete bemCiapDict
+	delete itemIdDict
+	delete participanteDict
 
 	function = true
 end function
@@ -4874,7 +4913,7 @@ private function efd.getInfoCompl(info as TDocInfoCompl ptr) as string
 	var res = ""
 	
 	do while info <> null
-		var compl = cast( TInfoCompl ptr, infoComplDict[info->idCompl])
+		var compl = cast( TInfoCompl ptr, infoComplDict->lookup(info->idCompl))
 		res += iif(len(res) > 0, "|", "") + _
 			compl->descricao + _
 			iif(len(info->extra) > 0, ":" + info->extra, "")
@@ -4885,7 +4924,7 @@ private function efd.getInfoCompl(info as TDocInfoCompl ptr) as string
 end function
 
 ''''''''
-sub Efd.gerarPlanilhas(nomeArquivo as string, onProgress as OnProgressCB)
+sub Efd.gerarPlanilhas(nomeArquivo as string)
 	
 	if entradas = null then
 		criarPlanilhas
@@ -4905,7 +4944,7 @@ sub Efd.gerarPlanilhas(nomeArquivo as string, onProgress as OnProgressCB)
 				var doc = reg->itemNF.documentoPai
 				select case as const doc->situacao
 				case REGULAR, EXTEMPORANEO
-					var part = cast( TParticipante ptr, participanteDict[doc->idParticipante] )
+					var part = cast( TParticipante ptr, participanteDict->lookup(doc->idParticipante) )
 
 					var emitirLinha = iif(doc->operacao = SAIDA, not opcoes.pularLrs, not opcoes.pularLre)
 					if opcoes.filtrarCnpj andalso emitirLinha then
@@ -4962,7 +5001,7 @@ sub Efd.gerarPlanilhas(nomeArquivo as string, onProgress as OnProgressCB)
 						row->addCell(reg->itemNF.unidade)
 						row->addCell(reg->itemNF.cfop)
 						row->addCell(reg->itemNF.cstICMS)
-						var itemId = cast( TItemId ptr, itemIdDict[reg->itemNF.itemId] )
+						var itemId = cast( TItemId ptr, itemIdDict->lookup(reg->itemNF.itemId) )
 						if itemId <> null then 
 							row->addCell(itemId->ncm)
 							row->addCell(itemId->id)
@@ -4982,14 +5021,14 @@ sub Efd.gerarPlanilhas(nomeArquivo as string, onProgress as OnProgressCB)
 						dim as TDFe_NFeItem ptr item = null
 						if itemNFeSafiFornecido and opcoes.acrescentarDados then
 							if len(reg->nf.chave) > 0 then
-								var dfe = cast( TDFe ptr, chaveDFeDict[reg->nf.chave] )
+								var dfe = cast( TDFe ptr, chaveDFeDict->lookup(reg->nf.chave) )
 								if dfe <> null then
 									item = dfe->nfe.itemListHead
 								end if
 							end if
 						end if
 
-						var part = cast( TParticipante ptr, participanteDict[reg->nf.idParticipante] )
+						var part = cast( TParticipante ptr, participanteDict->lookup(reg->nf.idParticipante) )
 
 						var emitirLinhas = (opcoes.somenteRessarcimentoST = false) and _
 							iif(reg->nf.operacao = SAIDA, not opcoes.pularLrs, not opcoes.pularLre)
@@ -5140,7 +5179,7 @@ sub Efd.gerarPlanilhas(nomeArquivo as string, onProgress as OnProgressCB)
 			'ressarcimento st?
 			case DOC_NF_ITEM_RESSARC_ST
 				var doc = @reg->itemRessarcSt
-				var part = cast( TParticipante ptr, participanteDict[doc->idParticipanteUlt] )
+				var part = cast( TParticipante ptr, participanteDict->lookup(doc->idParticipanteUlt) )
 
 				var emitirLinha = iif(reg->ct.operacao = SAIDA, not opcoes.pularLrs, not opcoes.pularLre)
 				if opcoes.filtrarCnpj andalso emitirLinha then
@@ -5190,7 +5229,7 @@ sub Efd.gerarPlanilhas(nomeArquivo as string, onProgress as OnProgressCB)
 			case DOC_CT
 				select case as const reg->ct.situacao
 				case REGULAR, EXTEMPORANEO
-					var part = cast( TParticipante ptr, participanteDict[reg->ct.idParticipante] )
+					var part = cast( TParticipante ptr, participanteDict->lookup(reg->ct.idParticipante) )
 
 					var emitirLinhas = (opcoes.somenteRessarcimentoST = false) and _
 						iif(reg->ct.operacao = SAIDA, not opcoes.pularLrs, not opcoes.pularLre)
@@ -5209,7 +5248,7 @@ sub Efd.gerarPlanilhas(nomeArquivo as string, onProgress as OnProgressCB)
 						dim as TDFe_CTe ptr cte = null
 						if cteSafiFornecido then
 							if len(reg->ct.chave) > 0 then
-								var dfe = cast( TDFe ptr, chaveDFeDict[reg->ct.chave] )
+								var dfe = cast( TDFe ptr, chaveDFeDict->lookup(reg->ct.chave) )
 								if dfe <> null then
 									cte = @dfe->cte
 								end if
@@ -5365,7 +5404,7 @@ sub Efd.gerarPlanilhas(nomeArquivo as string, onProgress as OnProgressCB)
 								row->addCell(reg->itemECF.unidade)
 								row->addCell(reg->itemECF.cfop)
 								row->addCell(reg->itemECF.cstICMS)
-								var itemId = cast( TItemId ptr, itemIdDict[reg->itemECF.itemId] )
+								var itemId = cast( TItemId ptr, itemIdDict->lookup(reg->itemECF.itemId) )
 								if itemId <> null then 
 									row->addCell(itemId->ncm)
 									row->addCell(itemId->id)
@@ -5396,7 +5435,7 @@ sub Efd.gerarPlanilhas(nomeArquivo as string, onProgress as OnProgressCB)
 							if emitirLinha then
 								dim as TDFe_NFeItem ptr item = null
 								if itemNFeSafiFornecido and opcoes.acrescentarDados then
-									var dfe = cast( TDFe ptr, chaveDFeDict[doc->chave] )
+									var dfe = cast( TDFe ptr, chaveDFeDict->lookup(doc->chave) )
 									if dfe <> null then
 										item = dfe->nfe.itemListHead
 									end if
@@ -5536,7 +5575,7 @@ sub Efd.gerarPlanilhas(nomeArquivo as string, onProgress as OnProgressCB)
 				
 				row->addCell(YyyyMmDd2Datetime(reg->invItem.dataInventario))
 
-				var itemId = cast( TItemId ptr, itemIdDict[reg->invItem.itemId] )
+				var itemId = cast( TItemId ptr, itemIdDict->lookup(reg->invItem.itemId) )
 				if itemId <> null then 
 					row->addCell(itemId->id)
 					row->addCell(itemId->ncm)
@@ -5556,7 +5595,7 @@ sub Efd.gerarPlanilhas(nomeArquivo as string, onProgress as OnProgressCB)
 				row->addCell(reg->invItem.valorUnitario)
 				row->addCell(reg->invItem.valorItem)
 				row->addCell(reg->invItem.indPropriedade)
-				var part = cast( TParticipante ptr, participanteDict[reg->invItem.idParticipante] )
+				var part = cast( TParticipante ptr, participanteDict->lookup(reg->invItem.idParticipante) )
 				if part <> null then
 					row->addCell(iif(len(part->cpf) > 0, part->cpf, part->cnpj))
 				else
@@ -5576,7 +5615,7 @@ sub Efd.gerarPlanilhas(nomeArquivo as string, onProgress as OnProgressCB)
 					row->addCell(pai->valorTributExpSoma)
 					row->addCell(pai->valorTotalSaidas)
 					
-					var bemCiap = cast( TBemCiap ptr, bemCiapDict[reg->ciapItem.bemId] )
+					var bemCiap = cast( TBemCiap ptr, bemCiapDict->lookup(reg->ciapItem.bemId) )
 					if bemCiap <> null then 
 						row->addCell(bemCiap->id)
 						row->addCell(bemCiap->descricao)
@@ -5605,7 +5644,7 @@ sub Efd.gerarPlanilhas(nomeArquivo as string, onProgress as OnProgressCB)
 				row->addCell(avo->valorTributExpSoma)
 				row->addCell(avo->valorTotalSaidas)
 				
-				var bemCiap = cast( TBemCiap ptr, bemCiapDict[pai->bemId] )
+				var bemCiap = cast( TBemCiap ptr, bemCiapDict->lookup(pai->bemId) )
 				if bemCiap <> null then 
 					row->addCell(bemCiap->id)
 					row->addCell(bemCiap->descricao)
@@ -5629,7 +5668,7 @@ sub Efd.gerarPlanilhas(nomeArquivo as string, onProgress as OnProgressCB)
 				row->addCell(YyyyMmDd2Datetime(reg->ciapItemDoc.dataEmi))
 				row->addCell(reg->ciapItemDoc.chaveNfe)
 				
-				var part = cast( TParticipante ptr, participanteDict[reg->ciapItemDoc.idParticipante] )
+				var part = cast( TParticipante ptr, participanteDict->lookup(reg->ciapItemDoc.idParticipante) )
 				if part <> null then
 					row->addCell(iif(len(part->cpf) > 0, part->cpf, part->cnpj))
 					row->addCell(part->ie)
@@ -5649,7 +5688,7 @@ sub Efd.gerarPlanilhas(nomeArquivo as string, onProgress as OnProgressCB)
 				row->addCell(YyyyMmDd2Datetime(pai->dataIni))
 				row->addCell(YyyyMmDd2Datetime(pai->dataFim))
 				
-				var itemId = cast( TItemId ptr, itemIdDict[reg->estItem.itemId] )
+				var itemId = cast( TItemId ptr, itemIdDict->lookup(reg->estItem.itemId) )
 				if itemId <> null then 
 					row->addCell(itemId->id)
 					row->addCell(itemId->ncm)
@@ -5667,7 +5706,7 @@ sub Efd.gerarPlanilhas(nomeArquivo as string, onProgress as OnProgressCB)
 				row->addCell(reg->estItem.qtd)
 				row->addCell(reg->estItem.tipoEst)
 
-				var part = cast( TParticipante ptr, participanteDict[reg->estItem.idParticipante] )
+				var part = cast( TParticipante ptr, participanteDict->lookup(reg->estItem.idParticipante) )
 				if part <> null then
 					row->addCell(iif(len(part->cpf) > 0, part->cpf, part->cnpj))
 					row->addCell(part->ie)
@@ -5686,7 +5725,7 @@ sub Efd.gerarPlanilhas(nomeArquivo as string, onProgress as OnProgressCB)
 				row->addCell(YyyyMmDd2Datetime(reg->estOrdem.dataIni))
 				row->addCell(YyyyMmDd2Datetime(reg->estOrdem.dataFim))
 				
-				var itemId = cast( TItemId ptr, itemIdDict[reg->estOrdem.itemId] )
+				var itemId = cast( TItemId ptr, itemIdDict->lookup(reg->estOrdem.itemId) )
 				if itemId <> null then 
 					row->addCell(itemId->id)
 					row->addCell(itemId->ncm)
@@ -5718,7 +5757,7 @@ sub Efd.gerarPlanilhas(nomeArquivo as string, onProgress as OnProgressCB)
 							row = entradas->AddRow()
 						end if
 						
-						var itemId = cast( TItemId ptr, itemIdDict[reg->docItemSint.codMercadoria] )
+						var itemId = cast( TItemId ptr, itemIdDict->lookup(reg->docItemSint.codMercadoria) )
 						  
 						row->addCell(doc->cnpj)
 						row->addCell(doc->ie)
@@ -5759,7 +5798,7 @@ sub Efd.gerarPlanilhas(nomeArquivo as string, onProgress as OnProgressCB)
 
 			case LUA_CUSTOM
 				
-				var luaFunc = cast(customLuaCb ptr, customLuaCbDict[reg->lua.tipo])->writer
+				var luaFunc = cast(customLuaCb ptr, customLuaCbDict->lookup(reg->lua.tipo))->writer
 				
 				if luaFunc <> null then
 					lua_getglobal(lua, luaFunc)
@@ -5775,7 +5814,7 @@ sub Efd.gerarPlanilhas(nomeArquivo as string, onProgress as OnProgressCB)
 			reg = reg->next_
 		loop
 	catch
-		print !"\r\nErro ao tratar o registro de tipo (" & reg->tipo & !") carregado na linha (" & reg->linha & !")\r\n"
+		onError(!"\r\nErro ao tratar o registro de tipo (" & reg->tipo & !") carregado na linha (" & reg->linha & !")\r\n")
 	endtry
 	
 	onProgress(null, 1)
@@ -5847,7 +5886,7 @@ static function Efd.luacb_efd_participante_get cdecl(byval L as lua_State ptr) a
 		var idParticipante = lua_tostring(L, 1)
 		var formatar = lua_toboolean(L, 2) <> 0
 
-		var part = cast( TParticipante ptr, g_efd->participanteDict[idParticipante] )
+		var part = cast( TParticipante ptr, g_efd->participanteDict->lookup(idParticipante) )
 		if part <> null then
 			lua_newtable(L)
 			lua_pushstring(L, "cnpj")

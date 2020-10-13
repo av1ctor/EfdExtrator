@@ -194,7 +194,7 @@ private:
 	y1 as single
 	x2 as single
 	y2 as single
-	idDict as TDict
+	idDict as TDict ptr
 	page as FPDF_PAGE
 end type
 
