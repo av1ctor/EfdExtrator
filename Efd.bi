@@ -886,7 +886,8 @@ type RelPagina
 	emitir			as boolean
 end type
 
-type OnProgressCB as sub(estagio as const wstring ptr, porCompleto as double)
+type OnProgressCB as sub(estagio as const zstring ptr, porCompleto as double)
+type OnErrorCB as sub(msg as const zstring ptr)
 
 enum TipoLivro
 	TL_ENTRADAS
@@ -935,34 +936,75 @@ end type
 
 type Efd
 public:
-	declare constructor ()
+	declare constructor (onProgress as OnProgressCB, onError as OnErrorCB)
 	declare destructor ()
 	declare sub iniciarExtracao(nomeArquivo as String, opcoes as OpcoesExtracao)
-	declare sub finalizarExtracao(onProgress as OnProgressCB)
-	declare function carregarTxt(nomeArquivo as String, onProgress as OnProgressCB) as Boolean
-	declare function carregarCsv(nomeArquivo as String, onProgress as OnProgressCB) as Boolean
-	declare function carregarXlsx(nomeArquivo as String, onProgress as OnProgressCB) as Boolean
-	declare function processar(nomeArquivo as string, onProgress as OnProgressCB) as Boolean
-	declare sub analisar(onProgress as OnProgressCB)
-	declare sub criarResumos(onProgress as OnProgressCB)
+	declare sub finalizarExtracao()
+	declare function carregarTxt(nomeArquivo as String) as Boolean
+	declare function carregarCsv(nomeArquivo as String) as Boolean
+	declare function carregarXlsx(nomeArquivo as String) as Boolean
+	declare function processar(nomeArquivo as string) as Boolean
+	declare sub analisar()
+	declare sub criarResumos()
 	declare function getPlanilha(nome as const zstring ptr) as ExcelWorksheet ptr
    
 private:
 	declare sub configurarDB()
+	declare sub fecharDb()
 	declare sub configurarScripting()
 	
 	declare function lerRegistro(bf as bfile, reg as TRegistro ptr) as Boolean
 	declare function lerRegistroSintegra(bf as bfile, reg as TRegistro ptr) as Boolean
 	declare function lerTipo(bf as bfile, tipo as zstring ptr) as TipoRegistro
+	declare function lerRegMestre(bf as bfile, reg as TRegistro ptr) as Boolean
+	declare function lerRegParticipante(bf as bfile, reg as TRegistro ptr) as Boolean
+	declare function lerRegDocNF(bf as bfile, reg as TRegistro ptr) as Boolean
+	declare function lerRegDocNFInfo(bf as bfile, reg as TRegistro ptr, pai as TDocNF ptr) as Boolean
 	declare function lerRegDocNFItem(bf as bfile, reg as TRegistro ptr, documentoPai as TDocNF ptr) as Boolean
+	declare function lerRegDocNFItemAnal(bf as bfile, reg as TRegistro ptr, documentoPai as TRegistro ptr) as Boolean
+	declare function lerRegDocNFItemRessarcSt(bf as bfile, reg as TRegistro ptr, documentoPai as TDocNFItem ptr) as Boolean
+	declare function lerRegDocNFDifal(bf as bfile, reg as TRegistro ptr, documentoPai as TDocNF ptr) as Boolean
+	declare function lerRegDocCT(bf as bfile, reg as TRegistro ptr) as Boolean
+	declare function lerRegDocCTItemAnal(bf as bfile, reg as TRegistro ptr, docPai as TRegistro ptr) as Boolean
+	declare function lerRegDocCTDifal(bf as bfile, reg as TRegistro ptr, docPai as TDocCT ptr) as Boolean
+	declare function lerRegEquipECF(bf as bfile, reg as TRegistro ptr) as Boolean
+	declare function lerRegDocECF(bf as bfile, reg as TRegistro ptr, equipECF as TEquipECF ptr) as Boolean
+	declare function lerRegECFReducaoZ(bf as bfile, reg as TRegistro ptr, equipECF as TEquipECF ptr) as Boolean
+	declare function lerRegDocECFItem(bf as bfile, reg as TRegistro ptr, documentoPai as TDocECF ptr) as Boolean
+	declare function lerRegDocECFItemAnal(bf as bfile, reg as TRegistro ptr, documentoPai as TRegistro ptr) as Boolean
+	declare function lerRegDocSAT(bf as bfile, reg as TRegistro ptr) as Boolean
+	declare function lerRegDocSATItemAnal(bf as bfile, reg as TRegistro ptr, documentoPai as TRegistro ptr) as Boolean
+	declare function lerRegDocNFSCT(bf as bfile, reg as TRegistro ptr) as Boolean
+	declare function lerRegDocNFSCTItemAnal(bf as bfile, reg as TRegistro ptr, documentoPai as TRegistro ptr) as Boolean
 	declare function lerRegDocNFElet(bf as bfile, reg as TRegistro ptr) as Boolean
+	declare function lerRegDocNFEletItemAnal(bf as bfile, reg as TRegistro ptr, documentoPai as TRegistro ptr) as Boolean
+	declare function lerRegItemId(bf as bfile, reg as TRegistro ptr) as Boolean
+	declare function lerRegBemCiap(bf as bfile, reg as TRegistro ptr) as Boolean
+	declare function lerRegInfoCompl(bf as bfile, reg as TRegistro ptr) as Boolean
+	declare function lerRegApuIcmsPeriodo(bf as bfile, reg as TRegistro ptr) as Boolean
+	declare function lerRegApuIcmsProprio(bf as bfile, reg as TRegistro ptr) as Boolean
+	declare function lerRegApuIcmsAjuste(bf as bfile, reg as TRegistro ptr, pai as TApuracaoIcmsPeriodo ptr) as Boolean
+	declare function lerRegApuIcmsSTPeriodo(bf as bfile, reg as TRegistro ptr) as Boolean
+	declare function lerRegApuIcmsST(bf as bfile, reg as TRegistro ptr) as Boolean
+	declare function lerRegInventarioTotais(bf as bfile, reg as TRegistro ptr) as Boolean
+	declare function lerRegInventarioItem(bf as bfile, reg as TRegistro ptr, inventarioPai as TInventarioTotais ptr) as Boolean
+	declare function lerRegCiapTotal(bf as bfile, reg as TRegistro ptr) as Boolean
+	declare function lerRegCiapItem(bf as bfile, reg as TRegistro ptr, pai as TCiapTotal ptr) as Boolean
+	declare function lerRegCiapItemDoc(bf as bfile, reg as TRegistro ptr, pai as TCiapItem ptr) as Boolean
+	declare function lerRegEstoquePeriodo(bf as bfile, reg as TRegistro ptr) as Boolean
+	declare function lerRegEstoqueItem(bf as bfile, reg as TRegistro ptr, pai as TEstoquePeriodo ptr) as Boolean
+	declare function lerRegEstoqueOrdemProd(bf as bfile, reg as TRegistro ptr, pai as TEstoquePeriodo ptr) as Boolean
 	declare sub lerAssinatura(bf as bfile)
-	declare function carregarSintegra(bf as bfile, onProgress as OnProgressCB) as Boolean
+	declare function lerInfoAssinatura(nomeArquivo as string, assinaturaP7K_DER() as byte) as InfoAssinatura ptr
+	
+	declare function carregarSintegra(bf as bfile) as Boolean
+	
 	declare function carregarCsvNFeDestSAFI(bf as bfile, emModoOutrasUFs as boolean) as TDFe ptr
 	declare function carregarCsvNFeEmitSAFI(bf as bfile) as TDFe ptr
 	declare function carregarCsvNFeEmitItensSAFI(bf as bfile, chave as string) as TDFe_NFeItem ptr
 	declare function carregarCsvCTeSAFI(bf as bfile, emModoOutrasUFs as boolean) as TDFe ptr
 	declare function carregarCsvNFeEmitItens(bf as bfile, chave as string) as TDFe_NFeItem ptr
+	
 	declare function carregarXlsxNFeDest(reader as ExcelReader ptr) as TDFe ptr
 	declare function carregarXlsxNFeDestItens(reader as ExcelReader ptr) as TDFe ptr
 	declare function carregarXlsxNFeEmit(rd as ExcelReader ptr) as TDFe ptr
@@ -982,6 +1024,7 @@ private:
 	declare sub adicionarRessarcStEscriturado(doc as TDocNFItemRessarcSt ptr)
 	declare sub adicionarItemEscriturado(item as TItemId ptr)
 	declare sub adicionarMestre(reg as TMestre ptr)
+	
 	declare function filtrarPorCnpj(idParticipante as const zstring ptr) as boolean
 	declare function filtrarPorChave(chave as const zstring ptr) as boolean
 	declare function getInfoCompl(info as TDocInfoCompl ptr) as string
@@ -989,9 +1032,9 @@ private:
 	declare sub addRegistroAoDB(reg as TRegistro ptr)
 	
 	declare sub criarPlanilhas()
-	declare sub gerarPlanilhas(nomeArquivo as string, onProgress as OnProgressCB)
+	declare sub gerarPlanilhas(nomeArquivo as string)
 	
-	declare sub gerarRelatorios(nomeArquivo as string, onProgress as OnProgressCB)
+	declare sub gerarRelatorios(nomeArquivo as string)
 	declare sub gerarRelatorioApuracaoICMS(nomeArquivo as string, reg as TRegistro ptr)
 	declare sub gerarRelatorioApuracaoICMSST(nomeArquivo as string, reg as TRegistro ptr)
 	declare sub iniciarRelatorio(relatorio as TipoRelatorio, nomeRelatorio as string, sufixo as string)
@@ -1014,27 +1057,29 @@ private:
 	declare function gerarLinhaAnal() as PdfTemplateNode ptr
 	declare function criarPaginaRelatorio(emitir as boolean) as RelPagina ptr
 	
-	declare sub analisarInconsistenciasLRE(onProgress as OnProgressCB)
-	declare sub analisarInconsistenciasLRS(onProgress as OnProgressCB)
+	declare sub analisarInconsistenciasLRE()
+	declare sub analisarInconsistenciasLRS()
 	
-	declare sub criarResumosLRE(onProgress as OnProgressCB)
-	declare sub criarResumosLRS(onProgress as OnProgressCB)
+	declare sub criarResumosLRE()
+	declare sub criarResumosLRS()
 	
 	declare sub exportAPI(L as lua_State ptr)
 	declare static function luacb_efd_rel_addItemAnalitico cdecl(L as lua_State ptr) as long
 	declare static function luacb_efd_participante_get cdecl(L as lua_State ptr) as long
 
-	arquivos				as TList 		'' de TArquivoInfo
+	arquivos				as TList ptr 		'' de TArquivoInfo
 	tipoArquivo				as TTipoArquivo
+	onProgress 				as OnProgressCB
+	onError 				as OnErrorCB
 	
 	'' registros das EFD's e do Sintegra (reiniciados a cada novo .txt carregado)
 	regListHead         	as TRegistro ptr = null
 	nroRegs             	as integer = 0
-	participanteDict    	as TDict
-	itemIdDict          	as TDict
-	bemCiapDict          	as TDict
-	infoComplDict			as TDict
-	sintegraDict			as TDict
+	participanteDict    	as TDict ptr
+	itemIdDict          	as TDict ptr
+	bemCiapDict          	as TDict ptr
+	infoComplDict			as TDict ptr
+	sintegraDict			as TDict ptr
 	ultimoReg   			as TRegistro ptr
 	ultimoDocNFItem  		as TDocNFItem ptr
 	ultimoEquipECF			as TEquipECF ptr
@@ -1065,7 +1110,7 @@ private:
 	opcoes					as OpcoesExtracao
 
 	'' registros das NF-e's e CT-e's retirados dos relatórios do Infoview (mantidos do início ao fim da extração)
-	chaveDFeDict			as TDict
+	chaveDFeDict			as TDict ptr
 	dfeListHead				as TDFe ptr = null
 	dfeListTail				as TDFe ptr = null
 	nroDfe					as integer = 0
@@ -1096,17 +1141,17 @@ private:
 	baseTemplatesDir		as string
 	ultimoRelatorio			as TipoRelatorio
 	ultimoRelatorioSufixo	as string
-	relSomaLRDict			as TDict
-	relSomaLRList			as TList			'' de RelSomatorioLR
+	relSomaLRDict			as TDict ptr
+	relSomaLRList			as TList ptr		'' de RelSomatorioLR
 	nroRegistrosRel			as integer
-	municipDict				as TDict
-	relLinhasList			as TList			'' de RelLinha
+	municipDict				as TDict ptr
+	relLinhasList			as TList ptr		'' de RelLinha
 	relNroLinhas			as double
 	relYPos					as double
 	relNroPaginas			as integer
 	relTemplate				as PdfTemplate ptr
 	relPage					as PdfTemplatePageNode ptr
-	relPaginasList			as TList			'' de RelPagina
+	relPaginasList			as TList ptr		'' de RelPagina
 	
 	''
 	assinaturaP7K_DER(any)	as byte
@@ -1114,7 +1159,7 @@ private:
 	
 	'' scripting
 	lua						as lua_State ptr
-	customLuaCbDict			as TDict			'' de CustomLuaCb
+	customLuaCbDict			as TDict ptr		'' de CustomLuaCb
 end type
 
 
@@ -1136,13 +1181,10 @@ declare function yyyyMmDd2Datetime(s as const zstring ptr) as string
 declare function YyyyMmDd2DatetimeBR(s as const zstring ptr) as string 
 declare function STR2IE(ie as string) as string
 declare function tipoItem2Str(tipo as TipoItemId) as string
-declare function dupstr(s as const zstring ptr) as zstring ptr
-declare sub splitstr(Text As String, Delim As String = ",", Ret() As String)
-declare function strreplace(byref text as string, byref a as string, byref b as string) as string
 declare function UF_SIGLA2COD(s as zstring ptr) as integer
-declare function loadstrings(fromFile as string, toArray() as string) as boolean
-declare function latinToUtf16le(src as zstring ptr) as wstring ptr
 
 extern as string ufCod2Sigla(11 to 53)
-extern as TDict ufSigla2CodDict
+extern as TDict ptr ufSigla2CodDict
 extern as string codSituacao2Str(0 to __TipoSituacao__LEN__-1)
+
+#include once "strings.bi"

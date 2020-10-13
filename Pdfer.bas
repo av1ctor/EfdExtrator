@@ -1026,11 +1026,11 @@ constructor PdfTemplatePageNode(x1 as single, y1 as single, x2 as single, y2 as 
 	this.y1 = y1
 	this.x2 = x2
 	this.y2 = y2
-	idDict.init(64)
+	idDict = new TDict(64)
 end constructor
 
 destructor PdfTemplatePageNode()
-	idDict.end_()
+	delete idDict
 end destructor
 
 function PdfTemplatePageNode.clone() as PdfTemplatePageNode ptr
@@ -1068,11 +1068,11 @@ sub PdfTemplatePageNode.flush()
 end sub
 
 function PdfTemplatePageNode.getIdDict() as TDict ptr
-	return @idDict
+	return idDict
 end function
 
 function PdfTemplatePageNode.getNode(id as string) as PdfTemplateNode ptr
-	return cast(PdfTemplateNode ptr, idDict[id])
+	return cast(PdfTemplateNode ptr, (*idDict)[id])
 end function
 
 '''''

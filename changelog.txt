@@ -1,4 +1,5 @@
 versão 0.9.1 beta:
+- adicionado: interface gráfica, mostrada quando nenhum parâmetro é passado na linha de comando
 - adicionado: novas análises do roteiro 3.01
 - adicionado: extração do bloco K (Estoque e produção, registros K100, K200 e K230)
 - adicionado: extração do registro E111 (ajuste de débito/crédito no LRAICMS)

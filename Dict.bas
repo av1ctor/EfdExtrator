@@ -4,7 +4,7 @@
 
 type DictItemPOOL
 	refcount		as integer
-	list			as TList
+	list			as TList ptr
 end type
 
 dim shared as DictItemPOOL itempool
@@ -19,7 +19,7 @@ private sub lazyInit()
 	const INITIAL_ITEMS = 8096
 
 	'' allocate the initial item list pool
-	itempool.list.init(INITIAL_ITEMS, sizeof(DictItem), false)
+	itempool.list = new TList(INITIAL_ITEMS, sizeof(DictItem), false)
 end sub
 
 ''::::::
@@ -29,14 +29,14 @@ private sub lazyEnd()
 		exit sub
 	end if
 
-	itempool.list.end_()
+	delete itempool.list
 end sub
 
 ''::::::
 private function hNewItem(chain_ as DictChain ptr) as DictItem ptr
 
 	'' add a new node
-	var item = cast(DictItem ptr, itempool.list.add( ))
+	var item = cast(DictItem ptr, itempool.list->add( ))
 
 	'' add it to the internal linked-list
 	if( chain_->tail <> NULL ) then
@@ -78,12 +78,12 @@ private sub hDelItem(chain_ as DictChain ptr, item as DictItem ptr)
 	end if
 
 	'' remove node
-	itempool.list.del( item )
+	itempool.list->del( item )
 
 end sub
 
 ''::::::
-sub TDict.init(nodes as integer, delKey as boolean, delVal as boolean, allocKey as boolean)
+constructor TDict(nodes as integer, delKey as boolean, delVal as boolean, allocKey as boolean)
 
 	lazyInit()
 
@@ -94,10 +94,10 @@ sub TDict.init(nodes as integer, delKey as boolean, delVal as boolean, allocKey 
 	this.delVal = delVal
 	this.allocKey = allocKey
 
-end sub
+end constructor
 
 ''::::::
-sub TDict.end_()
+destructor TDict()
 
     var list_ = this.chain
 
@@ -129,7 +129,7 @@ sub TDict.end_()
 
 	lazyEnd()
 
-end sub
+end destructor
 
 ''::::::
 function TDict.hash(key as const zstring ptr) as uinteger
@@ -165,24 +165,35 @@ function TDict.lookupEx(key as const zstring ptr, index as uinteger ) as any ptr
 end function
 
 ''::::::
+function TDict.lookup(key as integer) as any ptr
+	var k = str(key)
+	function = lookupEx( strptr(k), hash( strptr(k) ) )
+end function
+
+''::::::
+function TDict.lookup(key as double) as any ptr
+	var k = str(key)
+	function = lookupEx( strptr(k), hash( strptr(k) ) )
+end function
+
+''::::::
 function TDict.lookup(key as const zstring ptr) as any ptr
     function = lookupEx( key, hash( key ) )
 end function
 
 ''::::::
 operator TDict.[](key as integer) as any ptr
-	var k = str(key)
-	operator = lookupEx( strptr(k), hash( strptr(k) ) )
+	operator = lookup( key )
+end operator
+
+''::::::
+operator TDict.[](key as double) as any ptr
+	operator = lookup( key )
 end operator
 
 ''::::::
 operator TDict.[](key as const zstring ptr) as any ptr
 	operator = lookupEx( key, hash( key ) )
-end operator
-
-operator TDict.[](key as double) as any ptr
-	var k = str(key)
-	operator = lookupEx( strptr(k), hash( strptr(k) ) )
 end operator
 
 ''::::::

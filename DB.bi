@@ -42,7 +42,7 @@ type TDataSetRow
 	cols(any)		as TDbColumn
 	cnt				as integer
 private:
-	dict			as TDict
+	dict			as TDict ptr
 end type
 
 type TDataSet
@@ -55,7 +55,7 @@ type TDataSet
 	
 	currRow			as TDataSetRow ptr
 private:
-	rows			as TList		'' list of TDataSetRow
+	rows			as TList ptr	'' list of TDataSetRow
 end type
 
 type TDb

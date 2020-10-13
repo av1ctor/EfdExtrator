@@ -3,7 +3,7 @@
 #include once "list.bi"
 
 '':::::
-sub TList.init(nodes as integer, nodelen as integer, clearNodes as boolean)
+constructor TList(nodes as integer, nodelen as integer, clearNodes as boolean)
 
 	'' fill ctrl struct
 	this.tbhead = NULL
@@ -17,10 +17,10 @@ sub TList.init(nodes as integer, nodelen as integer, clearNodes as boolean)
 	'' allocate the initial pool
 	allocTB( nodes )
 
-end sub
+end constructor
 
 '':::::
-sub TList.end_()
+destructor TList()
 	'' for each pool, free the mem block and the pool ctrl struct
 	var tb = this.tbhead
 	do while( tb <> NULL )
@@ -33,7 +33,7 @@ sub TList.end_()
 	this.tbhead = NULL
 	this.tbtail = NULL
 	this.nodes	= 0
-end sub
+end destructor
 
 '':::::
 sub TList.allocTB(nodes as integer)

@@ -89,7 +89,7 @@ end function
 		if relYPos + ANAL_HEIGHT > PAGE_BOTTOM then
 			gerarPaginaRelatorio()
 		end if
-		var lin = cast(RelLinha ptr, relLinhasList.add())
+		var lin = cast(RelLinha ptr, relLinhasList->add())
 		lin->tipo = REL_LIN_DF_ITEM_ANAL
 		lin->anal.item = anal
 		lin->anal.sit = __sit
@@ -108,7 +108,7 @@ end function
 		if relYPos + calcHeight(lg) > PAGE_BOTTOM then
 			gerarPaginaRelatorio()
 		end if
-		var lin = cast(RelLinha ptr, relLinhasList.add())
+		var lin = cast(RelLinha ptr, relLinhasList->add())
 		lin->tipo = REL_LIN_DF_ENTRADA
 		lin->highlight = false
 		lin->large = lg
@@ -128,7 +128,7 @@ end function
 		if relYPos + calcHeight(lg) > PAGE_BOTTOM then
 			gerarPaginaRelatorio()
 		end if
-		var lin = cast(RelLinha ptr, relLinhasList.add())
+		var lin = cast(RelLinha ptr, relLinhasList->add())
 		lin->tipo = REL_LIN_DF_SAIDA
 		lin->highlight = false
 		lin->large = lg
@@ -146,7 +146,7 @@ end function
 		if relYPos + calcHeight(false) > PAGE_BOTTOM then
 			gerarPaginaRelatorio()
 		end if
-		var lin = cast(RelLinha ptr, relLinhasList.add())
+		var lin = cast(RelLinha ptr, relLinhasList->add())
 		lin->tipo = REL_LIN_DF_REDZ
 		lin->highlight = false
 		lin->large = false
@@ -163,7 +163,7 @@ end function
 		if relYPos + calcHeight(false) > PAGE_BOTTOM then
 			gerarPaginaRelatorio()
 		end if
-		var lin = cast(RelLinha ptr, relLinhasList.add())
+		var lin = cast(RelLinha ptr, relLinhasList->add())
 		lin->tipo = REL_LIN_DF_SAT
 		lin->highlight = false
 		lin->large = false
@@ -176,18 +176,18 @@ end function
 #endmacro
 
 ''''''''
-sub Efd.gerarRelatorios(nomeArquivo as string, onProgress as OnProgressCB)
+sub Efd.gerarRelatorios(nomeArquivo as string)
 	
 	if opcoes.somenteRessarcimentoST then
-		print wstr(!"\tNão será possivel gerar relatórios porque só foram extraídos os registros com ressarcimento ST")
+		onError(!"\tNão será possivel gerar relatórios porque só foram extraídos os registros com ressarcimento ST")
 	end if
 	
 	onProgress(wstr(!"\tGerando relatórios"), 0)
 	
 	ultimoRelatorio = -1
 
-	relLinhasList.init(cint(PAGE_BOTTOM / ROW_HEIGHT + 0.5), len(RelLinha))
-	relPaginasList.init(1000, len(RelPagina))
+	relLinhasList = new TList(cint(PAGE_BOTTOM / ROW_HEIGHT + 0.5), len(RelLinha))
+	relPaginasList = new Tlist(1000, len(RelPagina))
 	
 	onProgress(null, .1)
 	
@@ -203,19 +203,19 @@ sub Efd.gerarRelatorios(nomeArquivo as string, onProgress as OnProgressCB)
 				'NF-e?
 				case DOC_NF, DOC_NFSCT, DOC_NF_ELETRIC
 					if reg->nf.operacao = ENTRADA then
-						var part = cast( TParticipante ptr, participanteDict[reg->nf.idParticipante] )
+						var part = cast( TParticipante ptr, participanteDict->lookup(reg->nf.idParticipante) )
 						list_add_DF_ENTRADA(reg->nf, part)
 					end if
 				
 				'CT-e?
 				case DOC_CT
 					if reg->ct.operacao = ENTRADA then
-						var part = cast( TParticipante ptr, participanteDict[reg->ct.idParticipante] )
+						var part = cast( TParticipante ptr, participanteDict->lookup(reg->ct.idParticipante) )
 						list_add_DF_ENTRADA(reg->ct, part)
 					end if
 
 				case LUA_CUSTOM
-					var luaFunc = cast(customLuaCb ptr, customLuaCbDict[reg->lua.tipo])->rel_entradas
+					var luaFunc = cast(customLuaCb ptr, customLuaCbDict->lookup(reg->lua.tipo))->rel_entradas
 					
 					if luaFunc <> null then
 						'lua_getglobal(lua, luaFunc)
@@ -228,7 +228,7 @@ sub Efd.gerarRelatorios(nomeArquivo as string, onProgress as OnProgressCB)
 				reg = reg->next_
 			loop
 		catch
-			print !"\r\nErro ao tratar o registro de tipo (" & reg->tipo & !") carregado na linha (" & reg->linha & !")\r\n"
+			onError(!"\r\nErro ao tratar o registro de tipo (" & reg->tipo & !") carregado na linha (" & reg->linha & !")\r\n")
 		endtry
 		
 		finalizarRelatorio()
@@ -248,14 +248,14 @@ sub Efd.gerarRelatorios(nomeArquivo as string, onProgress as OnProgressCB)
 				'NF-e?
 				case DOC_NF, DOC_NFSCT, DOC_NF_ELETRIC
 					if reg->nf.operacao = SAIDA then
-						var part = cast( TParticipante ptr, participanteDict[reg->nf.idParticipante] )
+						var part = cast( TParticipante ptr, participanteDict->lookup(reg->nf.idParticipante) )
 						list_add_DF_SAIDA(reg->nf, part)
 					end if
 
 				'CT-e?
 				case DOC_CT
 					if reg->ct.operacao = SAIDA then
-						var part = cast( TParticipante ptr, participanteDict[reg->ct.idParticipante] )
+						var part = cast( TParticipante ptr, participanteDict->lookup(reg->ct.idParticipante) )
 						list_add_DF_SAIDA(reg->ct, part)
 					end if
 					
@@ -268,7 +268,7 @@ sub Efd.gerarRelatorios(nomeArquivo as string, onProgress as OnProgressCB)
 					list_add_SAT(reg->sat)
 				
 				case LUA_CUSTOM
-					var luaFunc = cast(customLuaCb ptr, customLuaCbDict[reg->lua.tipo])->rel_saidas
+					var luaFunc = cast(customLuaCb ptr, customLuaCbDict->lookup(reg->lua.tipo))->rel_saidas
 					
 					if luaFunc <> null then
 						'lua_getglobal(lua, luaFunc)
@@ -281,7 +281,7 @@ sub Efd.gerarRelatorios(nomeArquivo as string, onProgress as OnProgressCB)
 				reg = reg->next_
 			loop
 		catch
-			print !"\r\nErro ao tratar o registro de tipo (" & reg->tipo & !") carregado na linha (" & reg->linha & !")\r\n"
+			onError(!"\r\nErro ao tratar o registro de tipo (" & reg->tipo & !") carregado na linha (" & reg->linha & !")\r\n")
 		endtry
 		
 		finalizarRelatorio()
@@ -306,7 +306,7 @@ sub Efd.gerarRelatorios(nomeArquivo as string, onProgress as OnProgressCB)
 				end if
 				
 			case LUA_CUSTOM
-				var luaFunc = cast(customLuaCb ptr, customLuaCbDict[reg->lua.tipo])->rel_outros
+				var luaFunc = cast(customLuaCb ptr, customLuaCbDict->lookup(reg->lua.tipo))->rel_outros
 				
 				if luaFunc <> null then
 					'lua_getglobal(lua, luaFunc)
@@ -319,11 +319,11 @@ sub Efd.gerarRelatorios(nomeArquivo as string, onProgress as OnProgressCB)
 			reg = reg->next_
 		loop
 	catch
-		print !"\r\nErro ao tratar o registro de tipo (" & reg->tipo & !") carregado na linha (" & reg->linha & !")\r\n"
+		onError(!"\r\nErro ao tratar o registro de tipo (" & reg->tipo & !") carregado na linha (" & reg->linha & !")\r\n")
 	endtry
 	
-	relPaginasList.end_()
-	relLinhasList.end_()
+	delete relPaginasList
+	delete relLinhasList
 	
 	onProgress(null, 1)
 
@@ -331,7 +331,7 @@ end sub
 
 ''''''''
 private function efd.criarPaginaRelatorio(emitir as boolean) as RelPagina ptr
-	var pagina = cast(RelPagina ptr, relPaginasList.add())
+	var pagina = cast(RelPagina ptr, relPaginasList->add())
 	pagina->emitir = emitir
 
 	if emitir then
@@ -353,7 +353,7 @@ private function efd.gerarPaginaRelatorio(lastPage as boolean) as boolean
 	
 	if opcoes.filtrarCnpj then
 		gerarPagina = false
-		var n = cast(RelLinha ptr, relLinhasList.head)
+		var n = cast(RelLinha ptr, relLinhasList->head)
 		do while n <> null
 			dim as TParticipante ptr part = null
 			select case as const n->tipo
@@ -373,13 +373,13 @@ private function efd.gerarPaginaRelatorio(lastPage as boolean) as boolean
 				end if
 			end if
 			
-			n = relLinhasList.next_(n)
+			n = relLinhasList->next_(n)
 		loop
 	end if
 	
 	if gerarPagina andalso opcoes.filtrarChaves then
 		gerarPagina = false
-		var n = cast(RelLinha ptr, relLinhasList.head)
+		var n = cast(RelLinha ptr, relLinhasList->head)
 		do while n <> null
 			dim as zstring ptr chave = null
 			select case as const n->tipo
@@ -400,14 +400,14 @@ private function efd.gerarPaginaRelatorio(lastPage as boolean) as boolean
 				end if
 			end if
 			
-			n = relLinhasList.next_(n)
+			n = relLinhasList->next_(n)
 		loop
 	end if
 
 	criarPaginaRelatorio(gerarPagina)
 
 	'' emitir header e footer
-	var n = cast(RelLinha ptr, relLinhasList.head)
+	var n = cast(RelLinha ptr, relLinhasList->head)
 	do while n <> null
 		
 		if gerarPagina then
@@ -436,8 +436,8 @@ private function efd.gerarPaginaRelatorio(lastPage as boolean) as boolean
 		end if
 		
 		var p = n
-		n = relLinhasList.next_(n)
-		relLinhasList.del(p)
+		n = relLinhasList->next_(n)
+		relLinhasList->del(p)
 	loop
 	
 	if not lastPage then
@@ -534,8 +534,8 @@ sub Efd.iniciarRelatorio(relatorio as TipoRelatorio, nomeRelatorio as string, su
 	
 	select case relatorio
 	case REL_LRE, REL_LRS
-		relSomaLRList.init(10, len(RelSomatorioLR))
-		relSomaLRDict.init(10)
+		relSomaLRList = new Tlist(10, len(RelSomatorioLR))
+		relSomaLRDict = new TDict(10)
 	end select
 	
 	relTemplate = new PdfTemplate(baseTemplatesDir + nomeRelatorio + ".xml")
@@ -619,15 +619,15 @@ private sub Efd.relatorioSomarLR(sit as TipoSituacao, anal as TDocItemAnal ptr)
 	
 	chave &= format(anal->cst,"000") & anal->cfop & format(anal->aliq, "00")
 	
-	var soma = cast(RelSomatorioLR ptr, relSomaLRDict[chave])
+	var soma = cast(RelSomatorioLR ptr, relSomaLRDict->lookup(chave))
 	if soma = null then
-		soma = relSomaLRList.addOrdAsc(strptr(chave), @cmpFunc)
+		soma = relSomaLRList->addOrdAsc(strptr(chave), @cmpFunc)
 		soma->chave = chave
 		soma->situacao = sit
 		soma->cst = anal->cst
 		soma->cfop = anal->cfop
 		soma->aliq = anal->aliq
-		relSomaLRDict.add(soma->chave, soma)
+		relSomaLRDict->add(soma->chave, soma)
 	end if
 	
 	soma->valorOp += anal->valorOp
@@ -869,7 +869,7 @@ sub efd.gerarResumoRelatorio(emitir as boolean)
 	'' tabela de totais
 	dim as RelSomatorioLR totSoma
 	
-	var soma = cast(RelSomatorioLR ptr, relSomaLRList.head)
+	var soma = cast(RelSomatorioLR ptr, relSomaLRList->head)
 	do while soma <> null
 		if relYPos + rowHeight > PAGE_BOTTOM then
 			criarPaginaRelatorio(emitir)
@@ -906,7 +906,7 @@ sub efd.gerarResumoRelatorio(emitir as boolean)
 		totSoma.ICMSST += soma->ICMSST
 		totSoma.ipi += soma->ipi
 		
-		soma = relSomaLRList.next_(soma)
+		soma = relSomaLRList->next_(soma)
 	loop
 	
 	'' totais
@@ -964,13 +964,13 @@ sub Efd.finalizarRelatorio()
 			gerarResumoRelatorio(gerarResumo)
 		end if
 
-		relSomaLRDict.end_()
-		relSomaLRList.end_()
+		delete relSomaLRDict
+		delete relSomaLRList
 	end select
 	
 	'' atribuir número de cada página
 	var cnt = 1
-	var pagina = cast(RelPagina ptr, relPaginasList.head)
+	var pagina = cast(RelPagina ptr, relPaginasList->head)
 	do while pagina <> null
 		if pagina->emitir then
 			var page = pagina->page
@@ -985,8 +985,8 @@ sub Efd.finalizarRelatorio()
 		cnt += 1
 		
 		var last = pagina
-		pagina = relPaginasList.next_(pagina)
-		relPaginasList.del(last)
+		pagina = relPaginasList->next_(pagina)
+		relPaginasList->del(last)
 	loop
 	
 	'' salvar PDF

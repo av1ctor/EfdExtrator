@@ -126,7 +126,7 @@ private function latin2UTF8(src as zstring ptr, cd as iconv_t) as string
 end function
 
 ''
-function ExcelWriter.Flush(showProgress as ProgressCB) as boolean
+function ExcelWriter.Flush(onProgress as OnProgressCB) as boolean
 
 	var p = 1
 
@@ -238,8 +238,8 @@ function ExcelWriter.Flush(showProgress as ProgressCB) as boolean
 				var row = sheet->rowListHead
 				do while row <> null
 					curRow += 1
-					if showProgress <> null then
-						showProgress(null, curRow / totalRows)
+					if onProgress <> null then
+						onProgress(null, curRow / totalRows)
 					end if
 					
 					if row->asIs then

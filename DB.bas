@@ -73,6 +73,7 @@ function TDb.exec(query as const zstring ptr) as TDataSet ptr
 	if sqlite3_exec( instance, query, @callback, ds, @errMsg_ ) <> SQLITE_OK then 
 		delete ds
 		errMsg = *errMsg_
+		sqlite3_free(errMsg_)
 		return null
 	else
 		errMsg = ""
@@ -114,6 +115,7 @@ function TDb.execScalar(query as const zstring ptr) as zstring ptr
 	dim as zstring ptr errMsg_ = null
 	if sqlite3_exec( instance, query, @callback, @ds, @errMsg_ ) <> SQLITE_OK then 
 		errMsg = *errMsg_
+		sqlite3_free(errMsg_)
 		return null
 	else
 		errMsg = ""
@@ -142,6 +144,7 @@ function TDb.execNonQuery(query as const zstring ptr) as boolean
 	dim as zstring ptr errMsg_ = null
 	if sqlite3_exec( instance, query, null, ds, @errMsg_ ) <> SQLITE_OK then 
 		errMsg = *errMsg_
+		sqlite3_free(errMsg_)
 		function = false
 	else
 		errMsg = ""
@@ -231,19 +234,19 @@ end function
 
 ''''''''
 constructor TDataSet()
-	rows.init(10, len(TDataSetRow))
+	rows = new TList(10, len(TDataSetRow))
 	currRow = null
 end constructor	
 	
 ''''''''
 destructor TDataSet()
-	var r = cast(TDataSetRow ptr, rows.head)
+	var r = cast(TDataSetRow ptr, rows->head)
 	do while r <> null
 		r->destructor
-		r = rows.next_(r)
+		r = rows->next_(r)
 	loop
 	
-	rows.end_()
+	delete rows
 	currRow = null
 end destructor
 
@@ -255,7 +258,7 @@ end function
 ''''''''
 sub TDataSet.next_() 
 	if currRow <> null then
-		currRow = rows.next_(currRow)
+		currRow = rows->next_(currRow)
 	end if
 end sub
 
@@ -266,7 +269,7 @@ end property
 
 ''''''''
 function TDataSet.newRow(cols as integer) as TDataSetRow ptr
-	var p = rows.add()
+	var p = rows->add()
 	var r = new (p) TDataSetRow(cols)
 	if currRow = null then
 		currRow = r
@@ -281,7 +284,7 @@ constructor TDataSetRow(numCols as integer)
 	if numCols = 0 then
 		numCols = 16
 	end if
-	dict.init(numCols, true, true, true)
+	dict = new TDict(numCols, true, true, true)
 	redim cols(0 to numCols-1)
 	cnt = 0
 end constructor	
@@ -289,19 +292,19 @@ end constructor
 ''''''''
 destructor TDataSetRow()
 	cnt = 0
-	dict.end_()
+	delete dict
 end destructor
 
 ''''''''
 sub TDataSetRow.newColumn(name_ as const zstring ptr, value as const zstring ptr)
-	if dict.lookup(name_) = null then
+	if dict->lookup(name_) = null then
 		dim as zstring ptr value2 = null
 		if value <> null then
 			value2 = cast(zstring ptr, allocate(len(*value)+1))	
 			*value2 = *value
 		end if
 		
-		var node = dict.add( name_, value2 )
+		var node = dict->add( name_, value2 )
 		
 		cnt += 1
 		if cnt-1 > ubound(cols) then
@@ -315,7 +318,7 @@ end sub
 
 ''''''''
 operator TDataSetRow.[](index as const zstring ptr) as zstring ptr
-	return dict.lookup( index )
+	return dict->lookup( index )
 end operator
 
 ''''''''

@@ -1,4 +1,4 @@
-﻿#include once "efd.bi"
+#include once "efd.bi"
 #include once "ExcelWriter.bi"
 #include once "vbcompat.bi"
 #include once "DB.bi"
@@ -325,7 +325,7 @@ private function luacb_efd_plan_resumos_Reset cdecl(byval L as lua_State ptr) as
 end function
 
 ''''''''
-sub Efd.criarResumos(onProgress as OnProgressCB) 
+sub Efd.criarResumos() 
 
 	'' configurar lua
 	lua_register(lua, "efd_plan_resumos_AddRow", @luacb_efd_plan_resumos_AddRow)
@@ -343,16 +343,15 @@ sub Efd.criarResumos(onProgress as OnProgressCB)
 	lua_setglobal(lua, "dfeFornecidoMask")
 	
 	''
-	criarResumosLRE(onProgress)
-	criarResumosLRS(onProgress)
+	criarResumosLRE()
+	criarResumosLRS()
 	
 end sub
 
 ''''''''
-sub Efd.criarResumosLRE(onProgress as OnProgressCB)
+sub Efd.criarResumosLRE()
 
-	
-	onProgress(wstr(!"\tResumos das entradas"), 0)
+	onProgress(!"\tResumos das entradas", 0)
 	
 	' CFOP
 	resumoAddHeaderCfopLRE(resumosLRE)
@@ -362,7 +361,7 @@ sub Efd.criarResumosLRE(onProgress as OnProgressCB)
 		lua_pushlightuserdata(lua, resumosLRE)
 		lua_call(lua, 2, 0)
 	catch
-		print "Erro no script lua!"
+		onError("Erro no script lua!")
 	endtry
 	
 	onProgress(null, 0.33)
@@ -375,7 +374,7 @@ sub Efd.criarResumosLRE(onProgress as OnProgressCB)
 		lua_pushlightuserdata(lua, resumosLRE)
 		lua_call(lua, 2, 0)
 	catch
-		print "Erro no script lua!"
+		onError("Erro no script lua!")
 	endtry
 
 	onProgress(null, 0.66)
@@ -388,7 +387,7 @@ sub Efd.criarResumosLRE(onProgress as OnProgressCB)
 		lua_pushlightuserdata(lua, resumosLRE)
 		lua_call(lua, 2, 0)
 	catch
-		print "Erro no script lua!"
+		onError("Erro no script lua!")
 	endtry
 	
 	onProgress(null, 1)
@@ -396,9 +395,9 @@ sub Efd.criarResumosLRE(onProgress as OnProgressCB)
 end sub
 
 ''''''''
-sub Efd.criarResumosLRS(onProgress as OnProgressCB)
+sub Efd.criarResumosLRS()
 	
-	onProgress(wstr(!"\tResumos das saídas"), 0)
+	onProgress(!"\tResumos das sa�das", 0)
 
 	' CFOP
 	resumoAddHeaderCfopLRS(resumosLRS)
@@ -408,7 +407,7 @@ sub Efd.criarResumosLRS(onProgress as OnProgressCB)
 		lua_pushlightuserdata(lua, resumosLRS)
 		lua_call(lua, 2, 0)
 	catch
-		print "Erro no script lua!"
+		onError("Erro no script lua!")
 	endtry
 	
 	onProgress(null, 0.33)
@@ -421,7 +420,7 @@ sub Efd.criarResumosLRS(onProgress as OnProgressCB)
 		lua_pushlightuserdata(lua, resumosLRS)
 		lua_call(lua, 2, 0)
 	catch
-		print "Erro no script lua!"
+		onError("Erro no script lua!")
 	endtry
 	
 	onProgress(null, 0.66)
@@ -434,7 +433,7 @@ sub Efd.criarResumosLRS(onProgress as OnProgressCB)
 		lua_pushlightuserdata(lua, resumosLRS)
 		lua_call(lua, 2, 0)
 	catch
-		print "Erro no script lua!"
+		onError("Erro no script lua!")
 	endtry
 	
 	onProgress(null, 1)

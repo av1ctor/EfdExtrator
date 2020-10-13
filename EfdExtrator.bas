@@ -1,9 +1,10 @@
 '' Extrator de EFD
 '' Copyleft 2017-2020 André Vicentini (avtvicentini)
-'' fbc.exe Efd.bas Efd-analises.bas Efd-resumos.bas Efd-relatorios.bas Efd-misc.bas bfile.bas ExcelReader.bas ExcelWriter.bas list.bas Dict.bas Pdfer.bas DB.bas VarBox.bas trycatch.bas -d WITH_PARSER -o 3 -lib
-'' fbc.exe EfdExtrator.bas -o 3 -d WITH_PARSER -l Efd
+'' fbc.exe EfdExtrator.bas Efd-GUI.bas Efd.bas Efd-analises.bas Efd-resumos.bas Efd-relatorios.bas Efd-misc.bas strings.bas bfile.bas ExcelReader.bas ExcelWriter.bas list.bas Dict.bas Pdfer.bas DB.bas VarBox.bas trycatch.bas -d WITH_PARSER -o 3
 
-#include once "EFD.bi"
+#include once "Efd.bi"
+#include once "Efd-GUI.bi"
+#include once "winmin.bi"
 
 declare sub main()
 declare sub importarGia()
@@ -72,11 +73,13 @@ sub mostrarUso()
 end sub
 
 '''''''''''
-sub onProgress(estagio as const wstring ptr, porCompleto as double)
-	static as double ultPorCompleto = 0
+sub onProgress(estagio as const zstring ptr, porCompleto as double)
+	static ultPorCompleto as double = 0
 	
 	if estagio <> null then
-		print *estagio;
+		var s = latinToUtf16le(estagio)
+		print *s;
+		deallocate s
 	end if
 	
 	if porCompleto = 0 then
@@ -95,16 +98,26 @@ sub onProgress(estagio as const wstring ptr, porCompleto as double)
 	
 end sub
 
+sub onError(msg as const zstring ptr)
+	var s = latinToUtf16le(msg)
+	print *s
+	deallocate s
+end sub
+
 '''''''''''
 sub main()
-	dim as OpcoesExtracao opcoes
+	dim opcoes as OpcoesExtracao
 	
-	mostrarCopyright()
-   
 	if len(command(1)) = 0 then
-		mostrarUso()
+		FreeConsole()
+		var gui = new EfdGUI()
+		gui->build()
+		gui->run()
+		delete gui
 		exit sub
 	end if
+   
+	mostrarCopyright()
    
 	'' verificar opções
 	var nroOpcoes = 0
@@ -117,6 +130,9 @@ sub main()
 		
 		if arg[0] = asc("-") then
 			select case lcase(arg)
+			case "-ajuda"
+				mostrarUso()
+				exit sub
 			case "-gerarrelatorios"
 				opcoes.gerarRelatorios = true
 				nroOpcoes += 1
@@ -152,7 +168,7 @@ sub main()
 					if left(listaChaves, 1) = "@" then
 						var lista = mid(listaChaves, 2)
 						if not loadstrings(lista, opcoes.listaChaves()) then
-							print wstr("Erro: ao carregar arquivo: " + lista)
+							onError(wstr("Erro: ao carregar arquivo: " + lista))
 							exit sub
 						end if
 					else
@@ -166,18 +182,6 @@ sub main()
 			case "-complementardados"
 				opcoes.acrescentarDados = true
 				nroOpcoes += 1
-			case "-importargia"
-				importarGia()
-				exit sub
-			case "-importarcadcontribuinte"
-				importarCadContribuinte()
-				exit sub
-			case "-importarcadregime"
-				importarCadContribuinteRegime()
-				exit sub
-			case "-importarcadinidoneo"
-				importarCadInidoneo()
-				exit sub
 			case "-formatodesaida"
 				i += 1
 				select case command(i)
@@ -190,7 +194,7 @@ sub main()
 				case "null"
 					opcoes.formatoDeSaida = FT_NULL
 				case else
-					print wstr("Erro: formato de saída inválido")
+					onError(wstr("Erro: formato de saída inválido"))
 					exit sub
 				end select
 				nroOpcoes += 2
@@ -204,8 +208,20 @@ sub main()
 				opcoes.manterDb = true
 				opcoes.dbEmDisco = true
 				nroOpcoes += 1
+			case "-importargia"
+				importarGia()
+				exit sub
+			case "-importarcadcontribuinte"
+				importarCadContribuinte()
+				exit sub
+			case "-importarcadregime"
+				importarCadContribuinteRegime()
+				exit sub
+			case "-importarcadinidoneo"
+				importarCadInidoneo()
+				exit sub
 			case else
-				print wstr("Erro: opção inválida: " + arg)
+				onError(wstr("Erro: opção inválida: " + arg))
 				exit sub
 			end select
 		end if
@@ -213,13 +229,18 @@ sub main()
 		i += 1
 	loop
 	
-	dim as Efd e
+	if len(command(nroOpcoes+1)) = 0 then
+		mostrarUso()
+		return
+	end if
+	
+	var ext = new Efd(@onProgress, @onError)
 	
 	'' 
 	var arquivoSaida = iif( len(command(nroOpcoes+2)) > 0, "__efd__", command(nroOpcoes+1))
-   
-	e.iniciarExtracao(arquivoSaida, opcoes)
-   
+	
+	ext->iniciarExtracao(arquivoSaida, opcoes)
+	
 	'' mais de um arquivo informado?
 	if len(command(nroOpcoes+2)) > 0 then
 	   '' carregar arquivos .csv primeiro com dados de NF-e e CT-e 
@@ -227,13 +248,15 @@ sub main()
 	   var arquivoEntrada = command(i)
 	   do while len(arquivoEntrada) > 0
 			if lcase(right(arquivoEntrada,3)) = "csv" then
-				if not e.carregarCsv( arquivoEntrada, @onProgress ) then
-					print !"\r\nErro ao carregar arquivo: "; arquivoEntrada
+				onProgress("Carregando arquivo: " + arquivoEntrada, 0)
+				if not ext->carregarCsv( arquivoEntrada ) then
+					onError(!"\r\nErro ao carregar arquivo: " & arquivoEntrada)
 					end -1
 				end if
 			elseif lcase(right(arquivoEntrada,4)) = "xlsx" then
-				if not e.carregarXlsx( arquivoEntrada, @onProgress ) then
-					print !"\r\nErro ao carregar arquivo: "; arquivoEntrada
+				onProgress("Carregando arquivo: " + arquivoEntrada, 0)
+				if not ext->carregarXlsx( arquivoEntrada ) then
+					onError(!"\r\nErro ao carregar arquivo: " & arquivoEntrada)
 					end -1
 				end if
 			end if 
@@ -247,14 +270,15 @@ sub main()
 	   arquivoEntrada = command(i)
 	   do while len(arquivoEntrada) > 0
 			if lcase(right(arquivoEntrada,3)) = "txt" then
-				if not e.carregarTxt( arquivoEntrada, @onProgress ) then
-					print !"\r\nErro ao carregar arquivo: "; arquivoEntrada
+				onProgress("Carregando arquivo: " + arquivoEntrada, 0)
+				if not ext->carregarTxt( arquivoEntrada ) then
+					onError(!"\r\nErro ao carregar arquivo: " & arquivoEntrada)
 					end -1
 				end if
 				
 				print "Processando:"
-				if not e.processar( arquivoEntrada, @onProgress ) then
-					print !"\r\nErro ao extrair arquivo: "; arquivoEntrada
+				if not ext->processar( arquivoEntrada ) then
+					onError(!"\r\nErro ao extrair arquivo: " & arquivoEntrada)
 					end -1
 				end if
 			end if 
@@ -266,14 +290,15 @@ sub main()
 	'' só um arquivo .txt informado..
 	else
 		var arquivoEntrada = command(nroOpcoes+1)
-		if not e.carregarTxt( arquivoEntrada, @onProgress ) then
-			print !"\r\nErro ao carregar arquivo: "; arquivoEntrada
+		onProgress("Carregando arquivo: " + arquivoEntrada, 0)
+		if not ext->carregarTxt( arquivoEntrada ) then
+			onError(!"\r\nErro ao carregar arquivo: " & arquivoEntrada)
 			end -1
 		end if
 	
 		print "Processando:"
-		if not e.processar( arquivoEntrada, @onProgress ) then
-			print !"\r\nErro ao extrair arquivo: "; arquivoEntrada
+		if not ext->processar( arquivoEntrada ) then
+			onError(!"\r\nErro ao extrair arquivo: " & arquivoEntrada)
 			end -1
 		end if
 	end if
@@ -281,14 +306,14 @@ sub main()
 	''
 	if opcoes.formatoDeSaida <> FT_NULL then
 		print "Analisando:"
-		e.analisar(@onProgress)
+		ext->analisar()
 
 		print "Resumindo:"
-		e.criarResumos(@onProgress)
+		ext->criarResumos()
 	end if
    
 	''
-	e.finalizarExtracao( @onProgress )
+	ext->finalizarExtracao()
 	
 end sub
 
@@ -317,7 +342,7 @@ sub importarGia()
 		
 		dim as bfile inf
 		if not inf.abrir(arquivo) then
-			print wstr("Erro: ao carregar arquivo: " + arquivo)
+			onError(wstr("Erro: ao carregar arquivo: " & arquivo))
 			exit do
 		end if
 		
@@ -442,7 +467,7 @@ sub importarCadContribuinte()
 		
 	dim as bfile inf
 	if not inf.abrir(arquivo) then
-		print wstr("Erro: ao carregar arquivo: " + arquivo)
+		onError(wstr("Erro: ao carregar arquivo: " & arquivo))
 		return
 	end if
 	
@@ -534,7 +559,7 @@ sub importarCadContribuinteRegime()
 		
 	dim as bfile inf
 	if not inf.abrir(arquivo) then
-		print wstr("Erro: ao carregar arquivo: " + arquivo)
+		onError(wstr("Erro: ao carregar arquivo: " & arquivo))
 		return
 	end if
 	
@@ -610,7 +635,7 @@ sub importarCadInidoneo()
 		
 	dim as bfile inf
 	if not inf.abrir(arquivo) then
-		print wstr("Erro: ao carregar arquivo: " + arquivo)
+		onError(wstr("Erro: ao carregar arquivo: " & arquivo))
 		return 
 	end if
 	
@@ -688,5 +713,5 @@ main()
 end 0
 
 exceptionReport:
-	print wstr(!"\r\nErro não tratado (" & Err & ") no módulo(" & *Ermn & ") na função(" & *Erfn & ") na linha (" & erl & !")\r\n")
+	onError(wstr(!"\r\nErro não tratado (" & Err & ") no módulo(" & *Ermn & ") na função(" & *Erfn & ") na linha (" & erl & !")\r\n"))
 	end 1
