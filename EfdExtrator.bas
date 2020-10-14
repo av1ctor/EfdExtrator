@@ -73,8 +73,8 @@ sub mostrarUso()
 end sub
 
 '''''''''''
-sub onProgress(estagio as const zstring ptr, porCompleto as double)
-	static ultPorCompleto as double = 0
+sub onProgress(estagio as const zstring ptr, percent as double)
+	static ultpercent as double = 0
 	
 	if estagio <> null then
 		var s = latinToUtf16le(estagio)
@@ -82,18 +82,23 @@ sub onProgress(estagio as const zstring ptr, porCompleto as double)
 		deallocate s
 	end if
 	
-	if porCompleto = 0 then
-		ultPorCompleto = 0
+	if percent = 0 then
+		ultpercent = 0
 		return
 	end if
 	
-	do while porCompleto >= ultPorCompleto + 0.05
-		print ".";
-		ultPorCompleto += 0.05
-	loop
+	var jaCompletado = ultpercent >= 1.0
 	
-	if porCompleto = 1 then
-		print "OK!"
+	if not jaCompletado then
+		do while percent >= ultpercent + 0.05
+			print ".";
+			ultpercent += 0.05
+		loop
+		
+		if percent = 1.0 then
+			ultpercent = 1.0
+			print "OK!"
+		end if
 	end if
 	
 end sub
