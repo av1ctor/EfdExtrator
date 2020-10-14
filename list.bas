@@ -112,8 +112,35 @@ function TList.add() as any ptr
 
 end function
 
+private function long_cmpFunc(key as any ptr, extra as any ptr, node as any ptr) as boolean
+	return cast(onCompareLongCb, extra)(*cast(long ptr, key), node)
+end function
+
+function TList.addOrdAsc(key as long, cmpFunc as onCompareLongCb) as any ptr
+	var pkey = @key
+	return addOrdAsc(pkey, cmpFunc, @long_cmpFunc)
+end function
+
+private function double_cmpFunc(key as any ptr, extra as any ptr, node as any ptr) as boolean
+	return cast(onCompareDoubleCb, extra)(*cast(double ptr, key), node)
+end function
+
+function TList.addOrdAsc(key as double, cmpFunc as onCompareDoubleCb) as any ptr
+	var pkey = @key
+	return addOrdAsc(pkey, cmpFunc, @double_cmpFunc)
+end function
+
+private function string_cmpFunc(key as any ptr, extra as any ptr, node as any ptr) as boolean
+	return cast(onCompareStringCb, extra)(cast(zstring ptr, key), node)
+end function
+
+function TList.addOrdAsc(key as zstring ptr, cmpFunc as onCompareStringCb) as any ptr
+	var pkey = @key
+	return addOrdAsc(pkey, cmpFunc, @string_cmpFunc)
+end function
+
 '':::::
-function TList.addOrdAsc(key as any ptr, cmpFunc as function(key as any ptr, node as any ptr) as boolean) as any ptr
+function TList.addOrdAsc(key as any ptr, extra as any ptr, cmpFunc as onCompareExCb) as any ptr
 
 	'' alloc new node list if there are no free nodes
 	if( this.fhead = NULL ) Then
@@ -134,7 +161,7 @@ function TList.addOrdAsc(key as any ptr, cmpFunc as function(key as any ptr, nod
 		var n = this.ahead
 		var p = cast(TListNode ptr, null)
 		do
-			if( cmpFunc(key, cast(any ptr, cast( byte ptr, n ) + len( TListNode ))) ) then
+			if( cmpFunc(key, extra, cast(any ptr, cast( byte ptr, n ) + len( TListNode ))) ) then
 				node->next = n
 				node->prev = n->prev
 				n->prev = node

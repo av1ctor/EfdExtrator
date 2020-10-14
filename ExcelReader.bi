@@ -6,6 +6,8 @@ public:
 	declare constructor ()
 	declare destructor ()
 	declare function open(fileName as zstring ptr) as boolean
+	declare function getSize() as longint
+	declare function getPos() as longint
 	declare function setSheet(sheetName as zstring ptr) as boolean
 	declare function nextRow() as boolean
 	declare function read(toLatin as boolean = false) as string
@@ -18,4 +20,5 @@ private:
 	cd			as iconv_t
 	xreader		as xlsxioreader
 	sheet		as xlsxioreadersheet
+	fileHandle	as long
 end type

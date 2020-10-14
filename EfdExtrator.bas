@@ -1,6 +1,6 @@
 '' Extrator de EFD
 '' Copyleft 2017-2020 André Vicentini (avtvicentini)
-'' fbc.exe EfdExtrator.bas Efd-GUI.bas Efd.bas Efd-analises.bas Efd-resumos.bas Efd-relatorios.bas Efd-misc.bas strings.bas bfile.bas ExcelReader.bas ExcelWriter.bas list.bas Dict.bas Pdfer.bas DB.bas VarBox.bas trycatch.bas -d WITH_PARSER -o 3
+'' fbc.exe EfdExtrator.bas Efd-GUI.bas Efd.bas Efd-analises.bas Efd-resumos.bas Efd-relatorios.bas Efd-misc.bas strings.bas bfile.bas ExcelReader.bas ExcelWriter.bas list.bas Dict.bas Pdfer.bas DB.bas VarBox.bas trycatch.bas iup.rc -d WITH_PARSER -o 3
 
 #include once "Efd.bi"
 #include once "Efd-GUI.bi"
@@ -167,7 +167,7 @@ sub main()
 				if( len(listaChaves) > 0 ) then
 					if left(listaChaves, 1) = "@" then
 						var lista = mid(listaChaves, 2)
-						if not loadstrings(lista, opcoes.listaChaves()) then
+						if loadstrings(lista, opcoes.listaChaves()) = 0 then
 							onError(wstr("Erro: ao carregar arquivo: " + lista))
 							exit sub
 						end if

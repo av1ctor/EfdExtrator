@@ -182,20 +182,19 @@ sub Efd.gerarRelatorios(nomeArquivo as string)
 		onError(!"\tNão será possivel gerar relatórios porque só foram extraídos os registros com ressarcimento ST")
 	end if
 	
-	onProgress(wstr(!"\tGerando relatórios"), 0)
-	
 	ultimoRelatorio = -1
 
 	relLinhasList = new TList(cint(PAGE_BOTTOM / ROW_HEIGHT + 0.5), len(RelLinha))
 	relPaginasList = new Tlist(1000, len(RelPagina))
 	
-	onProgress(null, .1)
-	
 	if not opcoes.pularLre then
+		onProgress(!"\tGerando relatório do LRE", 0)
+		
 		'' LRE
 		iniciarRelatorio(REL_LRE, "entradas", "LRE")
 		
 		var reg = regListHead
+		var regCnt = 0
 		try
 			do while reg <> null
 				'para cada registro..
@@ -225,6 +224,9 @@ sub Efd.gerarRelatorios(nomeArquivo as string)
 					end if
 				end select
 				
+				regCnt += 1
+				onProgress(null, (regCnt / nroRegs) / 2)
+				
 				reg = reg->next_
 			loop
 		catch
@@ -232,15 +234,18 @@ sub Efd.gerarRelatorios(nomeArquivo as string)
 		endtry
 		
 		finalizarRelatorio()
+		
+		onProgress(null, 1)
 	end if
 	
-	onProgress(null, .5)
-		
 	if not opcoes.pularLrs then
+		onProgress(!"\tGerando relatório do LRS", 0)
+		
 		'' LRS
 		iniciarRelatorio(REL_LRS, "saidas", "LRS")
 		
 		var reg = regListHead
+		var regCnt = 0
 		try
 			do while reg <> null
 				'para cada registro..
@@ -278,6 +283,9 @@ sub Efd.gerarRelatorios(nomeArquivo as string)
 					end if
 				end select
 
+				regCnt += 1
+				onProgress(null, (regCnt / nroRegs) / 2)
+				
 				reg = reg->next_
 			loop
 		catch
@@ -285,11 +293,11 @@ sub Efd.gerarRelatorios(nomeArquivo as string)
 		endtry
 		
 		finalizarRelatorio()
+		
+		onProgress(null, 1)
 	end if
 	
 	'' outros livros..
-	onProgress(null, .9)
-	
 	var reg = regListHead
 	try
 		do while reg <> null
@@ -297,12 +305,16 @@ sub Efd.gerarRelatorios(nomeArquivo as string)
 			select case as const reg->tipo
 			case APURACAO_ICMS_PERIODO
 				if not opcoes.pularLraicms then
+					onProgress(!"\tGerando relatório do LRAICMS", 0)
 					gerarRelatorioApuracaoICMS(nomeArquivo, reg)
+					onProgress(null, 1)
 				end if
 
 			case APURACAO_ICMS_ST_PERIODO
 				if not opcoes.pularLraicms then
+					onProgress(!"\tGerando relatório do LRAICMS-ST", 0)
 					gerarRelatorioApuracaoICMSST(nomeArquivo, reg)
+					onProgress(null, 1)
 				end if
 				
 			case LUA_CUSTOM
@@ -318,6 +330,7 @@ sub Efd.gerarRelatorios(nomeArquivo as string)
 
 			reg = reg->next_
 		loop
+
 	catch
 		onError(!"\r\nErro ao tratar o registro de tipo (" & reg->tipo & !") carregado na linha (" & reg->linha & !")\r\n")
 	endtry
@@ -325,8 +338,6 @@ sub Efd.gerarRelatorios(nomeArquivo as string)
 	delete relPaginasList
 	delete relLinhasList
 	
-	onProgress(null, 1)
-
 end sub
 
 ''''''''
@@ -572,8 +583,8 @@ sub Efd.iniciarRelatorio(relatorio as TipoRelatorio, nomeRelatorio as string, su
 
 end sub
 
-private function cmpFunc(key as any ptr, node as any ptr) as boolean
-	function = *cast(zstring ptr, key) < cast(RelSomatorioLR ptr, node)->chave
+private function cmpFunc(key as zstring ptr, node as any ptr) as boolean
+	function = *key < cast(RelSomatorioLR ptr, node)->chave
 end function
 
 ''''''''
@@ -983,6 +994,8 @@ sub Efd.finalizarRelatorio()
 		end if
 		
 		cnt += 1
+		
+		onProgress(null, 0.5 + (cnt / relNroPaginas) / 2)
 		
 		var last = pagina
 		pagina = relPaginasList->next_(pagina)
