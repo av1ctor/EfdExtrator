@@ -3480,7 +3480,7 @@ sub Efd.adicionarDFe(dfe as TDFe ptr)
 		end if
 	end select
 	
-	nroDfe =+ 1
+	nroDfe += 1
 
 end sub
 
@@ -4244,7 +4244,7 @@ function Efd.carregarXlsx(nomeArquivo as String) as Boolean
 		delete reader
 		return false
 	end if
-			
+	
 	var plan = 0
 	do
 		var nomePlanilha = nomePlanilhas(plan)
@@ -5808,7 +5808,7 @@ sub Efd.gerarPlanilhas(nomeArquivo as string)
 			
 			end select
 
-			regCnt =+ 1
+			regCnt += 1
 			onProgress(null, regCnt / nroRegs)
 			
 			reg = reg->next_

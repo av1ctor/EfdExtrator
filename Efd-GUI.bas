@@ -76,6 +76,15 @@ sub addFileToGrid(file as TFile ptr, at as integer, mat as Ihandle ptr)
 	IupSetInt(mat, ROWCOL(1+at, 3), 0)
 end sub
 
+private sub toggleActionButton(to_ as string)
+	var btn = IupGetHandle("EFD_BTN_EXEC")
+	IupSetAttribute(btn, "ACTIVE", to_)
+end sub
+
+private function cmp_tfile(num as long, node as any ptr) as boolean
+	return num < cast(TFile ptr, node)->num
+end function
+
 private function dropfiles_cb(self as Ihandle ptr, fname as zstring ptr, num as long, x as long, y as long) as long
 	var dat = cast(FileGridData ptr, IupGetAttribute(self, "FGDATA"))
 	
@@ -86,27 +95,29 @@ private function dropfiles_cb(self as Ihandle ptr, fname as zstring ptr, num as 
 		dat->files = new TList(10, len(TFile))
 		dat->num = num
 		IupSetInt(dat->mat, "NUMLIN", num+1)
-	
-	elseif num = 0 then
-		dat->num = 0
 	end if
 
+	var at = dat->num - num
+	
 	var p = instrrev(*fname, "\")
-	var file = cast(TFile ptr, dat->files->add())
+	var file = cast(TFile ptr, dat->files->addOrdAsc(at, @cmp_tfile))
 	var path = left(*fname, p)
 	file->path = path
 	file->name = mid(*fname, p+1)
-	file->num = num
+	file->num = at
 	
-	addFileToGrid(file, num, dat->mat)
+	addFileToGrid(file, at, dat->mat)
 	
 	if num = 0 then
 		if len(*IupGetAttribute(outPathEdit, "VALUE")) = 0 then
 			IupSetStrAttribute(outPathEdit, "VALUE", path)
 		end if
+		dat->num = 0
+		
+		toggleActionButton("YES")
 	end if
 	
-	IupSetAttribute(dat->mat, "REDRAW", "L" & (1+num))
+	IupSetAttribute(dat->mat, "REDRAW", "L" & (1+at))
 	
 	return IUP_DEFAULT
 end function
@@ -137,6 +148,7 @@ private sub showSelectFilesAndUpdateMatrix(dat as FileGridData ptr)
 		loop
 		
 		IupSetAttribute(dat->mat, "REDRAW", "L1-" & i)
+		toggleActionButton("YES")
 	
 	else
 		delete files
@@ -204,7 +216,8 @@ function EfdGUI.buildFileGrid(grid as FILE_GRID, title as string, filter as stri
 	
 	''
 	var edit = IupText(null)
-	IupSetAttribute(edit, "VALUE", "Clique para selecionar os arquivos, ou arraste e solte-os aqui...")
+	IupSetAttribute(edit, "CUEBANNER", "Clique para selecionar os arquivos, ou arraste os arquivos e solte-os aqui...")
+	IupSetAttribute(edit, "CANFOCUS", "NO")
 	IupSetAttribute(edit, "FGDATA", cast(zstring ptr, dat))
 	IupSetAttribute(edit, "EXPAND", "HORIZONTAL")
 	IupSetCallback(edit, "ACTION", cast(Icallback, @editaction_cb))
@@ -274,17 +287,6 @@ private sub onProgress(estagio as const zstring ptr, completado as double = 0)
 	
 	if completado = 0 then
 		ultCompletado = 0
-	else
-		if useStatusBar then
-			do while completado >= ultCompletado + 0.05
-				msg += "."
-				ultCompletado += 0.05
-			loop
-		
-			if completado = 1 then
-				msg += "OK!"
-			end if
-		end if
 	end if
 	
 	if not useStatusBar then
@@ -293,21 +295,26 @@ private sub onProgress(estagio as const zstring ptr, completado as double = 0)
 			IupSetStrAttribute(curFileGrid->mat, ROWCOL(l, 2), msg)
 		end if
 
-		IupSetInt(curFileGrid->mat, ROWCOL(l, 3), cint(completado * 100))
-		
-		if len(msg) > 0 orelse completado - ultCompletado >= 0.05 then
+		if len(msg) > 0 orelse completado = 0 orelse completado = 1 orelse completado - ultCompletado >= 0.05 then
+			IupSetInt(curFileGrid->mat, ROWCOL(l, 3), cint(completado * 100))
 			IupSetAttribute(curFileGrid->mat, "REDRAW", "L" & l)
 			IupSetAttribute(curFileGrid->mat, "SHOW", l & ":*")
+			IupFlush()
 			ultCompletado = completado
 		end if
 		
 	else
 		if len(msg) > 0 then
-			IupSetStrAttribute(statusBar, "TITLE", msg)
+			IupSetStrAttribute(cast(IHandle ptr, IupGetAttribute(statusBar, "_LABEL")), "TITLE", msg)
+		end if
+
+		if len(msg) > 0 orelse completado = 0 orelse completado = 1 orelse completado - ultCompletado >= 0.05 then
+			IupSetDouble(cast(IHandle ptr, IupGetAttribute(statusBar, "_PROGRESS")), "VALUE", completado)
+			IupFlush()
+			ultCompletado = completado
 		end if
 	end if
 	
-	IupFlush()
 end sub
 
 private sub onError(msg as const zstring ptr)
@@ -322,11 +329,6 @@ private sub onError(msg as const zstring ptr)
 		end if
 		IupFlush()
 	end if
-end sub
-
-private sub toggleActionButton(to_ as string)
-	var btn = IupGetHandle("EFD_BTN_EXEC")
-	IupSetAttribute(btn, "ACTIVE", to_)
 end sub
 
 private function item_exec_action_cb(item as Ihandle ptr) as long
@@ -450,10 +452,6 @@ function EfdGUI.buildMenu() as IHandle ptr
 	IupSetAttribute(item_dfe, "IMAGE", "EFD_OPEN_DFE_ICON")
 	IupSetCallback(item_dfe, "ACTION", cast(Icallback, @item_dfe_action_cb))
 
-	var item_exec = IupItem("Executar", NULL)
-	IupSetAttribute(item_exec, "IMAGE", "EFD_EXEC_ICON")
-	IupSetCallback(item_exec, "ACTION", cast(Icallback, @item_exec_action_cb))
-
 	var item_exit = IupItem("&Sair", NULL)
 	IupSetAttribute(item_exit, "IMAGE", "EFD_EXIT_ICON")
 	IupSetCallback(item_exit, "ACTION", cast(Icallback, @item_exit_action_cb))
@@ -462,7 +460,6 @@ function EfdGUI.buildMenu() as IHandle ptr
 	( _
 		item_efd, _
 		item_dfe, _
-		item_exec, _
 		item_exit, _
 		NULL _
 	)
@@ -499,14 +496,14 @@ function EfdGUI.buildToolBar() as Ihandle ptr
 	IupSetAttribute(btn_open_efd, "IMAGE", "EFD_OPEN_EFD_ICON")
 	IupSetAttribute(btn_open_efd, "FLAT", "YES")
 	IupSetCallback(btn_open_efd, "ACTION", cast(Icallback, @item_efd_action_cb))
-	IupSetAttribute(btn_open_efd, "TIP", "Selecionar EFD's")
+	IupSetAttribute(btn_open_efd, "TIP", "Selecionar EFD's...")
 	IupSetAttribute(btn_open_efd, "CANFOCUS", "No")
 	
 	var btn_open_dfe = IupButton(NULL, NULL)
 	IupSetAttribute(btn_open_dfe, "IMAGE", "EFD_OPEN_DFE_ICON")
 	IupSetAttribute(btn_open_dfe, "FLAT", "YES")
 	IupSetCallback(btn_open_dfe, "ACTION", cast(Icallback, @item_dfe_action_cb))
-	IupSetAttribute(btn_open_dfe, "TIP", "Selecionar DFe's")
+	IupSetAttribute(btn_open_dfe, "TIP", "Selecionar DFe's...")
 	IupSetAttribute(btn_open_dfe, "CANFOCUS", "No")
 	
 	var toolbar = IupHbox _
@@ -524,16 +521,31 @@ function EfdGUI.buildToolBar() as Ihandle ptr
 end function
 
 function EfdGUI.buildStatusBar() as Ihandle ptr
-	var bar = IupLabel("Selecione os arquivos e clique no botão Executar")
-	IupSetAttribute(bar, "NAME", "STATUSBAR")
-	IupSetAttribute(bar, "EXPAND", "HORIZONTAL")
-	IupSetAttribute(bar, "PADDING", "10x5")
+	var label = IupLabel("Selecione os arquivos e clique no botão Executar")
+	IupSetAttribute(label, "EXPAND", "HORIZONTAL")
+	
+	var prog = IupProgressBar()
+	IupSetAttribute(prog, "EXPAND", "HORIZONTAL")
+	IupSetAttribute(prog, "DASHED", "YES")
+
+	var bar = IupHBox _
+	( _
+		label, _
+		prog, _
+		NULL _
+	)
+
+	IupSetAttribute(bar, "PADDING", "0x0")
+	IupSetAttribute(bar, "_LABEL", cast(zstring ptr, label))
+	IupSetAttribute(bar, "_PROGRESS", cast(zstring ptr, prog))
+	
 	return bar
 end function
 
 type TOption
 	name as zstring * 32
 	label as zstring * 128
+	tip as zstring * 512
 end type
 
 private function opcao_action_cb(item as Ihandle ptr, state as long) as long
@@ -585,13 +597,36 @@ private function cnpjs_set_cb(item as Ihandle ptr) as long
 	return IUP_DEFAULT
 end function
 
+private function cnpjs_dropfile_cb(item as Ihandle ptr, fname as zstring ptr, num as long, x as long, y as long) as long
+	var gui = cast(EfdGUI ptr, IupGetAttribute(IupGetDialog(item), "EFD_SELF"))
+	var list = cast(IHandle ptr, IupGetAttribute(item, "CNPJS_LIST"))
+	
+	IupSetStrAttribute(list, "1", null)
+	var cnt = loadstrings(*fname, gui->opcoes.listaCnpj())
+	if cnt > 0 then
+		for i as integer = 0 to cnt-1
+			IupSetStrAttribute(list, str(1+i), gui->opcoes.listaCnpj(i))
+		next
+		gui->opcoes.filtrarCnpj = true
+	else
+		gui->opcoes.filtrarCnpj = false
+	end if
+
+	return IUP_IGNORE
+end function
+
 function EfdGUI.buildCnpjFilterBox() as IHandle ptr
 	var list = IupList(NULL)
 	IupSetAttribute(list, "SIZE", "150x60")
 	IupSetAttribute(list, "EXPAND", "HORIZONTAL")
+	IupSetAttribute(list, "CANFOCUS", "NO")
 	
 	var edit = IupText(NULL)
+	IupSetAttribute(edit, "CUEBANNER", "Digite a lista, ou arraste e solte o arquivo aqui...")
+	IupSetAttribute(edit, "TIP", "A lista deve ser separada por vírgula, com zeros à esquerda. O arquivo deve conter apenas um CNPJ por linha, com zeros à esquerda, sem espaços ou linhas em branco.")
 	IupSetAttribute(edit, "EXPAND", "HORIZONTAL")
+	IupSetAttribute(edit, "CNPJS_LIST", cast(zstring ptr, list))
+	IupSetCallback(edit, "DROPFILES_CB", cast(Icallback, @cnpjs_dropfile_cb))
 	
 	var btn = IupButton("Filtrar", NULL)
 	IupSetAttribute(btn, "CNPJS_EDIT", cast(zstring ptr, edit))
@@ -608,7 +643,7 @@ function EfdGUI.buildCnpjFilterBox() as IHandle ptr
 	
 	var vbox = IupVbox _
 	( _
-		IupLabel("Filtrar por CNPJ (sep. por vírgula)"), _
+		IupLabel("Filtrar por CNPJ (sep. por vírgula, zeros à esquerda)"), _
 		hbox, _
 		list, _
 		NULL _
@@ -628,8 +663,8 @@ private function chaves_set_cb(item as Ihandle ptr) as long
 	var value = *IupGetAttribute(edit, "VALUE")
 	IupSetStrAttribute(edit, "VALUE", "")
 	
-	var cnt = iif(len(value) > 0, splitstr(value, ",", gui->opcoes.listaChaves()), 0)
 	IupSetStrAttribute(list, "1", null)
+	var cnt = iif(len(value) > 0, splitstr(value, ",", gui->opcoes.listaChaves()), 0)
 	if cnt > 0 then
 		for i as integer = 0 to cnt-1
 			IupSetStrAttribute(list, str(1+i), gui->opcoes.listaChaves(i))
@@ -642,13 +677,36 @@ private function chaves_set_cb(item as Ihandle ptr) as long
 	return IUP_DEFAULT
 end function
 
+private function chaves_dropfile_cb(item as Ihandle ptr, fname as zstring ptr, num as long, x as long, y as long) as long
+	var gui = cast(EfdGUI ptr, IupGetAttribute(IupGetDialog(item), "EFD_SELF"))
+	var list = cast(IHandle ptr, IupGetAttribute(item, "CHAVES_LIST"))
+	
+	IupSetStrAttribute(list, "1", null)
+	var cnt = loadstrings(*fname, gui->opcoes.listaChaves())
+	if cnt > 0 then
+		for i as integer = 0 to cnt-1
+			IupSetStrAttribute(list, str(1+i), gui->opcoes.listaChaves(i))
+		next
+		gui->opcoes.filtrarChaves = true
+	else
+		gui->opcoes.filtrarChaves = false
+	end if
+
+	return IUP_IGNORE
+end function
+
 function EfdGUI.buildChavesFilterBox() as IHandle ptr
 	var list = IupList(NULL)
 	IupSetAttribute(list, "SIZE", "150x60")
 	IupSetAttribute(list, "EXPAND", "HORIZONTAL")
+	IupSetAttribute(list, "CANFOCUS", "NO")
 	
 	var edit = IupText(NULL)
+	IupSetAttribute(edit, "CUEBANNER", "Digite a lista, ou arraste e solte o arquivo aqui...")
+	IupSetAttribute(edit, "TIP", "A lista de chaves deve ser separada por vírgula. O arquivo deve conter apenas uma chave por linha, sem espaços ou linhas em branco.")
 	IupSetAttribute(edit, "EXPAND", "HORIZONTAL")
+	IupSetAttribute(edit, "CHAVES_LIST", cast(zstring ptr, list))
+	IupSetCallback(edit, "DROPFILES_CB", cast(Icallback, @chaves_dropfile_cb))
 	
 	var btn = IupButton("Filtrar", NULL)
 	IupSetAttribute(btn, "CHAVES_EDIT", cast(zstring ptr, edit))
@@ -697,13 +755,20 @@ private function format_action_cb(self as Ihandle ptr, text as zstring ptr, item
 end function
 
 function EfdGUI.buildOutFormatBox() as Ihandle ptr
+	dim formatos(0 to ...) as string = { _
+		"xlsx", _
+		"csv", _
+		"xml", _
+		"null" _
+	}
+	
 	var list = IupList(NULL)
 	IupSetAttribute(list, "EXPAND", "HORIZONTAL")
+	IupSetAttribute(list, "TIP", "Formato de arquivo da planilha que será gerada contendo os registro extraídos. Selecione 'null' para não gerar planilha.")
 	IupSetAttribute(list, "DROPDOWN", "YES")
-	IupSetAttribute(list, "1", "xlsx")
-	IupSetAttribute(list, "2", "csv")
-	IupSetAttribute(list, "3", "xml")
-	IupSetAttribute(list, "4", "null")
+	for i as integer = 0 to ubound(formatos)
+		IupSetStrAttribute(list, str(1+i), formatos(i))
+	next
 	IupSetAttribute(list, "VALUE", "1")
 	IupSetCallback(list, "ACTION", cast(Icallback, @format_action_cb))
 	
@@ -722,13 +787,13 @@ end function
 function EfdGUI.buildOptionsFrame() as Ihandle ptr
 	
 	dim opcoes(0 to ...) as TOption = { _
-		("gerarrelatorios", "Gerar relatórios"), _
-		("naogerarlre", "Não gerar LRE"), _
-		("naogerarlrs", "Não gerar LRS"), _
-		("naogerarlraicms", "Não gerar LRAICMS"), _
-		("realcar", "Realçar registros filtrados no relatório"), _
-		("dbemdisco", "Criar DB em disco"), _
-		("manterdb", "Manter DB em disco") _
+		("gerarrelatorios", "Gerar relatórios EFD-ICMS-IPI", "Gerar relatórios do PVA EFD-ICMS-IPI em formato PDF."), _
+		("naogerarlre", "Não extrair LRE", "Não extrair os Livros Registro de Entradas."), _
+		("naogerarlrs", "Não extrair LRS", "Não extrair os Livros Registro de Saídas."), _
+		("naogerarlraicms", "Não extrair LRAICMS", "Não extrair os Livros Registro de Apuração."), _
+		("realcar", "Realçar registros", "Realçar, nos relatórios do EFD-ICMS-IPI, os registros filtrados por CNPJ e/ou chave."), _
+		("dbemdisco", "Gravar DB em disco", "Gravar o banco de dados intermediário em disco, poupando memória."), _
+		("manterdb", "Manter DB em disco", "Manter o banco de dados intermediário em disco.") _
 	}
 	
 	var optionsBox = IupVbox _
@@ -742,6 +807,7 @@ function EfdGUI.buildOptionsFrame() as Ihandle ptr
 		var opcao = @opcoes(i)
 		var toggle = IupToggle(opcao->label, NULL)
 		IupSetStrAttribute(toggle, "OPTIONNAME", opcao->name)
+		IupSetStrAttribute(toggle, "TIP", opcao->tip)
 		IupSetCallback(toggle, "ACTION", cast(Icallback, @opcao_action_cb))
 		IupAppend(optionsBox, toggle)
 	next
@@ -760,10 +826,11 @@ function EfdGUI.buildOptionsFrame() as Ihandle ptr
 
 	outPathEdit = IupText(NULL)
 	IupSetAttribute(outPathEdit, "EXPAND", "HORIZONTAL")
+	IupSetAttribute(outPathEdit, "TIP", "Caminho da pasta de destino, onde serão gravados todos os arquivos. A pasta deve existir.")
 	
 	var vbox = IupVBox _
 	( _
-		IupLabel("Pasta de saída (deve existir)"), _
+		IupLabel("Pasta de destino (deve existir)"), _
 		outPathEdit, _
 		hbox, _
 		NULL _
@@ -784,7 +851,7 @@ function EfdGUI.buildActionsFrame() as IHandle ptr
 	IupSetAttribute(btn_exec, "FLAT", "NO")
 	IupSetCallback(btn_exec, "ACTION", cast(Icallback, @item_exec_action_cb))
 	IupSetAttribute(btn_exec, "TIP", "Executar")
-	IupSetAttribute(btn_exec, "CANFOCUS", "NO")
+	IupSetAttribute(btn_exec, "ACTIVE", "NO")
 
 	var hbox = IupHBox _
 	( _
@@ -822,7 +889,7 @@ function EfdGUI.buildDlg(efdFrm as IHandle ptr, dfeFrm as IHandle ptr) as IHandl
 	IupSetAttributeHandle(dlg, "MENU", buildMenu())
 	
 	IupSetAttribute(dlg, "TITLE", "EfdExtrator")
-	IupSetAttribute(dlg, "MARGIN", "10x10")
+	IupSetAttribute(dlg, "MARGIN", "2x2")
 	IupSetAttribute(dlg, "MINSIZE", "1080x600")
 	IupSetAttribute(dlg, "MAXSIZE", "1080x65535")
 	IupSetAttribute(efdFrm, "MARGIN", "0x5")

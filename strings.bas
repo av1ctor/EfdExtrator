@@ -88,11 +88,11 @@ end function
 
 
 '''''''
-function loadstrings(fromFile as string, toArray() as string) as boolean
+function loadstrings(fromFile as string, toArray() as string) as integer
 	
 	var fnum = FreeFile
 	if open(fromFile for input as #fnum) <> 0 then
-		return false
+		return 0
 	end if
 
 	var items = 10
@@ -112,11 +112,16 @@ function loadstrings(fromFile as string, toArray() as string) as boolean
 		i += 1
 	loop
 	
-	redim preserve toArray(0 to i-1)
-	
 	close #fnum
 	
-	return true
+	if i > 0 then
+		redim preserve toArray(0 to i-1)
+	else
+		erase toArray
+	end if
+	
+	return i
+	
 end function
 
 function strreplace _

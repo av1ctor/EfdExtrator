@@ -1,5 +1,6 @@
 #include once "ExcelReader.bi"
 #include once "crt/time.bi"
+#include once "crt/fcntl.bi"
 
 '''''
 private function utf8toLatin(cd as iconv_t, src as zstring ptr) as string
@@ -27,13 +28,29 @@ destructor ExcelReader()
 		xreader = null
 	end if
 	
+	if fileHandle then
+		_close(fileHandle)
+		fileHandle = 0
+	end if
+	
 	iconv_close(cd)
 end destructor
 
 '''''
 function ExcelReader.open(fileName as zstring ptr) as boolean
-	xreader = xlsxioread_open(fileName)
+	fileHandle = _open(fileName, O_RDONLY or O_BINARY, 0)
+	xreader = xlsxioread_open_filehandle(fileHandle)
 	function = (xreader <> NULL)
+end function
+
+'''''
+function ExcelReader.getSize() as longint
+	return _filelength(fileHandle)
+end function
+
+'''''
+function ExcelReader.getPos() as longint
+	return _telli64(fileHandle)
 end function
 
 '''''
