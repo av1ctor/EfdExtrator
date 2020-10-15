@@ -20,7 +20,6 @@
 	str = ds_row_getColValue(ds, colname)	-- retorna o valor (string) da coluna 'colname' na linha atual do dataset
 	row = ds_row(ds)						-- retorna uma array com as colunas da linha atual do dataset
 	
-
 -- ExcelWriter:
 	ew = ew_new()							-- construtor
 	ew_del(ew)								-- destrutor
@@ -34,7 +33,6 @@
 	
 -- ExcelWriter Row:
 	ec = er_addCell(er, contents)			-- adiciona uma célula à linha da planilha; 'contents' pode ser string ou número
-	
 
 -- efd	
 	ws = efd_plan_get(nome)					-- retorna uma planilha interna, pesquisando pelo nome (entradas, saidas, inconsistencias LRE, inconsistencias LRS, resumos LRE, resumos LRS)
@@ -44,7 +42,6 @@
 	efd_plan_resumos_AddRow(ws, ds, livro)	-- livro in (TL_ENTRADAS, TL_SAIDAS)
 	part = efd_participante_get(id, formatar) -- retorna o objeto participante { cnpj, ie, nome, uf, municip }; formatar = true formatará os campos cnpj, ie etc
 	
-
 -- bfile
 	char = bf_char1(bf)						-- ler um char (1 byte)
 	int = bf_int1(bf)						-- ler um char e converter para inteiro
@@ -52,3 +49,6 @@
 	dbl = bf_vardbl(bf[, separador])		-- ler um double até encontrar o separador; separador padrão = asc("|")
 	str = bf_varchar(bf[, separador])		-- ler uma string até encontrar o separador; separador padrão = asc("|")
 	
+-- misc	
+	onError(msg)
+	onProgress(msg, total)

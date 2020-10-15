@@ -1,6 +1,6 @@
 '' Extrator de EFD
 '' Copyleft 2017-2020 André Vicentini (avtvicentini)
-'' fbc.exe EfdExtrator.bas Efd-GUI.bas Efd.bas Efd-analises.bas Efd-resumos.bas Efd-relatorios.bas Efd-misc.bas strings.bas bfile.bas ExcelReader.bas ExcelWriter.bas list.bas Dict.bas Pdfer.bas DB.bas VarBox.bas trycatch.bas iup.rc -d WITH_PARSER -o 3
+'' fbc.exe EfdExtrator.bas Efd-GUI.bas Efd.bas Efd-analises.bas Efd-resumos.bas Efd-relatorios.bas Efd-misc.bas strings.bas bfile.bas ExcelReader.bas ExcelWriter.bas list.bas Dict.bas Pdfer.bas DB.bas VarBox.bas trycatch.bas gui.rc -d WITH_PARSER -o 3
 
 #include once "Efd.bi"
 #include once "Efd-GUI.bi"
@@ -16,7 +16,7 @@ on error goto exceptionReport
 
 '''''''''''   
 sub mostrarCopyright()
-	print wstr("Extrator de EFD/Sintegra para Excel, versão 0.9.1 beta")
+	print wstr("Extrator de EFD/Sintegra para Excel, versão 0.9.2 beta")
 	print wstr("Copyleft 2017-2020 by André Vicentini (avtvicentini)")
 	print
 end sub

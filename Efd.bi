@@ -947,6 +947,9 @@ public:
 	declare sub analisar()
 	declare sub criarResumos()
 	declare function getPlanilha(nome as const zstring ptr) as ExcelWorksheet ptr
+
+	onProgress 				as OnProgressCB
+	onError 				as OnErrorCB
    
 private:
 	declare sub configurarDB()
@@ -1069,8 +1072,6 @@ private:
 
 	arquivos				as TList ptr 		'' de TArquivoInfo
 	tipoArquivo				as TTipoArquivo
-	onProgress 				as OnProgressCB
-	onError 				as OnErrorCB
 	
 	'' registros das EFD's e do Sintegra (reiniciados a cada novo .txt carregado)
 	regListHead         	as TRegistro ptr = null

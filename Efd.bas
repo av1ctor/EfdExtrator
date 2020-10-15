@@ -72,10 +72,11 @@ destructor Efd()
 	do while dfeListHead <> null
 		var next_ = dfeListHead->next_
 		if dfeListHead->modelo = NFE then
-			do while dfeListHead->nfe.itemListHead <> null
-				var next_ = dfeListHead->nfe.itemListHead->next_
-				delete dfeListHead->nfe.itemListHead
-				dfeListHead->nfe.itemListHead = next_
+			var head = dfeListHead->nfe.itemListHead
+			do while head <> null
+				var next_ = head->next_
+				delete head
+				head = next_
 			loop
 		end if
 		delete dfeListHead
@@ -5915,6 +5916,37 @@ static function Efd.luacb_efd_participante_get cdecl(byval L as lua_State ptr) a
 	
 end function
 
+private function luacb_efd_onProgress cdecl(L as lua_State ptr) as long
+	var args = lua_gettop(L)
+	
+	lua_getglobal(L, "efd")
+	var g_efd = cast(Efd ptr, lua_touserdata(L, -1))
+	lua_pop(L, 1)
+	
+	if args = 2 then
+		var stt = cast(zstring ptr, lua_tostring(L, 1))
+		var prog = lua_tonumber(L, 2)
+		g_efd->onProgress(stt, prog)
+	end if
+	
+	function = 0
+end function
+
+private function luacb_efd_onError cdecl(L as lua_State ptr) as long
+	var args = lua_gettop(L)
+	
+	lua_getglobal(L, "efd")
+	var g_efd = cast(Efd ptr, lua_touserdata(L, -1))
+	lua_pop(L, 1)
+	
+	if args = 1 then
+		var msg = cast(zstring ptr, lua_tostring(L, 1))
+		g_efd->onError(msg)
+	end if
+	
+	function = 0
+end function
+
 ''''''''
 sub Efd.exportAPI(L as lua_State ptr)
 	
@@ -5945,5 +5977,7 @@ sub Efd.exportAPI(L as lua_State ptr)
 	lua_register(L, "efd_plan_get", @luacb_efd_plan_get)
 	lua_register(L, "efd_participante_get", @luacb_efd_participante_get)
 	lua_register(L, "efd_rel_addItemAnalitico", @luacb_efd_rel_addItemAnalitico)
+	lua_register(L, "onProgress", @luacb_efd_onProgress)
+	lua_register(L, "onError", @luacb_efd_onError)
 	
 end sub

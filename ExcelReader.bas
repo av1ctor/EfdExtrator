@@ -39,6 +39,9 @@ end destructor
 '''''
 function ExcelReader.open(fileName as zstring ptr) as boolean
 	fileHandle = _open(fileName, O_RDONLY or O_BINARY, 0)
+	if fileHandle = -1 then
+		return false
+	end if
 	xreader = xlsxioread_open_filehandle(fileHandle)
 	function = (xreader <> NULL)
 end function

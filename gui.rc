@@ -1,9 +1,8 @@
-/****************************************************/
-/* Applications can change or remove this */
+1234 ICON "icons/logo.ico"
 
 1 VERSIONINFO
- FILEVERSION 0,9,1,0
- PRODUCTVERSION 0,9,1,0
+ FILEVERSION 0,9,2,0
+ PRODUCTVERSION 0,9,2,0
 BEGIN
     BLOCK "StringFileInfo"
     BEGIN
@@ -12,11 +11,11 @@ BEGIN
             VALUE "Comments", "EfdExtrator\0"
             VALUE "CompanyName", "André Vicentini (avtvicentini)\0"
             VALUE "FileDescription", "EfdExtrator - Extrator de EFD/Sintegra para Excel\0"
-            VALUE "FileVersion", "0.9.1\0"
+            VALUE "FileVersion", "0.9.2\0"
             VALUE "LegalCopyright", "Copyleft © 2017-2020 André Vicentini (avtvicentini).\0"
             VALUE "OriginalFilename", "EfdExtrator.exe\0"
             VALUE "ProductName", "EfdExtrator\0"
-            VALUE "ProductVersion", "0.9.1\0"
+            VALUE "ProductVersion", "0.9.2\0"
         END
     END
 END
@@ -43,7 +42,4 @@ BEGIN
   CONTROL  "", IUP_PREVIEWCANVAS, "STATIC", SS_OWNERDRAW, 70, 0, 120, 90, WS_EX_STATICEDGE
 END
 
-/****************************************************/
-/* The following lines will enable Windows XP/Vista Visual Styles */
-
-1 24 "iup64.manifest"
+1 24 "gui.manifest"
