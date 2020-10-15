@@ -134,6 +134,8 @@ function criarTabela_DFe_Saidas_Itens(db)
 			aliq		real not null,
 			icms		real not null,
 			bcIcmsST	real not null,
+			aliqST		real not null,
+			icmsST		real not null,
 			ncm			bigint null,
 			cst			integer null,
 			qtd			real null,
@@ -182,8 +184,8 @@ function criarTabela_DFe_Saidas_Itens(db)
 	-- retornar a query que será usada no insert
 	return [[
 		insert into DFe_Saidas_Itens 
-			(serie, numero, modelo, numItem, chave, cfop, valorProd, valorDesc, valorAcess, bc, aliq, icms, bcIcmsST, ncm, cst, qtd, unidade, codProduto, descricao) 
-			values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+			(serie, numero, modelo, numItem, chave, cfop, valorProd, valorDesc, valorAcess, bc, aliq, icms, bcIcmsST, aliqST, icmsST, ncm, cst, qtd, unidade, codProduto, descricao) 
+			values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
 	]]
 
 end

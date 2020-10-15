@@ -742,6 +742,8 @@ type TDFe_NFeItem									'' Nota: só existe para NF-e emitidas, já que para as 
 	aliqICMS		as double
 	ICMS			as double
 	bcICMSST		as double
+	aliqIcmsST		as double
+	icmsST			as double
 	IPI				as double
 	next_			as TDFe_NFeItem ptr
 end type
@@ -1007,17 +1009,17 @@ private:
 	declare function carregarCsvNFeEmitSAFI(bf as bfile) as TDFe ptr
 	declare function carregarCsvNFeEmitItensSAFI(bf as bfile, chave as string) as TDFe_NFeItem ptr
 	declare function carregarCsvCTeSAFI(bf as bfile, emModoOutrasUFs as boolean) as TDFe ptr
-	declare function carregarCsvNFeEmitItens(bf as bfile, chave as string) as TDFe_NFeItem ptr
+	declare function carregarCsvNFeEmitItens(bf as bfile, chave as string, extra as TDFe ptr) as TDFe_NFeItem ptr
 	
 	declare function carregarXlsxNFeDest(reader as ExcelReader ptr) as TDFe ptr
 	declare function carregarXlsxNFeDestItens(reader as ExcelReader ptr) as TDFe ptr
 	declare function carregarXlsxNFeEmit(rd as ExcelReader ptr) as TDFe ptr
-	declare function carregarXlsxNFeEmitItens(rd as ExcelReader ptr, chave as string) as TDFe_NFeItem ptr
+	declare function carregarXlsxNFeEmitItens(rd as ExcelReader ptr, chave as string, extra as TDFe ptr) as TDFe_NFeItem ptr
 	declare function carregarXlsxCTe(rd as ExcelReader ptr, op as TipoOperacao) as TDFe ptr
 	declare function carregarXlsxSAT(rd as ExcelReader ptr) as TDFe ptr
 	declare function carregarXlsxSATItens(rd as ExcelReader ptr, chave as string) as TDFe_NFeItem ptr
 	
-	declare sub adicionarDFe(dfe as TDFe ptr)
+	declare sub adicionarDFe(dfe as TDFe ptr, fazerInsert as boolean = true)
 	declare sub adicionarItemDFe(chave as const zstring ptr, item as TDFe_NFeItem ptr)
 	declare sub adicionarEfdDfe(chave as zstring ptr, operacao as TipoOperacao, dataEmi as zstring ptr, valorOperacao as double)
 	declare sub adicionarDocEscriturado(doc as TDocDF ptr)
@@ -1179,6 +1181,7 @@ end type
 
 declare function csvDate2YYYYMMDD(s as zstring ptr) as string 
 declare function ddMmYyyy2YyyyMmDd(s as const zstring ptr) as string
+declare function yyyyMmDd2YyyyMmDd(s as const zstring ptr) as string
 declare function yyyyMmDd2Datetime(s as const zstring ptr) as string 
 declare function YyyyMmDd2DatetimeBR(s as const zstring ptr) as string 
 declare function STR2IE(ie as string) as string
