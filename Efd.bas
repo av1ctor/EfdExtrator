@@ -3347,7 +3347,7 @@ const BO_CSV_SEP = asc(!"\t")
 const BO_CSV_DIG = asc(".")
 
 ''''''''
-function Efd.carregarCsvNFeEmitItens(bf as bfile, chave as string) as TDFe_NFeItem ptr
+function Efd.carregarCsvNFeEmitItens(bf as bfile, chave as string, extra as TDFe ptr) as TDFe_NFeItem ptr
 	
 	var item = new TDFe_NFeItem
 	
@@ -3367,18 +3367,18 @@ function Efd.carregarCsvNFeEmitItens(bf as bfile, chave as string) as TDFe_NFeIt
 	item->modelo 			= bf.varint(BO_CSV_SEP)
 	bf.varchar(BO_CSV_SEP) '' tipo
 	bf.varchar(BO_CSV_SEP)	'' situação
-	bf.varchar(BO_CSV_SEP) '' data emi
+	extra->dataEmi			= yyyyMmDd2YyyyMmDd(bf.varchar(BO_CSV_SEP))
 	bf.varchar(BO_CSV_SEP) '' razão social emi
 	bf.varchar(BO_CSV_SEP) '' cnpj emi
 	bf.varchar(BO_CSV_SEP) '' ie emi
 	bf.varchar(BO_CSV_SEP) '' drt emi
 	bf.varchar(BO_CSV_SEP)	'' uf emi
-	bf.varchar(BO_CSV_SEP)	'' razão social dest
-	bf.varchar(BO_CSV_SEP) '' cnpj dest
+	extra->nomeDest 		= bf.varchar(BO_CSV_SEP)
+	extra->cnpjDest			= bf.varchar(BO_CSV_SEP)
 	bf.varchar(BO_CSV_SEP) '' cpf dest
 	bf.varchar(BO_CSV_SEP) '' ie dest
 	bf.varchar(BO_CSV_SEP) '' drt dest
-	bf.varchar(BO_CSV_SEP)	'' uf dest
+	extra->ufDest			= UF_SIGLA2COD(bf.varchar(BO_CSV_SEP))
 	item->nroItem			= bf.varint(BO_CSV_SEP)
 	item->descricao			= bf.varchar(BO_CSV_SEP)
 	item->codProduto		= bf.varchar(BO_CSV_SEP)
@@ -3389,7 +3389,7 @@ function Efd.carregarCsvNFeEmitItens(bf as bfile, chave as string) as TDFe_NFeIt
 	bf.varchar(BO_CSV_SEP) '' CSOSN
 	item->aliqICMS			= bf.vardbl(BO_CSV_SEP, BO_CSV_DIG)
 	bf.varchar(BO_CSV_SEP) '' redução bc
-	bf.varchar(BO_CSV_SEP) '' alíq ICMS ST
+	item->aliqIcmsST		= bf.vardbl(BO_CSV_SEP, BO_CSV_DIG)
 	bf.varchar(BO_CSV_SEP) '' redução bc ST
 	item->qtd				= bf.vardbl(BO_CSV_SEP, BO_CSV_DIG)
 	item->unidade			= bf.varchar(BO_CSV_SEP)
@@ -3397,7 +3397,7 @@ function Efd.carregarCsvNFeEmitItens(bf as bfile, chave as string) as TDFe_NFeIt
 	item->bcICMS			= bf.vardbl(BO_CSV_SEP, BO_CSV_DIG)
 	item->ICMS				= bf.vardbl(BO_CSV_SEP, BO_CSV_DIG)
 	item->bcICMSST			= bf.vardbl(BO_CSV_SEP, BO_CSV_DIG)
-	bf.varchar(BO_CSV_SEP) '' ICMS ST
+	item->IcmsST			= bf.vardbl(BO_CSV_SEP, BO_CSV_DIG)
 	bf.varchar(BO_CSV_SEP) '' bc ICMS ST anterior
 	bf.varchar(BO_CSV_SEP) '' ICMS ST anterior
 	item->IPI				= bf.vardbl(BO_CSV_SEP, BO_CSV_DIG)
@@ -3425,7 +3425,7 @@ function Efd.carregarCsvNFeEmitItens(bf as bfile, chave as string) as TDFe_NFeIt
 end function
 
 ''''''''
-sub Efd.adicionarDFe(dfe as TDFe ptr)
+sub Efd.adicionarDFe(dfe as TDFe ptr, fazerInsert as boolean)
 	
 	if chaveDFeDict->lookup(dfe->chave) = null then
 		chaveDFeDict->add(dfe->chave, dfe)
@@ -3440,7 +3440,7 @@ sub Efd.adicionarDFe(dfe as TDFe ptr)
 		dfe->next_ = null
 	end if
 
-	if dfe->numero <> 0 then
+	if fazerInsert then
 		'' adicionar ao db
 		select case dfe->operacao
 		case ENTRADA
@@ -3494,7 +3494,7 @@ end sub
 
 ''''''''
 sub Efd.adicionarItemDFe(chave as const zstring ptr, item as TDFe_NFeItem ptr)
-		'' (serie, numero, modelo, numItem, chave, cfop, valorProd, valorDesc, valorAcess, bc, aliq, icms, bcIcmsST, ncm, cst, qtd, unidade, codProduto, descricao) 
+		'' (serie, numero, modelo, numItem, chave, cfop, valorProd, valorDesc, valorAcess, bc, aliq, icms, bcIcmsST, , aliqST, icmsST, ncm, cst, qtd, unidade, codProduto, descricao) 
 		db_itensDfeSaidaInsertStmt->reset()
 		db_itensDfeSaidaInsertStmt->bind(1, item->serie)
 		db_itensDfeSaidaInsertStmt->bind(2, item->numero)
@@ -3509,17 +3509,19 @@ sub Efd.adicionarItemDFe(chave as const zstring ptr, item as TDFe_NFeItem ptr)
 		db_itensDfeSaidaInsertStmt->bind(11, item->aliqICMS)
 		db_itensDfeSaidaInsertStmt->bind(12, item->icms)
 		db_itensDfeSaidaInsertStmt->bind(13, item->bcIcmsST)
-		db_itensDfeSaidaInsertStmt->bind(14, item->ncm)
-		db_itensDfeSaidaInsertStmt->bind(15, item->cst)
-		db_itensDfeSaidaInsertStmt->bind(16, item->qtd)
+		db_itensDfeSaidaInsertStmt->bind(14, item->aliqIcmsST)
+		db_itensDfeSaidaInsertStmt->bind(15, item->icmsST)
+		db_itensDfeSaidaInsertStmt->bind(16, item->ncm)
+		db_itensDfeSaidaInsertStmt->bind(17, item->cst)
+		db_itensDfeSaidaInsertStmt->bind(18, item->qtd)
 		if opcoes.manterDb then
-			db_itensDfeSaidaInsertStmt->bind(17, item->unidade)
-			db_itensDfeSaidaInsertStmt->bind(18, item->codProduto)
-			db_itensDfeSaidaInsertStmt->bind(19, item->descricao)
+			db_itensDfeSaidaInsertStmt->bind(19, item->unidade)
+			db_itensDfeSaidaInsertStmt->bind(20, item->codProduto)
+			db_itensDfeSaidaInsertStmt->bind(21, item->descricao)
 		else
-			db_itensDfeSaidaInsertStmt->bind(17, null)
-			db_itensDfeSaidaInsertStmt->bind(18, null)
 			db_itensDfeSaidaInsertStmt->bind(19, null)
+			db_itensDfeSaidaInsertStmt->bind(20, null)
+			db_itensDfeSaidaInsertStmt->bind(21, null)
 		end if
 	
 		if not db->execNonQuery(db_itensDfeSaidaInsertStmt) then
@@ -3576,6 +3578,7 @@ function Efd.carregarCsv(nomeArquivo as String) as Boolean
 		nroLinha += 1
 		
 		var emModoOutrasUFs = false
+		var extra = new TDFe
 		
 		do while bf.temProximo()		 
 			if not onProgress(null, bf.posicao / fsize) then
@@ -3631,7 +3634,7 @@ function Efd.carregarCsv(nomeArquivo as String) as Boolean
 				var chave = ""
 				var nfeItem = iif(isSafi, _
 					carregarCsvNFeEmitItensSAFI( bf, chave ), _
-					carregarCsvNFeEmitItens( bf, chave ))
+					carregarCsvNFeEmitItens( bf, chave, extra ))
 				if nfeItem <> null then
 					adicionarItemDFe(chave, nfeItem)
 
@@ -3642,8 +3645,16 @@ function Efd.carregarCsv(nomeArquivo as String) as Boolean
 						dfe = new TDFe
 						dfe->chave = chave
 						dfe->modelo = NFE
-						dfe->numero = 0
-						adicionarDFe(dfe)
+						if not isSafi then
+							dfe->operacao = SAIDA
+							dfe->dataEmi = extra->dataEmi
+							dfe->numero = nfeItem->numero
+							dfe->serie = nfeItem->serie
+							dfe->cnpjDest = extra->cnpjDest
+							dfe->nomeDest = extra->nomeDest
+							dfe->ufDest = extra->ufDest
+						end if
+						adicionarDFe(dfe, false)
 					end if
 					
 					if dfe->nfe.itemListHead = null then
@@ -3662,7 +3673,17 @@ function Efd.carregarCsv(nomeArquivo as String) as Boolean
 			nroLinha += 1
 		loop
 		
+		delete extra
+		
 		if not isSafi then
+			'' se for informado só o itens NF-e, gravar a tabela NF-e com os dados disponíveis
+			if opcoes.manterDb andalso itemNFeSafiFornecido andalso not nfeEmitSafiFornecido then
+				var dfe = dfeListHead
+				do while dfe <> null
+					adicionarDFe(dfe)
+					dfe = dfe->next_
+				loop
+			end if
 			onProgress(null, 1)
 		end if
 		
@@ -3905,7 +3926,7 @@ function Efd.carregarXlsxNFeEmit(rd as ExcelReader ptr) as TDFe ptr
 end function
 
 ''''''''
-function Efd.carregarXlsxNFeEmitItens(rd as ExcelReader ptr, chave as string) as TDFe_NFeItem ptr
+function Efd.carregarXlsxNFeEmitItens(rd as ExcelReader ptr, chave as string, extra as TDFe ptr) as TDFe_NFeItem ptr
 	
 	'' Chave de Acesso NFe,	Número Documento Fiscal,	 Série Documento Fiscal,	Modelo Documento Fiscal, Tipo Documento Fiscal,	
 	'' Situação Documento Fiscal,	Data Emissão,	Razão Social Emitente,	CNPJ Emitente,	Inscrição Estadual Emitente,	
@@ -3931,18 +3952,18 @@ function Efd.carregarXlsxNFeEmitItens(rd as ExcelReader ptr, chave as string) as
 	item->modelo 			= rd->readInt
 	rd->skip '' tipo
 	rd->skip	'' situação
-	rd->skip '' data emi
+	extra->dataEmi 			= rd->readDate
 	rd->skip '' razão social emi
 	rd->skip '' cnpj emi
 	rd->skip '' ie emi
 	rd->skip '' drt emi
 	rd->skip	'' uf emi
 	rd->skip	'' razão social dest
-	rd->skip '' cnpj dest
+	extra->cnpjDest			= limparCNPJ(rd->read)
 	rd->skip '' cpf dest
 	rd->skip '' ie dest
 	rd->skip '' drt dest
-	rd->skip	'' uf dest
+	extra->ufDest 			= UF_SIGLA2COD(rd->read)
 	item->nroItem			= rd->readInt
 	item->descricao			= rd->read(true)
 	item->codProduto		= rd->read
@@ -3953,7 +3974,7 @@ function Efd.carregarXlsxNFeEmitItens(rd as ExcelReader ptr, chave as string) as
 	rd->skip '' CSOSN
 	item->aliqICMS			= rd->readDbl
 	rd->skip '' redução bc
-	rd->skip '' alíq ICMS ST
+	item->aliqIcmsST		= rd->readDbl
 	rd->skip '' redução bc ST
 	item->qtd				= rd->readDbl
 	item->unidade			= rd->read
@@ -3961,7 +3982,7 @@ function Efd.carregarXlsxNFeEmitItens(rd as ExcelReader ptr, chave as string) as
 	item->bcICMS			= rd->readDbl
 	item->ICMS				= rd->readDbl
 	item->bcICMSST			= rd->readDbl
-	rd->skip '' ICMS ST
+	item->icmsST			= rd->readDbl
 	rd->skip '' bc ICMS ST anterior
 	rd->skip '' ICMS ST anterior
 	item->IPI				= rd->readDbl
@@ -4258,6 +4279,7 @@ function Efd.carregarXlsx(nomeArquivo as String) as Boolean
 	end if
 	
 	var plan = 0
+	var extra = new TDFe
 	do
 		var nomePlanilha = nomePlanilhas(plan)
 		if nomePlanilha = "" then
@@ -4290,7 +4312,7 @@ function Efd.carregarXlsx(nomeArquivo as String) as Boolean
 						
 					case BO_NFe_Emit_Itens
 						var chave = ""
-						var nfeItem = carregarXlsxNFeEmitItens( reader, chave )
+						var nfeItem = carregarXlsxNFeEmitItens( reader, chave, extra )
 						if nfeItem <> null then
 							adicionarItemDFe(chave, nfeItem)
 
@@ -4301,8 +4323,14 @@ function Efd.carregarXlsx(nomeArquivo as String) as Boolean
 								'' só adicionar ao dicionário e à lista de DFe
 								dfe->chave = chave
 								dfe->modelo = NFE
-								dfe->numero = 0
-								adicionarDFe(dfe)
+								dfe->operacao = SAIDA
+								dfe->dataEmi = extra->dataEmi
+								dfe->numero = nfeItem->numero
+								dfe->serie = nfeItem->serie
+								dfe->cnpjDest = extra->cnpjDest
+								dfe->nomeDest = extra->nomeDest
+								dfe->ufDest = extra->ufDest
+								adicionarDFe(dfe, false)
 							end if
 							
 							if dfe->nfe.itemListHead = null then
@@ -4339,8 +4367,7 @@ function Efd.carregarXlsx(nomeArquivo as String) as Boolean
 								'' só adicionar ao dicionário e à lista de DFe
 								dfe->chave = chave
 								dfe->modelo = SAT
-								dfe->numero = 0
-								adicionarDFe(dfe)
+								adicionarDFe(dfe, false)
 							end if
 							
 							if dfe->nfe.itemListHead = null then
@@ -4368,6 +4395,17 @@ function Efd.carregarXlsx(nomeArquivo as String) as Boolean
 				nroLinha += 1
 			loop
 			
+			'' se for informado só o itens NF-e, gravar a tabela NF-e com os dados disponíveis
+			if opcoes.manterDb andalso itemNFeSafiFornecido andalso not nfeEmitSafiFornecido then
+				var dfe = dfeListHead
+				do while dfe <> null
+					if dfe->modelo = NFe then
+						adicionarDFe(dfe)
+					end if
+					dfe = dfe->next_
+				loop
+			end if
+			
 			function = true
 		
 		catch
@@ -4377,6 +4415,8 @@ function Efd.carregarXlsx(nomeArquivo as String) as Boolean
 	
 		plan += 1
 	loop while plan <= ubound(nomePlanilhas)
+	
+	delete extra
 	
 	onProgress(null, 1)
 	

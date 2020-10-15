@@ -80,6 +80,7 @@ function UF_SIGLA2COD(s as zstring ptr) as integer
 end function
 
 ''''''''
+'' ddmmyyyy to yyyymmdd
 function ddMmYyyy2YyyyMmDd(s as const zstring ptr) as string
 	
 	var res = "19000101"
@@ -100,6 +101,28 @@ function ddMmYyyy2YyyyMmDd(s as const zstring ptr) as string
 end function
 
 ''''''''
+'' yyyy-mm-dd to yyyymmdd
+function yyyyMmDd2YyyyMmDd(s as const zstring ptr) as string
+	
+	var res = "19000101"
+	
+	if len(*s) > 0 then
+		res[0] = s[0]
+		res[1] = s[1]
+		res[2] = s[2]
+		res[3] = s[3]
+		res[4] = s[5]
+		res[5] = s[6]
+		res[6] = s[8]
+		res[7] = s[9]
+	end if
+	
+	function = res
+	
+end function
+
+''''''''
+'' yyyymmdd to yyyy-mm-ddT00:00:00.000
 function yyyyMmDd2Datetime(s as const zstring ptr) as string 
 	''         0123456789
 	var res = "1900-01-01T00:00:00.000"
@@ -119,6 +142,7 @@ function yyyyMmDd2Datetime(s as const zstring ptr) as string
 end function
 
 ''''''''
+'' yyyymmdd to dd/mm/yyyy
 function YyyyMmDd2DatetimeBR(s as const zstring ptr) as string 
 	''         0123456789
 	var res = "01/01/1900"
@@ -142,6 +166,7 @@ function YyyyMmDd2DatetimeBR(s as const zstring ptr) as string
 end function
 
 ''''''''
+'' d[d]/m[m]/yyyy to yyyymmddT00:00:00.000
 function csvDate2YYYYMMDD(s as zstring ptr) as string 
 	''         01234567
 	var res = "00000000T00:00:00.000"
