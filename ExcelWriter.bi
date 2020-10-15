@@ -74,7 +74,7 @@ type ExcelWorkbook
 	declare function AddWorksheet(name as string) as ExcelWorksheet ptr
 end type
 
-type OnProgressCB as sub(stage as const zstring ptr, preComplete as double)
+type OnProgressCB as function(stage as const zstring ptr, preComplete as double) as boolean
 
 enum FileType
 	FT_XLSX

@@ -73,7 +73,7 @@ sub mostrarUso()
 end sub
 
 '''''''''''
-sub onProgress(estagio as const zstring ptr, percent as double)
+function onProgress(estagio as const zstring ptr, percent as double) as boolean
 	static ultpercent as double = 0
 	
 	if estagio <> null then
@@ -84,7 +84,7 @@ sub onProgress(estagio as const zstring ptr, percent as double)
 	
 	if percent = 0 then
 		ultpercent = 0
-		return
+		return true
 	end if
 	
 	var jaCompletado = ultpercent >= 1.0
@@ -100,8 +100,9 @@ sub onProgress(estagio as const zstring ptr, percent as double)
 			print "OK!"
 		end if
 	end if
-	
-end sub
+
+	return true
+end function
 
 sub onError(msg as const zstring ptr)
 	var s = latinToUtf16le(msg)

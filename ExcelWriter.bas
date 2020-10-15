@@ -239,7 +239,9 @@ function ExcelWriter.Flush(onProgress as OnProgressCB) as boolean
 				do while row <> null
 					curRow += 1
 					if onProgress <> null then
-						onProgress(null, curRow / totalRows)
+						if not onProgress(null, curRow / totalRows) then
+							exit do
+						end if
 					end if
 					
 					if row->asIs then
