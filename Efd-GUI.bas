@@ -6,6 +6,13 @@ dim shared curFileGrid as FileGridData ptr
 dim shared curFile as TFile ptr
 dim shared statusBar as Ihandle ptr
 dim shared outPathEdit as Ihandle ptr
+dim shared cnpjsList as Ihandle ptr
+dim shared chavesList as Ihandle ptr
+
+private function item_about_action_cb(item as Ihandle ptr) as long
+	IupMessage("Sobre", !"Extrator de EFD/Sintegra para Excel, versão 0.9.2 beta\nCopyleft 2017-2020 by André Vicentini (avtvicentini)")
+	return IUP_DEFAULT
+end function
 
 ''
 private function getFiles(filter as string, filterInfo as string, files as TList ptr) as integer
@@ -76,9 +83,14 @@ sub addFileToGrid(file as TFile ptr, at as integer, mat as Ihandle ptr)
 	IupSetInt(mat, ROWCOL(1+at, 3), 0)
 end sub
 
-private sub toggleActionButton(to_ as string)
-	var btn = IupGetHandle("EFD_BTN_EXEC")
-	IupSetAttribute(btn, "ACTIVE", to_)
+private sub toggleExecButton(to_ as string)
+	var exec_btn = IupGetHandle("EFD_BTN_EXEC")
+	IupSetAttribute(exec_btn, "ACTIVE", to_)
+end sub
+
+private sub toggleClearButton(to_ as string)
+	var clear_btn = IupGetHandle("EFD_BTN_CLEAR")
+	IupSetAttribute(clear_btn, "ACTIVE", to_)
 end sub
 
 private function cmp_tfile(num as long, node as any ptr) as boolean
@@ -114,7 +126,7 @@ private function dropfiles_cb(self as Ihandle ptr, fname as zstring ptr, num as 
 		end if
 		dat->num = 0
 		
-		toggleActionButton("YES")
+		toggleExecButton("YES")
 	end if
 	
 	IupSetAttribute(dat->mat, "REDRAW", "L" & (1+at))
@@ -148,7 +160,7 @@ private sub showSelectFilesAndUpdateMatrix(dat as FileGridData ptr)
 		loop
 		
 		IupSetAttribute(dat->mat, "REDRAW", "L1-" & i)
-		toggleActionButton("YES")
+		toggleExecButton("YES")
 	
 	else
 		delete files
@@ -270,11 +282,6 @@ private function item_exit_action_cb(item as Ihandle ptr) as long
 	return IUP_CLOSE
 end function
 
-private function item_about_action_cb(item as Ihandle ptr) as long
-	IupMessage("Sobre", !"Extrator de EFD/Sintegra para Excel, versão 0.9.1 beta\nCopyleft 2017-2020 by André Vicentini (avtvicentini)")
-	return IUP_DEFAULT
-end function
-
 private sub onProgress(estagio as const zstring ptr, completado as double = 0)
 	static ultCompletado as double = 0
 	
@@ -333,9 +340,10 @@ end sub
 
 private function item_exec_action_cb(item as Ihandle ptr) as long
 
-	var gui = cast(EfdGUI ptr, IupGetAttribute(IupGetDialog(item), "EFD_SELF"))
+	var gui = cast(EfdGUI ptr, IupGetAttribute(IupGetDialog(item), "_SELF"))
 
-	toggleActionButton("NO")
+	toggleExecButton("NO")
+	toggleClearButton("NO")
 	
 	onProgress("Iniciando...")
 	
@@ -434,9 +442,39 @@ private function item_exec_action_cb(item as Ihandle ptr) as long
 	
 	onProgress("Finalizado!")
 
-	toggleActionButton("YES")
+	toggleExecButton("YES")
+	toggleClearButton("YES")
 	
 	delete ext
+
+	return IUP_DEFAULT
+end function
+
+private function item_clear_action_cb(item as Ihandle ptr) as long
+
+	var gui = cast(EfdGUI ptr, IupGetAttribute(IupGetDialog(item), "_SELF"))
+	
+	for i as integer = 0 to ubound(gui->fileGrids)
+		var fg = @gui->fileGrids(i)
+		IupSetInt(fg->mat, "NUMLIN", 0)
+		if fg->files <> null then
+			delete fg->files
+			fg->files = null
+			fg->num = 0
+		end if
+	next
+	
+	IupSetStrAttribute(outPathEdit, "VALUE", "")
+	
+	IupSetStrAttribute(cnpjsList, "1", null)
+	erase gui->opcoes.listaCnpj
+	gui->opcoes.filtrarCnpj = false
+	
+	IupSetStrAttribute(chavesList, "1", null)
+	erase gui->opcoes.listaChaves
+	gui->opcoes.filtrarChaves = false
+	
+	toggleExecButton("NO")
 
 	return IUP_DEFAULT
 end function
@@ -550,7 +588,7 @@ end type
 
 private function opcao_action_cb(item as Ihandle ptr, state as long) as long
 	
-	var gui = cast(EfdGUI ptr, IupGetAttribute(IupGetDialog(item), "EFD_SELF"))
+	var gui = cast(EfdGUI ptr, IupGetAttribute(IupGetDialog(item), "_SELF"))
 	
 	var name_ = *IupGetAttribute(item, "OPTIONNAME")
 	select case name_
@@ -576,8 +614,8 @@ end function
 
 private function cnpjs_set_cb(item as Ihandle ptr) as long
 	
-	var gui = cast(EfdGUI ptr, IupGetAttribute(IupGetDialog(item), "EFD_SELF"))
-	var list = cast(IHandle ptr, IupGetAttribute(item, "CNPJS_LIST"))
+	var gui = cast(EfdGUI ptr, IupGetAttribute(IupGetDialog(item), "_SELF"))
+	var list = cnpjsList
 	var edit = cast(IHandle ptr, IupGetAttribute(item, "CNPJS_EDIT"))
 	
 	var value = *IupGetAttribute(edit, "VALUE")
@@ -598,8 +636,8 @@ private function cnpjs_set_cb(item as Ihandle ptr) as long
 end function
 
 private function cnpjs_dropfile_cb(item as Ihandle ptr, fname as zstring ptr, num as long, x as long, y as long) as long
-	var gui = cast(EfdGUI ptr, IupGetAttribute(IupGetDialog(item), "EFD_SELF"))
-	var list = cast(IHandle ptr, IupGetAttribute(item, "CNPJS_LIST"))
+	var gui = cast(EfdGUI ptr, IupGetAttribute(IupGetDialog(item), "_SELF"))
+	var list = cnpjsList
 	
 	IupSetStrAttribute(list, "1", null)
 	var cnt = loadstrings(*fname, gui->opcoes.listaCnpj())
@@ -616,21 +654,19 @@ private function cnpjs_dropfile_cb(item as Ihandle ptr, fname as zstring ptr, nu
 end function
 
 function EfdGUI.buildCnpjFilterBox() as IHandle ptr
-	var list = IupList(NULL)
-	IupSetAttribute(list, "SIZE", "150x60")
-	IupSetAttribute(list, "EXPAND", "HORIZONTAL")
-	IupSetAttribute(list, "CANFOCUS", "NO")
+	cnpjsList = IupList(NULL)
+	IupSetAttribute(cnpjsList, "SIZE", "150x60")
+	IupSetAttribute(cnpjsList, "EXPAND", "HORIZONTAL")
+	IupSetAttribute(cnpjsList, "CANFOCUS", "NO")
 	
 	var edit = IupText(NULL)
 	IupSetAttribute(edit, "CUEBANNER", "Digite a lista, ou arraste e solte o arquivo aqui...")
 	IupSetAttribute(edit, "TIP", "A lista deve ser separada por vírgula, com zeros à esquerda. O arquivo deve conter apenas um CNPJ por linha, com zeros à esquerda, sem espaços ou linhas em branco.")
 	IupSetAttribute(edit, "EXPAND", "HORIZONTAL")
-	IupSetAttribute(edit, "CNPJS_LIST", cast(zstring ptr, list))
 	IupSetCallback(edit, "DROPFILES_CB", cast(Icallback, @cnpjs_dropfile_cb))
 	
 	var btn = IupButton("Filtrar", NULL)
 	IupSetAttribute(btn, "CNPJS_EDIT", cast(zstring ptr, edit))
-	IupSetAttribute(btn, "CNPJS_LIST", cast(zstring ptr, list))
 	IupSetCallback(btn, "ACTION", cast(Icallback, @cnpjs_set_cb))
 	
 	var hbox = IupHBox _
@@ -645,7 +681,7 @@ function EfdGUI.buildCnpjFilterBox() as IHandle ptr
 	( _
 		IupLabel("Filtrar por CNPJ (sep. por vírgula, zeros à esquerda)"), _
 		hbox, _
-		list, _
+		cnpjsList, _
 		NULL _
 	)
 
@@ -656,8 +692,8 @@ end function
 
 private function chaves_set_cb(item as Ihandle ptr) as long
 	
-	var gui = cast(EfdGUI ptr, IupGetAttribute(IupGetDialog(item), "EFD_SELF"))
-	var list = cast(IHandle ptr, IupGetAttribute(item, "CHAVES_LIST"))
+	var gui = cast(EfdGUI ptr, IupGetAttribute(IupGetDialog(item), "_SELF"))
+	var list = chavesList
 	var edit = cast(IHandle ptr, IupGetAttribute(item, "CHAVES_EDIT"))
 	
 	var value = *IupGetAttribute(edit, "VALUE")
@@ -678,8 +714,8 @@ private function chaves_set_cb(item as Ihandle ptr) as long
 end function
 
 private function chaves_dropfile_cb(item as Ihandle ptr, fname as zstring ptr, num as long, x as long, y as long) as long
-	var gui = cast(EfdGUI ptr, IupGetAttribute(IupGetDialog(item), "EFD_SELF"))
-	var list = cast(IHandle ptr, IupGetAttribute(item, "CHAVES_LIST"))
+	var gui = cast(EfdGUI ptr, IupGetAttribute(IupGetDialog(item), "_SELF"))
+	var list = chavesList
 	
 	IupSetStrAttribute(list, "1", null)
 	var cnt = loadstrings(*fname, gui->opcoes.listaChaves())
@@ -696,21 +732,19 @@ private function chaves_dropfile_cb(item as Ihandle ptr, fname as zstring ptr, n
 end function
 
 function EfdGUI.buildChavesFilterBox() as IHandle ptr
-	var list = IupList(NULL)
-	IupSetAttribute(list, "SIZE", "150x60")
-	IupSetAttribute(list, "EXPAND", "HORIZONTAL")
-	IupSetAttribute(list, "CANFOCUS", "NO")
+	chavesList = IupList(NULL)
+	IupSetAttribute(chavesList, "SIZE", "150x60")
+	IupSetAttribute(chavesList, "EXPAND", "HORIZONTAL")
+	IupSetAttribute(chavesList, "CANFOCUS", "NO")
 	
 	var edit = IupText(NULL)
 	IupSetAttribute(edit, "CUEBANNER", "Digite a lista, ou arraste e solte o arquivo aqui...")
 	IupSetAttribute(edit, "TIP", "A lista de chaves deve ser separada por vírgula. O arquivo deve conter apenas uma chave por linha, sem espaços ou linhas em branco.")
 	IupSetAttribute(edit, "EXPAND", "HORIZONTAL")
-	IupSetAttribute(edit, "CHAVES_LIST", cast(zstring ptr, list))
 	IupSetCallback(edit, "DROPFILES_CB", cast(Icallback, @chaves_dropfile_cb))
 	
 	var btn = IupButton("Filtrar", NULL)
 	IupSetAttribute(btn, "CHAVES_EDIT", cast(zstring ptr, edit))
-	IupSetAttribute(btn, "CHAVES_LIST", cast(zstring ptr, list))
 	IupSetCallback(btn, "ACTION", cast(Icallback, @chaves_set_cb))
 	
 	var hbox = IupHBox _
@@ -726,7 +760,7 @@ function EfdGUI.buildChavesFilterBox() as IHandle ptr
 	( _
 		IupLabel("Filtrar por chave (sep. por vírgula)"), _
 		hbox, _
-		list, _
+		chavesList, _
 		NULL _
 	)
 	
@@ -737,7 +771,7 @@ end function
 
 private function format_action_cb(self as Ihandle ptr, text as zstring ptr, item as long, state as long) as long
 	
-	var gui = cast(EfdGUI ptr, IupGetAttribute(IupGetDialog(self), "EFD_SELF"))
+	var gui = cast(EfdGUI ptr, IupGetAttribute(IupGetDialog(self), "_SELF"))
 	if state = 1 then
 		select case *text
 		case "xml" 
@@ -764,7 +798,7 @@ function EfdGUI.buildOutFormatBox() as Ihandle ptr
 	
 	var list = IupList(NULL)
 	IupSetAttribute(list, "EXPAND", "HORIZONTAL")
-	IupSetAttribute(list, "TIP", "Formato de arquivo da planilha que será gerada contendo os registro extraídos. Selecione 'null' para não gerar planilha.")
+	IupSetAttribute(list, "TIP", "Formato da planilha que será gerada contendo os registros extraídos. Selecione 'null' para não gerar a planilha.")
 	IupSetAttribute(list, "DROPDOWN", "YES")
 	for i as integer = 0 to ubound(formatos)
 		IupSetStrAttribute(list, str(1+i), formatos(i))
@@ -849,14 +883,25 @@ function EfdGUI.buildActionsFrame() as IHandle ptr
 	IupSetHandle("EFD_BTN_EXEC", btn_exec)
 	IupSetAttribute(btn_exec, "IMAGE", "EFD_EXEC_ICON")
 	IupSetAttribute(btn_exec, "FLAT", "NO")
-	IupSetCallback(btn_exec, "ACTION", cast(Icallback, @item_exec_action_cb))
+	IupSetAttribute(btn_exec, "PADDING", "10x2")
 	IupSetAttribute(btn_exec, "TIP", "Executar")
 	IupSetAttribute(btn_exec, "ACTIVE", "NO")
+	IupSetCallback(btn_exec, "ACTION", cast(Icallback, @item_exec_action_cb))
+
+	var btn_limpar = IupButton("Limpar", NULL)
+	IupSetHandle("EFD_BTN_CLEAR", btn_limpar)
+	IupSetAttribute(btn_limpar, "IMAGE", "EFD_EXIT_ICON")
+	IupSetAttribute(btn_limpar, "FLAT", "NO")
+	IupSetAttribute(btn_limpar, "PADDING", "10x2")
+	IupSetAttribute(btn_limpar, "TIP", "Limpar")
+	IupSetCallback(btn_limpar, "ACTION", cast(Icallback, @item_clear_action_cb))
 
 	var hbox = IupHBox _
 	( _
 		IupFill(), _
 		btn_exec, _
+		IupFill(), _
+		btn_limpar, _
 		IupFill(), _
 		NULL _
 	)
@@ -921,7 +966,7 @@ function EfdGUI.build() as boolean
 		buildFileGrid(FG_EFD, "EFD's", "SPED*.txt", "Arquivos do SPED|SPED*.txt"), _
 		buildFileGrid(FG_DFE, "DFe's", "*.xlsx;*.csv", "Arquivos Excel do BO Launch PAD|*.xlsx;Arquivos CSV do SAFI|*.csv"))
 		
-	IupSetAttribute(dlg, "EFD_SELF", cast(zstring ptr, @this))
+	IupSetAttribute(dlg, "_SELF", cast(zstring ptr, @this))
 	IupSetAttribute(dlg, "FG_EFD", cast(zstring ptr, @fileGrids(FG_EFD)))
 	IupSetAttribute(dlg, "FG_DFE", cast(zstring ptr, @fileGrids(FG_DFE)))
 		

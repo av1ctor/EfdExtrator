@@ -1,6 +1,6 @@
 function errorHandler(err)
-	print(err)
-	print(debug.traceback())
+	onError(err)
+	onError(debug.traceback())
 end
 
 ----------------------------------------------------------------------

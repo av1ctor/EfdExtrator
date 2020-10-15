@@ -1,3 +1,9 @@
+versão 0.9.2 beta:
+- corrigido: vazamento de memória
+- corrigido: análises com limite estavam com a ordenação invertida
+- adicionado: botão limpar formulário
+- alterado: execução das análises agora reporta o tempo decorrido
+
 versão 0.9.1 beta:
 - adicionado: interface gráfica, mostrada quando nenhum parâmetro é passado na linha de comando
 - adicionado: novas análises do roteiro 3.01
