@@ -2,12 +2,10 @@
 
 #include "icons.bas"
 
+dim shared running as boolean
 dim shared curFileGrid as FileGridData ptr
 dim shared curFile as TFile ptr
 dim shared statusBar as Ihandle ptr
-dim shared outPathEdit as Ihandle ptr
-dim shared cnpjsList as Ihandle ptr
-dim shared chavesList as Ihandle ptr
 
 private function item_about_action_cb(item as Ihandle ptr) as long
 	IupMessage("Sobre", !"Extrator de EFD/Sintegra para Excel, versão 0.9.2 beta\nCopyleft 2017-2020 by André Vicentini (avtvicentini)")
@@ -84,21 +82,27 @@ sub addFileToGrid(file as TFile ptr, at as integer, mat as Ihandle ptr)
 end sub
 
 private sub toggleExecButton(to_ as string)
-	var exec_btn = IupGetHandle("EFD_BTN_EXEC")
-	IupSetAttribute(exec_btn, "ACTIVE", to_)
+	var btn = IupGetHandle("EFD_BTN_EXEC")
+	IupSetAttribute(btn, "ACTIVE", to_)
 end sub
 
 private sub toggleClearButton(to_ as string)
-	var clear_btn = IupGetHandle("EFD_BTN_CLEAR")
-	IupSetAttribute(clear_btn, "ACTIVE", to_)
+	var btn = IupGetHandle("EFD_BTN_CLEAR")
+	IupSetAttribute(btn, "ACTIVE", to_)
+end sub
+
+private sub toggleStopButton(to_ as string)
+	var btn = IupGetHandle("EFD_BTN_STOP")
+	IupSetAttribute(btn, "ACTIVE", to_)
 end sub
 
 private function cmp_tfile(num as long, node as any ptr) as boolean
 	return num < cast(TFile ptr, node)->num
 end function
 
-private function dropfiles_cb(self as Ihandle ptr, fname as zstring ptr, num as long, x as long, y as long) as long
-	var dat = cast(FileGridData ptr, IupGetAttribute(self, "FGDATA"))
+private function dropfiles_cb(item as Ihandle ptr, fname as zstring ptr, num as long, x as long, y as long) as long
+	var gui = cast(EfdGUI ptr, IupGetAttribute(IupGetDialog(item), "_SELF"))
+	var dat = cast(FileGridData ptr, IupGetAttribute(item, "FGDATA"))
 	
 	if num >= dat->num then
 		if dat->files <> null then
@@ -121,8 +125,8 @@ private function dropfiles_cb(self as Ihandle ptr, fname as zstring ptr, num as 
 	addFileToGrid(file, at, dat->mat)
 	
 	if num = 0 then
-		if len(*IupGetAttribute(outPathEdit, "VALUE")) = 0 then
-			IupSetStrAttribute(outPathEdit, "VALUE", path)
+		if len(*IupGetAttribute(gui->outPathEdit, "VALUE")) = 0 then
+			IupSetStrAttribute(gui->outPathEdit, "VALUE", path)
 		end if
 		dat->num = 0
 		
@@ -134,7 +138,7 @@ private function dropfiles_cb(self as Ihandle ptr, fname as zstring ptr, num as 
 	return IUP_DEFAULT
 end function
 
-private sub showSelectFilesAndUpdateMatrix(dat as FileGridData ptr)
+private sub showSelectFilesAndUpdateMatrix(gui as EfdGUI ptr, dat as FileGridData ptr)
 	
 	var files = new TList(10, len(TFile))
 	
@@ -148,8 +152,8 @@ private sub showSelectFilesAndUpdateMatrix(dat as FileGridData ptr)
 		IupSetInt(dat->mat, "NUMLIN", num)
 	
 		var file = cast(TFile ptr, files->head)
-		if len(*IupGetAttribute(outPathEdit, "VALUE")) = 0 then
-			IupSetStrAttribute(outPathEdit, "VALUE", file->path)
+		if len(*IupGetAttribute(gui->outPathEdit, "VALUE")) = 0 then
+			IupSetStrAttribute(gui->outPathEdit, "VALUE", file->path)
 		end if
 		
 		var i = 0
@@ -167,16 +171,18 @@ private sub showSelectFilesAndUpdateMatrix(dat as FileGridData ptr)
 	end if
 end sub
 
-private function selfiles_cb(self as Ihandle ptr) as long
-	var dat = cast(FileGridData ptr, IupGetAttribute(self, "FGDATA"))
-	showSelectFilesAndUpdateMatrix(dat)
+private function selfiles_cb(item as Ihandle ptr) as long
+	var gui = cast(EfdGUI ptr, IupGetAttribute(IupGetDialog(item), "_SELF"))
+	var dat = cast(FileGridData ptr, IupGetAttribute(item, "FGDATA"))
+	showSelectFilesAndUpdateMatrix(gui, dat)
 	return IUP_DEFAULT
 end function
 
-private function selfiles_click_cb(self as Ihandle ptr, button as long, pressed as long, x as long, y as long, status as zstring ptr) as long
+private function selfiles_click_cb(item as Ihandle ptr, button as long, pressed as long, x as long, y as long, status as zstring ptr) as long
 	if button = IUP_BUTTON1 and pressed  then
-		var dat = cast(FileGridData ptr, IupGetAttribute(self, "FGDATA"))
-		showSelectFilesAndUpdateMatrix(dat)
+		var gui = cast(EfdGUI ptr, IupGetAttribute(IupGetDialog(item), "_SELF"))
+		var dat = cast(FileGridData ptr, IupGetAttribute(item, "FGDATA"))
+		showSelectFilesAndUpdateMatrix(gui, dat)
 		return IUP_IGNORE
 	else
 		return IUP_DEFAULT
@@ -267,14 +273,16 @@ function EfdGUI.buildFileGrid(grid as FILE_GRID, title as string, filter as stri
 end function
 
 private function item_efd_action_cb(item as Ihandle ptr) as long
+	var gui = cast(EfdGUI ptr, IupGetAttribute(IupGetDialog(item), "_SELF"))
 	var dat = cast(FileGridData ptr, IupGetAttribute(IupGetDialog(item), "FG_EFD"))
-	showSelectFilesAndUpdateMatrix(dat)
+	showSelectFilesAndUpdateMatrix(gui, dat)
 	return IUP_DEFAULT
 end function
 
 private function item_dfe_action_cb(item as Ihandle ptr) as long
+	var gui = cast(EfdGUI ptr, IupGetAttribute(IupGetDialog(item), "_SELF"))
 	var dat = cast(FileGridData ptr, IupGetAttribute(IupGetDialog(item), "FG_DFE"))
-	showSelectFilesAndUpdateMatrix(dat)
+	showSelectFilesAndUpdateMatrix(gui, dat)
 	return IUP_DEFAULT
 end function
 
@@ -282,7 +290,7 @@ private function item_exit_action_cb(item as Ihandle ptr) as long
 	return IUP_CLOSE
 end function
 
-private sub onProgress(estagio as const zstring ptr, completado as double = 0)
+private function onProgress(estagio as const zstring ptr, completado as double = 0) as boolean
 	static ultCompletado as double = 0
 	
 	dim msg as string = ""
@@ -322,7 +330,9 @@ private sub onProgress(estagio as const zstring ptr, completado as double = 0)
 		end if
 	end if
 	
-end sub
+	return running
+	
+end function
 
 private sub onError(msg as const zstring ptr)
 	if len(msg) > 0 then
@@ -342,14 +352,17 @@ private function item_exec_action_cb(item as Ihandle ptr) as long
 
 	var gui = cast(EfdGUI ptr, IupGetAttribute(IupGetDialog(item), "_SELF"))
 
+	running = true
+	
 	toggleExecButton("NO")
 	toggleClearButton("NO")
+	toggleStopButton("YES")
 	
 	onProgress("Iniciando...")
 	
 	var ext = new Efd(@onProgress, @onError)
 	
-	var path = *IupGetAttribute(outPathEdit, "VALUE")
+	var path = *IupGetAttribute(gui->outPathEdit, "VALUE")
 	if len(path) > 0 then
 		chdir path
 	else
@@ -362,11 +375,25 @@ private function item_exec_action_cb(item as Ihandle ptr) as long
 	var errCnt = 0
 	
 	onProgress("Processando...")
+
+	for i as integer = 0 to ubound(gui->fileGrids)
+		var fg = @gui->fileGrids(i)
+		if fg->files <> null then
+			var file = cast(TFile ptr, fg->files->head)
+			do while file <> null
+				var at = file->num
+				IupSetAttribute(fg->mat, ROWCOL(1+at, 2), "Selecionado")
+				IupSetInt(fg->mat, ROWCOL(1+at, 3), 0)
+				file = fg->files->next_(file)
+			loop
+			IupSetAttribute(fg->mat, "REDRAW", "ALL")
+		end if
+	next
 	
 	curFileGrid = @gui->fileGrids(FG_DFE)
 	if curFileGrid->files <> null then
 		curFile = cast(TFile ptr, curFileGrid->files->head)
-		do while curFile <> null
+		do while running andalso curFile <> null
 			onProgress("Carregando")
 			
 			var arquivoEntrada = curFile->path + curFile->name
@@ -393,7 +420,7 @@ private function item_exec_action_cb(item as Ihandle ptr) as long
 	curFileGrid = @gui->fileGrids(FG_EFD)
 	if curFileGrid->files <> null then
 		curFile = cast(TFile ptr, curFileGrid->files->head)
-		do while curFile <> null
+		do while running andalso curFile <> null
 			var arquivoEntrada = curFile->path + curFile->name
 			if lcase(right(arquivoEntrada,3)) = "txt" then
 				onProgress("Carregando")
@@ -422,30 +449,31 @@ private function item_exec_action_cb(item as Ihandle ptr) as long
 	curFileGrid = null
 	curFile = null
 	
-	if errCnt = 0 andalso efdCnt > 0 then
-		if gui->opcoes.formatoDeSaida <> FT_NULL then
-			onProgress("Analisando")
-			IupFlush()
-			ext->analisar()
+	if running then
+		if errCnt = 0 andalso efdCnt > 0 then
+			if gui->opcoes.formatoDeSaida <> FT_NULL then
+				onProgress("Analisando")
+				IupFlush()
+				ext->analisar()
 
-			onProgress("Resumindo")
-			IupFlush()
-			ext->criarResumos()
+				onProgress("Resumindo")
+				IupFlush()
+				ext->criarResumos()
+			end if
 		end if
 	end if
-   
-	''
-	if errCnt = 0 andalso efdCnt > 0 then
-		IupFlush()
-		ext->finalizarExtracao()
-	end if
+
+	IupFlush()
+	ext->finalizarExtracao()
 	
 	onProgress("Finalizado!")
 
 	toggleExecButton("YES")
 	toggleClearButton("YES")
+	toggleStopButton("NO")
 	
 	delete ext
+	running = false
 
 	return IUP_DEFAULT
 end function
@@ -464,17 +492,26 @@ private function item_clear_action_cb(item as Ihandle ptr) as long
 		end if
 	next
 	
-	IupSetStrAttribute(outPathEdit, "VALUE", "")
+	IupSetStrAttribute(gui->outPathEdit, "VALUE", "")
 	
-	IupSetStrAttribute(cnpjsList, "1", null)
+	IupSetStrAttribute(gui->cnpjsList, "1", null)
 	erase gui->opcoes.listaCnpj
 	gui->opcoes.filtrarCnpj = false
 	
-	IupSetStrAttribute(chavesList, "1", null)
+	IupSetStrAttribute(gui->chavesList, "1", null)
 	erase gui->opcoes.listaChaves
 	gui->opcoes.filtrarChaves = false
 	
 	toggleExecButton("NO")
+
+	return IUP_DEFAULT
+end function
+
+private function item_stop_action_cb(item as Ihandle ptr) as long
+
+	var gui = cast(EfdGUI ptr, IupGetAttribute(IupGetDialog(item), "_SELF"))
+	
+	running = false
 
 	return IUP_DEFAULT
 end function
@@ -559,7 +596,7 @@ function EfdGUI.buildToolBar() as Ihandle ptr
 end function
 
 function EfdGUI.buildStatusBar() as Ihandle ptr
-	var label = IupLabel("Selecione os arquivos e clique no botão Executar")
+	var label = IupLabel("Selecione os arquivos e clique no botão Iniciar")
 	IupSetAttribute(label, "EXPAND", "HORIZONTAL")
 	
 	var prog = IupProgressBar()
@@ -615,7 +652,7 @@ end function
 private function cnpjs_set_cb(item as Ihandle ptr) as long
 	
 	var gui = cast(EfdGUI ptr, IupGetAttribute(IupGetDialog(item), "_SELF"))
-	var list = cnpjsList
+	var list = gui->cnpjsList
 	var edit = cast(IHandle ptr, IupGetAttribute(item, "CNPJS_EDIT"))
 	
 	var value = *IupGetAttribute(edit, "VALUE")
@@ -637,7 +674,7 @@ end function
 
 private function cnpjs_dropfile_cb(item as Ihandle ptr, fname as zstring ptr, num as long, x as long, y as long) as long
 	var gui = cast(EfdGUI ptr, IupGetAttribute(IupGetDialog(item), "_SELF"))
-	var list = cnpjsList
+	var list = gui->cnpjsList
 	
 	IupSetStrAttribute(list, "1", null)
 	var cnt = loadstrings(*fname, gui->opcoes.listaCnpj())
@@ -693,7 +730,7 @@ end function
 private function chaves_set_cb(item as Ihandle ptr) as long
 	
 	var gui = cast(EfdGUI ptr, IupGetAttribute(IupGetDialog(item), "_SELF"))
-	var list = chavesList
+	var list = gui->chavesList
 	var edit = cast(IHandle ptr, IupGetAttribute(item, "CHAVES_EDIT"))
 	
 	var value = *IupGetAttribute(edit, "VALUE")
@@ -715,7 +752,7 @@ end function
 
 private function chaves_dropfile_cb(item as Ihandle ptr, fname as zstring ptr, num as long, x as long, y as long) as long
 	var gui = cast(EfdGUI ptr, IupGetAttribute(IupGetDialog(item), "_SELF"))
-	var list = chavesList
+	var list = gui->chavesList
 	
 	IupSetStrAttribute(list, "1", null)
 	var cnt = loadstrings(*fname, gui->opcoes.listaChaves())
@@ -879,29 +916,40 @@ function EfdGUI.buildOptionsFrame() as Ihandle ptr
 end function
 
 function EfdGUI.buildActionsFrame() as IHandle ptr
-	var btn_exec = IupButton("Executar", NULL)
+	var btn_exec = IupButton("Iniciar", NULL)
 	IupSetHandle("EFD_BTN_EXEC", btn_exec)
 	IupSetAttribute(btn_exec, "IMAGE", "EFD_EXEC_ICON")
 	IupSetAttribute(btn_exec, "FLAT", "NO")
 	IupSetAttribute(btn_exec, "PADDING", "10x2")
-	IupSetAttribute(btn_exec, "TIP", "Executar")
+	IupSetAttribute(btn_exec, "TIP", "Iniciar")
 	IupSetAttribute(btn_exec, "ACTIVE", "NO")
 	IupSetCallback(btn_exec, "ACTION", cast(Icallback, @item_exec_action_cb))
 
-	var btn_limpar = IupButton("Limpar", NULL)
-	IupSetHandle("EFD_BTN_CLEAR", btn_limpar)
-	IupSetAttribute(btn_limpar, "IMAGE", "EFD_EXIT_ICON")
-	IupSetAttribute(btn_limpar, "FLAT", "NO")
-	IupSetAttribute(btn_limpar, "PADDING", "10x2")
-	IupSetAttribute(btn_limpar, "TIP", "Limpar")
-	IupSetCallback(btn_limpar, "ACTION", cast(Icallback, @item_clear_action_cb))
+	var btn_clear = IupButton("Limpar", NULL)
+	IupSetHandle("EFD_BTN_CLEAR", btn_clear)
+	IupSetAttribute(btn_clear, "IMAGE", "EFD_CLEAR_ICON")
+	IupSetAttribute(btn_clear, "FLAT", "NO")
+	IupSetAttribute(btn_clear, "PADDING", "10x2")
+	IupSetAttribute(btn_clear, "TIP", "Limpar formulário")
+	IupSetCallback(btn_clear, "ACTION", cast(Icallback, @item_clear_action_cb))
+
+	var btn_stop = IupButton("Parar", NULL)
+	IupSetHandle("EFD_BTN_STOP", btn_stop)
+	IupSetAttribute(btn_stop, "IMAGE", "EFD_EXIT_ICON")
+	IupSetAttribute(btn_stop, "FLAT", "NO")
+	IupSetAttribute(btn_stop, "PADDING", "10x2")
+	IupSetAttribute(btn_stop, "TIP", "Parar extração")
+	IupSetAttribute(btn_stop, "ACTIVE", "NO")
+	IupSetCallback(btn_stop, "ACTION", cast(Icallback, @item_stop_action_cb))
 
 	var hbox = IupHBox _
 	( _
 		IupFill(), _
 		btn_exec, _
 		IupFill(), _
-		btn_limpar, _
+		btn_stop, _
+		IupFill(), _
+		btn_clear, _
 		IupFill(), _
 		NULL _
 	)
@@ -959,6 +1007,7 @@ constructor EfdGUI()
 	IupSetHandle("EFD_EXIT_ICON", IupImageRGBA(32, 32, @exit_icon(0)))
 	IupSetHandle("EFD_HELP_ICON", IupImageRGBA(32, 32, @help_icon(0)))
 	IupSetHandle("EFD_EXEC_ICON", IupImageRGBA(32, 32, @exec_icon(0)))
+	IupSetHandle("EFD_CLEAR_ICON", IupImageRGBA(32, 32, @clear_icon(0)))
 end constructor
 
 function EfdGUI.build() as boolean

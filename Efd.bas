@@ -71,14 +71,15 @@ destructor Efd()
 	
 	do while dfeListHead <> null
 		var next_ = dfeListHead->next_
-		if dfeListHead->modelo = NFE then
+		select case dfeListHead->modelo
+		case NFE, SAT
 			var head = dfeListHead->nfe.itemListHead
 			do while head <> null
 				var next_ = head->next_
 				delete head
 				head = next_
 			loop
-		end if
+		end select
 		delete dfeListHead
 		dfeListHead = next_
 	loop
@@ -2544,7 +2545,9 @@ function Efd.carregarSintegra(bf as bfile) as Boolean
 			nroLinha += 1
 
 			if lerRegistroSintegra( bf, reg ) then 
-				onProgress(null, bf.posicao / fsize)
+				if not onProgress(null, bf.posicao / fsize) then
+					exit do
+				end if
 				
 				if reg->tipo <> DESCONHECIDO then
 					if tail = null then
@@ -3086,7 +3089,9 @@ function Efd.carregarTxt(nomeArquivo as String) as Boolean
 				var reg = new TRegistro
 				reg->arquivo = arquivo
 
-				onProgress(null, (bf.posicao / fsize) * 0.66)
+				if not onProgress(null, (bf.posicao / fsize) * 0.66) then
+					exit do
+				end if
 				
 				if lerRegistro( bf, reg ) then 
 					if reg->tipo <> DESCONHECIDO then
@@ -3422,66 +3427,68 @@ end function
 ''''''''
 sub Efd.adicionarDFe(dfe as TDFe ptr)
 	
-	if dfeListHead = null then
-		dfeListHead = dfe
-	else
-		dfeListTail->next_ = dfe
-	end if
-	
-	dfeListTail = dfe
-	dfe->next_ = null
-	
 	if chaveDFeDict->lookup(dfe->chave) = null then
 		chaveDFeDict->add(dfe->chave, dfe)
-	end if
 
-	'' adicionar ao db
-	select case dfe->operacao
-	case ENTRADA
-		'' (cnpjEmit, ufEmit, serie, numero, modelo, chave, dataEmit, valorOp, ieEmit)
-		db_dfeEntradaInsertStmt->reset()
-		db_dfeEntradaInsertStmt->bind(1, dfe->cnpjEmit)
-		db_dfeEntradaInsertStmt->bind(2, dfe->ufEmit)
-		db_dfeEntradaInsertStmt->bind(3, dfe->serie)
-		db_dfeEntradaInsertStmt->bind(4, dfe->numero)
-		db_dfeEntradaInsertStmt->bind(5, dfe->modelo)
-		db_dfeEntradaInsertStmt->bind(6, dfe->chave)
-		db_dfeEntradaInsertStmt->bind(7, dfe->dataEmi)
-		db_dfeEntradaInsertStmt->bind(8, dfe->valorOperacao)
-		if len(dfe->nfe.ieEmit) > 0 then
-			db_dfeEntradaInsertStmt->bind(9, dfe->nfe.ieEmit)
+		if dfeListHead = null then
+			dfeListHead = dfe
 		else
-			db_dfeEntradaInsertStmt->bindNull(9)
+			dfeListTail->next_ = dfe
 		end if
 		
-		if not db->execNonQuery(db_dfeEntradaInsertStmt) then
-			onError("Erro ao inserir DFe de entrada: " & *db->getErrorMsg())
-		end if
-	
-	case SAIDA
-		'' (cnpjDest, ufDest, serie, numero, modelo, chave, dataEmit, valorOp, ieDest)
-		db_dfeSaidaInsertStmt->reset()
+		dfeListTail = dfe
+		dfe->next_ = null
+	end if
 
-		db_dfeSaidaInsertStmt->bind(1, dfe->cnpjDest)
-		db_dfeSaidaInsertStmt->bind(2, dfe->ufDest)
-		db_dfeSaidaInsertStmt->bind(3, dfe->serie)
-		db_dfeSaidaInsertStmt->bind(4, dfe->numero)
-		db_dfeSaidaInsertStmt->bind(5, dfe->modelo)
-		db_dfeSaidaInsertStmt->bind(6, dfe->chave)
-		db_dfeSaidaInsertStmt->bind(7, dfe->dataEmi)
-		db_dfeSaidaInsertStmt->bind(8, dfe->valorOperacao)
-		if len(dfe->nfe.ieDest) > 0 then
-			db_dfeSaidaInsertStmt->bind(9, dfe->nfe.ieDest)
-		else
-			db_dfeSaidaInsertStmt->bindNull(9)
-		end if
-	
-		if not db->execNonQuery(db_dfeSaidaInsertStmt) then
-			onError("Erro ao inserir DFe de saída: " & *db->getErrorMsg())
-		end if
-	end select
-	
-	nroDfe += 1
+	if dfe->numero <> 0 then
+		'' adicionar ao db
+		select case dfe->operacao
+		case ENTRADA
+			'' (cnpjEmit, ufEmit, serie, numero, modelo, chave, dataEmit, valorOp, ieEmit)
+			db_dfeEntradaInsertStmt->reset()
+			db_dfeEntradaInsertStmt->bind(1, dfe->cnpjEmit)
+			db_dfeEntradaInsertStmt->bind(2, dfe->ufEmit)
+			db_dfeEntradaInsertStmt->bind(3, dfe->serie)
+			db_dfeEntradaInsertStmt->bind(4, dfe->numero)
+			db_dfeEntradaInsertStmt->bind(5, dfe->modelo)
+			db_dfeEntradaInsertStmt->bind(6, dfe->chave)
+			db_dfeEntradaInsertStmt->bind(7, dfe->dataEmi)
+			db_dfeEntradaInsertStmt->bind(8, dfe->valorOperacao)
+			if len(dfe->nfe.ieEmit) > 0 then
+				db_dfeEntradaInsertStmt->bind(9, dfe->nfe.ieEmit)
+			else
+				db_dfeEntradaInsertStmt->bindNull(9)
+			end if
+			
+			if not db->execNonQuery(db_dfeEntradaInsertStmt) then
+				onError("Erro ao inserir DFe de entrada: " & *db->getErrorMsg())
+			end if
+		
+		case SAIDA
+			'' (cnpjDest, ufDest, serie, numero, modelo, chave, dataEmit, valorOp, ieDest)
+			db_dfeSaidaInsertStmt->reset()
+
+			db_dfeSaidaInsertStmt->bind(1, dfe->cnpjDest)
+			db_dfeSaidaInsertStmt->bind(2, dfe->ufDest)
+			db_dfeSaidaInsertStmt->bind(3, dfe->serie)
+			db_dfeSaidaInsertStmt->bind(4, dfe->numero)
+			db_dfeSaidaInsertStmt->bind(5, dfe->modelo)
+			db_dfeSaidaInsertStmt->bind(6, dfe->chave)
+			db_dfeSaidaInsertStmt->bind(7, dfe->dataEmi)
+			db_dfeSaidaInsertStmt->bind(8, dfe->valorOperacao)
+			if len(dfe->nfe.ieDest) > 0 then
+				db_dfeSaidaInsertStmt->bind(9, dfe->nfe.ieDest)
+			else
+				db_dfeSaidaInsertStmt->bindNull(9)
+			end if
+		
+			if not db->execNonQuery(db_dfeSaidaInsertStmt) then
+				onError("Erro ao inserir DFe de saída: " & *db->getErrorMsg())
+			end if
+		end select
+		
+		nroDfe += 1
+	end if
 
 end sub
 
@@ -3531,19 +3538,19 @@ function Efd.carregarCsv(nomeArquivo as String) as Boolean
 	
 	dim as integer tipoArquivo
 	dim as boolean isSafi = true
-	if instr( nomeArquivo, "BO_NFe_Destinatario" ) > 0 then
+	if instr( nomeArquivo, "SAFI_NFe_Destinatario" ) > 0 then
 		tipoArquivo = BO_NFe_Dest
 		nfeDestSafiFornecido = true
 	
-	elseif instr( nomeArquivo, "BO_NFe_Emitente_Itens" ) > 0 then
+	elseif instr( nomeArquivo, "SAFI_NFe_Emitente_Itens" ) > 0 then
 		tipoArquivo = BO_NFe_Emit_Itens
 		itemNFeSafiFornecido = true
 	
-	elseif instr( nomeArquivo, "BO_NFe_Emitente" ) > 0 then
+	elseif instr( nomeArquivo, "SAFI_NFe_Emitente" ) > 0 then
 		tipoArquivo = BO_NFe_Emit
 		nfeEmitSafiFornecido = true
 	
-	elseif instr( nomeArquivo, "BO_CTe_CNPJ" ) > 0 then
+	elseif instr( nomeArquivo, "SAFI_CTe_CNPJ" ) > 0 then
 		tipoArquivo = BO_CTe
 		cteListHead = null
 		cteListTail = null
@@ -3571,7 +3578,9 @@ function Efd.carregarCsv(nomeArquivo as String) as Boolean
 		var emModoOutrasUFs = false
 		
 		do while bf.temProximo()		 
-			onProgress(null, bf.posicao / fsize)
+			if not onProgress(null, bf.posicao / fsize) then
+				exit do
+			end if
 			
 			if isSafi then
 				'' outro header?
@@ -3629,10 +3638,12 @@ function Efd.carregarCsv(nomeArquivo as String) as Boolean
 					var dfe = cast(TDFe ptr, chaveDFeDict->lookup(chave))
 					'' nf-e não encontrada? pode acontecer se processarmos o csv de itens antes do csv de nf-e
 					if dfe = null then
+						'' só adicionar ao dicionário e à lista de DFe
 						dfe = new TDFe
-						'' só adicionar ao dicionário, depois será adicionado por adicionarDFe() no case acima
 						dfe->chave = chave
-						chaveDFeDict->add(dfe->chave, dfe)
+						dfe->modelo = NFE
+						dfe->numero = 0
+						adicionarDFe(dfe)
 					end if
 					
 					if dfe->nfe.itemListHead = null then
@@ -4072,7 +4083,7 @@ function Efd.carregarXlsxSATItens(rd as ExcelReader ptr, chave as string) as TDF
 	
 	var item = new TDFe_NFeItem
 
-	item->modelo 			= 59
+	item->modelo 			= SAT
 	item->numero			= rd->readInt
 	rd->skip '' situação
 	item->serie				= rd->readInt
@@ -4148,7 +4159,7 @@ function Efd.carregarXlsxSAT(rd as ExcelReader ptr) as TDFe ptr
 	rd->skip '' Data Recepção Cupom
 	dfe->numero				= rd->readInt
 	dfe->serie				= 0
-	dfe->modelo				= 59
+	dfe->modelo				= SAT
 	rd->skip '' Indicador Possui Destinatário
 	dfe->valorOperacao		= rd->readDbl
 	dfe->nfe.ICMSTotal		= rd->readDbl
@@ -4287,9 +4298,11 @@ function Efd.carregarXlsx(nomeArquivo as String) as Boolean
 							'' nf-e não encontrada? pode acontecer se processarmos o csv de itens antes do csv de nf-e
 							if dfe = null then
 								dfe = new TDFe
-								'' só adicionar ao dicionário, depois será adicionado por adicionarDFe() no case acima
+								'' só adicionar ao dicionário e à lista de DFe
 								dfe->chave = chave
-								chaveDFeDict->add(dfe->chave, dfe)
+								dfe->modelo = NFE
+								dfe->numero = 0
+								adicionarDFe(dfe)
 							end if
 							
 							if dfe->nfe.itemListHead = null then
@@ -4323,9 +4336,11 @@ function Efd.carregarXlsx(nomeArquivo as String) as Boolean
 							'' sat não encontrado? pode acontecer se processarmos o csv de itens antes do csv de nf-e
 							if dfe = null then
 								dfe = new TDFe
-								'' só adicionar ao dicionário, depois será adicionado por adicionarDFe() no case acima
+								'' só adicionar ao dicionário e à lista de DFe
 								dfe->chave = chave
-								chaveDFeDict->add(dfe->chave, dfe)
+								dfe->modelo = SAT
+								dfe->numero = 0
+								adicionarDFe(dfe)
 							end if
 							
 							if dfe->nfe.itemListHead = null then
@@ -5810,7 +5825,9 @@ sub Efd.gerarPlanilhas(nomeArquivo as string)
 			end select
 
 			regCnt += 1
-			onProgress(null, regCnt / nroRegs)
+			if not onProgress(null, regCnt / nroRegs) then
+				exit do
+			end if
 			
 			reg = reg->next_
 		loop
@@ -5926,10 +5943,12 @@ private function luacb_efd_onProgress cdecl(L as lua_State ptr) as long
 	if args = 2 then
 		var stt = cast(zstring ptr, lua_tostring(L, 1))
 		var prog = lua_tonumber(L, 2)
-		g_efd->onProgress(stt, prog)
+		lua_pushboolean(L, g_efd->onProgress(stt, prog))
+	else
+		lua_pushboolean(L, false)
 	end if
 	
-	function = 0
+	function = 1
 end function
 
 private function luacb_efd_onError cdecl(L as lua_State ptr) as long

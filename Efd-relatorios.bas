@@ -225,7 +225,9 @@ sub Efd.gerarRelatorios(nomeArquivo as string)
 				end select
 				
 				regCnt += 1
-				onProgress(null, (regCnt / nroRegs) / 2)
+				if not onProgress(null, (regCnt / nroRegs) / 2) then
+					exit do
+				end if
 				
 				reg = reg->next_
 			loop
@@ -284,7 +286,9 @@ sub Efd.gerarRelatorios(nomeArquivo as string)
 				end select
 
 				regCnt += 1
-				onProgress(null, (regCnt / nroRegs) / 2)
+				if not onProgress(null, (regCnt / nroRegs) / 2) then
+					exit do
+				end if
 				
 				reg = reg->next_
 			loop
@@ -982,8 +986,9 @@ sub Efd.finalizarRelatorio()
 	'' atribuir número de cada página
 	var cnt = 1
 	var pagina = cast(RelPagina ptr, relPaginasList->head)
+	var emitir = true
 	do while pagina <> null
-		if pagina->emitir then
+		if emitir andalso pagina->emitir then
 			var page = pagina->page
 			var pg = page->getNode("PAGINA")
 			if pg <> null then
@@ -995,7 +1000,7 @@ sub Efd.finalizarRelatorio()
 		
 		cnt += 1
 		
-		onProgress(null, 0.5 + (cnt / relNroPaginas) / 2)
+		emitir = onProgress(null, 0.5 + (cnt / relNroPaginas) / 2)
 		
 		var last = pagina
 		pagina = relPaginasList->next_(pagina)

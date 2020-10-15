@@ -132,6 +132,7 @@ enum TipoEmitente
 end enum
 
 enum TipoModelo
+	INVALIDO	   = 0
 	NF             = 01
 	NF_AVULSA      = &h1b
 	NFC            = 02
@@ -886,7 +887,7 @@ type RelPagina
 	emitir			as boolean
 end type
 
-type OnProgressCB as sub(estagio as const zstring ptr, porCompleto as double)
+type OnProgressCB as function(estagio as const zstring ptr, porCompleto as double) as boolean
 type OnErrorCB as sub(msg as const zstring ptr)
 
 enum TipoLivro

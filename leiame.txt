@@ -4,6 +4,88 @@ Copyleft 2017-2020 by André Vicentini (avtvicentini)
 Quando o aplicativo é executado sem passar nenhum parâmetro, será mostrada a interface gráfica 
 para seleção dos arquivos e marcação de opções.
 
+Recursos:
+
+	1. Suporta tanto arquivos do Sped EFD, quanto do Integra
+	
+	2. Suporta os seguintes arquivos csv dos relatórios do SAFI no Infoview BO:
+		- SAFI_NFe_Destinatario
+		- SAFI_NFe_Emitente_Itens
+		- SAFI_NFe_Emitente
+		- SAFI_CTe_CNPJ
+		
+	2. Suporta os seguintes arquivos csv dos relatórios no Lauchpad BO:
+		- NFE_Emitente_Itens_SP_OSF
+	
+	4. Suporta os seguintes arquivos xlsx dos relatórios no Lauchpad BO:
+		- NFe_Destinatario_OSF
+		- NFe_Emitente_Itens_OSF
+		- NFe_Emitente_OSF
+		- CTe_CNPJ_Emitente_Tomador_Remetente_Destinatario_OSF
+		- SAT_-_CuponsEmitidosPorContribuinteCNPJ_OSF
+		- SAT_-_ItensDeCuponsCNPJ_OSF
+		
+	5. Utiliza os seguintes bancos de dados do SAFI:
+		- Cadastro de contribuintes e regimes (CadSefaz_Regimes)
+		- GIA's
+		- Inidôneos
+
+	6. Gera, diretamente para PDF, os relatórios do PVA EFD-ICMS-IPI
+
+	7. Realiza as seguintes análises do Roteiro 3.01 do MTF:
+		LRE:
+		 - seleciona documentos fiscais em papel
+		 - seleciona documentos fiscais emitidos pelo próprio contribuinte
+		 - documentos fiscais não escriturados
+		 - documentos fiscais escriturados em valores superiores
+		 - documentos fiscais escriturados em duplicidade
+		 - crédito do imposto em valor superior ao resultante da aplicação da alíquota informada pela base de cálculo
+		 - operações interestaduais com alíquota do imposto superior a 12%
+		 - operações com crédito, acima do máximo permitido, de fornecedores enquadrados no Regime Simples Nacional
+		 - entradas interestaduais de produtos importados, com alíquota do imposto superior a 4%
+		 - crédito de operações com substituição tributária
+		 - seleciona crédito por devolução de mercadorias
+		 - indicação incorreta da Inscrição Estadual do fornecedor
+		 - operações realizadas com fornecedores com a inscrição suspensa, inapta, baixada ou nula no cadastro de contribuintes
+		 - entradas com crédito do imposto nos CFOP 1556/2556 (“uso e consumo”)
+		 - seleciona operações escrituradas com crédito do imposto no CFOP 1949/2949 (“outras entradas”)
+		 - seleciona operações escrituradas nos CFOP 1601 (“recebimento de crédito de ICMS”) e 1602 (“recebimento de saldo credor de outro estabelecimento da empresa”)
+		 - seleciona operações de devolução de mercadorias de maior valor
+		 - seleciona operações com maiores valores de imposto creditado
+		 - seleciona operações de maior valor, independente do valor crédito do imposto
+		 
+		LRS:
+		 - débito do imposto em valor inferior ao resultante da aplicação da alíquota informada pela base de cálculo
+		 - operações interestaduais com alíquota inferior à alíquota prevista para o Estado de destino
+		 - operações interestaduais com alíquota de 4%
+			NOTA: selecionadas as 1000 maiores operações
+		 - operações interestaduais, para destinatário não contribuinte, com alíquota inferior à interna
+			NOTAS: 1. não está sendo verificado o NCM, apresentando falsos positivos
+				   2. em razão da EC 87/2015, pode ser usada a alíquota interestadual, com o difal contemplando o restante da alíquota
+		 - seleciona operações de transferências interestaduais para outros estabelecimentos da empresa
+			NOTA: realizada somente a seleção por CNPJ base
+		 - operações com destinatários incluídos no cadastro de inidôneos
+			NOTA: impossível ocorrer com a NF-e/CT-e, já que só é permitir emitir o DF-e se o destinatário estiver ativo
+		 - seleciona operações escrituradas nos CFOP 5949/6949 (“outras saídas”)
+			NOTA: selecionadas as 1000 maiores operações
+		 - operações de remessa para depósito fechado ou armazém geral (CFOP 5905/6905), verificando se o destinatário está regularmente inscrito como depósito fechado ou armazém geral
+			NOTAS: 1. não existe CNAE para depósito fechado, então a verificação só é feita para AG
+				   2. como o cadastro de contribuintes do SAFI só inclui o CNAE principal, é necessário verificar no Cadesp se o destinatário tem nos CNAEs secundários o CNAE de AG
+		 - seleciona operações de consignação mercantil ou industrial (CFOP 5917/6917)
+		 - seleciona operações de remessa para demonstração (CFOP 5912/6912)
+		 - seleciona operações de remessa para industrialização por encomenda (CFOP 5901/6901)
+		 - seleciona operações de exportações;
+		 - seleciona operações de remessas para a Zona Franca de Manaus (ZFM) e Área de Livre Comércio (ALC)
+		 - sequência de numeração dos documentos fiscais inconsistente
+		 - seleciona operações com maiores valores de imposto debitado
+		 - seleciona operações de maior valor, independente do valor do débito do imposto
+		 - seleciona operações na qualidade de substituto tributário
+			NOTA: selecionadas as 1000 maiores operações
+		
+	8. Faz resumos por CFOP, CST e CST+CFOP, tanto para o LRE, quanto para o LRS
+
+	9. Todas as análises e resumos são realizados por meio de scripting (ver pasta scripts), sendo possível alterá-los, ou mesmo acrescentar novas análises, sem necessidade do código-fonte do extrator
+	
 Modo de usar (linha de comando):
 	
 	EfdExtrator.exe Opções efd-ou-sintegra.txt [relatorio-bo.csv] [relatorio-bo.xlsx]
@@ -64,16 +146,17 @@ Modo de usar (linha de comando):
 	 
 	-manterDB:
 	 Preserva o arquivo de dados intermediários (formato SQLite3).
+
 	
-   Sobre as análises e cruzamentos:
+Sobre as análises e cruzamentos:
 
     As análises e os cruzamentos são realizados em Lua scripting (ver scripts/analises.lua). 
     Com isso, é possível realizar novos cruzamentos apenas atualizando os scripts, sem necessidade de recompilar o aplicativo. 
     A sintaxe SQL utilizada nas queries deve ser a do SQLite. 
     O formato das tabelas criadas internamente pode ser visto em scripts/config.lua.
-    As tabelas de descrição de CFOP e CST foram baseadas nas respectivas tabelas do AUD 2.0.
 
-   Dicas:
+
+Dicas:
    
     Como processar EFDs de grandes contribuintes:
     1. Utilize a opção -manterDB caso o número de registros seja > 1.048.576 (limite do Excel)
@@ -85,3 +168,14 @@ Modo de usar (linha de comando):
     4. Utilize a opção -formatoDeSaida null para não gerar a planilha de extração, quando estiver gerando apenas os relatórios do EDF-ICMS-IPI
 		
 		
+Observações:
+	
+	Oferecido sem qualquer garantia. 
+	Estando ainda em versão beta, nunca confie 100% nos resultados. 
+	Este software pode ser copiado e distribuído livremente. 
+	
+Autores:	
+
+	1. André Vicentini (avtvicentini@fazenda.sp.gov.br)
+    2. As tabelas de descrição de CFOP e CST foram baseadas nas respectivas tabelas do AUD 2.0
+	

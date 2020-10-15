@@ -33,6 +33,9 @@ public:
 	
 	fileGrids(0 to __FG_LEN__-1) as FileGridData
 	opcoes as OpcoesExtracao
+	cnpjsList as Ihandle ptr
+	chavesList as Ihandle ptr
+	outPathEdit as IHandle ptr
 
 private:
 	declare function buildFileGrid(grid as FILE_GRID, title as string, filter as string, filterInfo as string) as IHandle ptr

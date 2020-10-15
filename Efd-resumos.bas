@@ -364,7 +364,9 @@ sub Efd.criarResumosLRE()
 		onError("Erro no script lua!")
 	endtry
 	
-	onProgress(null, 0.33)
+	if not onProgress(null, 0.33) then
+		exit sub
+	end if
 
 	' CST
 	resumoAddHeaderCstLRE(resumosLRE)
@@ -377,7 +379,9 @@ sub Efd.criarResumosLRE()
 		onError("Erro no script lua!")
 	endtry
 
-	onProgress(null, 0.66)
+	if not onProgress(null, 0.66) then
+		exit sub
+	end if
 
 	' CST e CFOP
 	resumoAddHeaderCstCfopLRE(resumosLRE)
@@ -410,7 +414,9 @@ sub Efd.criarResumosLRS()
 		onError("Erro no script lua!")
 	endtry
 	
-	onProgress(null, 0.33)
+	if not onProgress(null, 0.33) then
+		exit sub
+	end if
 
 	' CST
 	resumoAddHeaderCstLRS(resumosLRS)
@@ -423,7 +429,9 @@ sub Efd.criarResumosLRS()
 		onError("Erro no script lua!")
 	endtry
 	
-	onProgress(null, 0.66)
+	if not onProgress(null, 0.66) then
+		exit sub
+	end if
 
 	' CST
 	resumoAddHeaderCstCfopLRS(resumosLRS)

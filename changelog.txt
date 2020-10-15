@@ -1,8 +1,10 @@
 versão 0.9.2 beta:
 - corrigido: vazamento de memória
 - corrigido: análises com limite estavam com a ordenação invertida
+- corrigido: arquivos csv do SAFI não estavam mais sendo carregados
+- corrigido: execução das análises agora reporta o tempo decorrido
+- adicionado: botão parar extração
 - adicionado: botão limpar formulário
-- alterado: execução das análises agora reporta o tempo decorrido
 
 versão 0.9.1 beta:
 - adicionado: interface gráfica, mostrada quando nenhum parâmetro é passado na linha de comando
