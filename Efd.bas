@@ -56,6 +56,9 @@ end constructor
 destructor Efd()
 
 	''
+	descarregarDFe()
+
+	''
 	dbConfig->close()
 	delete dbConfig
 	
@@ -63,7 +66,16 @@ destructor Efd()
 	delete municipDict
 	
 	''
-	delete chaveDFeDict
+	
+	delete arquivos
+	
+end destructor
+
+sub Efd.descarregarDFe
+	if chaveDFeDict <> null then
+		delete chaveDFeDict
+		chaveDFeDict = null
+	end if
 	
 	do while dfeListHead <> null
 		var next_ = dfeListHead->next_
@@ -79,10 +91,7 @@ destructor Efd()
 		delete dfeListHead
 		dfeListHead = next_
 	loop
-	
-	delete arquivos
-	
-end destructor
+end sub
 
 ''''''''
 private sub lua_carregarCustoms(d as TDict ptr, L as lua_State ptr) 

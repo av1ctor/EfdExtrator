@@ -249,10 +249,10 @@ sub main()
 	
 	'' mais de um arquivo informado?
 	if len(command(nroOpcoes+2)) > 0 then
-	   '' carregar arquivos .csv primeiro com dados de NF-e e CT-e 
-	   var i = nroOpcoes+1
-	   var arquivoEntrada = command(i)
-	   do while len(arquivoEntrada) > 0
+		'' carregar arquivos .csv primeiro com dados de NF-e e CT-e 
+		var i = nroOpcoes+1
+		var arquivoEntrada = command(i)
+		do while len(arquivoEntrada) > 0
 			if lcase(right(arquivoEntrada,3)) = "csv" then
 				onProgress("Carregando arquivo: " + arquivoEntrada, 0)
 				if not ext->carregarCsv( arquivoEntrada ) then
@@ -269,12 +269,16 @@ sub main()
 
 			i += 1
 			arquivoEntrada = command(i)
-	   loop
+		loop
+	   
+		if not opcoes.acrescentarDados then
+			ext->descarregarDFe()
+		end if
    
-	   '' carregar arquivos .txt com EFD ou Sintegra
-	   i = nroOpcoes+1
-	   arquivoEntrada = command(i)
-	   do while len(arquivoEntrada) > 0
+		'' carregar arquivos .txt com EFD ou Sintegra
+		i = nroOpcoes+1
+		arquivoEntrada = command(i)
+		do while len(arquivoEntrada) > 0
 			if lcase(right(arquivoEntrada,3)) = "txt" then
 				onProgress("Carregando arquivo: " + arquivoEntrada, 0)
 				if not ext->carregarTxt( arquivoEntrada ) then
@@ -291,7 +295,7 @@ sub main()
 			 
 			i += 1
 			arquivoEntrada = command(i)
-	   loop
+		loop
 	   
 	'' só um arquivo .txt informado..
 	else
