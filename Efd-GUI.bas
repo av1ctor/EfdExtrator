@@ -390,6 +390,7 @@ private function item_exec_action_cb(item as Ihandle ptr) as long
 		end if
 	next
 	
+	'' DFe's
 	curFileGrid = @gui->fileGrids(FG_DFE)
 	if curFileGrid->files <> null then
 		curFile = cast(TFile ptr, curFileGrid->files->head)
@@ -416,6 +417,11 @@ private function item_exec_action_cb(item as Ihandle ptr) as long
 		loop	
 	end if
 	
+	if not gui->opcoes.acrescentarDados then
+		ext->descarregarDFe()
+	end if
+	
+	'' EFD's
 	var efdCnt = 0
 	curFileGrid = @gui->fileGrids(FG_EFD)
 	if curFileGrid->files <> null then

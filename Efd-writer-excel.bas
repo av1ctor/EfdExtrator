@@ -782,16 +782,6 @@ sub Efd.gerarPlanilhas(nomeArquivo as string)
 					end if
 						
 					if emitirLinhas then
-						dim as TDFe_CTe ptr cte = null
-						if cteSafiFornecido then
-							if len(reg->ct.chave) > 0 then
-								var dfe = cast( TDFe ptr, chaveDFeDict->lookup(reg->ct.chave) )
-								if dfe <> null then
-									cte = @dfe->cte
-								end if
-							end if
-						end if
-						
 						dim as TDocItemAnal ptr item = null
 						if reg->ct.operacao = ENTRADA then
 							item = reg->ct.itemAnalListHead

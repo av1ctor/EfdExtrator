@@ -948,6 +948,7 @@ public:
 	declare sub analisar()
 	declare sub criarResumos()
 	declare function getPlanilha(nome as const zstring ptr) as ExcelWorksheet ptr
+	declare sub descarregarDFe()
 
 	onProgress 				as OnProgressCB
 	onError 				as OnErrorCB
