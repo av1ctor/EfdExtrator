@@ -185,6 +185,11 @@ function TDb.prepare(query as const zstring ptr) as TDBStmt ptr
 end function
 
 ''''''''
+function TDb.lastId() as long
+	function = sqlite3_last_insert_rowid(instance)
+end function
+
+''''''''
 /'
 function TDb.format cdecl(fmt as string, ...) as string
 

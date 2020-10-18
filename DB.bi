@@ -70,6 +70,7 @@ type TDb
 	declare function execScalar(query as const zstring ptr) as zstring ptr
 	declare function execNonQuery(query as const zstring ptr) as boolean
 	declare function execNonQuery(stmt as TDbStmt ptr) as boolean
+	declare function lastId() as long
 	declare static sub exportAPI(L as lua_State ptr)
 
 private:

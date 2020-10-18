@@ -119,10 +119,8 @@ type TParticipante
 end type
 
 enum TipoOperacao
-	ENTRADA		  = 0	'' NF
-	SAIDA		  = 1	'' NF
-	AQUISICAO	  = 0	'' CT
-	PRESTACAO	  = 1	'' CT
+	ENTRADA		  = 0
+	SAIDA		  = 1
 	DESCONHECIDA  = 2
 end enum
 
@@ -1019,23 +1017,23 @@ private:
 	declare function carregarXlsxSAT(rd as ExcelReader ptr) as TDFe ptr
 	declare function carregarXlsxSATItens(rd as ExcelReader ptr, chave as string) as TDFe_NFeItem ptr
 	
-	declare sub adicionarDFe(dfe as TDFe ptr, fazerInsert as boolean = true)
-	declare sub adicionarItemDFe(chave as const zstring ptr, item as TDFe_NFeItem ptr)
-	declare sub adicionarEfdDfe(chave as zstring ptr, operacao as TipoOperacao, dataEmi as zstring ptr, valorOperacao as double)
-	declare sub adicionarDocEscriturado(doc as TDocDF ptr)
-	declare sub adicionarDocEscriturado(doc as TDocECF ptr)
-	declare sub adicionarDocEscriturado(doc as TDocSAT ptr)
-	declare sub adicionarItemNFEscriturado(item as TDocNFItem ptr)
-	declare sub adicionarAnalEscriturado(item as TDocItemAnal ptr)
-	declare sub adicionarRessarcStEscriturado(doc as TDocNFItemRessarcSt ptr)
-	declare sub adicionarItemEscriturado(item as TItemId ptr)
-	declare sub adicionarMestre(reg as TMestre ptr)
+	declare function adicionarDFe(dfe as TDFe ptr, fazerInsert as boolean = true) as long
+	declare function adicionarItemDFe(chave as const zstring ptr, item as TDFe_NFeItem ptr) as long
+	declare function adicionarEfdDfe(chave as zstring ptr, operacao as TipoOperacao, dataEmi as zstring ptr, valorOperacao as double) as long
+	declare function adicionarDocEscriturado(doc as TDocDF ptr) as long
+	declare function adicionarDocEscriturado(doc as TDocECF ptr) as long
+	declare function adicionarDocEscriturado(doc as TDocSAT ptr) as long
+	declare function adicionarItemNFEscriturado(item as TDocNFItem ptr) as long
+	declare function adicionarAnalEscriturado(item as TDocItemAnal ptr) as long
+	declare function adicionarRessarcStEscriturado(doc as TDocNFItemRessarcSt ptr) as long
+	declare function adicionarItemEscriturado(item as TItemId ptr) as long
+	declare function adicionarMestre(reg as TMestre ptr) as long
 	
 	declare function filtrarPorCnpj(idParticipante as const zstring ptr) as boolean
 	declare function filtrarPorChave(chave as const zstring ptr) as boolean
 	declare function getInfoCompl(info as TDocInfoCompl ptr) as string
 	
-	declare sub addRegistroAoDB(reg as TRegistro ptr)
+	declare function addRegistroAoDB(reg as TRegistro ptr) as long
 	
 	declare sub criarPlanilhas()
 	declare sub gerarPlanilhas(nomeArquivo as string)
