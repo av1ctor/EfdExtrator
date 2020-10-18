@@ -252,3 +252,59 @@ function tipoItem2Str(tipo as TipoItemId) as string
 	end select
 end function
 
+''''''''
+sub pularLinha(bf as bfile) 
+
+	'ler até \r
+	do
+		var c = bf.char1
+		
+		if c = 13 or c = 10 then
+			exit do
+		end if
+	loop
+
+	'pular \n
+	if bf.peek1 = 10 then
+		bf.char1 
+	end if
+	
+end sub
+
+''''''''
+function lerLinha(bf as bfile) as string
+
+	var res = ""
+	var c = " "
+	
+	'ler até \r
+	do
+		c[0] = bf.char1
+		if c[0] = 13 or c[0] = 10 then
+			exit do
+		end if
+		
+		res += c
+	loop
+	
+	'pular \n
+	if bf.peek1 = 10 then
+		bf.char1 
+	end if
+
+	function = res
+	
+end function
+
+''''''''
+sub lua_setarGlobal overload (lua as lua_State ptr, varName as const zstring ptr, value as integer)
+	lua_pushnumber(lua, value)
+	lua_setglobal(lua, varName)
+end sub
+
+''''''''
+sub lua_setarGlobal overload (lua as lua_State ptr, varName as const zstring ptr, value as any ptr)
+	lua_pushlightuserdata(lua, value)
+	lua_setglobal(lua, varName)
+end sub
+

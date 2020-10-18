@@ -242,7 +242,7 @@ end constructor
 destructor TDataSet()
 	var r = cast(TDataSetRow ptr, rows->head)
 	do while r <> null
-		r->destructor
+		r->destructor		'' NOTA: não user delete, porque foi criado com placement new
 		r = rows->next_(r)
 	loop
 	

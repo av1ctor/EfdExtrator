@@ -1187,6 +1187,10 @@ declare function YyyyMmDd2DatetimeBR(s as const zstring ptr) as string
 declare function STR2IE(ie as string) as string
 declare function tipoItem2Str(tipo as TipoItemId) as string
 declare function UF_SIGLA2COD(s as zstring ptr) as integer
+declare sub pularLinha(bf as bfile)
+declare function lerLinha(bf as bfile) as string
+declare sub lua_setarGlobal overload (lua as lua_State ptr, varName as const zstring ptr, value as integer)
+declare sub lua_setarGlobal overload (lua as lua_State ptr, varName as const zstring ptr, value as any ptr)
 
 extern as string ufCod2Sigla(11 to 53)
 extern as TDict ptr ufSigla2CodDict
