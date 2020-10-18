@@ -124,7 +124,7 @@ sub Efd.fecharDb()
 end sub
   
 ''''''''
-sub Efd.adicionarMestre(reg as TMestre ptr)
+function Efd.adicionarMestre(reg as TMestre ptr) as long
 
 	'' (versao, original, dataIni, dataFim, nome, cnpj, uf, ie)
 	db_mestreInsertStmt->reset()
@@ -139,12 +139,15 @@ sub Efd.adicionarMestre(reg as TMestre ptr)
 	
 	if not db->execNonQuery(db_mestreInsertStmt) then
 		onError("Erro ao inserir registro na EFD_Mestre: " & *db->getErrorMsg())
+		return 0
 	end if
+	
+	return db->lastId()
 
-end sub
+end function
 
 ''''''''
-sub Efd.adicionarDocEscriturado(doc as TDocDF ptr)
+function Efd.adicionarDocEscriturado(doc as TDocDF ptr) as long
 	
 	select case as const doc->situacao
 	case REGULAR, EXTEMPORANEO
@@ -177,7 +180,11 @@ sub Efd.adicionarDocEscriturado(doc as TDocDF ptr)
 			
 			if not db->execNonQuery(db_LREInsertStmt) then
 				onError("Erro ao inserir registro na EFD_LRE: " & *db->getErrorMsg())
+				return 0
 			end if
+			
+			return db->lastId()
+			
 		else
 			'' (periodo, cnpjDest, ufDest, serie, numero, modelo, chave, dataEmit, valorOp, IE)
 			db_LRSInsertStmt->reset()
@@ -202,7 +209,10 @@ sub Efd.adicionarDocEscriturado(doc as TDocDF ptr)
 		
 			if not db->execNonQuery(db_LRSInsertStmt) then
 				onError("Erro ao inserir registro na EFD_LRS: " & *db->getErrorMsg())
+				return 0
 			end if
+			
+			return db->lastId()
 		end if
 	
 	case CANCELADO, CANCELADO_EXT, DENEGADO, INUTILIZADO
@@ -212,10 +222,12 @@ sub Efd.adicionarDocEscriturado(doc as TDocDF ptr)
 		'' !!!TODO!!! como tratar outras situações? os dados vêm completos?
 	end select
 	
-end sub
+	return 0
+	
+end function
 
 ''''''''
-sub Efd.adicionarDocEscriturado(doc as TDocECF ptr)
+function Efd.adicionarDocEscriturado(doc as TDocECF ptr) as long
 	
 	select case as const doc->situacao
 	case REGULAR, EXTEMPORANEO
@@ -237,7 +249,10 @@ sub Efd.adicionarDocEscriturado(doc as TDocECF ptr)
 		
 			if not db->execNonQuery(db_LRSInsertStmt) then
 				onError("Erro ao inserir registro na EFD_LRS: " & *db->getErrorMsg())
+				return 0
 			end if
+			
+			return db->lastId()
 		end if
 	
 	case CANCELADO, CANCELADO_EXT, DENEGADO, INUTILIZADO
@@ -246,11 +261,12 @@ sub Efd.adicionarDocEscriturado(doc as TDocECF ptr)
 	case else
 		'' !!!TODO!!! como tratar outras situações? os dados vêm completos?
 	end select
-	
-end sub
+
+	return 0
+end function
 
 ''''''''
-sub Efd.adicionarDocEscriturado(doc as TDocSAT ptr)
+function Efd.adicionarDocEscriturado(doc as TDocSAT ptr) as long
 	
 	select case as const doc->situacao
 	case REGULAR, EXTEMPORANEO
@@ -272,7 +288,10 @@ sub Efd.adicionarDocEscriturado(doc as TDocSAT ptr)
 		
 			if not db->execNonQuery(db_LRSInsertStmt) then
 				onError("Erro ao inserir registro na EFD_LRS: " & *db->getErrorMsg())
+				return 0
 			end if
+			
+			return db->lastId()
 		end if
 	
 	case CANCELADO, CANCELADO_EXT, DENEGADO, INUTILIZADO
@@ -282,10 +301,11 @@ sub Efd.adicionarDocEscriturado(doc as TDocSAT ptr)
 		'' !!!TODO!!! como tratar outras situações? os dados vêm completos?
 	end select
 	
-end sub
+	return 0
+end function
 
 ''''''''
-sub Efd.adicionarItemNFEscriturado(item as TDocNFItem ptr)
+function Efd.adicionarItemNFEscriturado(item as TDocNFItem ptr) as long
 	
 	var doc = item->documentoPai
 	select case as const doc->situacao
@@ -324,13 +344,18 @@ sub Efd.adicionarItemNFEscriturado(item as TDocNFItem ptr)
 		
 		if not db->execNonQuery(db_itensNfLRInsertStmt) then
 			onError("Erro ao inserir registro na EFD_Itens: " & *db->getErrorMsg())
+			return 0
 		end if
+		
+		return db->lastId()
 	end select
 	
-end sub
+	return 0
+	
+end function
 
 ''''''''
-sub Efd.adicionarRessarcStEscriturado(doc as TDocNFItemRessarcSt ptr)
+function Efd.adicionarRessarcStEscriturado(doc as TDocNFItemRessarcSt ptr) as long
 
 	var docPai = doc->documentoPai
 	var docAvo = doc->documentoPai->documentoPai
@@ -372,12 +397,15 @@ sub Efd.adicionarRessarcStEscriturado(doc as TDocNFItemRessarcSt ptr)
 
 	if not db->execNonQuery(db_ressarcStItensNfLRSInsertStmt) then
 		onError("Erro ao inserir registro na EFD_Ressarc_Itens: " & *db->getErrorMsg())
+		return 0
 	end if
 	
-end sub
+	return db->lastId()
+	
+end function
 
 ''''''''
-sub Efd.adicionarItemEscriturado(item as TItemId ptr)
+function Efd.adicionarItemEscriturado(item as TItemId ptr) as long
 
 	'' (id, descricao, ncm, cest, aliqInt)
 	db_itensIdInsertStmt->reset()
@@ -389,12 +417,15 @@ sub Efd.adicionarItemEscriturado(item as TItemId ptr)
 	
 	if not db->execNonQuery(db_itensIdInsertStmt) then
 		onError("Erro ao inserir registro na EFD_ItensId: " & *db->getErrorMsg())
+		return 0
 	end if
+	
+	return db->lastId()
 
-end sub
+end function
 
 ''''''''
-sub Efd.adicionarAnalEscriturado(anal as TDocItemAnal ptr)
+function Efd.adicionarAnalEscriturado(anal as TDocItemAnal ptr) as long
 
 	var doc = @anal->documentoPai->nf
 	var part = cast( TParticipante ptr, participanteDict->lookup(doc->idParticipante) )
@@ -426,40 +457,45 @@ sub Efd.adicionarAnalEscriturado(anal as TDocItemAnal ptr)
 	
 	if not db->execNonQuery(db_analInsertStmt) then
 		onError("Erro ao inserir registro na EDF_Anal: " & *db->getErrorMsg())
+		return 0
 	end if
+	
+	return db->lastId()
 
-end sub
+end function
 
 ''''''''
-sub Efd.addRegistroAoDB(reg as TRegistro ptr)
+function Efd.addRegistroAoDB(reg as TRegistro ptr) as long
 
 	select case as const reg->tipo
 	case DOC_NF
-		adicionarDocEscriturado(@reg->nf)
+		return adicionarDocEscriturado(@reg->nf)
 	case DOC_NF_ITEM
-		adicionarItemNFEscriturado(@reg->itemNF)
+		return adicionarItemNFEscriturado(@reg->itemNF)
 	case DOC_NF_ANAL
-		adicionarAnalEscriturado(@reg->itemAnal)
+		return adicionarAnalEscriturado(@reg->itemAnal)
 	case DOC_CT
-		adicionarDocEscriturado(@reg->ct)
+		return adicionarDocEscriturado(@reg->ct)
 	case DOC_ECF
-		adicionarDocEscriturado(@reg->ecf)
+		return adicionarDocEscriturado(@reg->ecf)
 	case DOC_SAT
-		adicionarDocEscriturado(@reg->sat)
+		return adicionarDocEscriturado(@reg->sat)
 	case DOC_NF_ITEM_RESSARC_ST
-		adicionarRessarcStEscriturado(@reg->itemRessarcSt)
+		return adicionarRessarcStEscriturado(@reg->itemRessarcSt)
 	case ITEM_ID
 		if opcoes.manterDb then
-			adicionarItemEscriturado(@reg->itemId)
+			return adicionarItemEscriturado(@reg->itemId)
 		end if
 	case MESTRE
-		adicionarMestre(@reg->mestre)
+		return adicionarMestre(@reg->mestre)
 	end select
 	
-end sub
+	return 0
+	
+end function
 
 ''''''''
-sub Efd.adicionarDFe(dfe as TDFe ptr, fazerInsert as boolean)
+function Efd.adicionarDFe(dfe as TDFe ptr, fazerInsert as boolean) as long
 	
 	if chaveDFeDict->lookup(dfe->chave) = null then
 		chaveDFeDict->add(dfe->chave, dfe)
@@ -496,7 +532,11 @@ sub Efd.adicionarDFe(dfe as TDFe ptr, fazerInsert as boolean)
 			
 			if not db->execNonQuery(db_dfeEntradaInsertStmt) then
 				onError("Erro ao inserir DFe de entrada: " & *db->getErrorMsg())
+				return 0
 			end if
+			
+			nroDfe += 1
+			return db->lastId()
 		
 		case SAIDA
 			'' (cnpjDest, ufDest, serie, numero, modelo, chave, dataEmit, valorOp, ieDest)
@@ -518,16 +558,21 @@ sub Efd.adicionarDFe(dfe as TDFe ptr, fazerInsert as boolean)
 		
 			if not db->execNonQuery(db_dfeSaidaInsertStmt) then
 				onError("Erro ao inserir DFe de saída: " & *db->getErrorMsg())
+				return 0
 			end if
+
+			nroDfe += 1
+			return db->lastId()
 		end select
 		
-		nroDfe += 1
 	end if
+	
+	return 0
 
-end sub
+end function
 
 ''''''''
-sub Efd.adicionarItemDFe(chave as const zstring ptr, item as TDFe_NFeItem ptr)
+function Efd.adicionarItemDFe(chave as const zstring ptr, item as TDFe_NFeItem ptr) as long
 		'' (serie, numero, modelo, numItem, chave, cfop, valorProd, valorDesc, valorAcess, bc, aliq, icms, bcIcmsST, , aliqST, icmsST, ncm, cst, qtd, unidade, codProduto, descricao) 
 		db_itensDfeSaidaInsertStmt->reset()
 		db_itensDfeSaidaInsertStmt->bind(1, item->serie)
@@ -560,6 +605,9 @@ sub Efd.adicionarItemDFe(chave as const zstring ptr, item as TDFe_NFeItem ptr)
 	
 		if not db->execNonQuery(db_itensDfeSaidaInsertStmt) then
 			onError("Erro ao inserir Item DFe de entrada: " & *db->getErrorMsg())
+			return 0
 		end if
-end sub
+		
+		return db->lastId()
+end function
    
