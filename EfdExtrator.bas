@@ -16,7 +16,7 @@ on error goto exceptionReport
 
 '''''''''''   
 sub mostrarCopyright()
-	print wstr("Extrator de EFD/Sintegra para Excel, versão 0.9.2 beta")
+	print wstr("Extrator de EFD/Sintegra para Excel, versão 0.9.3 beta")
 	print wstr("Copyleft 2017-2020 by André Vicentini (avtvicentini)")
 	print
 end sub
@@ -154,6 +154,9 @@ sub main()
 				nroOpcoes += 1
 			case "-naogerarlraicms"
 				opcoes.pularLraicms = true
+				nroOpcoes += 1
+			case "-naogerarciap"
+				opcoes.pularCiap = true
 				nroOpcoes += 1
 			case "-realcar"
 				opcoes.highlight = true
