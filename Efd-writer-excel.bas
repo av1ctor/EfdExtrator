@@ -233,6 +233,7 @@ private sub criarColunasCIAP(sheet as ExcelWorksheet ptr)
 	row->addCell("Data Final")
 	row->addCell("Soma Total Saidas Tributadas")
 	row->addCell("Soma Total Saidas")
+	row->addCell("Indice")
 	row->addCell("Codigo Bem")
 	row->addCell("Descricao Bem")
 	row->addCell("Data Movimentacao")
@@ -257,6 +258,7 @@ private sub criarColunasCIAP(sheet as ExcelWorksheet ptr)
 	sheet->AddCellType(CT_DATE)
 	sheet->AddCellType(CT_MONEY)
 	sheet->AddCellType(CT_MONEY)
+	sheet->AddCellType(CT_NUMBER)
 	sheet->AddCellType(CT_STRING)
 	sheet->AddCellType(CT_STRING)
 	sheet->AddCellType(CT_DATE)
@@ -1133,79 +1135,86 @@ sub Efd.gerarPlanilhas(nomeArquivo as string)
 				row->addCell(reg->invItem.valorItemIR)
 
 			case CIAP_ITEM
-				if reg->ciapItem.docCnt = 0 then
+				if not opcoes.pularCiap then
+					if reg->ciapItem.docCnt = 0 then
+						var row = ciap->AddRow()
+						
+						var pai = reg->ciapItem.pai
+						row->addCell(YyyyMmDd2Datetime(pai->dataIni))
+						row->addCell(YyyyMmDd2Datetime(pai->dataFim))
+						row->addCell(pai->valorTributExpSoma)
+						row->addCell(pai->valorTotalSaidas)
+						row->addCell(pai->indicePercSaidas)
+						
+						var bemCiap = cast( TBemCiap ptr, bemCiapDict->lookup(reg->ciapItem.bemId) )
+						if bemCiap <> null then 
+							row->addCell(bemCiap->id)
+							row->addCell(bemCiap->descricao)
+						else
+							row->addCell(reg->ciapItem.bemId)
+							row->addCell("")
+						end if
+						
+						row->addCell(YyyyMmDd2Datetime(reg->ciapItem.dataMov))
+						row->addCell(reg->ciapItem.tipoMov)
+						row->addCell(reg->ciapItem.valorIcms)
+						row->addCell(reg->ciapItem.valorIcmsSt)
+						row->addCell(reg->ciapItem.valorIcmsFrete)
+						row->addCell(reg->ciapItem.valorIcmsDifal)
+						row->addCell(reg->ciapItem.parcela)
+						row->addCell(reg->ciapItem.valorParcela)
+					end if
+				end if
+
+			case CIAP_ITEM_DOC
+				if not opcoes.pularCiap then
+				
 					var row = ciap->AddRow()
 					
-					var pai = reg->ciapItem.pai
-					row->addCell(YyyyMmDd2Datetime(pai->dataIni))
-					row->addCell(YyyyMmDd2Datetime(pai->dataFim))
-					row->addCell(pai->valorTributExpSoma)
-					row->addCell(pai->valorTotalSaidas)
+					var pai = reg->ciapItemDoc.pai
+					var avo = pai->pai
+					row->addCell(YyyyMmDd2Datetime(avo->dataIni))
+					row->addCell(YyyyMmDd2Datetime(avo->dataFim))
+					row->addCell(avo->valorTributExpSoma)
+					row->addCell(avo->valorTotalSaidas)
+					row->addCell(avo->indicePercSaidas)
 					
-					var bemCiap = cast( TBemCiap ptr, bemCiapDict->lookup(reg->ciapItem.bemId) )
+					var bemCiap = cast( TBemCiap ptr, bemCiapDict->lookup(pai->bemId) )
 					if bemCiap <> null then 
 						row->addCell(bemCiap->id)
 						row->addCell(bemCiap->descricao)
 					else
-						row->addCell(reg->ciapItem.bemId)
+						row->addCell(pai->bemId)
 						row->addCell("")
 					end if
 					
-					row->addCell(YyyyMmDd2Datetime(reg->ciapItem.dataMov))
-					row->addCell(reg->ciapItem.tipoMov)
-					row->addCell(reg->ciapItem.valorIcms)
-					row->addCell(reg->ciapItem.valorIcmsSt)
-					row->addCell(reg->ciapItem.valorIcmsFrete)
-					row->addCell(reg->ciapItem.valorIcmsDifal)
-					row->addCell(reg->ciapItem.parcela)
-					row->addCell(reg->ciapItem.valorParcela)
-				end if
-
-			case CIAP_ITEM_DOC
-				var row = ciap->AddRow()
-				
-				var pai = reg->ciapItemDoc.pai
-				var avo = pai->pai
-				row->addCell(YyyyMmDd2Datetime(avo->dataIni))
-				row->addCell(YyyyMmDd2Datetime(avo->dataFim))
-				row->addCell(avo->valorTributExpSoma)
-				row->addCell(avo->valorTotalSaidas)
-				
-				var bemCiap = cast( TBemCiap ptr, bemCiapDict->lookup(pai->bemId) )
-				if bemCiap <> null then 
-					row->addCell(bemCiap->id)
-					row->addCell(bemCiap->descricao)
-				else
-					row->addCell(pai->bemId)
-					row->addCell("")
-				end if
-				
-				row->addCell(YyyyMmDd2Datetime(pai->dataMov))
-				row->addCell(pai->tipoMov)
-				row->addCell(pai->valorIcms)
-				row->addCell(pai->valorIcmsSt)
-				row->addCell(pai->valorIcmsFrete)
-				row->addCell(pai->valorIcmsDifal)
-				row->addCell(pai->parcela)
-				row->addCell(pai->valorParcela)
-				
-				row->addCell(reg->ciapItemDoc.modelo)
-				row->addCell(reg->ciapItemDoc.serie)
-				row->addCell(reg->ciapItemDoc.numero)
-				row->addCell(YyyyMmDd2Datetime(reg->ciapItemDoc.dataEmi))
-				row->addCell(reg->ciapItemDoc.chaveNfe)
-				
-				var part = cast( TParticipante ptr, participanteDict->lookup(reg->ciapItemDoc.idParticipante) )
-				if part <> null then
-					row->addCell(iif(len(part->cpf) > 0, part->cpf, part->cnpj))
-					row->addCell(part->ie)
-					row->addCell(MUNICIPIO2SIGLA(part->municip))
-					row->addCell(part->nome)
-				else
-					row->addCell("")
-					row->addCell("")
-					row->addCell("")
-					row->addCell("")
+					row->addCell(YyyyMmDd2Datetime(pai->dataMov))
+					row->addCell(pai->tipoMov)
+					row->addCell(pai->valorIcms)
+					row->addCell(pai->valorIcmsSt)
+					row->addCell(pai->valorIcmsFrete)
+					row->addCell(pai->valorIcmsDifal)
+					row->addCell(pai->parcela)
+					row->addCell(pai->valorParcela)
+					
+					row->addCell(reg->ciapItemDoc.modelo)
+					row->addCell(reg->ciapItemDoc.serie)
+					row->addCell(reg->ciapItemDoc.numero)
+					row->addCell(YyyyMmDd2Datetime(reg->ciapItemDoc.dataEmi))
+					row->addCell(reg->ciapItemDoc.chaveNfe)
+					
+					var part = cast( TParticipante ptr, participanteDict->lookup(reg->ciapItemDoc.idParticipante) )
+					if part <> null then
+						row->addCell(iif(len(part->cpf) > 0, part->cpf, part->cnpj))
+						row->addCell(part->ie)
+						row->addCell(MUNICIPIO2SIGLA(part->municip))
+						row->addCell(part->nome)
+					else
+						row->addCell("")
+						row->addCell("")
+						row->addCell("")
+						row->addCell("")
+					end if
 				end if
 
 			case ESTOQUE_ITEM

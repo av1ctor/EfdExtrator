@@ -21,6 +21,12 @@ const LRE_RESUMO_ROW_HEIGHT = 10.0
 const LRS_RESUMO_TITLE_HEIGHT = 9.0
 const LRS_RESUMO_HEADER_HEIGHT = 9.0
 const LRS_RESUMO_ROW_HEIGHT = 12.0
+const CIAP_APUR_HEIGHT = 124
+const CIAP_BEM_PRINC_HEIGHT = 47
+const CIAP_BEM_HEIGHT = 180 - CIAP_BEM_PRINC_HEIGHT
+const CIAP_DOC_HEIGHT = 82
+const CIAP_DOC_ITEM_HEIGHT = 57
+const CIAP_PAGE_BOTTOM = 480
 
 	dim shared charWidth(0 to 255) as single = {_
 		0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,_
@@ -321,6 +327,13 @@ sub Efd.gerarRelatorios(nomeArquivo as string)
 					onProgress(null, 1)
 				end if
 				
+			case CIAP_TOTAL
+				if not opcoes.pularCiap then
+					onProgress(!"\tGerando relat�rio do CIAP", 0)
+					gerarRelatorioCiap(nomeArquivo, reg)
+					onProgress(null, 1)
+				end if
+				
 			case LUA_CUSTOM
 				var luaFunc = cast(customLuaCb ptr, customLuaCbDict->lookup(reg->lua.tipo))->rel_outros
 				
@@ -464,6 +477,188 @@ private function efd.gerarPaginaRelatorio(lastPage as boolean) as boolean
 
 end function
 
+type TMovimento
+	mov as zstring * 2+1
+	descricao as wstring * 64+1
+end type
+
+	dim shared movLut(0 to ...) as TMovimento = { _
+		("SI", "Saldo inicial de bens imobilizados"), _
+		("IM", "Imobilização de bem individual"), _
+		("IA", "Imobilização em Andamento - Componente"), _
+		("CI", "Conclusão de Imobilização em Andamento �?? Bem Resultante"), _
+		("MC", "Imobilização oriunda do Ativo Circulante"), _
+		("BA", "Baixa do bem - Fim do período de apropriação"), _
+		("AT", "Alienação ou Transferência"), _
+		("PE", "Perecimento, Extravio ou Deterioração"), _
+		("OT", "Outras Saídas do Imobilizado") _
+	}
+	
+private function movToDesc(mov as string) as string
+	for i as integer = 0 to ubound(movLut)
+		if movLut(i).mov = mov then
+			return movLut(i).descricao
+		end if
+	next
+	return ""
+end function
+
+''''''''
+sub Efd.gerarRelatorioCiap(nomeArquivo as string, reg as TRegistro ptr)
+
+	iniciarRelatorio(REL_CIAP, "ciap", "CIAP")
+	
+	criarPaginaRelatorio(true)
+	
+	var node = relPage->getNode("apur")
+	var apur = node->clone(relPage, relPage)
+	apur->setAttrib("hidden", false)
+	
+	setChildText(apur, "APU", YyyyMmDd2DatetimeBR(reg->ciapTotal.dataIni) + " a " + YyyyMmDd2DatetimeBR(reg->ciapTotal.dataFim))
+	setChildText(apur, "SALDO", DBL2MONEYBR(reg->ciapTotal.saldoInicialICMS))
+	setChildText(apur, "SOMA_PARCELAS", DBL2MONEYBR(reg->ciapTotal.parcelasSoma))
+	setChildText(apur, "SOMA_SAIDAS_TRIB", DBL2MONEYBR(reg->ciapTotal.valorTributExpSoma))
+	setChildText(apur, "SOMA_SAIDAS", DBL2MONEYBR(reg->ciapTotal.valorTotalSaidas))
+	setChildText(apur, "INDICE", format(reg->ciapTotal.indicePercSaidas, "#,#,0.00000000"))
+	setChildText(apur, "CRED_ATIVO", DBL2MONEYBR(reg->ciapTotal.valorIcmsAprop))
+	setChildText(apur, "CRED_OUTROS", DBL2MONEYBR(reg->ciapTotal.valorOutrosCred))
+	
+	relYPos += CIAP_APUR_HEIGHT + 6
+	
+	var item = reg->ciapTotal.itemListHead
+	do while item <> null
+		if relYPos + CIAP_BEM_HEIGHT > CIAP_PAGE_BOTTOM then
+			criarPaginaRelatorio(true)
+		end if
+		
+		var node = relPage->getNode("bem")
+		var elm = node->clone(relPage, relPage)
+		elm->setAttrib("hidden", false)
+		elm->translateY(-relYPos)		
+		relYPos += CIAP_BEM_HEIGHT
+
+		setChildText(elm, "DATA_MOV", YyyyMmDd2DatetimeBR(item->dataMov))
+		setChildText(elm, "TIPO_MOV", item->tipoMov & " - " & movToDesc(item->tipoMov))
+		setChildText(elm, "COD_BEM", item->bemId)
+		setChildText(elm, "CRED_PROP", DBL2MONEYBR(item->valorIcms))
+		setChildText(elm, "CRED_ST", DBL2MONEYBR(item->valorIcmsST))
+		setChildText(elm, "CRED_DIFAL", DBL2MONEYBR(item->valorIcmsDifal))
+		setChildText(elm, "CRED_FRETE", DBL2MONEYBR(item->valorIcmsFrete))
+		setChildText(elm, "PARCELA", str(item->parcela))
+		setChildText(elm, "VAL_PARCELA", DBL2MONEYBR(item->valorParcela))
+		
+		var bemCiap = cast( TBemCiap ptr, bemCiapDict->lookup(item->bemId) )
+		if bemCiap <> null then 
+			setChildText(elm, "ID_BEM", iif(bemCiap->tipoMerc = 1, "1 - bem", "2 - componente"))
+			setChildText(elm, "DESC_BEM", bemCiap->descricao)
+			setChildText(elm, "FUNC_BEM", bemCiap->funcao)
+			setChildText(elm, "VIDA_UTIL", str(bemCiap->vidaUtil))
+			setChildText(elm, "CONTA_ANAL", bemCiap->codAnal)
+			var contaContab = cast( TContaContab ptr, contaContabDict->lookup(bemCiap->codAnal) )
+			if contaContab <> null then
+				setChildText(elm, "DESC_CONTA", contaContab->descricao)
+			end if
+			setChildText(elm, "COD_CUSTO", bemCiap->codCusto)
+			var centroCusto = cast( TCentroCusto ptr, centroCustoDict->lookup(bemCiap->codCusto) )
+			if centroCusto <> null then
+				setChildText(elm, "DESC_CUSTO", centroCusto->descricao)
+			end if
+		end if
+
+		if relYPos + CIAP_BEM_PRINC_HEIGHT > CIAP_PAGE_BOTTOM then
+			criarPaginaRelatorio(true)
+		end if
+
+		node = relPage->getNode("bem-princ")
+		elm = node->clone(relPage, relPage)
+		elm->setAttrib("hidden", false)
+		elm->translateY(-relYPos)		
+		relYPos += CIAP_BEM_PRINC_HEIGHT + 3
+
+		if bemCiap <> null then 
+			if len(bemCiap->principal) > 0 then
+				var princ = cast( TBemCiap ptr, bemCiapDict->lookup(bemCiap->principal) )
+				if princ <> null then
+					setChildText(elm, "COD_BEM_PRINC", bemCiap->principal)
+					setChildText(elm, "DESC_BEM_PRINC", princ->descricao)
+					setChildText(elm, "CONTA_BEM_PRINC", princ->codAnal)
+					var contaContab = cast( TContaContab ptr, contaContabDict->lookup(princ->codAnal) )
+					if contaContab <> null then
+						setChildText(elm, "DESC_CONTA_BEM_PRINC", contaContab->descricao)
+					end if
+				end if
+			end if
+		end if
+		
+		var doc = item->docListHead
+		do while doc <> null
+			if relYPos + CIAP_DOC_HEIGHT > CIAP_PAGE_BOTTOM then
+				criarPaginaRelatorio(true)
+			end if
+			
+			var node = relPage->getNode("doc")
+			var elm = node->clone(relPage, relPage)
+			elm->setAttrib("hidden", false)
+			elm->translateY(-relYPos)		
+			relYPos += CIAP_DOC_HEIGHT
+
+			setChildText(elm, "NUM", str(doc->numero))
+			setChildText(elm, "MOD", format(doc->modelo, "00"))
+			setChildText(elm, "CHAVE", doc->chaveNFe)
+			setChildText(elm, "DTEMI", YyyyMmDd2DatetimeBR(doc->dataEmi))
+			
+			var part = cast( TParticipante ptr, participanteDict->lookup(doc->idParticipante) )
+			if part <> null then
+				setChildText(elm, "FORNEC_ID", doc->idParticipante)
+				setChildText(elm, "FORNEC_NOME", part->nome, true)
+			end if
+			
+			var itemDoc = doc->itemListHead
+			do while itemDoc <> null
+				if relYPos + CIAP_DOC_ITEM_HEIGHT > CIAP_PAGE_BOTTOM then
+					criarPaginaRelatorio(true)
+				end if
+
+				var node = relPage->getNode("item")
+				var elm = node->clone(relPage, relPage)
+				elm->setAttrib("hidden", false)
+				elm->translateY(-relYPos)
+				relYPos += CIAP_DOC_ITEM_HEIGHT
+
+				setChildText(elm, "ITEM", str(itemDoc->num))
+				var itemId = cast( TItemId ptr, itemIdDict->lookup(itemDoc->itemId) )
+				if itemId <> null then 
+					setChildText(elm, "ITEM_COD", itemId->id)
+					setChildText(elm, "ITEM_DESC", itemId->descricao)
+				else
+					setChildText(elm, "ITEM_COD", itemDoc->itemId)
+				end if
+			
+				itemDoc = itemDoc->next_
+			loop
+
+			doc = doc->next_
+		loop
+		
+		relYPos += 6
+		
+		scope 
+			var node = relPage->getNode("div")
+			var elm = node->clone(relPage, relPage)
+			elm->setAttrib("hidden", false)
+			elm->translateY(-relYPos)
+			relYPos += 2.5
+		end scope
+		
+		relYPos += 12
+		
+		item = item->next_
+	loop
+	
+	finalizarRelatorio()
+	
+end sub
+
 ''''''''
 sub Efd.gerarRelatorioApuracaoICMS(nomeArquivo as string, reg as TRegistro ptr)
 
@@ -471,9 +666,6 @@ sub Efd.gerarRelatorioApuracaoICMS(nomeArquivo as string, reg as TRegistro ptr)
 	
 	criarPaginaRelatorio(true)
 	
-	setNodeText(relPage, "NOME", regMestre->mestre.nome, true)
-	setNodeText(relPage, "CNPJ", STR2CNPJ(regMestre->mestre.cnpj))
-	setNodeText(relPage, "IE", regMestre->mestre.ie)
 	setNodeText(relPage, "ESCRIT", YyyyMmDd2DatetimeBR(regMestre->mestre.dataIni) + " a " + YyyyMmDd2DatetimeBR(regMestre->mestre.dataFim))
 	setNodeText(relPage, "APU", YyyyMmDd2DatetimeBR(reg->apuIcms.dataIni) + " a " + YyyyMmDd2DatetimeBR(reg->apuIcms.dataFim))
 	
@@ -503,9 +695,6 @@ sub Efd.gerarRelatorioApuracaoICMSST(nomeArquivo as string, reg as TRegistro ptr
 
 	criarPaginaRelatorio(true)
 	
-	setNodeText(relPage, "NOME", regMestre->mestre.nome, true)
-	setNodeText(relPage, "CNPJ", STR2CNPJ(regMestre->mestre.cnpj))
-	setNodeText(relPage, "IE", regMestre->mestre.ie)
 	setNodeText(relPage, "ESCRIT", YyyyMmDd2DatetimeBR(regMestre->mestre.dataIni) + " a " + YyyyMmDd2DatetimeBR(regMestre->mestre.dataFim))
 	setNodeText(relPage, "APU", YyyyMmDd2DatetimeBR(reg->apuIcmsST.dataIni) + " a " + YyyyMmDd2DatetimeBR(reg->apuIcmsST.dataFim))
 	setNodeText(relPage, "UF", reg->apuIcmsST.UF)
@@ -567,21 +756,27 @@ sub Efd.iniciarRelatorio(relatorio as TipoRelatorio, nomeRelatorio as string, su
 	setNodeText(page, "IE", regMestre->mestre.ie)
 	
 	select case relatorio
-	case REL_LRE, REL_LRS
+	case REL_LRE, REL_LRS, REL_CIAP
 		setNodeText(page, "UF", MUNICIPIO2SIGLA(regMestre->mestre.municip))
 		setNodeText(page, "MUNICIPIO", codMunicipio2Nome(regMestre->mestre.municip))
-		setNodeText(page, "APU", YyyyMmDd2DatetimeBR(regMestre->mestre.dataIni) + " a " + YyyyMmDd2DatetimeBR(regMestre->mestre.dataFim))
+		if relatorio <> REL_CIAP then
+			setNodeText(page, "APU", YyyyMmDd2DatetimeBR(regMestre->mestre.dataIni) + " a " + YyyyMmDd2DatetimeBR(regMestre->mestre.dataFim))
+		else
+			setNodeText(page, "ESCRIT", YyyyMmDd2DatetimeBR(regMestre->mestre.dataIni) + " a " + YyyyMmDd2DatetimeBR(regMestre->mestre.dataFim))
+		end if
 	end select
-
+	
 	var footer = page->getNode("footer")
 	footer->setAttrib("hidden", false)
-	
-	if infAssinatura <> null then
-		setNodeText(page, "NOME_ASS", infAssinatura->assinante, true)
-		setNodeText(page, "CPF_ASS", STR2CPF(infAssinatura->cpf))
-		setNodeText(page, "HASH_ASS", infAssinatura->hashDoArquivo)
-		if relatorio = REL_LRE then
-			setNodeText(page, "NOME2_ASS", infAssinatura->assinante, true)
+		
+	if relatorio <> REL_CIAP then
+		if infAssinatura <> null then
+			setNodeText(page, "NOME_ASS", infAssinatura->assinante, true)
+			setNodeText(page, "CPF_ASS", STR2CPF(infAssinatura->cpf))
+			setNodeText(page, "HASH_ASS", infAssinatura->hashDoArquivo)
+			if relatorio = REL_LRE then
+				setNodeText(page, "NOME2_ASS", infAssinatura->assinante, true)
+			end if
 		end if
 	end if
 
@@ -654,41 +849,49 @@ private sub Efd.relatorioSomarLR(sit as TipoSituacao, anal as TDocItemAnal ptr)
 end sub
 
 ''''''''
-sub Efd.setChildText(row as PdfTemplateNode ptr, id as string, value as wstring ptr)
-	var node = row->getChild(id)
-	node->setAttrib("text", value)
+sub Efd.setChildText(parent as PdfTemplateNode ptr, id as string, value as wstring ptr)
+	if value <> null andalso len(*value) > 0 then
+		var node = parent->getChild(id)
+		node->setAttrib("text", value)
+	end if
 end sub
 
 ''''''''
-sub Efd.setChildText(row as PdfTemplateNode ptr, id as string, value as string, convert as boolean)
-	var node = row->getChild(id)
-	if not convert then
-		node->setAttrib("text", value)
-	else
-		var utf16le = latinToUtf16le(value)
-		if utf16le <> null then
-			node->setAttrib("text", utf16le)
-			deallocate utf16le
+sub Efd.setChildText(parent as PdfTemplateNode ptr, id as string, value as string, convert as boolean)
+	if len(value) > 0 then
+		var node = parent->getChild(id)
+		if not convert then
+			node->setAttrib("text", value)
+		else
+			var utf16le = latinToUtf16le(value)
+			if utf16le <> null then
+				node->setAttrib("text", utf16le)
+				deallocate utf16le
+			end if
 		end if
 	end if
 end sub
 
 ''''''''
 sub Efd.setNodeText(page as PdfTemplatePageNode ptr, id as string, value as wstring ptr)
-	var node = page->getNode(id)
-	node->setAttrib("text", value)
+	if value <> null andalso len(*value) > 0 then
+		var node = page->getNode(id)
+		node->setAttrib("text", value)
+	end if
 end sub
 
 ''''''''
 sub Efd.setNodeText(page as PdfTemplatePageNode ptr, id as string, value as string, convert as boolean)
-	var node = page->getNode(id)
-	if not convert then
-		node->setAttrib("text", value)
-	else
-		var utf16le = latinToUtf16le(value)
-		if utf16le <> null then
-			node->setAttrib("text", utf16le)
-			deallocate utf16le
+	if len(value) > 0 then
+		var node = page->getNode(id)
+		if not convert then
+			node->setAttrib("text", value)
+		else
+			var utf16le = latinToUtf16le(value)
+			if utf16le <> null then
+				node->setAttrib("text", utf16le)
+				deallocate utf16le
+			end if
 		end if
 	end if
 end sub

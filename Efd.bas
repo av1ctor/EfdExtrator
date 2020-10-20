@@ -226,6 +226,8 @@ function Efd.processar(nomeArquivo as string) as Boolean
 
 	delete sintegraDict
 	delete infoComplDict
+	delete centroCustoDict
+	delete contaContabDict
 	delete bemCiapDict
 	delete itemIdDict
 	delete participanteDict

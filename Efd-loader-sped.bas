@@ -172,8 +172,14 @@ function Efd.lerTipo(bf as bfile, tipo as zstring ptr) as TipoRegistro
 			tp = ITEM_ID
 		case 300
 			tp = BEM_CIAP
+		case 305
+			tp = BEM_CIAP_INFO
 		case 450
 			tp = INFO_COMPL
+		case 500
+			tp = CONTA_CONTAB
+		case 600
+			tp = CENTRO_CUSTO
 		case 000
 			tp = MESTRE
 		end select
@@ -244,6 +250,8 @@ function Efd.lerTipo(bf as bfile, tipo as zstring ptr) as TipoRegistro
 			tp = CIAP_ITEM
 		case 130
 			tp = CIAP_ITEM_DOC
+		case 140
+			tp = CIAP_ITEM_DOC_ITEM
 		end select
 	case asc("H")	
 		select case subtipo
@@ -1181,6 +1189,78 @@ function Efd.lerRegBemCiap(bf as bfile, reg as TRegistro ptr) as Boolean
 end function
 
 ''''''''
+function Efd.lerRegBemCiapInfo(bf as bfile, reg as TBemCiap ptr) as Boolean
+
+	bf.char1		'pular |
+
+	reg->codCusto		= bf.varchar
+	reg->funcao	  		= bf.varchar
+	reg->vidaUtil		= bf.varint
+
+	'pular \r\n
+	if bf.peek1 = 13 then
+		bf.char1
+	end if
+	if bf.peek1 <> 10 then
+		onError("Erro: esperado \n, encontrado " & bf.peek1)
+	else
+		bf.char1
+	end if
+
+	function = true
+
+end function
+
+''''''''
+function Efd.lerRegContaContab(bf as bfile, reg as TRegistro ptr) as Boolean
+
+	bf.char1		'pular |
+
+	reg->contaContab.dataInc		= ddMmYyyy2YyyyMmDd(bf.varchar)
+	reg->contaContab.codNat			= bf.varchar
+	reg->contaContab.ind			= bf.varchar
+	reg->contaContab.nivel			= bf.varint
+	reg->contaContab.id			 	= bf.varchar
+	reg->contaContab.descricao	  	= bf.varchar
+
+	'pular \r\n
+	if bf.peek1 = 13 then
+		bf.char1
+	end if
+	if bf.peek1 <> 10 then
+		onError("Erro: esperado \n, encontrado " & bf.peek1)
+	else
+		bf.char1
+	end if
+
+	function = true
+
+end function
+
+''''''''
+function Efd.lerRegCentroCusto(bf as bfile, reg as TRegistro ptr) as Boolean
+
+	bf.char1		'pular |
+
+	reg->centroCusto.dataInc		= ddMmYyyy2YyyyMmDd(bf.varchar)
+	reg->centroCusto.id			 	= bf.varchar
+	reg->centroCusto.descricao	  	= bf.varchar
+
+	'pular \r\n
+	if bf.peek1 = 13 then
+		bf.char1
+	end if
+	if bf.peek1 <> 10 then
+		onError("Erro: esperado \n, encontrado " & bf.peek1)
+	else
+		bf.char1
+	end if
+
+	function = true
+
+end function
+
+''''''''
 function Efd.lerRegInfoCompl(bf as bfile, reg as TRegistro ptr) as Boolean
 
 	bf.char1		'pular |
@@ -1471,7 +1551,41 @@ function Efd.lerRegCiapItemDoc(bf as bfile, reg as TRegistro ptr, pai as TCiapIt
 	reg->ciapItemDoc.numero			= bf.varint
 	reg->ciapItemDoc.chaveNFe		= bf.varchar
 	reg->ciapItemDoc.dataEmi		= ddMmYyyy2YyyyMmDd(bf.varchar)
+	if bf.peek1 <> 13 andalso bf.peek1 <> 10 then 
+		bf.varchar '' pular NUM_DA
+	end if
 	pai->docCnt += 1
+
+	'pular \r\n
+	if bf.peek1 = 13 then
+		bf.char1
+	end if
+	if bf.peek1 <> 10 then
+		onError("Erro: esperado \n, encontrado " & bf.peek1)
+	else
+		bf.char1
+	end if
+
+	function = true
+
+end function
+
+''''''''
+function Efd.lerRegCiapItemDocItem(bf as bfile, reg as TRegistro ptr, pai as TCiapItemDoc ptr) as Boolean
+
+	bf.char1		'pular |
+
+	reg->ciapItemDocItem.pai			= pai
+	reg->ciapItemDocItem.num			= bf.varint
+	reg->ciapItemDocItem.itemId 		= bf.varchar
+	if bf.peek1 <> 13 andalso bf.peek1 <> 10 then 
+		bf.vardbl 		'' pular QTDE
+		bf.varchar 		'' pular UNID
+		bf.vardbl 		'' pular VL_ICMS_OP
+		bf.vardbl 		'' pular VL_ICMS_ST
+		bf.vardbl 		'' pular VL_ICMS_FRT
+		bf.vardbl 		'' pular VL_ICMS_DIF
+	end if
 
 	'pular \r\n
 	if bf.peek1 = 13 then
@@ -1626,14 +1740,17 @@ function Efd.lerRegistro(bf as bfile, reg as TRegistro ptr) as Boolean
 				return false
 			end if
 			
-			if ultimoReg->nf.infoComplListHead = null then
-				ultimoReg->nf.infoComplListHead = @reg->docInfoCompl
+			var node = @reg->docInfoCompl
+			var parent = @ultimoReg->nf
+			
+			if parent->infoComplListHead = null then
+				parent->infoComplListHead = node
 			else
-				ultimoReg->nf.infoComplListTail->next_ = @reg->docInfoCompl
+				parent->infoComplListTail->next_ = node
 			end if
 			
-			ultimoReg->nf.infoComplListTail = @reg->docInfoCompl
-			reg->docInfoCompl.next_ = null
+			parent->infoComplListTail = node
+			node->next_ = null
 		else
 			pularLinha(bf)
 			reg->tipo = DESCONHECIDO
@@ -1657,14 +1774,17 @@ function Efd.lerRegistro(bf as bfile, reg as TRegistro ptr) as Boolean
 				return false
 			end if
 			
-			if ultimoReg->nf.itemAnalListHead = null then
-				ultimoReg->nf.itemAnalListHead = @reg->itemAnal
+			var node = @reg->itemAnal
+			var parent = @ultimoReg->nf
+			
+			if parent->itemAnalListHead = null then
+				parent->itemAnalListHead = node
 			else
-				ultimoReg->nf.itemAnalListTail->next_ = @reg->itemAnal
+				parent->itemAnalListTail->next_ = node
 			end if
 			
-			ultimoReg->nf.itemAnalListTail = @reg->itemAnal
-			reg->itemAnal.next_ = null
+			parent->itemAnalListTail = node
+			node->next_ = null
 		else
 			pularLinha(bf)
 			reg->tipo = DESCONHECIDO
@@ -1688,14 +1808,17 @@ function Efd.lerRegistro(bf as bfile, reg as TRegistro ptr) as Boolean
 				return false
 			end if
 			
-			if ultimoDocNFItem->itemRessarcStListHead = null then
-				ultimoDocNFItem->itemRessarcStListHead = @reg->itemRessarcSt
+			var node = @reg->itemRessarcSt
+			var parent = ultimoDocNFItem
+			
+			if parent->itemRessarcStListHead = null then
+				parent->itemRessarcStListHead = node
 			else
-				ultimoDocNFItem->itemRessarcStListTail->next_ = @reg->itemRessarcSt
+				parent->itemRessarcStListTail->next_ = node
 			end if
 			
-			ultimoDocNFItem->itemRessarcStListTail = @reg->itemRessarcSt
-			reg->itemRessarcSt.next_ = null
+			parent->itemRessarcStListTail = node
+			node->next_ = null
 		else
 			pularLinha(bf)
 			reg->tipo = DESCONHECIDO
@@ -1714,14 +1837,17 @@ function Efd.lerRegistro(bf as bfile, reg as TRegistro ptr) as Boolean
 				return false
 			end if
 
-			if ultimoReg->ct.itemAnalListHead = null then
-				ultimoReg->ct.itemAnalListHead = @reg->itemAnal
+			var node = @reg->itemAnal
+			var parent = @ultimoReg->ct
+			
+			if parent->itemAnalListHead = null then
+				parent->itemAnalListHead = node
 			else
-				ultimoReg->ct.itemAnalListTail->next_ = @reg->itemAnal
+				parent->itemAnalListTail->next_ = node
 			end if
 			
-			ultimoReg->ct.itemAnalListTail = @reg->itemAnal
-			reg->itemAnal.next_ = null
+			parent->itemAnalListTail = node
+			node->next_ = null
 		else
 			pularLinha(bf)
 			reg->tipo = DESCONHECIDO
@@ -1788,14 +1914,17 @@ function Efd.lerRegistro(bf as bfile, reg as TRegistro ptr) as Boolean
 				return false
 			end if
 			
-			if ultimoECFRedZ->ecfRedZ.itemAnalListHead = null then
-				ultimoECFRedZ->ecfRedZ.itemAnalListHead = @reg->itemAnal
+			var node = @reg->itemAnal
+			var parent = @ultimoECFRedZ->ecfRedZ
+			
+			if parent->itemAnalListHead = null then
+				parent->itemAnalListHead = node
 			else
-				ultimoECFRedZ->ecfRedZ.itemAnalListTail->next_ = @reg->itemAnal
+				parent->itemAnalListTail->next_ = node
 			end if
 			
-			ultimoECFRedZ->ecfRedZ.itemAnalListTail = @reg->itemAnal
-			reg->itemAnal.next_ = null
+			parent->itemAnalListTail = node
+			node->next_ = null
 		else
 			pularLinha(bf)
 			reg->tipo = DESCONHECIDO
@@ -1820,15 +1949,18 @@ function Efd.lerRegistro(bf as bfile, reg as TRegistro ptr) as Boolean
 			if not lerRegDocSATItemAnal(bf, reg, ultimoReg) then
 				return false
 			end if
+			
+			var node = @reg->itemAnal
+			var parent = @ultimoReg->sat
 
-			if ultimoReg->sat.itemAnalListHead = null then
-				ultimoReg->sat.itemAnalListHead = @reg->itemAnal
+			if parent->itemAnalListHead = null then
+				parent->itemAnalListHead = node
 			else
-				ultimoReg->sat.itemAnalListTail->next_ = @reg->itemAnal
+				parent->itemAnalListTail->next_ = node
 			end if
 			
-			ultimoReg->sat.itemAnalListTail = @reg->itemAnal
-			reg->itemAnal.next_ = null
+			parent->itemAnalListTail = node
+			node->next_ = null
 		else
 			pularLinha(bf)
 			reg->tipo = DESCONHECIDO
@@ -1846,15 +1978,18 @@ function Efd.lerRegistro(bf as bfile, reg as TRegistro ptr) as Boolean
 			if not lerRegDocNFSCTItemAnal(bf, reg, ultimoReg) then
 				return false
 			end if
+			
+			var node = @reg->itemAnal
+			var parent = @ultimoReg->nf
 
-			if ultimoReg->nf.itemAnalListHead = null then
-				ultimoReg->nf.itemAnalListHead = @reg->itemAnal
+			if parent->itemAnalListHead = null then
+				parent->itemAnalListHead = node
 			else
-				ultimoReg->nf.itemAnalListTail->next_ = @reg->itemAnal
+				parent->itemAnalListTail->next_ = node
 			end if
 			
-			ultimoReg->nf.itemAnalListTail = @reg->itemAnal
-			reg->itemAnal.next_ = null
+			parent->itemAnalListTail = node
+			node->next_ = null
 		else
 			pularLinha(bf)
 			reg->tipo = DESCONHECIDO
@@ -1873,14 +2008,17 @@ function Efd.lerRegistro(bf as bfile, reg as TRegistro ptr) as Boolean
 				return false
 			end if
 
-			if ultimoReg->nf.itemAnalListHead = null then
-				ultimoReg->nf.itemAnalListHead = @reg->itemAnal
+			var node = @reg->itemAnal
+			var parent = @ultimoReg->nf
+
+			if parent->itemAnalListHead = null then
+				parent->itemAnalListHead = node
 			else
-				ultimoReg->nf.itemAnalListTail->next_ = @reg->itemAnal
+				parent->itemAnalListTail->next_ = node
 			end if
 			
-			ultimoReg->nf.itemAnalListTail = @reg->itemAnal
-			reg->itemAnal.next_ = null
+			parent->itemAnalListTail = node
+			node->next_ = null
 		else
 			pularLinha(bf)
 			reg->tipo = DESCONHECIDO
@@ -1900,11 +2038,21 @@ function Efd.lerRegistro(bf as bfile, reg as TRegistro ptr) as Boolean
 		if not lerRegBemCiap(bf, reg) then
 			return false
 		end if
+		
+		ultimoBemCiap = @reg->bemCiap
 
 		'adicionar ao dicionário
 		if bemCiapDict->lookup(reg->bemCiap.id) = null then
 			bemCiapDict->add(reg->bemCiap.id, @reg->bemCiap)
 		end if
+
+	case BEM_CIAP_INFO
+		if not lerRegBemCiapInfo(bf, ultimoBemCiap) then
+			return false
+		end if
+		
+		'' deletar registro, já que vamos reusar o registro anterior
+		reg->tipo = DESCONHECIDO
 
 	case INFO_COMPL
 		if not lerRegInfoCompl(bf, reg) then
@@ -1945,15 +2093,18 @@ function Efd.lerRegistro(bf as bfile, reg as TRegistro ptr) as Boolean
 		if not lerRegApuIcmsAjuste(bf, reg, @ultimoReg->apuIcms) then
 			return false
 		end if
+		
+		var node = @reg->apuIcmsAjust
+		var parent = @ultimoReg->apuIcms
 
-		if ultimoReg->apuIcms.ajustesListHead = null then
-			ultimoReg->apuIcms.ajustesListHead = @reg->apuIcmsAjust
+		if parent->ajustesListHead = null then
+			parent->ajustesListHead = node
 		else
-			ultimoReg->apuIcms.ajustesListTail->next_ = @reg->apuIcmsAjust
+			parent->ajustesListTail->next_ = node
 		end if
 
-		ultimoReg->apuIcms.ajustesListTail = @reg->apuIcmsAjust
-		reg->apuIcmsAjust.next_ = null
+		parent->ajustesListTail = node
+		node->next_ = null
 
 	case APURACAO_ICMS_ST_PERIODO
 		if not lerRegApuIcmsSTPeriodo(bf, reg) then
@@ -1994,11 +2145,51 @@ function Efd.lerRegistro(bf as bfile, reg as TRegistro ptr) as Boolean
 		end if
 	
 		ultimoCiapItem = @reg->ciapItem
+		var parent = ultimoCiap
+		
+		if parent->itemListHead = null then
+			parent->itemListHead = ultimoCiapItem
+		else
+			parent->itemListTail->next_ = ultimoCiapItem
+		end if
+
+		parent->itemListTail = ultimoCiapItem
+		ultimoCiapItem->next_ = null
 
 	case CIAP_ITEM_DOC
 		if not lerRegCiapItemDoc(bf, reg, ultimoCiapItem) then
 			return false
 		end if
+		
+		ultimoCiapItemDoc = @reg->ciapItemDoc
+		var node = ultimoCiapItemDoc
+		var parent = ultimoCiapItem
+
+		if parent->docListHead = null then
+			parent->docListHead = node
+		else
+			parent->docListTail->next_ = node
+		end if
+
+		parent->docListTail = node
+		node->next_ = null
+
+	case CIAP_ITEM_DOC_ITEM
+		if not lerRegCiapItemDocItem(bf, reg, ultimoCiapItemDoc) then
+			return false
+		end if
+		
+		var node = @reg->ciapItemDocItem
+		var parent = ultimoCiapItemDoc
+
+		if parent->itemListHead = null then
+			parent->itemListHead = node
+		else
+			parent->itemListTail->next_ = node
+		end if
+
+		parent->itemListTail = node
+		node->next_ = null
 
 	case ESTOQUE_PERIODO
 		if not lerRegEstoquePeriodo(bf, reg) then
@@ -2023,6 +2214,26 @@ function Efd.lerRegistro(bf as bfile, reg as TRegistro ptr) as Boolean
 		end if
 		
 		regMestre = reg
+
+	case CONTA_CONTAB
+		if not lerRegContaContab(bf, reg) then
+			return false
+		end if
+
+		'adicionar ao dicionário
+		if contaContabDict->lookup(reg->contaContab.id) = null then
+			contaContabDict->add(reg->contaContab.id, @reg->contaContab)
+		end if
+
+	case CENTRO_CUSTO
+		if not lerRegCentroCusto(bf, reg) then
+			return false
+		end if
+
+		'adicionar ao dicionário
+		if centroCustoDict->lookup(reg->centroCusto.id) = null then
+			centroCustoDict->add(reg->centroCusto.id, @reg->centroCusto)
+		end if
 
 	case FIM_DO_ARQUIVO
 		pularLinha(bf)
@@ -2068,6 +2279,8 @@ function Efd.carregarTxt(nomeArquivo as String) as Boolean
 	bemCiapDict = new TDict(2^16)
 	infoComplDict = new TDict(2^16)
 	sintegraDict = new TDict(2^20)
+	contaContabDict = new TDict(2^10)
+	centroCustoDict = new TDict(2^10)
 
 	regListHead = null
 	nroRegs = 0

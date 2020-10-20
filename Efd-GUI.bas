@@ -8,7 +8,7 @@ dim shared curFile as TFile ptr
 dim shared statusBar as Ihandle ptr
 
 private function item_about_action_cb(item as Ihandle ptr) as long
-	IupMessage("Sobre", !"Extrator de EFD/Sintegra para Excel, versão 0.9.2 beta\nCopyleft 2017-2020 by André Vicentini (avtvicentini)")
+	IupMessage("Sobre", !"Extrator de EFD/Sintegra para Excel, versão 0.9.3 beta\nCopyleft 2017-2020 by André Vicentini (avtvicentini)")
 	return IUP_DEFAULT
 end function
 
@@ -643,6 +643,8 @@ private function opcao_action_cb(item as Ihandle ptr, state as long) as long
 		gui->opcoes.pularLrs = state
 	case "naogerarlraicms"
 		gui->opcoes.pularLraicms = state
+	case "naogerarciap"
+		gui->opcoes.pularCiap = state
 	case "realcar"
 		gui->opcoes.highlight = state
 	case "dbemdisco"
@@ -868,6 +870,7 @@ function EfdGUI.buildOptionsFrame() as Ihandle ptr
 		("naogerarlre", "Não extrair LRE", "Não extrair os Livros Registro de Entradas."), _
 		("naogerarlrs", "Não extrair LRS", "Não extrair os Livros Registro de Saídas."), _
 		("naogerarlraicms", "Não extrair LRAICMS", "Não extrair os Livros Registro de Apuração."), _
+		("naogerarciap", "Não extrair CIAP", "Não extrair os registros do CIAP."), _
 		("realcar", "Realçar registros", "Realçar, nos relatórios do EFD-ICMS-IPI, os registros filtrados por CNPJ e/ou chave."), _
 		("dbemdisco", "Gravar DB em disco", "Gravar o banco de dados intermediário em disco, poupando memória."), _
 		("manterdb", "Manter DB em disco", "Manter o banco de dados intermediário em disco.") _

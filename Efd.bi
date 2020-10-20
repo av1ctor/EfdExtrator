@@ -17,6 +17,7 @@ type OpcoesExtracao
 	pularLre 						as boolean = false
 	pularLrs 						as boolean = false
 	pularLraicms					as boolean = false
+	pularCiap						as boolean = false
 	acrescentarDados				as boolean = false
 	formatoDeSaida 					as FileType = FT_XLSX
 	somenteRessarcimentoST 			as boolean = false
@@ -34,6 +35,9 @@ enum TipoRegistro
 	PARTICIPANTE
 	ITEM_ID
 	BEM_CIAP
+	BEM_CIAP_INFO
+	CONTA_CONTAB
+	CENTRO_CUSTO
 	INFO_COMPL
 	DOC_NF										'' NF, NF-e, NFC-e
 	DOC_NF_INFO									'' informações complementares de interesse do fisco
@@ -67,6 +71,7 @@ enum TipoRegistro
 	CIAP_TOTAL
 	CIAP_ITEM
 	CIAP_ITEM_DOC
+	CIAP_ITEM_DOC_ITEM
 	ESTOQUE_PERIODO
 	ESTOQUE_ITEM
 	ESTOQUE_ORDEM_PROD
@@ -238,6 +243,24 @@ type TBemCiap
 	principal	   	as zstring * 60+1
 	codAnal			as zstring * 60+1
 	parcelas		as integer
+	codCusto		as zstring * 60+1
+	funcao			as zstring * 256+1
+	vidaUtil		as integer
+end type
+
+type TContaContab
+	id             	as zstring * 60+1
+	descricao      	as zstring * 256+1
+	dataInc			as zstring * 8+1
+	codNat			as zstring * 2+1
+	ind				as zstring * 1+1
+	nivel			as integer
+end type
+
+type TCentroCusto
+	id             	as zstring * 60+1
+	descricao      	as zstring * 256+1
+	dataInc			as zstring * 8+1
 end type
 
 enum TipoResponsavelRetencaoRessarcST
@@ -587,6 +610,8 @@ type TInventarioItem
 	valorItemIR				as double
 end type
 
+type TCiapItem_ as TCiapItem
+
 type TCiapTotal
 	dataIni					as zstring * 8+1
 	dataFim					as zstring * 8+1
@@ -597,7 +622,11 @@ type TCiapTotal
 	indicePercSaidas		as double
 	valorIcmsAprop			as double
 	valorOutrosCred			as double
+	itemListHead 			as TCiapItem_ ptr
+	itemListTail 			as TCiapItem_ ptr
 end type
+
+type TCiapItemDoc_ as TCiapItemDoc
 
 type TCiapItem
 	pai						as TCiapTotal ptr
@@ -611,7 +640,12 @@ type TCiapItem
 	parcela					as integer
 	valorParcela			as double
 	docCnt					as integer
+	next_					as TCiapItem ptr
+	docListHead 			as TCiapItemDoc_ ptr
+	docListTail 			as TCiapItemDoc_ ptr
 end type
+
+type TCiapItemDocItem_ as TCiapItemDocItem
 
 type TCiapItemDoc
 	pai         			as TCiapItem ptr
@@ -622,6 +656,16 @@ type TCiapItemDoc
 	numero					as integer
 	chaveNfe				as zstring * 44+1
 	dataEmi					as zstring * 8+1
+	next_					as TCiapItemDoc ptr
+	itemListHead 			as TCiapItemDocItem_ ptr
+	itemListTail 			as TCiapItemDocItem_ ptr
+end type
+
+type TCiapItemDocItem
+	pai         			as TCiapItemDoc ptr
+	num						as integer
+	itemId         			as zstring * 60+1
+	next_					as TCiapItemDocItem ptr
 end type
 
 enum TipoItemEstoque
@@ -679,6 +723,8 @@ type TRegistro
 		docItemSint	  		as TDocumentoItemSintegra
 		itemId      		as TItemId
 		bemCiap				as TBemCiap
+		contaContab			as TContaContab
+		centroCusto			as TCentroCusto
 		infoCompl			as TInfoCompl
 		apuIcms	  			as TApuracaoIcmsPropPeriodo
 		apuIcmsST  			as TApuracaoIcmsSTPeriodo
@@ -692,6 +738,7 @@ type TRegistro
 		ciapTotal			as TCiapTotal
 		ciapItem			as TCiapItem
 		ciapItemDoc			as TCiapItemDoc
+		ciapItemDocItem		as TCiapItemDocItem
 		estPeriod			as TEstoquePeriodo
 		estItem				as TEstoqueItem
 		estOrdem			as TEstoqueOrdemProd
@@ -828,6 +875,7 @@ enum TipoRelatorio
 	REL_LRS				= 2
 	REL_RAICMS			= 3
 	REL_RAICMSST		= 4
+	REL_CIAP			= 5
 end enum
 
 type RelSomatorioLR
@@ -985,6 +1033,9 @@ private:
 	declare function lerRegDocNFEletItemAnal(bf as bfile, reg as TRegistro ptr, documentoPai as TRegistro ptr) as Boolean
 	declare function lerRegItemId(bf as bfile, reg as TRegistro ptr) as Boolean
 	declare function lerRegBemCiap(bf as bfile, reg as TRegistro ptr) as Boolean
+	declare function lerRegBemCiapInfo(bf as bfile, reg as TBemCiap ptr) as Boolean
+	declare function lerRegContaContab(bf as bfile, reg as TRegistro ptr) as Boolean
+	declare function lerRegCentroCusto(bf as bfile, reg as TRegistro ptr) as Boolean
 	declare function lerRegInfoCompl(bf as bfile, reg as TRegistro ptr) as Boolean
 	declare function lerRegApuIcmsPeriodo(bf as bfile, reg as TRegistro ptr) as Boolean
 	declare function lerRegApuIcmsProprio(bf as bfile, reg as TRegistro ptr) as Boolean
@@ -996,6 +1047,7 @@ private:
 	declare function lerRegCiapTotal(bf as bfile, reg as TRegistro ptr) as Boolean
 	declare function lerRegCiapItem(bf as bfile, reg as TRegistro ptr, pai as TCiapTotal ptr) as Boolean
 	declare function lerRegCiapItemDoc(bf as bfile, reg as TRegistro ptr, pai as TCiapItem ptr) as Boolean
+	declare function lerRegCiapItemDocItem(bf as bfile, reg as TRegistro ptr, pai as TCiapItemDoc ptr) as Boolean
 	declare function lerRegEstoquePeriodo(bf as bfile, reg as TRegistro ptr) as Boolean
 	declare function lerRegEstoqueItem(bf as bfile, reg as TRegistro ptr, pai as TEstoquePeriodo ptr) as Boolean
 	declare function lerRegEstoqueOrdemProd(bf as bfile, reg as TRegistro ptr, pai as TEstoquePeriodo ptr) as Boolean
@@ -1040,6 +1092,7 @@ private:
 	declare sub gerarPlanilhas(nomeArquivo as string)
 	
 	declare sub gerarRelatorios(nomeArquivo as string)
+	declare sub gerarRelatorioCiap(nomeArquivo as string, reg as TRegistro ptr)
 	declare sub gerarRelatorioApuracaoICMS(nomeArquivo as string, reg as TRegistro ptr)
 	declare sub gerarRelatorioApuracaoICMSST(nomeArquivo as string, reg as TRegistro ptr)
 	declare sub iniciarRelatorio(relatorio as TipoRelatorio, nomeRelatorio as string, sufixo as string)
@@ -1081,6 +1134,8 @@ private:
 	participanteDict    	as TDict ptr
 	itemIdDict          	as TDict ptr
 	bemCiapDict          	as TDict ptr
+	contaContabDict        	as TDict ptr
+	centroCustoDict        	as TDict ptr
 	infoComplDict			as TDict ptr
 	sintegraDict			as TDict ptr
 	ultimoReg   			as TRegistro ptr
@@ -1088,8 +1143,10 @@ private:
 	ultimoEquipECF			as TEquipECF ptr
 	ultimoECFRedZ			as TRegistro ptr
 	ultimoInventario		as TInventarioTotais ptr
+	ultimoBemCiap			as TBemCiap ptr
 	ultimoCiap				as TCiapTotal ptr
 	ultimoCiapItem			as TCiapItem ptr
+	ultimoCiapItemDoc		as TCiapItemDoc ptr
 	ultimoEstoque			as TEstoquePeriodo ptr
 	nroLinha				as integer
 	regMestre				as TRegistro ptr
@@ -1170,7 +1227,7 @@ end type
 
 #define DdMmYyyy2Yyyy_Mm(s) (mid(s,1,4) + "-" + mid(s,5,2))
 
-#define STR2CNPJ(s) (left(s,2) + "." + mid(s,3,3) + "." + mid(s,3+3,3) + "/" + mid(s,3+3+3,4) + "-" + right(s,2))
+#define STR2CNPJ(s) iif(len(s) > 0, left(s,2) + "." + mid(s,3,3) + "." + mid(s,3+3,3) + "/" + mid(s,3+3+3,4) + "-" + right(s,2), "")
 
 #define STR2CPF(s) (left(s,3) + "." + mid(s,4,3) + "." + mid(s,4+3,3) + "-" + right(s,2))
 
