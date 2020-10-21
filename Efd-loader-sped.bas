@@ -176,6 +176,8 @@ function Efd.lerTipo(bf as bfile, tipo as zstring ptr) as TipoRegistro
 			tp = BEM_CIAP_INFO
 		case 450
 			tp = INFO_COMPL
+		case 460
+			tp = OBS_LANCAMENTO
 		case 500
 			tp = CONTA_CONTAB
 		case 600
@@ -195,6 +197,10 @@ function Efd.lerTipo(bf as bfile, tipo as zstring ptr) as TipoRegistro
 			tp = DOC_NF_ITEM_RESSARC_ST
 		case 190
 			tp = DOC_NF_ANAL
+		case 195
+			tp = DOC_NF_OBS
+		case 197
+			tp = DOC_NF_OBS_AJUSTE
 		case 101
 			tp = DOC_NF_DIFAL
 		case 460
@@ -421,6 +427,55 @@ function Efd.lerRegDocNFInfo(bf as bfile, reg as TRegistro ptr, pai as TDocNF pt
 	reg->docInfoCompl.idCompl			= bf.varchar
 	reg->docInfoCompl.extra				= bf.varchar
 	reg->docInfoCompl.next_				= null
+	
+	'pular \r\n
+	if bf.peek1 = 13 then
+		bf.char1
+	end if
+	if bf.peek1 <> 10 then
+		onError("Erro: esperado \n, encontrado " & bf.peek1)
+	else
+		bf.char1
+	end if
+
+	function = true
+
+end function
+
+''''''''
+function Efd.lerRegDocObs(bf as bfile, reg as TRegistro ptr) as Boolean
+
+	bf.char1		'pular |
+
+	reg->docObs.idLanc			= bf.varchar
+	reg->docObs.extra			= bf.varchar
+	
+	'pular \r\n
+	if bf.peek1 = 13 then
+		bf.char1
+	end if
+	if bf.peek1 <> 10 then
+		onError("Erro: esperado \n, encontrado " & bf.peek1)
+	else
+		bf.char1
+	end if
+
+	function = true
+
+end function
+
+''''''''
+function Efd.lerRegDocObsAjuste(bf as bfile, reg as TRegistro ptr) as Boolean
+
+	bf.char1		'pular |
+
+	reg->docObsAjuste.idAjuste		= bf.varchar
+	reg->docObsAjuste.extra			= bf.varchar
+	reg->docObsAjuste.idItem		= bf.varchar
+	reg->docObsAjuste.bcICMS		= bf.vardbl
+	reg->docObsAjuste.aliqICMS		= bf.vardbl
+	reg->docObsAjuste.icms			= bf.vardbl
+	reg->docObsAjuste.outros		= bf.vardbl
 	
 	'pular \r\n
 	if bf.peek1 = 13 then
@@ -1212,6 +1267,28 @@ function Efd.lerRegBemCiapInfo(bf as bfile, reg as TBemCiap ptr) as Boolean
 end function
 
 ''''''''
+function Efd.lerRegObsLancamento(bf as bfile, reg as TRegistro ptr) as Boolean
+
+	bf.char1		'pular |
+
+	reg->obsLanc.id				= bf.varchar
+	reg->obsLanc.descricao	  	= bf.varchar
+
+	'pular \r\n
+	if bf.peek1 = 13 then
+		bf.char1
+	end if
+	if bf.peek1 <> 10 then
+		onError("Erro: esperado \n, encontrado " & bf.peek1)
+	else
+		bf.char1
+	end if
+
+	function = true
+
+end function
+
+''''''''
 function Efd.lerRegContaContab(bf as bfile, reg as TRegistro ptr) as Boolean
 
 	bf.char1		'pular |
@@ -1789,6 +1866,51 @@ function Efd.lerRegistro(bf as bfile, reg as TRegistro ptr) as Boolean
 			pularLinha(bf)
 			reg->tipo = DESCONHECIDO
 		end if
+
+	case DOC_NF_OBS
+		if( ultimoReg <> null ) then
+			if not lerRegDocObs(bf, reg) then
+				return false
+			end if
+			
+			ultimoDocObs = @reg->docObs
+			var node = ultimoDocObs
+			var parent = @ultimoReg->nf
+			
+			if parent->obsListHead = null then
+				parent->obsListHead = node
+			else
+				parent->obsListTail->next_ = node
+			end if
+			
+			parent->obsListTail = node
+			node->next_ = null
+		else
+			pularLinha(bf)
+			reg->tipo = DESCONHECIDO
+		end if
+
+	case DOC_NF_OBS_AJUSTE
+		if( ultimoDocObs <> null ) then
+			if not lerRegDocObsAjuste(bf, reg) then
+				return false
+			end if
+			
+			var node = @reg->docObsAjuste
+			var parent = ultimoDocObs
+			
+			if parent->ajusteListHead = null then
+				parent->ajusteListHead = node
+			else
+				parent->ajusteListTail->next_ = node
+			end if
+			
+			parent->ajusteListTail = node
+			node->next_ = null
+		else
+			pularLinha(bf)
+			reg->tipo = DESCONHECIDO
+		end if
 		
 	case DOC_NF_DIFAL
 		if( ultimoReg <> null ) then
@@ -2215,6 +2337,16 @@ function Efd.lerRegistro(bf as bfile, reg as TRegistro ptr) as Boolean
 		
 		regMestre = reg
 
+	case OBS_LANCAMENTO
+		if not lerRegObsLancamento(bf, reg) then
+			return false
+		end if
+
+		'adicionar ao dicionário
+		if obsLancamentoDict->lookup(reg->obsLanc.id) = null then
+			obsLancamentoDict->add(reg->obsLanc.id, @reg->obsLanc)
+		end if
+
 	case CONTA_CONTAB
 		if not lerRegContaContab(bf, reg) then
 			return false
@@ -2279,6 +2411,7 @@ function Efd.carregarTxt(nomeArquivo as String) as Boolean
 	bemCiapDict = new TDict(2^16)
 	infoComplDict = new TDict(2^16)
 	sintegraDict = new TDict(2^20)
+	obsLancamentoDict = new TDict(2^10)
 	contaContabDict = new TDict(2^10)
 	centroCustoDict = new TDict(2^10)
 

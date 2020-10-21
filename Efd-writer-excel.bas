@@ -102,6 +102,9 @@ private sub adicionarColunasComuns(sheet as ExcelWorksheet ptr, ehEntrada as Boo
 	
 	row->addCell("Info. complementares")
 	sheet->AddCellType(CT_STRING, 40)
+
+	row->addCell("Obs. lancamento")
+	sheet->AddCellType(CT_STRING, 40)
 end sub
 
 private sub criarColunasApuracaoIcms(sheet as ExcelWorksheet ptr)
@@ -448,15 +451,58 @@ sub Efd.criarPlanilhas()
 	
 end sub
 
-private function efd.getInfoCompl(info as TDocInfoCompl ptr) as string
+function Efd.getInfoCompl(info as TDocInfoCompl ptr) as string
 	var res = ""
 	
 	do while info <> null
 		var compl = cast( TInfoCompl ptr, infoComplDict->lookup(info->idCompl))
-		res += iif(len(res) > 0, "|", "") + _
-			compl->descricao + _
-			iif(len(info->extra) > 0, ":" + info->extra, "")
+		res += iif(len(res) > 0, ",", "")
+		res += "{'descricao':'" + compl->descricao + "'"
+		if len(info->extra) > 0 then 
+			res += ", 'extra':'" + info->extra + "'"
+		end if
+		res += "}"
 		info = info->next_
+	loop
+	
+	function = res
+end function
+
+function Efd.getObsLanc(obs as TDocObs ptr) as string
+	var res = ""
+	
+	do while obs <> null
+		var lanc = cast( TObsLancamento ptr, obsLancamentoDict->lookup(obs->idLanc))
+		res += iif(len(res) > 0, ",", "")
+		res += "{'descricao':'" + lanc->descricao + "'"
+		if len(obs->extra) > 0 then 
+			res += ", 'extra':'" + obs->extra + "'"
+		end if
+		var ajuste = obs->ajusteListHead
+		if ajuste <> null then
+			res += ", 'ajustes':["
+			var cnt = 0
+			do 
+				res += iif(cnt > 0, ",", "")
+				res += "{'codigo':'" + ajuste->idAjuste + "'"
+				if len(ajuste->extra) > 0 then 
+					res += ", 'extra':'" + ajuste->extra + "'"
+				end if
+				if len(ajuste->idItem) > 0 then 
+					res += ", 'item':'" + ajuste->idItem + "'"
+				end if
+				res += ", 'bc':'" + DBL2MONEYBR(ajuste->bcICMS) + "'"
+				res += ", 'aliq':'" + DBL2MONEYBR(ajuste->aliqICMS) + "'"
+				res += ", 'valor':'" + DBL2MONEYBR(ajuste->icms) + "'"
+				res += ", 'outros':'" + DBL2MONEYBR(ajuste->outros) + "'"
+				res += "}"
+				cnt += 1
+				ajuste = ajuste->next_
+			loop while ajuste <> null
+			res += "]"
+		end if
+		res += "}"
+		obs = obs->next_
 	loop
 	
 	function = res
@@ -547,6 +593,7 @@ sub Efd.gerarPlanilhas(nomeArquivo as string)
 							row->addCell(itemId->descricao)
 						end if
 						row->addCell(getInfoCompl(doc->infoComplListHead))
+						row->addCell(getObsLanc(doc->obsListHead))
 					end if
 				end select
 
@@ -673,6 +720,7 @@ sub Efd.gerarPlanilhas(nomeArquivo as string)
 								end if
 								
 								row->addCell(getInfoCompl(reg->nf.infoComplListHead))
+								row->addCell(getObsLanc(reg->nf.obsListHead))
 							
 								if item = null then
 									if anal = null then
