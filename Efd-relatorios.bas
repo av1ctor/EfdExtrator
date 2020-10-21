@@ -13,6 +13,10 @@ const STROKE_WIDTH = 0.5
 const ROW_HEIGHT = STROKE_WIDTH + 9.5 + STROKE_WIDTH + 0.5 	'' espaço anterior, linha superior, conteúdo, linha inferior, espaço posterior
 const ROW_HEIGHT_LG = ROW_HEIGHT + 5.5						'' linha larga (quando len(razãoSocial) > MAX_NAME_LEN)
 const ANAL_HEIGHT = STROKE_WIDTH + 9.5 						'' linha superior, conteúdo, linha inferior
+const LRS_OBS_HEADER_HEIGHT = ANAL_HEIGHT
+const LRS_OBS_HEIGHT = ROW_HEIGHT_LG - 2.5
+const LRS_OBS_AJUSTE_HEADER_HEIGHT = LRS_OBS_HEIGHT + ANAL_HEIGHT - 1.0
+const LRS_OBS_AJUSTE_HEIGHT = ANAL_HEIGHT
 const LRE_MAX_NAME_LEN = 31.25
 const LRS_MAX_NAME_LEN = 34.50
 const LRE_RESUMO_TITLE_HEIGHT = 9
@@ -90,19 +94,70 @@ private function substr(src as const zstring ptr, byref start as single, maxWidt
 end function
 
 #macro list_add_ANAL(__doc, __sit)
-	var anal = __doc.itemAnalListHead
-	do while anal <> null
-		if relYPos + ANAL_HEIGHT > PAGE_BOTTOM then
-			gerarPaginaRelatorio()
-		end if
-		var lin = cast(RelLinha ptr, relLinhasList->add())
-		lin->tipo = REL_LIN_DF_ITEM_ANAL
-		lin->anal.item = anal
-		lin->anal.sit = __sit
-		relYPos += ANAL_HEIGHT
-		relNroLinhas += 1
-		anal = anal->next_
-	loop
+	scope
+		var anal = __doc.itemAnalListHead
+		do while anal <> null
+			if relYPos + ANAL_HEIGHT > PAGE_BOTTOM then
+				gerarPaginaRelatorio()
+			end if
+			var lin = cast(RelLinha ptr, relLinhasList->add())
+			lin->tipo = REL_LIN_DF_ITEM_ANAL
+			lin->anal.item = anal
+			lin->anal.sit = __sit
+			relYPos += ANAL_HEIGHT
+			relNroLinhas += 1
+			anal = anal->next_
+		loop
+	end scope
+#endmacro
+
+#define calcObsAjusteHeight(isFirst) (iif(isFirst, STROKE_WIDTH*2 + LRS_OBS_AJUSTE_HEADER_HEIGHT, 0) + LRS_OBS_AJUSTE_HEIGHT)
+
+#macro list_add_OBS_AJUSTE(__obs, __sit)
+	scope 
+		var cnt = 0
+		var ajuste = __obs->ajusteListHead
+		do while ajuste <> null
+			if relYPos + calcObsAjusteHeight(cnt = 0) > PAGE_BOTTOM then
+				gerarPaginaRelatorio()
+				cnt = 0
+			end if
+			var lin = cast(RelLinha ptr, relLinhasList->add())
+			lin->tipo = REL_LIN_DF_OBS_AJUSTE
+			lin->ajuste.ajuste = ajuste
+			lin->ajuste.sit = __sit
+			lin->ajuste.isFirst = (cnt = 0)
+			relYPos += calcObsAjusteHeight(cnt = 0)
+			relNroLinhas += 1
+			cnt += 1
+			ajuste = ajuste->next_
+		loop
+	end scope
+#endmacro
+
+#define calcObsHeight(isFirst) (iif(isFirst, STROKE_WIDTH*2 + LRS_OBS_HEADER_HEIGHT, 0) + LRS_OBS_HEIGHT)
+
+#macro list_add_OBS(__doc, __sit)
+	scope 
+		var cnt = 0
+		var obs = __doc.obsListHead
+		do while obs <> null
+			if relYPos + calcObsHeight(cnt = 0) > PAGE_BOTTOM then
+				gerarPaginaRelatorio()
+				cnt = 0
+			end if
+			var lin = cast(RelLinha ptr, relLinhasList->add())
+			lin->tipo = REL_LIN_DF_OBS
+			lin->obs.obs = obs
+			lin->obs.sit = __sit
+			lin->obs.isFirst = (cnt = 0)
+			relYPos += calcObsHeight(cnt = 0)
+			relNroLinhas += 1
+			list_add_OBS_AJUSTE(obs, __sit)
+			cnt += 1
+			obs = obs->next_
+		loop
+	end scope
 #endmacro
 
 #define calcHeight(lg) iif(relNroLinhas > 0, ROW_SPACE_BEFORE, 0) + iif(lg, ROW_HEIGHT_LG, ROW_HEIGHT)
@@ -124,6 +179,7 @@ end function
 		relNroLinhas += 1
 		nroRegistrosRel += 1
 		list_add_ANAL(__doc, __doc.situacao)
+		list_add_OBS(__doc, __doc.situacao)
 	end scope
 #endmacro
 
@@ -144,6 +200,7 @@ end function
 		relNroLinhas += 1
 		nroRegistrosRel += 1
 		list_add_ANAL(__doc, __doc.situacao)
+		list_add_OBS(__doc, __doc.situacao)
 	end scope
 #endmacro
 
@@ -178,6 +235,7 @@ end function
 		relNroLinhas += 1
 		nroRegistrosRel += 1
 		list_add_ANAL(__doc, REGULAR)
+		list_add_OBS(__doc, REGULAR)
 	end scope
 #endmacro
 
@@ -450,6 +508,10 @@ private function efd.gerarPaginaRelatorio(lastPage as boolean) as boolean
 				adicionarDocRelatorioSaidas(n->sat.doc, n->highlight)
 			case REL_LIN_DF_ITEM_ANAL
 				adicionarDocRelatorioItemAnal(n->anal.sit, n->anal.item)
+			case REL_LIN_DF_OBS
+				adicionarDocRelatorioObs(n->obs.sit, n->obs.obs, n->obs.isFirst)
+			case REL_LIN_DF_OBS_AJUSTE
+				adicionarDocRelatorioObsAjuste(n->ajuste.sit, n->ajuste.ajuste, n->ajuste.isFirst)
 			end select
 		else
 			select case as const n->tipo
@@ -459,7 +521,12 @@ private function efd.gerarPaginaRelatorio(lastPage as boolean) as boolean
 				relYPos += ROW_SPACE_BEFORE + ROW_HEIGHT
 			case REL_LIN_DF_ITEM_ANAL
 				relYPos += ANAL_HEIGHT
-				relatorioSomarLR(n->anal.sit, n->anal.item)
+				relatorioSomarAnal(n->anal.sit, n->anal.item)
+			case REL_LIN_DF_OBS
+				relYPos += calcObsHeight(n->obs.isFirst)
+			case REL_LIN_DF_OBS_AJUSTE
+				relYPos += calcObsHeight(n->ajuste.isFirst)
+				relatorioSomarAjuste(n->ajuste.sit, n->ajuste.ajuste)
 			end select
 		end if
 		
@@ -550,18 +617,18 @@ sub Efd.gerarRelatorioCiap(nomeArquivo as string, reg as TRegistro ptr)
 		var bemCiap = cast( TBemCiap ptr, bemCiapDict->lookup(item->bemId) )
 		if bemCiap <> null then 
 			setChildText(elm, "ID_BEM", iif(bemCiap->tipoMerc = 1, "1 - bem", "2 - componente"))
-			setChildText(elm, "DESC_BEM", bemCiap->descricao)
-			setChildText(elm, "FUNC_BEM", bemCiap->funcao)
+			setChildText(elm, "DESC_BEM", bemCiap->descricao, true)
+			setChildText(elm, "FUNC_BEM", bemCiap->funcao, true)
 			setChildText(elm, "VIDA_UTIL", str(bemCiap->vidaUtil))
 			setChildText(elm, "CONTA_ANAL", bemCiap->codAnal)
 			var contaContab = cast( TContaContab ptr, contaContabDict->lookup(bemCiap->codAnal) )
 			if contaContab <> null then
-				setChildText(elm, "DESC_CONTA", contaContab->descricao)
+				setChildText(elm, "DESC_CONTA", contaContab->descricao, true)
 			end if
 			setChildText(elm, "COD_CUSTO", bemCiap->codCusto)
 			var centroCusto = cast( TCentroCusto ptr, centroCustoDict->lookup(bemCiap->codCusto) )
 			if centroCusto <> null then
-				setChildText(elm, "DESC_CUSTO", centroCusto->descricao)
+				setChildText(elm, "DESC_CUSTO", centroCusto->descricao, true)
 			end if
 		end if
 
@@ -580,11 +647,11 @@ sub Efd.gerarRelatorioCiap(nomeArquivo as string, reg as TRegistro ptr)
 				var princ = cast( TBemCiap ptr, bemCiapDict->lookup(bemCiap->principal) )
 				if princ <> null then
 					setChildText(elm, "COD_BEM_PRINC", bemCiap->principal)
-					setChildText(elm, "DESC_BEM_PRINC", princ->descricao)
+					setChildText(elm, "DESC_BEM_PRINC", princ->descricao, true)
 					setChildText(elm, "CONTA_BEM_PRINC", princ->codAnal)
 					var contaContab = cast( TContaContab ptr, contaContabDict->lookup(princ->codAnal) )
 					if contaContab <> null then
-						setChildText(elm, "DESC_CONTA_BEM_PRINC", contaContab->descricao)
+						setChildText(elm, "DESC_CONTA_BEM_PRINC", contaContab->descricao, true)
 					end if
 				end if
 			end if
@@ -629,7 +696,7 @@ sub Efd.gerarRelatorioCiap(nomeArquivo as string, reg as TRegistro ptr)
 				var itemId = cast( TItemId ptr, itemIdDict->lookup(itemDoc->itemId) )
 				if itemId <> null then 
 					setChildText(elm, "ITEM_COD", itemId->id)
-					setChildText(elm, "ITEM_DESC", itemId->descricao)
+					setChildText(elm, "ITEM_DESC", itemId->descricao, true)
 				else
 					setChildText(elm, "ITEM_COD", itemDoc->itemId)
 				end if
@@ -738,8 +805,10 @@ sub Efd.iniciarRelatorio(relatorio as TipoRelatorio, nomeRelatorio as string, su
 	
 	select case relatorio
 	case REL_LRE, REL_LRS
-		relSomaLRList = new Tlist(10, len(RelSomatorioLR))
-		relSomaLRDict = new TDict(10)
+		relSomaAnalList = new Tlist(10, len(RelSomatorioAnal))
+		relSomaAnalDict = new TDict(10)
+		relSomaAjustesList = new Tlist(10, len(RelSomatorioAjuste))
+		relSomaAjustesDict = new TDict(10)
 	end select
 	
 	relTemplate = new PdfTemplate(baseTemplatesDir + nomeRelatorio + ".xml")
@@ -782,10 +851,6 @@ sub Efd.iniciarRelatorio(relatorio as TipoRelatorio, nomeRelatorio as string, su
 
 end sub
 
-private function cmpFunc(key as zstring ptr, node as any ptr) as boolean
-	function = *key < cast(RelSomatorioLR ptr, node)->chave
-end function
-
 ''''''''
 function Efd.gerarLinhaDFe(lg as boolean, highlight as boolean) as PdfTemplateNode ptr
 	if relNroLinhas > 0 then
@@ -823,21 +888,71 @@ function Efd.gerarLinhaAnal() as PdfTemplateNode ptr
 end function
 
 ''''''''
-private sub Efd.relatorioSomarLR(sit as TipoSituacao, anal as TDocItemAnal ptr)
+function Efd.gerarLinhaObs(isFirst as boolean) as PdfTemplateNode ptr
+
+	if isFirst then
+		var node = relPage->getNode("obs-header")
+		var clone = node->clone(relPage, relPage)
+		clone->setAttrib("hidden", false)
+		relYPos += STROKE_WIDTH*2
+		clone->translateY(-relYPos)
+		relYPos += LRS_OBS_HEADER_HEIGHT
+		relNroLinhas += 1
+	end if
+	
+	var node = relPage->getNode("obs")
+	var clone = node->clone(relPage, relPage)
+	clone->setAttrib("hidden", false)
+	clone->translateY(-relYPos)
+	relYPos += LRS_OBS_HEIGHT
+	relNroLinhas += 1
+
+	return clone
+end function
+
+''''''''
+function Efd.gerarLinhaObsAjuste(isFirst as boolean) as PdfTemplateNode ptr
+
+	if isFirst then
+		var node = relPage->getNode("ajuste-header")
+		var clone = node->clone(relPage, relPage)
+		clone->setAttrib("hidden", false)
+		relYPos += STROKE_WIDTH*2
+		clone->translateY(-relYPos)
+		relYPos += LRS_OBS_AJUSTE_HEADER_HEIGHT
+		relNroLinhas += 1
+	end if
+	
+	var node = relPage->getNode("ajuste")
+	var clone = node->clone(relPage, relPage)
+	clone->setAttrib("hidden", false)
+	clone->translateY(-relYPos)
+	relYPos += LRS_OBS_AJUSTE_HEIGHT
+	relNroLinhas += 1
+
+	return clone
+end function
+
+private function somaLrCmpCb(key as zstring ptr, node as any ptr) as boolean
+	function = *key < cast(RelSomatorioAnal ptr, node)->chave
+end function
+
+''''''''
+sub Efd.relatorioSomarAnal(sit as TipoSituacao, anal as TDocItemAnal ptr)
 	
 	dim as string chave = iif(ultimoRelatorio = REL_LRS, str(sit), "0")
 	
 	chave &= format(anal->cst,"000") & anal->cfop & format(anal->aliq, "00")
 	
-	var soma = cast(RelSomatorioLR ptr, relSomaLRDict->lookup(chave))
+	var soma = cast(RelSomatorioAnal ptr, relSomaAnalDict->lookup(chave))
 	if soma = null then
-		soma = relSomaLRList->addOrdAsc(strptr(chave), @cmpFunc)
+		soma = relSomaAnalList->addOrdAsc(strptr(chave), @somaLrCmpCb)
 		soma->chave = chave
 		soma->situacao = sit
 		soma->cst = anal->cst
 		soma->cfop = anal->cfop
 		soma->aliq = anal->aliq
-		relSomaLRDict->add(soma->chave, soma)
+		relSomaAnalDict->add(soma->chave, soma)
 	end if
 	
 	soma->valorOp += anal->valorOp
@@ -846,6 +961,27 @@ private sub Efd.relatorioSomarLR(sit as TipoSituacao, anal as TDocItemAnal ptr)
 	soma->bcST += anal->bcST
 	soma->icmsST += anal->icmsST
 	soma->ipi += anal->ipi
+end sub
+
+private function somaAjustesCmpCb(key as zstring ptr, node as any ptr) as boolean
+	function = *key < cast(RelSomatorioAjuste ptr, node)->chave
+end function
+
+''''''''
+sub Efd.relatorioSomarAjuste(sit as TipoSituacao, ajuste as TDocObsAjuste ptr)
+	
+	dim as string chave = iif(ultimoRelatorio = REL_LRS, str(sit), "0") & ajuste->idAjuste
+	
+	var soma = cast(RelSomatorioAjuste ptr, relSomaAjustesDict->lookup(chave))
+	if soma = null then
+		soma = relSomaAjustesList->addOrdAsc(strptr(chave), @somaAjustesCmpCb)
+		soma->chave = chave
+		soma->idAjuste = ajuste->idAjuste
+		soma->situacao = sit
+		relSomaAjustesDict->add(soma->chave, soma)
+	end if
+
+	soma->valor += ajuste->icms + ajuste->outros
 end sub
 
 ''''''''
@@ -899,7 +1035,7 @@ end sub
 ''''''''
 sub Efd.adicionarDocRelatorioItemAnal(sit as TipoSituacao, anal as TDocItemAnal ptr)
 	
-	relatorioSomarLR(sit, anal)
+	relatorioSomarAnal(sit, anal)
 
 	select case sit
 	case REGULAR, EXTEMPORANEO
@@ -916,6 +1052,43 @@ sub Efd.adicionarDocRelatorioItemAnal(sit as TipoSituacao, anal as TDocItemAnal 
 		if ultimoRelatorio = REL_LRE then
 			setChildText(row, "REDBC", DBL2MONEYBR(anal->redBC))
 		end if
+	end select
+
+end sub
+
+''''''''
+sub Efd.adicionarDocRelatorioObs(sit as TipoSituacao, obs as TDocObs ptr, isFirst as boolean)
+	
+	select case sit
+	case REGULAR, EXTEMPORANEO
+		var row = gerarLinhaObs(isFirst)
+		var lanc = cast( TObsLancamento ptr, obsLancamentoDict->lookup(obs->idLanc))
+		var text = iif(lanc <> null, lanc->descricao, "")
+		if len(obs->extra) > 0 then
+			text += " " + obs->extra
+		end if
+		setChildText(row, "DESC-OBS", text, true)
+	end select
+
+end sub
+
+''''''''
+sub Efd.adicionarDocRelatorioObsAjuste(sit as TipoSituacao, ajuste as TDocObsAjuste ptr, isFirst as boolean)
+	
+	relatorioSomarAjuste(sit, ajuste)
+
+	select case sit
+	case REGULAR, EXTEMPORANEO
+		var row = gerarLinhaObsAjuste(isFirst)
+		if ultimoRelatorio = REL_LRS then
+			setChildText(row, "SIT-AJ", format(cdbl(sit),"00"))
+		end if
+		setChildText(row, "COD-AJ", ajuste->idAjuste)
+		setChildText(row, "ITEM-AJ", ajuste->idItem)
+		setChildText(row, "BC-AJ", DBL2MONEYBR(ajuste->bcIcms))
+		setChildText(row, "ALIQ-AJ", DBL2MONEYBR(ajuste->aliqIcms))
+		setChildText(row, "ICMS-AJ", DBL2MONEYBR(ajuste->icms))
+		setChildText(row, "OUTROS-AJ", DBL2MONEYBR(ajuste->outros))
 	end select
 
 end sub
@@ -1072,6 +1245,25 @@ sub efd.gerarResumoRelatorioHeader(emitir as boolean)
 	relYPos += iif(ultimoRelatorio = REL_LRS, LRS_RESUMO_HEADER_HEIGHT, LRE_RESUMO_HEADER_HEIGHT)
 end sub
 
+''''''''
+sub efd.gerarResumoAjustesRelatorioHeader(emitir as boolean)
+	relYPos += ROW_SPACE_BEFORE
+	
+	if emitir then
+		var title = relPage->getNode("resumo-ajustes-title")
+		title->setAttrib("hidden", false)
+		title->translateY(-relYPos)
+	end if
+	relYPos += iif(ultimoRelatorio = REL_LRS, LRS_RESUMO_TITLE_HEIGHT, LRE_RESUMO_TITLE_HEIGHT)
+
+	if emitir then
+		var header = relPage->getNode("resumo-ajustes-header")
+		header->setAttrib("hidden", false)
+		header->translateY(-relYPos)
+	end if
+	relYPos += iif(ultimoRelatorio = REL_LRS, LRS_RESUMO_HEADER_HEIGHT, LRE_RESUMO_HEADER_HEIGHT)
+end sub
+
 sub efd.gerarResumoRelatorio(emitir as boolean)
 	var titleHeight = iif(ultimoRelatorio = REL_LRS, LRS_RESUMO_TITLE_HEIGHT, LRE_RESUMO_TITLE_HEIGHT)
 	var headerHeight = iif(ultimoRelatorio = REL_LRS, LRS_RESUMO_HEADER_HEIGHT, LRE_RESUMO_HEADER_HEIGHT)
@@ -1085,47 +1277,49 @@ sub efd.gerarResumoRelatorio(emitir as boolean)
 	gerarResumoRelatorioHeader(emitir)
 
 	'' tabela de totais
-	dim as RelSomatorioLR totSoma
+	dim as RelSomatorioAnal totSoma
 	
-	var soma = cast(RelSomatorioLR ptr, relSomaLRList->head)
-	do while soma <> null
-		if relYPos + rowHeight > PAGE_BOTTOM then
-			criarPaginaRelatorio(emitir)
-			gerarResumoRelatorioHeader(emitir)
-		end if
-	
-		if emitir then
-			var org = relPage->getNode("resumo-row")
-			var row = org->clone(relPage, relPage)
+	scope
+		var soma = cast(RelSomatorioAnal ptr, relSomaAnalList->head)
+		do while soma <> null
+			if relYPos + rowHeight > PAGE_BOTTOM then
+				criarPaginaRelatorio(emitir)
+				gerarResumoRelatorioHeader(emitir)
+			end if
 		
-			row->setAttrib("hidden", false)
-			row->translateY(-relYPos)
+			if emitir then
+				var org = relPage->getNode("resumo-row")
+				var row = org->clone(relPage, relPage)
 			
-			if ultimoRelatorio = REL_LRS then
-				setChildText(row, "SIT", format(cdbl(soma->situacao), "00"))
-			end if	
-		
-			setChildText(row, "CST", format(soma->cst,"000"))
-			setChildText(row, "CFOP", str(soma->cfop))
-			setChildText(row, "ALIQ", DBL2MONEYBR(soma->aliq))
-			setChildText(row, "OPER", DBL2MONEYBR(soma->valorOp))
-			setChildText(row, "BCICMS", DBL2MONEYBR(soma->bc))
-			setChildText(row, "ICMS", DBL2MONEYBR(soma->icms))
-			setChildText(row, "BCICMSST", DBL2MONEYBR(soma->bcST))
-			setChildText(row, "ICMSST", DBL2MONEYBR(soma->ICMSST))
-			setChildText(row, "IPI", DBL2MONEYBR(soma->ipi))
-		end if
-		relYPos += rowHeight
-		
-		totSoma.valorOp += soma->valorOp
-		totSoma.bc += soma->bc
-		totSoma.icms += soma->icms
-		totSoma.bcST += soma->bcST
-		totSoma.ICMSST += soma->ICMSST
-		totSoma.ipi += soma->ipi
-		
-		soma = relSomaLRList->next_(soma)
-	loop
+				row->setAttrib("hidden", false)
+				row->translateY(-relYPos)
+				
+				if ultimoRelatorio = REL_LRS then
+					setChildText(row, "SIT", format(cdbl(soma->situacao), "00"))
+				end if	
+			
+				setChildText(row, "CST", format(soma->cst,"000"))
+				setChildText(row, "CFOP", str(soma->cfop))
+				setChildText(row, "ALIQ", DBL2MONEYBR(soma->aliq))
+				setChildText(row, "OPER", DBL2MONEYBR(soma->valorOp))
+				setChildText(row, "BCICMS", DBL2MONEYBR(soma->bc))
+				setChildText(row, "ICMS", DBL2MONEYBR(soma->icms))
+				setChildText(row, "BCICMSST", DBL2MONEYBR(soma->bcST))
+				setChildText(row, "ICMSST", DBL2MONEYBR(soma->ICMSST))
+				setChildText(row, "IPI", DBL2MONEYBR(soma->ipi))
+			end if
+			relYPos += rowHeight
+			
+			totSoma.valorOp += soma->valorOp
+			totSoma.bc += soma->bc
+			totSoma.icms += soma->icms
+			totSoma.bcST += soma->bcST
+			totSoma.ICMSST += soma->ICMSST
+			totSoma.ipi += soma->ipi
+			
+			soma = relSomaAnalList->next_(soma)
+		loop
+	end scope
 	
 	'' totais
 	if relYPos + ROW_SPACE_BEFORE + headerHeight > PAGE_BOTTOM then
@@ -1148,6 +1342,45 @@ sub efd.gerarResumoRelatorio(emitir as boolean)
 		setChildText(total, "IPITOT", DBL2MONEYBR(totSoma.ipi))
 	end if
 	relYPos += headerHeight
+
+	'' tabela de ajustes
+	scope
+		rowHeight += 3.5
+		var soma = cast(RelSomatorioAjuste ptr, relSomaAjustesList->head)
+		if soma <> null then
+			if relYPos + ROW_SPACE_BEFORE + titleHeight + headerHeight + rowHeight > PAGE_BOTTOM then
+				criarPaginaRelatorio(emitir)
+			end if
+			
+			gerarResumoAjustesRelatorioHeader(emitir)
+		
+			do while soma <> null
+				if relYPos + rowHeight > PAGE_BOTTOM then
+					criarPaginaRelatorio(emitir)
+					gerarResumoAjustesRelatorioHeader(emitir)
+				end if
+			
+				if emitir then
+					var org = relPage->getNode("resumo-ajustes-row")
+					var row = org->clone(relPage, relPage)
+				
+					row->setAttrib("hidden", false)
+					row->translateY(-relYPos)
+					
+					if ultimoRelatorio = REL_LRS then
+						setChildText(row, "RES-SIT-AJ", format(cdbl(soma->situacao), "00"))
+					end if	
+				
+					setChildText(row, "RES-COD-AJ", soma->idAjuste)
+					setChildText(row, "RES-DESC-AJ", "...")
+					setChildText(row, "RES-VALOR-AJ", DBL2MONEYBR(soma->valor))
+				end if
+				relYPos += rowHeight
+				
+				soma = relSomaAnalList->next_(soma)
+			loop
+		end if
+	end scope
 	
 end sub
 
@@ -1182,8 +1415,10 @@ sub Efd.finalizarRelatorio()
 			gerarResumoRelatorio(gerarResumo)
 		end if
 
-		delete relSomaLRDict
-		delete relSomaLRList
+		delete relSomaAnalDict
+		delete relSomaAnalList
+		delete relSomaAjustesDict
+		delete relSomaAjustesList
 	end select
 	
 	'' atribuir número de cada página

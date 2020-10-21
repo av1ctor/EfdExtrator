@@ -39,11 +39,14 @@ enum TipoRegistro
 	CONTA_CONTAB
 	CENTRO_CUSTO
 	INFO_COMPL
+	OBS_LANCAMENTO
 	DOC_NF										'' NF, NF-e, NFC-e
 	DOC_NF_INFO									'' informações complementares de interesse do fisco
 	DOC_NF_ITEM    								'' item de NF-e (só informado para entradas)
 	DOC_NF_ITEM_RESSARC_ST						'' ressarcimento ST
 	DOC_NF_ANAL									'' analítico
+	DOC_NF_OBS
+	DOC_NF_OBS_AJUSTE
 	DOC_NF_DIFAL								'' diferencial de alíquota
 	DOC_CT     									'' CT, CT-e, CT-e OS, BP-e
 	DOC_CT_DIFAL				
@@ -236,6 +239,11 @@ type TInfoCompl
 	descricao      	as zstring * 256+1
 end type
 
+type TObsLancamento
+	id             	as zstring * 6+1
+	descricao      	as zstring * 256+1
+end type
+
 type TBemCiap
 	id             	as zstring * 60+1
 	tipoMerc		as integer
@@ -403,6 +411,25 @@ type TDocInfoCompl
 	next_					as TDocInfoCompl ptr
 end type
 
+type TDocObsAjuste
+	idAjuste				as zstring * 10+1
+	extra					as zstring * 255+1
+	idItem					as zstring * 60+1
+	bcICMS					as double
+	aliqICMS				as double
+	icms					as double
+	outros					as double
+	next_					as TDocObsAjuste ptr
+end type
+
+type TDocObs
+	idLanc					as zstring * 6+1
+	extra					as zstring * 255+1
+	ajusteListHead 			as TDocObsAjuste ptr
+	ajusteListTail 			as TDocObsAjuste ptr
+	next_					as TDocObs ptr
+end type
+
 type TDocDF
 	operacao				as TipoOperacao
 	situacao				as TipoSituacao
@@ -423,6 +450,8 @@ type TDocDF
 	infoComplListTail		as TDocInfoCompl ptr
 	itemAnalListHead 		as TDocItemAnal ptr
 	itemAnalListTail 		as TDocItemAnal ptr
+	obsListHead 			as TDocObs ptr
+	obsListTail 			as TDocObs ptr
 	itemAnalCnt				as integer
 end type
 
@@ -719,6 +748,8 @@ type TRegistro
 		itemECF     		as TDocECFItem
 		sat         		as TDocSAT
 		docInfoCompl		as TDocInfoCompl
+		docObs				as TDocObs
+		docObsAjuste		as TDocObsAjuste
 		docSint	  			as TDocumentoSintegra
 		docItemSint	  		as TDocumentoItemSintegra
 		itemId      		as TItemId
@@ -726,6 +757,7 @@ type TRegistro
 		contaContab			as TContaContab
 		centroCusto			as TCentroCusto
 		infoCompl			as TInfoCompl
+		obsLanc				as TObsLancamento
 		apuIcms	  			as TApuracaoIcmsPropPeriodo
 		apuIcmsST  			as TApuracaoIcmsSTPeriodo
 		apuIcmsAjust  		as TApuracaoIcmsAjuste
@@ -878,7 +910,7 @@ enum TipoRelatorio
 	REL_CIAP			= 5
 end enum
 
-type RelSomatorioLR
+type RelSomatorioAnal
 	chave			as zstring * 10+1
 	situacao		as TipoSituacao
 	cst				as integer
@@ -892,10 +924,19 @@ type RelSomatorioLR
 	ipi 			as double
 end type
 
+type RelSomatorioAjuste
+	chave			as zstring * 12+1
+	situacao		as TipoSituacao
+	idAjuste		as zstring * 10+1
+	valor 			as double
+end type
+
 enum RelLinhaTipo
 	REL_LIN_DF_ENTRADA
 	REL_LIN_DF_SAIDA
 	REL_LIN_DF_ITEM_ANAL
+	REL_LIN_DF_OBS
+	REL_LIN_DF_OBS_AJUSTE
 	REL_LIN_DF_REDZ
 	REL_LIN_DF_SAT
 end enum
@@ -908,6 +949,18 @@ end type
 type RelLinhaAnal
 	sit 			as TipoSituacao
 	item 			as TDocItemAnal ptr
+end type
+
+type RelLinhaObsAjuste
+	sit 			as TipoSituacao
+	isFirst			as boolean
+	ajuste			as TDocObsAjuste ptr
+end type
+
+type RelLinhaObs
+	sit 			as TipoSituacao
+	isFirst			as boolean
+	obs 			as TDocObs ptr
 end type
 
 type RelLinhaRedZ
@@ -925,6 +978,8 @@ type RelLinha
 	union
 		df			as RelLinhaDF
 		anal		as RelLinhaAnal
+		obs			as RelLinhaObs
+		ajuste		as RelLinhaObsAjuste
 		redZ		as RelLinhaRedZ
 		sat			as RelLinhaSat
 	end union
@@ -1031,12 +1086,15 @@ private:
 	declare function lerRegDocNFSCTItemAnal(bf as bfile, reg as TRegistro ptr, documentoPai as TRegistro ptr) as Boolean
 	declare function lerRegDocNFElet(bf as bfile, reg as TRegistro ptr) as Boolean
 	declare function lerRegDocNFEletItemAnal(bf as bfile, reg as TRegistro ptr, documentoPai as TRegistro ptr) as Boolean
+	declare function lerRegDocObs(bf as bfile, reg as TRegistro ptr) as Boolean
+	declare function lerRegDocObsAjuste(bf as bfile, reg as TRegistro ptr) as Boolean
 	declare function lerRegItemId(bf as bfile, reg as TRegistro ptr) as Boolean
 	declare function lerRegBemCiap(bf as bfile, reg as TRegistro ptr) as Boolean
 	declare function lerRegBemCiapInfo(bf as bfile, reg as TBemCiap ptr) as Boolean
 	declare function lerRegContaContab(bf as bfile, reg as TRegistro ptr) as Boolean
 	declare function lerRegCentroCusto(bf as bfile, reg as TRegistro ptr) as Boolean
 	declare function lerRegInfoCompl(bf as bfile, reg as TRegistro ptr) as Boolean
+	declare function lerRegObsLancamento(bf as bfile, reg as TRegistro ptr) as Boolean
 	declare function lerRegApuIcmsPeriodo(bf as bfile, reg as TRegistro ptr) as Boolean
 	declare function lerRegApuIcmsProprio(bf as bfile, reg as TRegistro ptr) as Boolean
 	declare function lerRegApuIcmsAjuste(bf as bfile, reg as TRegistro ptr, pai as TApuracaoIcmsPeriodo ptr) as Boolean
@@ -1085,6 +1143,7 @@ private:
 	declare function filtrarPorCnpj(idParticipante as const zstring ptr) as boolean
 	declare function filtrarPorChave(chave as const zstring ptr) as boolean
 	declare function getInfoCompl(info as TDocInfoCompl ptr) as string
+	declare function getObsLanc(obs as TDocObs ptr) as string
 	
 	declare function addRegistroAoDB(reg as TRegistro ptr) as long
 	
@@ -1101,18 +1160,24 @@ private:
 	declare sub adicionarDocRelatorioSaidas(doc as TECFReducaoZ ptr, highlight as boolean)
 	declare sub adicionarDocRelatorioSaidas(doc as TDocSAT ptr, highlight as boolean)
 	declare sub adicionarDocRelatorioItemAnal(sit as TipoSituacao, anal as TDocItemAnal ptr)
+	declare sub adicionarDocRelatorioObs(sit as TipoSituacao, obs as TDocObs ptr, isFirst as boolean)
+	declare sub adicionarDocRelatorioObsAjuste(sit as TipoSituacao, ajuste as TDocObsAjuste ptr, isFirst as boolean)
 	declare sub finalizarRelatorio()
-	declare sub relatorioSomarLR(sit as TipoSituacao, anal as TDocItemAnal ptr)
+	declare sub relatorioSomarAnal(sit as TipoSituacao, anal as TDocItemAnal ptr)
+	declare sub relatorioSomarAjuste(sit as TipoSituacao, ajuste as TDocObsAjuste ptr)
 	declare function codMunicipio2Nome(cod as integer) as string
 	declare function gerarPaginaRelatorio(lastPage as boolean = false) as boolean
 	declare sub gerarResumoRelatorio(emitir as boolean)
 	declare sub gerarResumoRelatorioHeader(emitir as boolean)
+	declare sub gerarResumoAjustesRelatorioHeader(emitir as boolean)
 	declare sub setNodeText(page as PdfTemplatePageNode ptr, id as string, value as string, convert as boolean = false)
 	declare sub setNodeText(page as PdfTemplatePageNode ptr, id as string, value as wstring ptr)
 	declare sub setChildText(row as PdfTemplateNode ptr, id as string, value as string, convert as boolean = false)
 	declare sub setChildText(row as PdfTemplateNode ptr, id as string, value as wstring ptr)
 	declare function gerarLinhaDFe(lg as boolean, highlight as boolean) as PdfTemplateNode ptr
 	declare function gerarLinhaAnal() as PdfTemplateNode ptr
+	declare function gerarLinhaObs(isFirst as boolean) as PdfTemplateNode ptr
+	declare function gerarLinhaObsAjuste(isFirst as boolean) as PdfTemplateNode ptr
 	declare function criarPaginaRelatorio(emitir as boolean) as RelPagina ptr
 	
 	declare sub analisarInconsistenciasLRE()
@@ -1137,11 +1202,13 @@ private:
 	contaContabDict        	as TDict ptr
 	centroCustoDict        	as TDict ptr
 	infoComplDict			as TDict ptr
+	obsLancamentoDict		as TDict ptr
 	sintegraDict			as TDict ptr
 	ultimoReg   			as TRegistro ptr
 	ultimoDocNFItem  		as TDocNFItem ptr
 	ultimoEquipECF			as TEquipECF ptr
 	ultimoECFRedZ			as TRegistro ptr
+	ultimoDocObs			as TDocObs ptr
 	ultimoInventario		as TInventarioTotais ptr
 	ultimoBemCiap			as TBemCiap ptr
 	ultimoCiap				as TCiapTotal ptr
@@ -1201,8 +1268,10 @@ private:
 	baseTemplatesDir		as string
 	ultimoRelatorio			as TipoRelatorio
 	ultimoRelatorioSufixo	as string
-	relSomaLRDict			as TDict ptr
-	relSomaLRList			as TList ptr		'' de RelSomatorioLR
+	relSomaAnalDict			as TDict ptr
+	relSomaAnalList			as TList ptr		'' de RelSomatorioAnal
+	relSomaAjustesDict		as TDict ptr
+	relSomaAjustesList		as TList ptr		'' de RelSomatorioAjuste
 	nroRegistrosRel			as integer
 	municipDict				as TDict ptr
 	relLinhasList			as TList ptr		'' de RelLinha
