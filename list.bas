@@ -131,7 +131,7 @@ function TList.addOrdAsc(key as double, cmpFunc as onCompareDoubleCb) as any ptr
 end function
 
 private function string_cmpFunc(key as any ptr, extra as any ptr, node as any ptr) as boolean
-	return cast(onCompareStringCb, extra)(cast(zstring ptr, key), node)
+	return cast(onCompareStringCb, extra)(*cast(zstring ptr ptr, key), node)
 end function
 
 function TList.addOrdAsc(key as zstring ptr, cmpFunc as onCompareStringCb) as any ptr

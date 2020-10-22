@@ -19,6 +19,7 @@ const LRS_OBS_AJUSTE_HEADER_HEIGHT = LRS_OBS_HEIGHT + ANAL_HEIGHT - 1.0
 const LRS_OBS_AJUSTE_HEIGHT = ANAL_HEIGHT
 const LRE_MAX_NAME_LEN = 31.25
 const LRS_MAX_NAME_LEN = 34.50
+const AJUSTE_MAX_DESC_LEN = 160
 const LRE_RESUMO_TITLE_HEIGHT = 9
 const LRE_RESUMO_HEADER_HEIGHT = 10
 const LRE_RESUMO_ROW_HEIGHT = 10.0
@@ -93,19 +94,22 @@ private function substr(src as const zstring ptr, byref start as single, maxWidt
 	return res
 end function
 
-#macro list_add_ANAL(__doc, __sit)
+#macro list_add_ANAL(__doc, __sit, isPre)
 	scope
 		var anal = __doc.itemAnalListHead
 		do while anal <> null
 			if relYPos + ANAL_HEIGHT > PAGE_BOTTOM then
-				gerarPaginaRelatorio()
+				gerarPaginaRelatorio(false, isPre)
 			end if
-			var lin = cast(RelLinha ptr, relLinhasList->add())
-			lin->tipo = REL_LIN_DF_ITEM_ANAL
-			lin->anal.item = anal
-			lin->anal.sit = __sit
+			if not isPre then
+				var lin = cast(RelLinha ptr, relLinhasList->add())
+				lin->tipo = REL_LIN_DF_ITEM_ANAL
+				lin->anal.item = anal
+				lin->anal.sit = __sit
+			end if
 			relYPos += ANAL_HEIGHT
 			relNroLinhas += 1
+			relatorioSomarAnal(__sit, anal, isPre)
 			anal = anal->next_
 		loop
 	end scope
@@ -113,23 +117,26 @@ end function
 
 #define calcObsAjusteHeight(isFirst) (iif(isFirst, STROKE_WIDTH*2 + LRS_OBS_AJUSTE_HEADER_HEIGHT, 0) + LRS_OBS_AJUSTE_HEIGHT)
 
-#macro list_add_OBS_AJUSTE(__obs, __sit)
+#macro list_add_OBS_AJUSTE(__obs, __sit, isPre)
 	scope 
 		var cnt = 0
 		var ajuste = __obs->ajusteListHead
 		do while ajuste <> null
 			if relYPos + calcObsAjusteHeight(cnt = 0) > PAGE_BOTTOM then
-				gerarPaginaRelatorio()
+				gerarPaginaRelatorio(false, isPre)
 				cnt = 0
 			end if
-			var lin = cast(RelLinha ptr, relLinhasList->add())
-			lin->tipo = REL_LIN_DF_OBS_AJUSTE
-			lin->ajuste.ajuste = ajuste
-			lin->ajuste.sit = __sit
-			lin->ajuste.isFirst = (cnt = 0)
+			if not isPre then
+				var lin = cast(RelLinha ptr, relLinhasList->add())
+				lin->tipo = REL_LIN_DF_OBS_AJUSTE
+				lin->ajuste.ajuste = ajuste
+				lin->ajuste.sit = __sit
+				lin->ajuste.isFirst = (cnt = 0)
+			end if
 			relYPos += calcObsAjusteHeight(cnt = 0)
 			relNroLinhas += 1
 			cnt += 1
+			relatorioSomarAjuste(__sit, ajuste)
 			ajuste = ajuste->next_
 		loop
 	end scope
@@ -137,23 +144,25 @@ end function
 
 #define calcObsHeight(isFirst) (iif(isFirst, STROKE_WIDTH*2 + LRS_OBS_HEADER_HEIGHT, 0) + LRS_OBS_HEIGHT)
 
-#macro list_add_OBS(__doc, __sit)
+#macro list_add_OBS(__doc, __sit, isPre)
 	scope 
 		var cnt = 0
 		var obs = __doc.obsListHead
 		do while obs <> null
 			if relYPos + calcObsHeight(cnt = 0) > PAGE_BOTTOM then
-				gerarPaginaRelatorio()
+				gerarPaginaRelatorio(false, isPre)
 				cnt = 0
 			end if
-			var lin = cast(RelLinha ptr, relLinhasList->add())
-			lin->tipo = REL_LIN_DF_OBS
-			lin->obs.obs = obs
-			lin->obs.sit = __sit
-			lin->obs.isFirst = (cnt = 0)
+			if not isPre then
+				var lin = cast(RelLinha ptr, relLinhasList->add())
+				lin->tipo = REL_LIN_DF_OBS
+				lin->obs.obs = obs
+				lin->obs.sit = __sit
+				lin->obs.isFirst = (cnt = 0)
+			end if
 			relYPos += calcObsHeight(cnt = 0)
 			relNroLinhas += 1
-			list_add_OBS_AJUSTE(obs, __sit)
+			list_add_OBS_AJUSTE(obs, __sit, isPre)
 			cnt += 1
 			obs = obs->next_
 		loop
@@ -162,80 +171,88 @@ end function
 
 #define calcHeight(lg) iif(relNroLinhas > 0, ROW_SPACE_BEFORE, 0) + iif(lg, ROW_HEIGHT_LG, ROW_HEIGHT)
 
-#macro list_add_DF_ENTRADA(__doc, __part)
+#macro list_add_DF_ENTRADA(__doc, __part, isPre)
 	scope
 		var len_ = iif(part <> null, calcLen(part->nome), 0)
 		var lg = len_ > cint(LRE_MAX_NAME_LEN + 0.5)
 		if relYPos + calcHeight(lg) > PAGE_BOTTOM then
-			gerarPaginaRelatorio()
+			gerarPaginaRelatorio(false, isPre)
 		end if
-		var lin = cast(RelLinha ptr, relLinhasList->add())
-		lin->tipo = REL_LIN_DF_ENTRADA
-		lin->highlight = false
-		lin->large = lg
-		lin->df.doc = @__doc
-		lin->df.part = __part
+		if not isPre then
+			var lin = cast(RelLinha ptr, relLinhasList->add())
+			lin->tipo = REL_LIN_DF_ENTRADA
+			lin->highlight = false
+			lin->large = lg
+			lin->df.doc = @__doc
+			lin->df.part = __part
+		end if
 		relYPos += calcHeight(lg)
 		relNroLinhas += 1
 		nroRegistrosRel += 1
-		list_add_ANAL(__doc, __doc.situacao)
-		list_add_OBS(__doc, __doc.situacao)
+		list_add_ANAL(__doc, __doc.situacao, isPre)
+		list_add_OBS(__doc, __doc.situacao, isPre)
 	end scope
 #endmacro
 
-#macro list_add_DF_SAIDA(__doc, __part)
+#macro list_add_DF_SAIDA(__doc, __part, isPre)
 	scope
 		var len_ = iif(part <> null, calcLen(part->nome), 0)
 		var lg = len_ > cint(LRS_MAX_NAME_LEN + 0.5)
 		if relYPos + calcHeight(lg) > PAGE_BOTTOM then
-			gerarPaginaRelatorio()
+			gerarPaginaRelatorio(false, isPre)
 		end if
-		var lin = cast(RelLinha ptr, relLinhasList->add())
-		lin->tipo = REL_LIN_DF_SAIDA
-		lin->highlight = false
-		lin->large = lg
-		lin->df.doc = @__doc
-		lin->df.part = __part
+		if not isPre then
+			var lin = cast(RelLinha ptr, relLinhasList->add())
+			lin->tipo = REL_LIN_DF_SAIDA
+			lin->highlight = false
+			lin->large = lg
+			lin->df.doc = @__doc
+			lin->df.part = __part
+		end if
 		relYPos += calcHeight(lg)
 		relNroLinhas += 1
 		nroRegistrosRel += 1
-		list_add_ANAL(__doc, __doc.situacao)
-		list_add_OBS(__doc, __doc.situacao)
+		list_add_ANAL(__doc, __doc.situacao, isPre)
+		list_add_OBS(__doc, __doc.situacao, isPre)
 	end scope
 #endmacro
 
-#macro list_add_REDZ(__doc)
+#macro list_add_REDZ(__doc, isPre)
 	scope
 		if relYPos + calcHeight(false) > PAGE_BOTTOM then
-			gerarPaginaRelatorio()
+			gerarPaginaRelatorio(false, isPre)
 		end if
-		var lin = cast(RelLinha ptr, relLinhasList->add())
-		lin->tipo = REL_LIN_DF_REDZ
-		lin->highlight = false
-		lin->large = false
-		lin->redz.doc = @__doc
+		if not isPre then
+			var lin = cast(RelLinha ptr, relLinhasList->add())
+			lin->tipo = REL_LIN_DF_REDZ
+			lin->highlight = false
+			lin->large = false
+			lin->redz.doc = @__doc
+		end if
 		relYPos += calcHeight(false)
 		relNroLinhas += 1
 		nroRegistrosRel += 1
-		list_add_ANAL(__doc, REGULAR)
+		list_add_ANAL(__doc, REGULAR, isPre)
 	end scope
 #endmacro
 
-#macro list_add_SAT(__doc)
+#macro list_add_SAT(__doc, isPre)
 	scope
 		if relYPos + calcHeight(false) > PAGE_BOTTOM then
-			gerarPaginaRelatorio()
+			gerarPaginaRelatorio(false, isPre)
 		end if
-		var lin = cast(RelLinha ptr, relLinhasList->add())
-		lin->tipo = REL_LIN_DF_SAT
-		lin->highlight = false
-		lin->large = false
-		lin->sat.doc = @__doc
+		if not isPre then
+			var lin = cast(RelLinha ptr, relLinhasList->add())
+			lin->tipo = REL_LIN_DF_SAT
+			lin->highlight = false
+			lin->large = false
+			lin->sat.doc = @__doc
+		end if
 		relYPos += calcHeight(false)
 		relNroLinhas += 1
 		nroRegistrosRel += 1
-		list_add_ANAL(__doc, REGULAR)
-		list_add_OBS(__doc, REGULAR)
+		list_add_ANAL(__doc, REGULAR, isPre)
+		list_add_OBS(__doc, REGULAR, isPre)
 	end scope
 #endmacro
 
@@ -248,17 +265,53 @@ sub Efd.gerarRelatorios(nomeArquivo as string)
 	
 	ultimoRelatorio = -1
 
-	relLinhasList = new TList(cint(PAGE_BOTTOM / ROW_HEIGHT + 0.5), len(RelLinha))
-	relPaginasList = new Tlist(1000, len(RelPagina))
+	relLinhasList = new TList(cint(PAGE_BOTTOM / ROW_HEIGHT + 0.5), len(RelLinha), false)
 	
 	if not opcoes.pularLre then
 		onProgress(!"\tGerando relatório do LRE", 0)
-		
-		'' LRE
-		iniciarRelatorio(REL_LRE, "entradas", "LRE")
+
+		'' LRE (contagem de páginas)
+		iniciarRelatorio(REL_LRE, "entradas", "LRE", true)
+		relNroTotalPaginas = 0
 		
 		var reg = regListHead
 		var regCnt = 0
+		try
+			do while reg <> null
+				select case as const reg->tipo
+				'NF-e?
+				case DOC_NF, DOC_NFSCT, DOC_NF_ELETRIC
+					if reg->nf.operacao = ENTRADA then
+						var part = cast( TParticipante ptr, participanteDict->lookup(reg->nf.idParticipante) )
+						list_add_DF_ENTRADA(reg->nf, part, true)
+					end if
+				
+				'CT-e?
+				case DOC_CT
+					if reg->ct.operacao = ENTRADA then
+						var part = cast( TParticipante ptr, participanteDict->lookup(reg->ct.idParticipante) )
+						list_add_DF_ENTRADA(reg->ct, part, true)
+					end if
+				end select
+				
+				regCnt += 1
+				if not onProgress(null, (regCnt / nroRegs) * 0.25) then
+					exit do
+				end if
+				
+				reg = reg->next_
+			loop
+		catch
+			onError(!"\r\nErro ao tratar o registro de tipo (" & reg->tipo & !") carregado na linha (" & reg->linha & !")\r\n")
+		endtry
+		
+		finalizarRelatorio(true)
+		
+		'' LRE (geração de páginas)
+		iniciarRelatorio(REL_LRE, "entradas", "LRE", false)
+		
+		reg = regListHead
+		regCnt = 0
 		try
 			do while reg <> null
 				'para cada registro..
@@ -267,14 +320,14 @@ sub Efd.gerarRelatorios(nomeArquivo as string)
 				case DOC_NF, DOC_NFSCT, DOC_NF_ELETRIC
 					if reg->nf.operacao = ENTRADA then
 						var part = cast( TParticipante ptr, participanteDict->lookup(reg->nf.idParticipante) )
-						list_add_DF_ENTRADA(reg->nf, part)
+						list_add_DF_ENTRADA(reg->nf, part, false)
 					end if
 				
 				'CT-e?
 				case DOC_CT
 					if reg->ct.operacao = ENTRADA then
 						var part = cast( TParticipante ptr, participanteDict->lookup(reg->ct.idParticipante) )
-						list_add_DF_ENTRADA(reg->ct, part)
+						list_add_DF_ENTRADA(reg->ct, part, false)
 					end if
 
 				case LUA_CUSTOM
@@ -289,7 +342,7 @@ sub Efd.gerarRelatorios(nomeArquivo as string)
 				end select
 				
 				regCnt += 1
-				if not onProgress(null, (regCnt / nroRegs) / 2) then
+				if not onProgress(null, 0.25 + (regCnt / nroRegs) * 0.75) then
 					exit do
 				end if
 				
@@ -299,44 +352,88 @@ sub Efd.gerarRelatorios(nomeArquivo as string)
 			onError(!"\r\nErro ao tratar o registro de tipo (" & reg->tipo & !") carregado na linha (" & reg->linha & !")\r\n")
 		endtry
 		
-		finalizarRelatorio()
+		finalizarRelatorio(false)
 		
 		onProgress(null, 1)
 	end if
 	
 	if not opcoes.pularLrs then
 		onProgress(!"\tGerando relatório do LRS", 0)
-		
-		'' LRS
-		iniciarRelatorio(REL_LRS, "saidas", "LRS")
+
+		'' LRS (contagem de páginas)
+		iniciarRelatorio(REL_LRS, "saidas", "LRS", true)
+		relNroTotalPaginas = 0
 		
 		var reg = regListHead
 		var regCnt = 0
 		try
 			do while reg <> null
-				'para cada registro..
 				select case as const reg->tipo
 				'NF-e?
 				case DOC_NF, DOC_NFSCT, DOC_NF_ELETRIC
 					if reg->nf.operacao = SAIDA then
 						var part = cast( TParticipante ptr, participanteDict->lookup(reg->nf.idParticipante) )
-						list_add_DF_SAIDA(reg->nf, part)
+						list_add_DF_SAIDA(reg->nf, part, true)
 					end if
 
 				'CT-e?
 				case DOC_CT
 					if reg->ct.operacao = SAIDA then
 						var part = cast( TParticipante ptr, participanteDict->lookup(reg->ct.idParticipante) )
-						list_add_DF_SAIDA(reg->ct, part)
+						list_add_DF_SAIDA(reg->ct, part, true)
 					end if
 					
 				'ECF Redução Z?
 				case ECF_REDUCAO_Z
-					list_add_REDZ(reg->ecfRedZ)
+					list_add_REDZ(reg->ecfRedZ, true)
 				
 				'SAT?
 				case DOC_SAT
-					list_add_SAT(reg->sat)
+					list_add_SAT(reg->sat, true)
+				end select
+
+				regCnt += 1
+				if not onProgress(null, (regCnt / nroRegs) * 0.25) then
+					exit do
+				end if
+				
+				reg = reg->next_
+			loop
+		catch
+			onError(!"\r\nErro ao tratar o registro de tipo (" & reg->tipo & !") carregado na linha (" & reg->linha & !")\r\n")
+		endtry
+		
+		finalizarRelatorio(true)
+		
+		'' LRS (geração de páginas)
+		iniciarRelatorio(REL_LRS, "saidas", "LRS", false)
+		
+		reg = regListHead
+		regCnt = 0
+		try
+			do while reg <> null
+				select case as const reg->tipo
+				'NF-e?
+				case DOC_NF, DOC_NFSCT, DOC_NF_ELETRIC
+					if reg->nf.operacao = SAIDA then
+						var part = cast( TParticipante ptr, participanteDict->lookup(reg->nf.idParticipante) )
+						list_add_DF_SAIDA(reg->nf, part, false)
+					end if
+
+				'CT-e?
+				case DOC_CT
+					if reg->ct.operacao = SAIDA then
+						var part = cast( TParticipante ptr, participanteDict->lookup(reg->ct.idParticipante) )
+						list_add_DF_SAIDA(reg->ct, part, false)
+					end if
+					
+				'ECF Redução Z?
+				case ECF_REDUCAO_Z
+					list_add_REDZ(reg->ecfRedZ, false)
+				
+				'SAT?
+				case DOC_SAT
+					list_add_SAT(reg->sat, false)
 				
 				case LUA_CUSTOM
 					var luaFunc = cast(customLuaCb ptr, customLuaCbDict->lookup(reg->lua.tipo))->rel_saidas
@@ -350,7 +447,7 @@ sub Efd.gerarRelatorios(nomeArquivo as string)
 				end select
 
 				regCnt += 1
-				if not onProgress(null, (regCnt / nroRegs) / 2) then
+				if not onProgress(null, 0.25 + (regCnt / nroRegs) * 0.75) then
 					exit do
 				end if
 				
@@ -360,7 +457,7 @@ sub Efd.gerarRelatorios(nomeArquivo as string)
 			onError(!"\r\nErro ao tratar o registro de tipo (" & reg->tipo & !") carregado na linha (" & reg->linha & !")\r\n")
 		endtry
 		
-		finalizarRelatorio()
+		finalizarRelatorio(false)
 		
 		onProgress(null, 1)
 	end if
@@ -374,21 +471,24 @@ sub Efd.gerarRelatorios(nomeArquivo as string)
 			case APURACAO_ICMS_PERIODO
 				if not opcoes.pularLraicms then
 					onProgress(!"\tGerando relatório do LRAICMS", 0)
-					gerarRelatorioApuracaoICMS(nomeArquivo, reg)
+					gerarRelatorioApuracaoICMS(nomeArquivo, reg, true)
+					gerarRelatorioApuracaoICMS(nomeArquivo, reg, false)
 					onProgress(null, 1)
 				end if
 
 			case APURACAO_ICMS_ST_PERIODO
 				if not opcoes.pularLraicms then
 					onProgress(!"\tGerando relatório do LRAICMS-ST", 0)
-					gerarRelatorioApuracaoICMSST(nomeArquivo, reg)
+					gerarRelatorioApuracaoICMSST(nomeArquivo, reg, true)
+					gerarRelatorioApuracaoICMSST(nomeArquivo, reg, false)
 					onProgress(null, 1)
 				end if
 				
 			case CIAP_TOTAL
 				if not opcoes.pularCiap then
 					onProgress(!"\tGerando relatório do CIAP", 0)
-					gerarRelatorioCiap(nomeArquivo, reg)
+					gerarRelatorioCiap(nomeArquivo, reg, true)
+					gerarRelatorioCiap(nomeArquivo, reg, false)
 					onProgress(null, 1)
 				end if
 				
@@ -410,137 +510,236 @@ sub Efd.gerarRelatorios(nomeArquivo as string)
 		onError(!"\r\nErro ao tratar o registro de tipo (" & reg->tipo & !") carregado na linha (" & reg->linha & !")\r\n")
 	endtry
 	
-	delete relPaginasList
 	delete relLinhasList
 	
 end sub
 
 ''''''''
-private function efd.criarPaginaRelatorio(emitir as boolean) as RelPagina ptr
-	var pagina = cast(RelPagina ptr, relPaginasList->add())
-	pagina->emitir = emitir
+sub Efd.iniciarRelatorio(relatorio as TipoRelatorio, nomeRelatorio as string, sufixo as string, isPre as boolean)
 
-	if emitir then
-		relPage = relTemplate->clonePage(0)
-		pagina->page = relPage
+	if ultimoRelatorio = relatorio then
+		return
 	end if
+		
+	ultimoRelatorioSufixo = sufixo
+	ultimoRelatorio = relatorio
+	nroRegistrosRel = 0
 	
-	relNroLinhas = 0
 	relYPos = 0
-	relNroPaginas += 1
+	relNroLinhas = 0
+	relNroPaginas = 0
+	relPage = null
 	
-	return pagina
-end function
+	select case relatorio
+	case REL_LRE, REL_LRS
+		relSomaAnalList = new Tlist(10, len(RelSomatorioAnal))
+		relSomaAnalDict = new TDict(10)
+		relSomaAjustesList = new Tlist(10, len(RelSomatorioAjuste))
+		relSomaAjustesDict = new TDict(10)
+	end select
+
+	if not isPre then
+		relOutFile = new PdfDoc()
+
+		relTemplate = new PdfTemplate(baseTemplatesDir + nomeRelatorio + ".xml")
+		relTemplate->load()
+		
+		var page = relTemplate->getPage(0)
+		
+		'' alterar header e footer
+		var header = page->getNode("header")
+		header->setAttrib("hidden", false)
+		
+		setNodeText(page, "NOME", regMestre->mestre.nome, true)
+		setNodeText(page, "CNPJ", STR2CNPJ(regMestre->mestre.cnpj))
+		setNodeText(page, "IE", regMestre->mestre.ie)
+		
+		select case relatorio
+		case REL_LRE, REL_LRS, REL_CIAP
+			setNodeText(page, "UF", MUNICIPIO2SIGLA(regMestre->mestre.municip))
+			setNodeText(page, "MUNICIPIO", codMunicipio2Nome(regMestre->mestre.municip))
+			if relatorio <> REL_CIAP then
+				setNodeText(page, "APU", YyyyMmDd2DatetimeBR(regMestre->mestre.dataIni) + " a " + YyyyMmDd2DatetimeBR(regMestre->mestre.dataFim))
+			else
+				setNodeText(page, "ESCRIT", YyyyMmDd2DatetimeBR(regMestre->mestre.dataIni) + " a " + YyyyMmDd2DatetimeBR(regMestre->mestre.dataFim))
+			end if
+		end select
+		
+		var footer = page->getNode("footer")
+		footer->setAttrib("hidden", false)
+			
+		if relatorio <> REL_CIAP then
+			if infAssinatura <> null then
+				setNodeText(page, "NOME_ASS", infAssinatura->assinante, true)
+				setNodeText(page, "CPF_ASS", STR2CPF(infAssinatura->cpf))
+				setNodeText(page, "HASH_ASS", infAssinatura->hashDoArquivo)
+				if relatorio = REL_LRE then
+					setNodeText(page, "NOME2_ASS", infAssinatura->assinante, true)
+				end if
+			end if
+		end if
+	end if
+
+end sub
 
 ''''''''
-private function efd.gerarPaginaRelatorio(lastPage as boolean) as boolean
-
-	var gerarPagina = true
+sub efd.criarPaginaRelatorio(emitir as boolean, isPre as boolean)
 	
-	if opcoes.filtrarCnpj then
-		gerarPagina = false
-		var n = cast(RelLinha ptr, relLinhasList->head)
-		do while n <> null
-			dim as TParticipante ptr part = null
-			select case as const n->tipo
-			case REL_LIN_DF_ENTRADA
-				part = n->df.part
-			case REL_LIN_DF_SAIDA
-				part = n->df.part
-			end select
-			
-			if part <> null then
-				if filtrarPorCnpj(part->cnpj) then
-					gerarPagina = true
-					if not opcoes.highlight then
-						exit do
-					end if
-					n->highlight = true
-				end if
+	if not isPre then
+		if emitir then
+			if relPage <> null then
+				emitirPaginaRelatorio(emitir, isPre)
 			end if
-			
-			n = relLinhasList->next_(n)
-		loop
-	end if
-	
-	if gerarPagina andalso opcoes.filtrarChaves then
-		gerarPagina = false
-		var n = cast(RelLinha ptr, relLinhasList->head)
-		do while n <> null
-			dim as zstring ptr chave = null
-			select case as const n->tipo
-			case REL_LIN_DF_ENTRADA, _
-				 REL_LIN_DF_SAIDA
-				chave = @n->df.doc->chave
-			case REL_LIN_DF_SAT
-				chave = @n->sat.doc->chave
-			end select
-			
-			if chave <> null then
-				if filtrarPorChave(chave) then
-					gerarPagina = true
-					if not opcoes.highlight then
-						exit do
-					end if
-					n->highlight = true
-				end if
-			end if
-			
-			n = relLinhasList->next_(n)
-		loop
+			relPage = relTemplate->clonePage(0)
+		end if
 	end if
 
-	criarPaginaRelatorio(gerarPagina)
+	relNroLinhas = 0
+	relYPos = 0
+	
+	relNroPaginas += 1
+	if relNroPaginas > relNroTotalPaginas then
+		relNroTotalPaginas = relNroPaginas
+	end if
+	
+end sub
 
-	'' emitir header e footer
-	var n = cast(RelLinha ptr, relLinhasList->head)
-	do while n <> null
-		
-		if gerarPagina then
-			select case as const n->tipo
-			case REL_LIN_DF_ENTRADA
-				adicionarDocRelatorioEntradas(n->df.doc, n->df.part, n->highlight, n->large)
-			case REL_LIN_DF_SAIDA
-				adicionarDocRelatorioSaidas(n->df.doc, n->df.part, n->highlight, n->large)
-			case REL_LIN_DF_REDZ
-				adicionarDocRelatorioSaidas(n->redz.doc, n->highlight)
-			case REL_LIN_DF_SAT
-				adicionarDocRelatorioSaidas(n->sat.doc, n->highlight)
-			case REL_LIN_DF_ITEM_ANAL
-				adicionarDocRelatorioItemAnal(n->anal.sit, n->anal.item)
-			case REL_LIN_DF_OBS
-				adicionarDocRelatorioObs(n->obs.sit, n->obs.obs, n->obs.isFirst)
-			case REL_LIN_DF_OBS_AJUSTE
-				adicionarDocRelatorioObsAjuste(n->ajuste.sit, n->ajuste.ajuste, n->ajuste.isFirst)
-			end select
-		else
-			select case as const n->tipo
-			case REL_LIN_DF_ENTRADA, REL_LIN_DF_SAIDA
-				relYPos += ROW_SPACE_BEFORE + iif(n->large, ROW_HEIGHT_LG, ROW_HEIGHT)
-			case REL_LIN_DF_REDZ, REL_LIN_DF_SAT
-				relYPos += ROW_SPACE_BEFORE + ROW_HEIGHT
-			case REL_LIN_DF_ITEM_ANAL
-				relYPos += ANAL_HEIGHT
-				relatorioSomarAnal(n->anal.sit, n->anal.item)
-			case REL_LIN_DF_OBS
-				relYPos += calcObsHeight(n->obs.isFirst)
-			case REL_LIN_DF_OBS_AJUSTE
-				relYPos += calcObsHeight(n->ajuste.isFirst)
-				relatorioSomarAjuste(n->ajuste.sit, n->ajuste.ajuste)
-			end select
+sub Efd.emitirPaginaRelatorio(emitir as boolean, isPre as boolean)
+	if not isPre then
+		if emitir then
+			if relPage <> null then
+				var pg = relPage->getNode("PAGINA")
+				if pg <> null then
+					pg->setAttrib("text", wstr(relNroPaginas & "de " & relNroTotalPaginas))
+				end if
+				relPage->emit(relOutFile, relNroPaginas-1)
+				delete relPage
+				relPage = null
+			end if
+		end if
+	end if
+end sub
+
+''''''''
+function efd.gerarPaginaRelatorio(isLast as boolean, isPre as boolean) as boolean
+
+	var gerar = true
+	
+	if not isPre then
+		if opcoes.filtrarCnpj then
+			gerar = false
+			var n = cast(RelLinha ptr, relLinhasList->head)
+			do while n <> null
+				dim as TParticipante ptr part = null
+				select case as const n->tipo
+				case REL_LIN_DF_ENTRADA
+					part = n->df.part
+				case REL_LIN_DF_SAIDA
+					part = n->df.part
+				end select
+				
+				if part <> null then
+					if filtrarPorCnpj(part->cnpj) then
+						gerar = true
+						if not opcoes.highlight then
+							exit do
+						end if
+						n->highlight = true
+					end if
+				end if
+				
+				n = relLinhasList->next_(n)
+			loop
 		end if
 		
-		var p = n
-		n = relLinhasList->next_(n)
-		relLinhasList->del(p)
-	loop
+		if gerar andalso opcoes.filtrarChaves then
+			gerar = false
+			var n = cast(RelLinha ptr, relLinhasList->head)
+			do while n <> null
+				dim as zstring ptr chave = null
+				select case as const n->tipo
+				case REL_LIN_DF_ENTRADA, _
+					 REL_LIN_DF_SAIDA
+					chave = @n->df.doc->chave
+				case REL_LIN_DF_SAT
+					chave = @n->sat.doc->chave
+				end select
+				
+				if chave <> null then
+					if filtrarPorChave(chave) then
+						gerar = true
+						if not opcoes.highlight then
+							exit do
+						end if
+						n->highlight = true
+					end if
+				end if
+				
+				n = relLinhasList->next_(n)
+			loop
+		end if
+	end if
+
+	var lastNroLinhas = relNroLinhas
+	var lastYPos = relYPos
+	criarPaginaRelatorio(gerar, isPre)
+
+	if not isPre then
+		var n = cast(RelLinha ptr, relLinhasList->head)
+		do while n <> null
+			
+			if gerar then
+				select case as const n->tipo
+				case REL_LIN_DF_ENTRADA
+					adicionarDocRelatorioEntradas(n->df.doc, n->df.part, n->highlight, n->large)
+				case REL_LIN_DF_SAIDA
+					adicionarDocRelatorioSaidas(n->df.doc, n->df.part, n->highlight, n->large)
+				case REL_LIN_DF_REDZ
+					adicionarDocRelatorioSaidas(n->redz.doc, n->highlight)
+				case REL_LIN_DF_SAT
+					adicionarDocRelatorioSaidas(n->sat.doc, n->highlight)
+				case REL_LIN_DF_ITEM_ANAL
+					adicionarDocRelatorioItemAnal(n->anal.sit, n->anal.item)
+				case REL_LIN_DF_OBS
+					adicionarDocRelatorioObs(n->obs.sit, n->obs.obs, n->obs.isFirst)
+				case REL_LIN_DF_OBS_AJUSTE
+					adicionarDocRelatorioObsAjuste(n->ajuste.sit, n->ajuste.ajuste, n->ajuste.isFirst)
+				end select
+			else
+				if isLast then
+					select case as const n->tipo
+					case REL_LIN_DF_ENTRADA, REL_LIN_DF_SAIDA
+						relYPos += ROW_SPACE_BEFORE + iif(n->large, ROW_HEIGHT_LG, ROW_HEIGHT)
+					case REL_LIN_DF_REDZ, REL_LIN_DF_SAT
+						relYPos += ROW_SPACE_BEFORE + ROW_HEIGHT
+					case REL_LIN_DF_ITEM_ANAL
+						relYPos += ANAL_HEIGHT
+					case REL_LIN_DF_OBS
+						relYPos += calcObsHeight(n->obs.isFirst)
+					case REL_LIN_DF_OBS_AJUSTE
+						relYPos += calcObsHeight(n->ajuste.isFirst)
+					end select
+				end if
+			end if
+			
+			var p = n
+			n = relLinhasList->next_(n)
+			relLinhasList->del(p)
+		loop
+	else
+		if isLast then
+			relNroLinhas = lastNroLinhas
+			relYPos = lastYPos
+		end if
+	end if
 	
-	if not lastPage then
+	if not isLast then
+		emitirPaginaRelatorio(gerar, isPre)
 		relNroLinhas = 0
 		relYPos = 0
 	end if
 	
-	return gerarPagina
+	return gerar
 
 end function
 
@@ -571,135 +770,149 @@ private function movToDesc(mov as string) as string
 end function
 
 ''''''''
-sub Efd.gerarRelatorioCiap(nomeArquivo as string, reg as TRegistro ptr)
+sub Efd.gerarRelatorioCiap(nomeArquivo as string, reg as TRegistro ptr, isPre as boolean)
 
-	iniciarRelatorio(REL_CIAP, "ciap", "CIAP")
+	iniciarRelatorio(REL_CIAP, "ciap", "CIAP", isPre)
 	
-	criarPaginaRelatorio(true)
+	criarPaginaRelatorio(true, isPre)
 	
-	var node = relPage->getNode("apur")
-	var apur = node->clone(relPage, relPage)
-	apur->setAttrib("hidden", false)
+	if not isPre then
+		var node = relPage->getNode("apur")
+		var apur = node->clone(relPage, relPage)
+		apur->setAttrib("hidden", false)
 	
-	setChildText(apur, "APU", YyyyMmDd2DatetimeBR(reg->ciapTotal.dataIni) + " a " + YyyyMmDd2DatetimeBR(reg->ciapTotal.dataFim))
-	setChildText(apur, "SALDO", DBL2MONEYBR(reg->ciapTotal.saldoInicialICMS))
-	setChildText(apur, "SOMA_PARCELAS", DBL2MONEYBR(reg->ciapTotal.parcelasSoma))
-	setChildText(apur, "SOMA_SAIDAS_TRIB", DBL2MONEYBR(reg->ciapTotal.valorTributExpSoma))
-	setChildText(apur, "SOMA_SAIDAS", DBL2MONEYBR(reg->ciapTotal.valorTotalSaidas))
-	setChildText(apur, "INDICE", format(reg->ciapTotal.indicePercSaidas, "#,#,0.00000000"))
-	setChildText(apur, "CRED_ATIVO", DBL2MONEYBR(reg->ciapTotal.valorIcmsAprop))
-	setChildText(apur, "CRED_OUTROS", DBL2MONEYBR(reg->ciapTotal.valorOutrosCred))
+		setChildText(apur, "APU", YyyyMmDd2DatetimeBR(reg->ciapTotal.dataIni) + " a " + YyyyMmDd2DatetimeBR(reg->ciapTotal.dataFim))
+		setChildText(apur, "SALDO", DBL2MONEYBR(reg->ciapTotal.saldoInicialICMS))
+		setChildText(apur, "SOMA_PARCELAS", DBL2MONEYBR(reg->ciapTotal.parcelasSoma))
+		setChildText(apur, "SOMA_SAIDAS_TRIB", DBL2MONEYBR(reg->ciapTotal.valorTributExpSoma))
+		setChildText(apur, "SOMA_SAIDAS", DBL2MONEYBR(reg->ciapTotal.valorTotalSaidas))
+		setChildText(apur, "INDICE", format(reg->ciapTotal.indicePercSaidas, "#,#,0.00000000"))
+		setChildText(apur, "CRED_ATIVO", DBL2MONEYBR(reg->ciapTotal.valorIcmsAprop))
+		setChildText(apur, "CRED_OUTROS", DBL2MONEYBR(reg->ciapTotal.valorOutrosCred))
+	end if
 	
 	relYPos += CIAP_APUR_HEIGHT + 6
 	
 	var item = reg->ciapTotal.itemListHead
 	do while item <> null
 		if relYPos + CIAP_BEM_HEIGHT > CIAP_PAGE_BOTTOM then
-			criarPaginaRelatorio(true)
+			criarPaginaRelatorio(true, isPre)
 		end if
 		
-		var node = relPage->getNode("bem")
-		var elm = node->clone(relPage, relPage)
-		elm->setAttrib("hidden", false)
-		elm->translateY(-relYPos)		
+		dim bemCiap as TBemCiap ptr = null
+		
+		if not isPre then
+			var node = relPage->getNode("bem")
+			var elm = node->clone(relPage, relPage)
+			elm->setAttrib("hidden", false)
+			elm->translateY(-relYPos)		
+			setChildText(elm, "DATA_MOV", YyyyMmDd2DatetimeBR(item->dataMov))
+			setChildText(elm, "TIPO_MOV", item->tipoMov & " - " & movToDesc(item->tipoMov))
+			setChildText(elm, "COD_BEM", item->bemId)
+			setChildText(elm, "CRED_PROP", DBL2MONEYBR(item->valorIcms))
+			setChildText(elm, "CRED_ST", DBL2MONEYBR(item->valorIcmsST))
+			setChildText(elm, "CRED_DIFAL", DBL2MONEYBR(item->valorIcmsDifal))
+			setChildText(elm, "CRED_FRETE", DBL2MONEYBR(item->valorIcmsFrete))
+			setChildText(elm, "PARCELA", str(item->parcela))
+			setChildText(elm, "VAL_PARCELA", DBL2MONEYBR(item->valorParcela))
+
+			bemCiap = cast( TBemCiap ptr, bemCiapDict->lookup(item->bemId) )
+			if bemCiap <> null then 
+				setChildText(elm, "ID_BEM", iif(bemCiap->tipoMerc = 1, "1 - bem", "2 - componente"))
+				setChildText(elm, "DESC_BEM", bemCiap->descricao, true)
+				setChildText(elm, "FUNC_BEM", bemCiap->funcao, true)
+				setChildText(elm, "VIDA_UTIL", str(bemCiap->vidaUtil))
+				setChildText(elm, "CONTA_ANAL", bemCiap->codAnal)
+				var contaContab = cast( TContaContab ptr, contaContabDict->lookup(bemCiap->codAnal) )
+				if contaContab <> null then
+					setChildText(elm, "DESC_CONTA", contaContab->descricao, true)
+				end if
+				setChildText(elm, "COD_CUSTO", bemCiap->codCusto)
+				var centroCusto = cast( TCentroCusto ptr, centroCustoDict->lookup(bemCiap->codCusto) )
+				if centroCusto <> null then
+					setChildText(elm, "DESC_CUSTO", centroCusto->descricao, true)
+				end if
+			end if
+		end if
+		
 		relYPos += CIAP_BEM_HEIGHT
-
-		setChildText(elm, "DATA_MOV", YyyyMmDd2DatetimeBR(item->dataMov))
-		setChildText(elm, "TIPO_MOV", item->tipoMov & " - " & movToDesc(item->tipoMov))
-		setChildText(elm, "COD_BEM", item->bemId)
-		setChildText(elm, "CRED_PROP", DBL2MONEYBR(item->valorIcms))
-		setChildText(elm, "CRED_ST", DBL2MONEYBR(item->valorIcmsST))
-		setChildText(elm, "CRED_DIFAL", DBL2MONEYBR(item->valorIcmsDifal))
-		setChildText(elm, "CRED_FRETE", DBL2MONEYBR(item->valorIcmsFrete))
-		setChildText(elm, "PARCELA", str(item->parcela))
-		setChildText(elm, "VAL_PARCELA", DBL2MONEYBR(item->valorParcela))
-		
-		var bemCiap = cast( TBemCiap ptr, bemCiapDict->lookup(item->bemId) )
-		if bemCiap <> null then 
-			setChildText(elm, "ID_BEM", iif(bemCiap->tipoMerc = 1, "1 - bem", "2 - componente"))
-			setChildText(elm, "DESC_BEM", bemCiap->descricao, true)
-			setChildText(elm, "FUNC_BEM", bemCiap->funcao, true)
-			setChildText(elm, "VIDA_UTIL", str(bemCiap->vidaUtil))
-			setChildText(elm, "CONTA_ANAL", bemCiap->codAnal)
-			var contaContab = cast( TContaContab ptr, contaContabDict->lookup(bemCiap->codAnal) )
-			if contaContab <> null then
-				setChildText(elm, "DESC_CONTA", contaContab->descricao, true)
-			end if
-			setChildText(elm, "COD_CUSTO", bemCiap->codCusto)
-			var centroCusto = cast( TCentroCusto ptr, centroCustoDict->lookup(bemCiap->codCusto) )
-			if centroCusto <> null then
-				setChildText(elm, "DESC_CUSTO", centroCusto->descricao, true)
-			end if
-		end if
-
 		if relYPos + CIAP_BEM_PRINC_HEIGHT > CIAP_PAGE_BOTTOM then
-			criarPaginaRelatorio(true)
+			criarPaginaRelatorio(true, isPre)
 		end if
 
-		node = relPage->getNode("bem-princ")
-		elm = node->clone(relPage, relPage)
-		elm->setAttrib("hidden", false)
-		elm->translateY(-relYPos)		
-		relYPos += CIAP_BEM_PRINC_HEIGHT + 3
+		if not isPre then
+			var node = relPage->getNode("bem-princ")
+			var elm = node->clone(relPage, relPage)
+			elm->setAttrib("hidden", false)
+			elm->translateY(-relYPos)		
 
-		if bemCiap <> null then 
-			if len(bemCiap->principal) > 0 then
-				var princ = cast( TBemCiap ptr, bemCiapDict->lookup(bemCiap->principal) )
-				if princ <> null then
-					setChildText(elm, "COD_BEM_PRINC", bemCiap->principal)
-					setChildText(elm, "DESC_BEM_PRINC", princ->descricao, true)
-					setChildText(elm, "CONTA_BEM_PRINC", princ->codAnal)
-					var contaContab = cast( TContaContab ptr, contaContabDict->lookup(princ->codAnal) )
-					if contaContab <> null then
-						setChildText(elm, "DESC_CONTA_BEM_PRINC", contaContab->descricao, true)
+			if bemCiap <> null then 
+				if len(bemCiap->principal) > 0 then
+					var princ = cast( TBemCiap ptr, bemCiapDict->lookup(bemCiap->principal) )
+					if princ <> null then
+						setChildText(elm, "COD_BEM_PRINC", bemCiap->principal)
+						setChildText(elm, "DESC_BEM_PRINC", princ->descricao, true)
+						setChildText(elm, "CONTA_BEM_PRINC", princ->codAnal)
+						var contaContab = cast( TContaContab ptr, contaContabDict->lookup(princ->codAnal) )
+						if contaContab <> null then
+							setChildText(elm, "DESC_CONTA_BEM_PRINC", contaContab->descricao, true)
+						end if
 					end if
 				end if
 			end if
 		end if
+
+		relYPos += CIAP_BEM_PRINC_HEIGHT + 3
 		
 		var doc = item->docListHead
 		do while doc <> null
 			if relYPos + CIAP_DOC_HEIGHT > CIAP_PAGE_BOTTOM then
-				criarPaginaRelatorio(true)
+				criarPaginaRelatorio(true, isPre)
 			end if
-			
-			var node = relPage->getNode("doc")
-			var elm = node->clone(relPage, relPage)
-			elm->setAttrib("hidden", false)
-			elm->translateY(-relYPos)		
-			relYPos += CIAP_DOC_HEIGHT
 
-			setChildText(elm, "NUM", str(doc->numero))
-			setChildText(elm, "MOD", format(doc->modelo, "00"))
-			setChildText(elm, "CHAVE", doc->chaveNFe)
-			setChildText(elm, "DTEMI", YyyyMmDd2DatetimeBR(doc->dataEmi))
-			
-			var part = cast( TParticipante ptr, participanteDict->lookup(doc->idParticipante) )
-			if part <> null then
-				setChildText(elm, "FORNEC_ID", doc->idParticipante)
-				setChildText(elm, "FORNEC_NOME", part->nome, true)
+			if not isPre then
+				var node = relPage->getNode("doc")
+				var elm = node->clone(relPage, relPage)
+				elm->setAttrib("hidden", false)
+				elm->translateY(-relYPos)		
+
+				setChildText(elm, "NUM", str(doc->numero))
+				setChildText(elm, "MOD", format(doc->modelo, "00"))
+				setChildText(elm, "CHAVE", doc->chaveNFe)
+				setChildText(elm, "DTEMI", YyyyMmDd2DatetimeBR(doc->dataEmi))
+				
+				var part = cast( TParticipante ptr, participanteDict->lookup(doc->idParticipante) )
+				if part <> null then
+					setChildText(elm, "FORNEC_ID", doc->idParticipante)
+					setChildText(elm, "FORNEC_NOME", part->nome, true)
+				end if
 			end if
+
+			relYPos += CIAP_DOC_HEIGHT
 			
 			var itemDoc = doc->itemListHead
 			do while itemDoc <> null
 				if relYPos + CIAP_DOC_ITEM_HEIGHT > CIAP_PAGE_BOTTOM then
-					criarPaginaRelatorio(true)
+					criarPaginaRelatorio(true, isPre)
 				end if
 
-				var node = relPage->getNode("item")
-				var elm = node->clone(relPage, relPage)
-				elm->setAttrib("hidden", false)
-				elm->translateY(-relYPos)
+				if not isPre then
+					var node = relPage->getNode("item")
+					var elm = node->clone(relPage, relPage)
+					elm->setAttrib("hidden", false)
+					elm->translateY(-relYPos)
+
+					setChildText(elm, "ITEM", str(itemDoc->num))
+					var itemId = cast( TItemId ptr, itemIdDict->lookup(itemDoc->itemId) )
+					if itemId <> null then 
+						setChildText(elm, "ITEM_COD", itemId->id)
+						setChildText(elm, "ITEM_DESC", itemId->descricao, true)
+					else
+						setChildText(elm, "ITEM_COD", itemDoc->itemId)
+					end if
+				end if
+
 				relYPos += CIAP_DOC_ITEM_HEIGHT
-
-				setChildText(elm, "ITEM", str(itemDoc->num))
-				var itemId = cast( TItemId ptr, itemIdDict->lookup(itemDoc->itemId) )
-				if itemId <> null then 
-					setChildText(elm, "ITEM_COD", itemId->id)
-					setChildText(elm, "ITEM_DESC", itemId->descricao, true)
-				else
-					setChildText(elm, "ITEM_COD", itemDoc->itemId)
-				end if
 			
 				itemDoc = itemDoc->next_
 			loop
@@ -709,146 +922,91 @@ sub Efd.gerarRelatorioCiap(nomeArquivo as string, reg as TRegistro ptr)
 		
 		relYPos += 6
 		
-		scope 
+		if not isPre then
 			var node = relPage->getNode("div")
 			var elm = node->clone(relPage, relPage)
 			elm->setAttrib("hidden", false)
 			elm->translateY(-relYPos)
-			relYPos += 2.5
-		end scope
+		end if
+
+		relYPos += 2.5
 		
 		relYPos += 12
 		
 		item = item->next_
 	loop
 	
-	finalizarRelatorio()
+	finalizarRelatorio(isPre)
 	
 end sub
 
 ''''''''
-sub Efd.gerarRelatorioApuracaoICMS(nomeArquivo as string, reg as TRegistro ptr)
+sub Efd.gerarRelatorioApuracaoICMS(nomeArquivo as string, reg as TRegistro ptr, isPre as boolean)
 
-	iniciarRelatorio(REL_RAICMS, "apuracao_icms", "RAICMS")
-	
-	criarPaginaRelatorio(true)
-	
-	setNodeText(relPage, "ESCRIT", YyyyMmDd2DatetimeBR(regMestre->mestre.dataIni) + " a " + YyyyMmDd2DatetimeBR(regMestre->mestre.dataFim))
-	setNodeText(relPage, "APU", YyyyMmDd2DatetimeBR(reg->apuIcms.dataIni) + " a " + YyyyMmDd2DatetimeBR(reg->apuIcms.dataFim))
-	
-	setNodeText(relPage, "SAIDAS", DBL2MONEYBR(reg->apuIcms.totalDebitos))
-	setNodeText(relPage, "AJUSTE_DEB", DBL2MONEYBR(reg->apuIcms.ajustesDebitos))
-	setNodeText(relPage, "AJUSTE_DEB_IMP", DBL2MONEYBR(reg->apuIcms.totalAjusteDeb))
-	setNodeText(relPage, "ESTORNO_CRED", DBL2MONEYBR(reg->apuIcms.estornosCredito))
-	setNodeText(relPage, "CREDITO", DBL2MONEYBR(reg->apuIcms.totalCreditos))
-	setNodeText(relPage, "AJUSTE_CRED", DBL2MONEYBR(reg->apuIcms.ajustesCreditos))
-	setNodeText(relPage, "AJUSTE_CRED_IMP", DBL2MONEYBR(reg->apuIcms.totalAjusteCred))
-	setNodeText(relPage, "ESTORNO_DEB", DBL2MONEYBR(reg->apuIcms.estornoDebitos))
-	setNodeText(relPage, "CRED_ANTERIOR", DBL2MONEYBR(reg->apuIcms.saldoCredAnterior))
-	setNodeText(relPage, "SALDO_DEV", DBL2MONEYBR(reg->apuIcms.saldoDevedorApurado))
-	setNodeText(relPage, "DEDUCOES", DBL2MONEYBR(reg->apuIcms.totalDeducoes))
-	setNodeText(relPage, "A_RECOLHER", DBL2MONEYBR(reg->apuIcms.icmsRecolher))
-	setNodeText(relPage, "A_TRANSPORTAR", DBL2MONEYBR(reg->apuIcms.saldoCredTransportar))
-	setNodeText(relPage, "EXTRA_APU", DBL2MONEYBR(reg->apuIcms.debExtraApuracao))
-
-	finalizarRelatorio()
-	
-end sub
-
-''''''''
-sub Efd.gerarRelatorioApuracaoICMSST(nomeArquivo as string, reg as TRegistro ptr)
-
-	iniciarRelatorio(REL_RAICMSST, "apuracao_icms_st", "RAICMSST_" + reg->apuIcmsST.UF)
-
-	criarPaginaRelatorio(true)
-	
-	setNodeText(relPage, "ESCRIT", YyyyMmDd2DatetimeBR(regMestre->mestre.dataIni) + " a " + YyyyMmDd2DatetimeBR(regMestre->mestre.dataFim))
-	setNodeText(relPage, "APU", YyyyMmDd2DatetimeBR(reg->apuIcmsST.dataIni) + " a " + YyyyMmDd2DatetimeBR(reg->apuIcmsST.dataFim))
-	setNodeText(relPage, "UF", reg->apuIcmsST.UF)
-	setNodeText(relPage, "MOV", iif(reg->apuIcmsST.mov, "1 - COM", "0 - SEM"))
-	
-	setNodeText(relPage, "SALDO_CRED", DBL2MONEYBR(reg->apuIcmsST.saldoCredAnterior))
-	setNodeText(relPage, "DEVOLUCOES", DBL2MONEYBR(reg->apuIcmsST.devolMercadorias))
-	setNodeText(relPage, "RESSARCIMENTOS", DBL2MONEYBR(reg->apuIcmsST.totalRessarciment))
-	setNodeText(relPage, "OUTROS_CRED", DBL2MONEYBR(reg->apuIcmsST.totalOutrosCred))
-	setNodeText(relPage, "AJUSTE_CRED", DBL2MONEYBR(reg->apuIcmsST.ajustesCreditos))
-	setNodeText(relPage, "ICMS_ST", DBL2MONEYBR(reg->apuIcmsST.totalRetencao))
-	setNodeText(relPage, "OUTROS_DEB", DBL2MONEYBR(reg->apuIcmsST.totalOutrosDeb))
-	setNodeText(relPage, "AJUSTE_DEB", DBL2MONEYBR(reg->apuIcmsST.ajustesDebitos))
-	setNodeText(relPage, "SALDO_DEV", DBL2MONEYBR(reg->apuIcmsST.saldoAntesDed))
-	setNodeText(relPage, "DEDUCOES", DBL2MONEYBR(reg->apuIcmsST.totalDeducoes))
-	setNodeText(relPage, "A_RECOLHER", DBL2MONEYBR(reg->apuIcmsST.icmsRecolher))
-	setNodeText(relPage, "A_TRANSPORTAR", DBL2MONEYBR(reg->apuIcmsST.saldoCredTransportar))
-	setNodeText(relPage, "EXTRA_APU", DBL2MONEYBR(reg->apuIcmsST.debExtraApuracao))
-
-	finalizarRelatorio()
-	
-end sub
-
-''''''''
-sub Efd.iniciarRelatorio(relatorio as TipoRelatorio, nomeRelatorio as string, sufixo as string)
-
-	if ultimoRelatorio = relatorio then
-		return
+	iniciarRelatorio(REL_RAICMS, "apuracao_icms", "RAICMS", isPre)
+	if isPre then
+		relNroTotalPaginas = 0
 	end if
+	
+	criarPaginaRelatorio(true, isPre)
+	
+	if not isPre then
+		setNodeText(relPage, "ESCRIT", YyyyMmDd2DatetimeBR(regMestre->mestre.dataIni) + " a " + YyyyMmDd2DatetimeBR(regMestre->mestre.dataFim))
+		setNodeText(relPage, "APU", YyyyMmDd2DatetimeBR(reg->apuIcms.dataIni) + " a " + YyyyMmDd2DatetimeBR(reg->apuIcms.dataFim))
 		
-	finalizarRelatorio()
-	
-	ultimoRelatorioSufixo = sufixo
-	ultimoRelatorio = relatorio
-	nroRegistrosRel = 0
-	
-	relYPos = 0
-	relNroLinhas = 0
-	relNroPaginas = 0
-	relPage = null
-	
-	select case relatorio
-	case REL_LRE, REL_LRS
-		relSomaAnalList = new Tlist(10, len(RelSomatorioAnal))
-		relSomaAnalDict = new TDict(10)
-		relSomaAjustesList = new Tlist(10, len(RelSomatorioAjuste))
-		relSomaAjustesDict = new TDict(10)
-	end select
-	
-	relTemplate = new PdfTemplate(baseTemplatesDir + nomeRelatorio + ".xml")
-	relTemplate->load()
-	
-	var page = relTemplate->getPage(0)
-	
-	'' alterar header e footer
-	var header = page->getNode("header")
-	header->setAttrib("hidden", false)
-	
-	setNodeText(page, "NOME", regMestre->mestre.nome, true)
-	setNodeText(page, "CNPJ", STR2CNPJ(regMestre->mestre.cnpj))
-	setNodeText(page, "IE", regMestre->mestre.ie)
-	
-	select case relatorio
-	case REL_LRE, REL_LRS, REL_CIAP
-		setNodeText(page, "UF", MUNICIPIO2SIGLA(regMestre->mestre.municip))
-		setNodeText(page, "MUNICIPIO", codMunicipio2Nome(regMestre->mestre.municip))
-		if relatorio <> REL_CIAP then
-			setNodeText(page, "APU", YyyyMmDd2DatetimeBR(regMestre->mestre.dataIni) + " a " + YyyyMmDd2DatetimeBR(regMestre->mestre.dataFim))
-		else
-			setNodeText(page, "ESCRIT", YyyyMmDd2DatetimeBR(regMestre->mestre.dataIni) + " a " + YyyyMmDd2DatetimeBR(regMestre->mestre.dataFim))
-		end if
-	end select
-	
-	var footer = page->getNode("footer")
-	footer->setAttrib("hidden", false)
-		
-	if relatorio <> REL_CIAP then
-		if infAssinatura <> null then
-			setNodeText(page, "NOME_ASS", infAssinatura->assinante, true)
-			setNodeText(page, "CPF_ASS", STR2CPF(infAssinatura->cpf))
-			setNodeText(page, "HASH_ASS", infAssinatura->hashDoArquivo)
-			if relatorio = REL_LRE then
-				setNodeText(page, "NOME2_ASS", infAssinatura->assinante, true)
-			end if
-		end if
+		setNodeText(relPage, "SAIDAS", DBL2MONEYBR(reg->apuIcms.totalDebitos))
+		setNodeText(relPage, "AJUSTE_DEB", DBL2MONEYBR(reg->apuIcms.ajustesDebitos))
+		setNodeText(relPage, "AJUSTE_DEB_IMP", DBL2MONEYBR(reg->apuIcms.totalAjusteDeb))
+		setNodeText(relPage, "ESTORNO_CRED", DBL2MONEYBR(reg->apuIcms.estornosCredito))
+		setNodeText(relPage, "CREDITO", DBL2MONEYBR(reg->apuIcms.totalCreditos))
+		setNodeText(relPage, "AJUSTE_CRED", DBL2MONEYBR(reg->apuIcms.ajustesCreditos))
+		setNodeText(relPage, "AJUSTE_CRED_IMP", DBL2MONEYBR(reg->apuIcms.totalAjusteCred))
+		setNodeText(relPage, "ESTORNO_DEB", DBL2MONEYBR(reg->apuIcms.estornoDebitos))
+		setNodeText(relPage, "CRED_ANTERIOR", DBL2MONEYBR(reg->apuIcms.saldoCredAnterior))
+		setNodeText(relPage, "SALDO_DEV", DBL2MONEYBR(reg->apuIcms.saldoDevedorApurado))
+		setNodeText(relPage, "DEDUCOES", DBL2MONEYBR(reg->apuIcms.totalDeducoes))
+		setNodeText(relPage, "A_RECOLHER", DBL2MONEYBR(reg->apuIcms.icmsRecolher))
+		setNodeText(relPage, "A_TRANSPORTAR", DBL2MONEYBR(reg->apuIcms.saldoCredTransportar))
+		setNodeText(relPage, "EXTRA_APU", DBL2MONEYBR(reg->apuIcms.debExtraApuracao))
 	end if
 
+	finalizarRelatorio(isPre)
+	
+end sub
+
+''''''''
+sub Efd.gerarRelatorioApuracaoICMSST(nomeArquivo as string, reg as TRegistro ptr, isPre as boolean)
+
+	iniciarRelatorio(REL_RAICMSST, "apuracao_icms_st", "RAICMSST_" + reg->apuIcmsST.UF, isPre)
+	if isPre then
+		relNroTotalPaginas = 0
+	end if
+
+	criarPaginaRelatorio(true, isPre)
+	
+	if not isPre then
+		setNodeText(relPage, "ESCRIT", YyyyMmDd2DatetimeBR(regMestre->mestre.dataIni) + " a " + YyyyMmDd2DatetimeBR(regMestre->mestre.dataFim))
+		setNodeText(relPage, "APU", YyyyMmDd2DatetimeBR(reg->apuIcmsST.dataIni) + " a " + YyyyMmDd2DatetimeBR(reg->apuIcmsST.dataFim))
+		setNodeText(relPage, "UF", reg->apuIcmsST.UF)
+		setNodeText(relPage, "MOV", iif(reg->apuIcmsST.mov, "1 - COM", "0 - SEM"))
+		
+		setNodeText(relPage, "SALDO_CRED", DBL2MONEYBR(reg->apuIcmsST.saldoCredAnterior))
+		setNodeText(relPage, "DEVOLUCOES", DBL2MONEYBR(reg->apuIcmsST.devolMercadorias))
+		setNodeText(relPage, "RESSARCIMENTOS", DBL2MONEYBR(reg->apuIcmsST.totalRessarciment))
+		setNodeText(relPage, "OUTROS_CRED", DBL2MONEYBR(reg->apuIcmsST.totalOutrosCred))
+		setNodeText(relPage, "AJUSTE_CRED", DBL2MONEYBR(reg->apuIcmsST.ajustesCreditos))
+		setNodeText(relPage, "ICMS_ST", DBL2MONEYBR(reg->apuIcmsST.totalRetencao))
+		setNodeText(relPage, "OUTROS_DEB", DBL2MONEYBR(reg->apuIcmsST.totalOutrosDeb))
+		setNodeText(relPage, "AJUSTE_DEB", DBL2MONEYBR(reg->apuIcmsST.ajustesDebitos))
+		setNodeText(relPage, "SALDO_DEV", DBL2MONEYBR(reg->apuIcmsST.saldoAntesDed))
+		setNodeText(relPage, "DEDUCOES", DBL2MONEYBR(reg->apuIcmsST.totalDeducoes))
+		setNodeText(relPage, "A_RECOLHER", DBL2MONEYBR(reg->apuIcmsST.icmsRecolher))
+		setNodeText(relPage, "A_TRANSPORTAR", DBL2MONEYBR(reg->apuIcmsST.saldoCredTransportar))
+		setNodeText(relPage, "EXTRA_APU", DBL2MONEYBR(reg->apuIcmsST.debExtraApuracao))
+	end if
+
+	finalizarRelatorio(isPre)
+	
 end sub
 
 ''''''''
@@ -897,7 +1055,6 @@ function Efd.gerarLinhaObs(isFirst as boolean) as PdfTemplateNode ptr
 		relYPos += STROKE_WIDTH*2
 		clone->translateY(-relYPos)
 		relYPos += LRS_OBS_HEADER_HEIGHT
-		relNroLinhas += 1
 	end if
 	
 	var node = relPage->getNode("obs")
@@ -920,7 +1077,6 @@ function Efd.gerarLinhaObsAjuste(isFirst as boolean) as PdfTemplateNode ptr
 		relYPos += STROKE_WIDTH*2
 		clone->translateY(-relYPos)
 		relYPos += LRS_OBS_AJUSTE_HEADER_HEIGHT
-		relNroLinhas += 1
 	end if
 	
 	var node = relPage->getNode("ajuste")
@@ -933,12 +1089,12 @@ function Efd.gerarLinhaObsAjuste(isFirst as boolean) as PdfTemplateNode ptr
 	return clone
 end function
 
-private function somaLrCmpCb(key as zstring ptr, node as any ptr) as boolean
+private function somaAnalCmpCb(key as zstring ptr, node as any ptr) as boolean
 	function = *key < cast(RelSomatorioAnal ptr, node)->chave
 end function
 
 ''''''''
-sub Efd.relatorioSomarAnal(sit as TipoSituacao, anal as TDocItemAnal ptr)
+sub Efd.relatorioSomarAnal(sit as TipoSituacao, anal as TDocItemAnal ptr, isPre as boolean)
 	
 	dim as string chave = iif(ultimoRelatorio = REL_LRS, str(sit), "0")
 	
@@ -946,21 +1102,25 @@ sub Efd.relatorioSomarAnal(sit as TipoSituacao, anal as TDocItemAnal ptr)
 	
 	var soma = cast(RelSomatorioAnal ptr, relSomaAnalDict->lookup(chave))
 	if soma = null then
-		soma = relSomaAnalList->addOrdAsc(strptr(chave), @somaLrCmpCb)
+		soma = relSomaAnalList->addOrdAsc(strptr(chave), @somaAnalCmpCb)
 		soma->chave = chave
-		soma->situacao = sit
-		soma->cst = anal->cst
-		soma->cfop = anal->cfop
-		soma->aliq = anal->aliq
+		if not isPre then
+			soma->situacao = sit
+			soma->cst = anal->cst
+			soma->cfop = anal->cfop
+			soma->aliq = anal->aliq
+		end if
 		relSomaAnalDict->add(soma->chave, soma)
 	end if
 	
-	soma->valorOp += anal->valorOp
-	soma->bc += anal->bc
-	soma->icms += anal->icms
-	soma->bcST += anal->bcST
-	soma->icmsST += anal->icmsST
-	soma->ipi += anal->ipi
+	if not isPre then	
+		soma->valorOp += anal->valorOp
+		soma->bc += anal->bc
+		soma->icms += anal->icms
+		soma->bcST += anal->bcST
+		soma->icmsST += anal->icmsST
+		soma->ipi += anal->ipi
+	end if
 end sub
 
 private function somaAjustesCmpCb(key as zstring ptr, node as any ptr) as boolean
@@ -969,6 +1129,8 @@ end function
 
 ''''''''
 sub Efd.relatorioSomarAjuste(sit as TipoSituacao, ajuste as TDocObsAjuste ptr)
+	
+	sit = 0 'BUG: o PVA RFB não faz a separação por situação, somando tudo e exibindo só a situação 00, mesmo para NF's canceladas
 	
 	dim as string chave = iif(ultimoRelatorio = REL_LRS, str(sit), "0") & ajuste->idAjuste
 	
@@ -981,7 +1143,7 @@ sub Efd.relatorioSomarAjuste(sit as TipoSituacao, ajuste as TDocObsAjuste ptr)
 		relSomaAjustesDict->add(soma->chave, soma)
 	end if
 
-	soma->valor += ajuste->icms + ajuste->outros
+	soma->valor += ajuste->icms
 end sub
 
 ''''''''
@@ -1035,8 +1197,6 @@ end sub
 ''''''''
 sub Efd.adicionarDocRelatorioItemAnal(sit as TipoSituacao, anal as TDocItemAnal ptr)
 	
-	relatorioSomarAnal(sit, anal)
-
 	select case sit
 	case REGULAR, EXTEMPORANEO
 		var row = gerarLinhaAnal()
@@ -1067,7 +1227,7 @@ sub Efd.adicionarDocRelatorioObs(sit as TipoSituacao, obs as TDocObs ptr, isFirs
 		if len(obs->extra) > 0 then
 			text += " " + obs->extra
 		end if
-		setChildText(row, "DESC-OBS", text, true)
+		setChildText(row, "DESC-OBS", substr(text, 0.0, AJUSTE_MAX_DESC_LEN), true)
 	end select
 
 end sub
@@ -1075,8 +1235,6 @@ end sub
 ''''''''
 sub Efd.adicionarDocRelatorioObsAjuste(sit as TipoSituacao, ajuste as TDocObsAjuste ptr, isFirst as boolean)
 	
-	relatorioSomarAjuste(sit, ajuste)
-
 	select case sit
 	case REGULAR, EXTEMPORANEO
 		var row = gerarLinhaObsAjuste(isFirst)
@@ -1227,54 +1385,62 @@ sub Efd.adicionarDocRelatorioSaidas(doc as TDocSAT ptr, highlight as boolean)
 end sub
 
 ''''''''
-sub efd.gerarResumoRelatorioHeader(emitir as boolean)
+sub efd.gerarResumoRelatorioHeader(emitir as boolean, isPre as boolean)
 	relYPos += ROW_SPACE_BEFORE
 	
-	if emitir then
-		var title = relPage->getNode("resumo-title")
-		title->setAttrib("hidden", false)
-		title->translateY(-relYPos)
+	if not isPre then
+		if emitir then
+			var title = relPage->getNode("resumo-title")
+			title->setAttrib("hidden", false)
+			title->translateY(-relYPos)
+		end if
 	end if
 	relYPos += iif(ultimoRelatorio = REL_LRS, LRS_RESUMO_TITLE_HEIGHT, LRE_RESUMO_TITLE_HEIGHT)
 
-	if emitir then
-		var header = relPage->getNode("resumo-header")
-		header->setAttrib("hidden", false)
-		header->translateY(-relYPos)
+	if not isPre then
+		if emitir then
+			var header = relPage->getNode("resumo-header")
+			header->setAttrib("hidden", false)
+			header->translateY(-relYPos)
+		end if
 	end if
 	relYPos += iif(ultimoRelatorio = REL_LRS, LRS_RESUMO_HEADER_HEIGHT, LRE_RESUMO_HEADER_HEIGHT)
 end sub
 
 ''''''''
-sub efd.gerarResumoAjustesRelatorioHeader(emitir as boolean)
+sub efd.gerarResumoAjustesRelatorioHeader(emitir as boolean, isPre as boolean)
 	relYPos += ROW_SPACE_BEFORE
 	
-	if emitir then
-		var title = relPage->getNode("resumo-ajustes-title")
-		title->setAttrib("hidden", false)
-		title->translateY(-relYPos)
+	if not isPre then
+		if emitir then
+			var title = relPage->getNode("resumo-ajustes-title")
+			title->setAttrib("hidden", false)
+			title->translateY(-relYPos)
+		end if
 	end if
 	relYPos += iif(ultimoRelatorio = REL_LRS, LRS_RESUMO_TITLE_HEIGHT, LRE_RESUMO_TITLE_HEIGHT)
 
-	if emitir then
-		var header = relPage->getNode("resumo-ajustes-header")
-		header->setAttrib("hidden", false)
-		header->translateY(-relYPos)
+	if not isPre then
+		if emitir then
+			var header = relPage->getNode("resumo-ajustes-header")
+			header->setAttrib("hidden", false)
+			header->translateY(-relYPos)
+		end if
 	end if
 	relYPos += iif(ultimoRelatorio = REL_LRS, LRS_RESUMO_HEADER_HEIGHT, LRE_RESUMO_HEADER_HEIGHT)
 end sub
 
-sub efd.gerarResumoRelatorio(emitir as boolean)
+sub efd.gerarResumoRelatorio(emitir as boolean, isPre as boolean)
 	var titleHeight = iif(ultimoRelatorio = REL_LRS, LRS_RESUMO_TITLE_HEIGHT, LRE_RESUMO_TITLE_HEIGHT)
 	var headerHeight = iif(ultimoRelatorio = REL_LRS, LRS_RESUMO_HEADER_HEIGHT, LRE_RESUMO_HEADER_HEIGHT)
 	var rowHeight = iif(ultimoRelatorio = REL_LRS, LRS_RESUMO_ROW_HEIGHT, LRE_RESUMO_ROW_HEIGHT)
 	
 	'' header
-	if relPage = null orElse relYPos + ROW_SPACE_BEFORE + titleHeight + headerHeight + rowHeight > PAGE_BOTTOM then
-		criarPaginaRelatorio(emitir)
+	if (relPage = null andalso not isPre) orElse relYPos + ROW_SPACE_BEFORE + titleHeight + headerHeight + rowHeight > PAGE_BOTTOM then
+		criarPaginaRelatorio(emitir, isPre)
 	end if
 	
-	gerarResumoRelatorioHeader(emitir)
+	gerarResumoRelatorioHeader(emitir, isPre)
 
 	'' tabela de totais
 	dim as RelSomatorioAnal totSoma
@@ -1283,39 +1449,43 @@ sub efd.gerarResumoRelatorio(emitir as boolean)
 		var soma = cast(RelSomatorioAnal ptr, relSomaAnalList->head)
 		do while soma <> null
 			if relYPos + rowHeight > PAGE_BOTTOM then
-				criarPaginaRelatorio(emitir)
-				gerarResumoRelatorioHeader(emitir)
+				criarPaginaRelatorio(emitir, isPre)
+				gerarResumoRelatorioHeader(emitir, isPre)
 			end if
 		
-			if emitir then
-				var org = relPage->getNode("resumo-row")
-				var row = org->clone(relPage, relPage)
-			
-				row->setAttrib("hidden", false)
-				row->translateY(-relYPos)
+			if not isPre then
+				if emitir then
+					var org = relPage->getNode("resumo-row")
+					var row = org->clone(relPage, relPage)
 				
-				if ultimoRelatorio = REL_LRS then
-					setChildText(row, "SIT", format(cdbl(soma->situacao), "00"))
-				end if	
-			
-				setChildText(row, "CST", format(soma->cst,"000"))
-				setChildText(row, "CFOP", str(soma->cfop))
-				setChildText(row, "ALIQ", DBL2MONEYBR(soma->aliq))
-				setChildText(row, "OPER", DBL2MONEYBR(soma->valorOp))
-				setChildText(row, "BCICMS", DBL2MONEYBR(soma->bc))
-				setChildText(row, "ICMS", DBL2MONEYBR(soma->icms))
-				setChildText(row, "BCICMSST", DBL2MONEYBR(soma->bcST))
-				setChildText(row, "ICMSST", DBL2MONEYBR(soma->ICMSST))
-				setChildText(row, "IPI", DBL2MONEYBR(soma->ipi))
+					row->setAttrib("hidden", false)
+					row->translateY(-relYPos)
+					
+					if ultimoRelatorio = REL_LRS then
+						setChildText(row, "SIT", format(cdbl(soma->situacao), "00"))
+					end if	
+				
+					setChildText(row, "CST", format(soma->cst,"000"))
+					setChildText(row, "CFOP", str(soma->cfop))
+					setChildText(row, "ALIQ", DBL2MONEYBR(soma->aliq))
+					setChildText(row, "OPER", DBL2MONEYBR(soma->valorOp))
+					setChildText(row, "BCICMS", DBL2MONEYBR(soma->bc))
+					setChildText(row, "ICMS", DBL2MONEYBR(soma->icms))
+					setChildText(row, "BCICMSST", DBL2MONEYBR(soma->bcST))
+					setChildText(row, "ICMSST", DBL2MONEYBR(soma->ICMSST))
+					setChildText(row, "IPI", DBL2MONEYBR(soma->ipi))
+				end if
 			end if
 			relYPos += rowHeight
 			
-			totSoma.valorOp += soma->valorOp
-			totSoma.bc += soma->bc
-			totSoma.icms += soma->icms
-			totSoma.bcST += soma->bcST
-			totSoma.ICMSST += soma->ICMSST
-			totSoma.ipi += soma->ipi
+			if not isPre then
+				totSoma.valorOp += soma->valorOp
+				totSoma.bc += soma->bc
+				totSoma.icms += soma->icms
+				totSoma.bcST += soma->bcST
+				totSoma.ICMSST += soma->ICMSST
+				totSoma.ipi += soma->ipi
+			end if
 			
 			soma = relSomaAnalList->next_(soma)
 		loop
@@ -1323,23 +1493,25 @@ sub efd.gerarResumoRelatorio(emitir as boolean)
 	
 	'' totais
 	if relYPos + ROW_SPACE_BEFORE + headerHeight > PAGE_BOTTOM then
-		criarPaginaRelatorio(emitir)
-		gerarResumoRelatorioHeader(emitir)
+		criarPaginaRelatorio(emitir, isPre)
+		gerarResumoRelatorioHeader(emitir, isPre)
 	end if
 	
 	relYPos += ROW_SPACE_BEFORE
 
-	if emitir then
-		var total = relPage->getNode("resumo-total")
-		total->setAttrib("hidden", false)
-		total->translateY(-relYPos)
+	if not isPre then
+		if emitir then
+			var total = relPage->getNode("resumo-total")
+			total->setAttrib("hidden", false)
+			total->translateY(-relYPos)
 
-		setChildText(total, "OPERTOT", DBL2MONEYBR(totSoma.valorOp))
-		setChildText(total, "BCICMSTOT", DBL2MONEYBR(totSoma.bc))
-		setChildText(total, "ICMSTOT", DBL2MONEYBR(totSoma.icms))
-		setChildText(total, "BCICMSSTTOT", DBL2MONEYBR(totSoma.bcST))
-		setChildText(total, "ICMSSTTOT", DBL2MONEYBR(totSoma.ICMSST))
-		setChildText(total, "IPITOT", DBL2MONEYBR(totSoma.ipi))
+			setChildText(total, "OPERTOT", DBL2MONEYBR(totSoma.valorOp))
+			setChildText(total, "BCICMSTOT", DBL2MONEYBR(totSoma.bc))
+			setChildText(total, "ICMSTOT", DBL2MONEYBR(totSoma.icms))
+			setChildText(total, "BCICMSSTTOT", DBL2MONEYBR(totSoma.bcST))
+			setChildText(total, "ICMSSTTOT", DBL2MONEYBR(totSoma.ICMSST))
+			setChildText(total, "IPITOT", DBL2MONEYBR(totSoma.ipi))
+		end if
 	end if
 	relYPos += headerHeight
 
@@ -1349,31 +1521,33 @@ sub efd.gerarResumoRelatorio(emitir as boolean)
 		var soma = cast(RelSomatorioAjuste ptr, relSomaAjustesList->head)
 		if soma <> null then
 			if relYPos + ROW_SPACE_BEFORE + titleHeight + headerHeight + rowHeight > PAGE_BOTTOM then
-				criarPaginaRelatorio(emitir)
+				criarPaginaRelatorio(emitir, isPre)
 			end if
 			
-			gerarResumoAjustesRelatorioHeader(emitir)
+			gerarResumoAjustesRelatorioHeader(emitir, isPre)
 		
 			do while soma <> null
 				if relYPos + rowHeight > PAGE_BOTTOM then
-					criarPaginaRelatorio(emitir)
-					gerarResumoAjustesRelatorioHeader(emitir)
+					criarPaginaRelatorio(emitir, isPre)
+					gerarResumoAjustesRelatorioHeader(emitir, isPre)
 				end if
 			
-				if emitir then
-					var org = relPage->getNode("resumo-ajustes-row")
-					var row = org->clone(relPage, relPage)
-				
-					row->setAttrib("hidden", false)
-					row->translateY(-relYPos)
+				if not isPre then
+					if emitir then
+						var org = relPage->getNode("resumo-ajustes-row")
+						var row = org->clone(relPage, relPage)
 					
-					if ultimoRelatorio = REL_LRS then
-						setChildText(row, "RES-SIT-AJ", format(cdbl(soma->situacao), "00"))
-					end if	
-				
-					setChildText(row, "RES-COD-AJ", soma->idAjuste)
-					setChildText(row, "RES-DESC-AJ", "...")
-					setChildText(row, "RES-VALOR-AJ", DBL2MONEYBR(soma->valor))
+						row->setAttrib("hidden", false)
+						row->translateY(-relYPos)
+						
+						if ultimoRelatorio = REL_LRS then
+							setChildText(row, "RES-SIT-AJ", format(cdbl(soma->situacao), "00"))
+						end if	
+					
+						setChildText(row, "RES-COD-AJ", soma->idAjuste)
+						setChildText(row, "RES-DESC-AJ", "...")
+						setChildText(row, "RES-VALOR-AJ", DBL2MONEYBR(soma->valor))
+					end if
 				end if
 				relYPos += rowHeight
 				
@@ -1385,34 +1559,36 @@ sub efd.gerarResumoRelatorio(emitir as boolean)
 end sub
 
 ''''''''
-sub Efd.finalizarRelatorio()
+sub Efd.finalizarRelatorio(isPre as boolean)
 
 	if ultimoRelatorio = -1 then
 		return
 	end if
 	
-	var outf = new PdfDoc()
-	
 	select case ultimoRelatorio
 	case REL_LRE, REL_LRS
 		if nroRegistrosRel = 0 then
-			criarPaginaRelatorio(true)
-			var empty = relPage->getNode("empty")
-			empty->setAttrib("hidden", false)
+			criarPaginaRelatorio(true, isPre)
+			if not isPre then
+				var empty = relPage->getNode("empty")
+				empty->setAttrib("hidden", false)
+			end if
+			emitirPaginaRelatorio(true, isPre)
+		
 		else
-			var gerarResumo = true
+			var resumir = true
 			if relNroLinhas > 0 then
-				var paginaGerada = gerarPaginaRelatorio(true)
+				var paginaGerada = gerarPaginaRelatorio(true, isPre)
 				if not paginaGerada then
-					gerarResumo = false
+					resumir = false
 				end if
 			else
 				if opcoes.filtrarCnpj orelse opcoes.filtrarChaves then
-					gerarResumo = false
+					resumir = false
 				end if
-				criarPaginaRelatorio(gerarResumo)
+				criarPaginaRelatorio(resumir, isPre)
 			end if
-			gerarResumoRelatorio(gerarResumo)
+			gerarResumoRelatorio(resumir, isPre)
 		end if
 
 		delete relSomaAnalDict
@@ -1421,41 +1597,20 @@ sub Efd.finalizarRelatorio()
 		delete relSomaAjustesList
 	end select
 	
-	'' atribuir número de cada página
-	var cnt = 1
-	var pagina = cast(RelPagina ptr, relPaginasList->head)
-	var emitir = true
-	do while pagina <> null
-		if emitir andalso pagina->emitir then
-			var page = pagina->page
-			var pg = page->getNode("PAGINA")
-			if pg <> null then
-				pg->setAttrib("text", wstr(cnt & "de " & relNroPaginas))
-			end if
-			page->emit(outf, cnt-1)
-			delete page
-		end if
-		
-		cnt += 1
-		
-		emitir = onProgress(null, 0.5 + (cnt / relNroPaginas) / 2)
-		
-		var last = pagina
-		pagina = relPaginasList->next_(pagina)
-		relPaginasList->del(last)
-	loop
+	if relPage <> null then
+		emitirPaginaRelatorio(true, isPre)
+	end if
 	
 	'' salvar PDF
-	outf->saveTo(DdMmYyyy2Yyyy_Mm(regMestre->mestre.dataIni) + "_" + ultimoRelatorioSufixo + ".pdf")
-	delete outf
+	if not isPre then
+		relOutFile->saveTo(DdMmYyyy2Yyyy_Mm(regMestre->mestre.dataIni) + "_" + ultimoRelatorioSufixo + ".pdf")
+		delete relOutFile
+	end if
 	
-	delete relTemplate
+	if not isPre then
+		delete relTemplate
+	end if
 
 	ultimoRelatorio = -1
-	nroRegistrosRel = 0
-	relYPos = 0
-	relNroLinhas = 0
-	relNroPaginas = 0
-	relPage = null
 
 end sub

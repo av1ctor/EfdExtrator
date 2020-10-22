@@ -985,11 +985,6 @@ type RelLinha
 	end union
 end type
 
-type RelPagina
-	page			as PdfTemplatePageNode ptr
-	emitir			as boolean
-end type
-
 type OnProgressCB as function(estagio as const zstring ptr, porCompleto as double) as boolean
 type OnErrorCB as sub(msg as const zstring ptr)
 
@@ -1151,10 +1146,10 @@ private:
 	declare sub gerarPlanilhas(nomeArquivo as string)
 	
 	declare sub gerarRelatorios(nomeArquivo as string)
-	declare sub gerarRelatorioCiap(nomeArquivo as string, reg as TRegistro ptr)
-	declare sub gerarRelatorioApuracaoICMS(nomeArquivo as string, reg as TRegistro ptr)
-	declare sub gerarRelatorioApuracaoICMSST(nomeArquivo as string, reg as TRegistro ptr)
-	declare sub iniciarRelatorio(relatorio as TipoRelatorio, nomeRelatorio as string, sufixo as string)
+	declare sub gerarRelatorioCiap(nomeArquivo as string, reg as TRegistro ptr, isPre as boolean)
+	declare sub gerarRelatorioApuracaoICMS(nomeArquivo as string, reg as TRegistro ptr, isPre as boolean)
+	declare sub gerarRelatorioApuracaoICMSST(nomeArquivo as string, reg as TRegistro ptr, isPre as boolean)
+	declare sub iniciarRelatorio(relatorio as TipoRelatorio, nomeRelatorio as string, sufixo as string, isPre as boolean)
 	declare sub adicionarDocRelatorioEntradas(doc as TDocDF ptr, part as TParticipante ptr, highlight as boolean, lg as boolean)
 	declare sub adicionarDocRelatorioSaidas(doc as TDocDF ptr, part as TParticipante ptr, highlight as boolean, lg as boolean)
 	declare sub adicionarDocRelatorioSaidas(doc as TECFReducaoZ ptr, highlight as boolean)
@@ -1162,14 +1157,14 @@ private:
 	declare sub adicionarDocRelatorioItemAnal(sit as TipoSituacao, anal as TDocItemAnal ptr)
 	declare sub adicionarDocRelatorioObs(sit as TipoSituacao, obs as TDocObs ptr, isFirst as boolean)
 	declare sub adicionarDocRelatorioObsAjuste(sit as TipoSituacao, ajuste as TDocObsAjuste ptr, isFirst as boolean)
-	declare sub finalizarRelatorio()
-	declare sub relatorioSomarAnal(sit as TipoSituacao, anal as TDocItemAnal ptr)
+	declare sub finalizarRelatorio(isPre as boolean)
+	declare sub relatorioSomarAnal(sit as TipoSituacao, anal as TDocItemAnal ptr, isPre as boolean)
 	declare sub relatorioSomarAjuste(sit as TipoSituacao, ajuste as TDocObsAjuste ptr)
 	declare function codMunicipio2Nome(cod as integer) as string
-	declare function gerarPaginaRelatorio(lastPage as boolean = false) as boolean
-	declare sub gerarResumoRelatorio(emitir as boolean)
-	declare sub gerarResumoRelatorioHeader(emitir as boolean)
-	declare sub gerarResumoAjustesRelatorioHeader(emitir as boolean)
+	declare function gerarPaginaRelatorio(lastPage as boolean, isPre as boolean) as boolean
+	declare sub gerarResumoRelatorio(emitir as boolean, isPre as boolean)
+	declare sub gerarResumoRelatorioHeader(emitir as boolean, isPre as boolean)
+	declare sub gerarResumoAjustesRelatorioHeader(emitir as boolean, isPre as boolean)
 	declare sub setNodeText(page as PdfTemplatePageNode ptr, id as string, value as string, convert as boolean = false)
 	declare sub setNodeText(page as PdfTemplatePageNode ptr, id as string, value as wstring ptr)
 	declare sub setChildText(row as PdfTemplateNode ptr, id as string, value as string, convert as boolean = false)
@@ -1178,7 +1173,8 @@ private:
 	declare function gerarLinhaAnal() as PdfTemplateNode ptr
 	declare function gerarLinhaObs(isFirst as boolean) as PdfTemplateNode ptr
 	declare function gerarLinhaObsAjuste(isFirst as boolean) as PdfTemplateNode ptr
-	declare function criarPaginaRelatorio(emitir as boolean) as RelPagina ptr
+	declare sub criarPaginaRelatorio(emitir as boolean, isPre as boolean)
+	declare sub emitirPaginaRelatorio(emitir as boolean, isPre as boolean)
 	
 	declare sub analisarInconsistenciasLRE()
 	declare sub analisarInconsistenciasLRS()
@@ -1278,9 +1274,10 @@ private:
 	relNroLinhas			as double
 	relYPos					as double
 	relNroPaginas			as integer
+	relNroTotalPaginas		as integer
 	relTemplate				as PdfTemplate ptr
 	relPage					as PdfTemplatePageNode ptr
-	relPaginasList			as TList ptr		'' de RelPagina
+	relOutFile 				as PdfDoc ptr
 	
 	''
 	assinaturaP7K_DER(any)	as byte
