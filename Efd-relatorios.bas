@@ -17,6 +17,7 @@ const LRS_OBS_HEADER_HEIGHT = ANAL_HEIGHT
 const LRS_OBS_HEIGHT = ROW_HEIGHT_LG - 2.5
 const LRS_OBS_AJUSTE_HEADER_HEIGHT = LRS_OBS_HEIGHT + ANAL_HEIGHT - 1.0
 const LRS_OBS_AJUSTE_HEIGHT = ANAL_HEIGHT
+const LRE_OBS_AJUSTE_HEADER_HEIGHT = LRS_OBS_AJUSTE_HEADER_HEIGHT - 3.5
 const LRE_MAX_NAME_LEN = 31.25
 const LRS_MAX_NAME_LEN = 34.50
 const AJUSTE_MAX_DESC_LEN = 160
@@ -115,7 +116,7 @@ end function
 	end scope
 #endmacro
 
-#define calcObsAjusteHeight(isFirst) (iif(isFirst, STROKE_WIDTH*2 + LRS_OBS_AJUSTE_HEADER_HEIGHT, 0) + LRS_OBS_AJUSTE_HEIGHT)
+#define calcObsAjusteHeight(isFirst) (iif(isFirst, STROKE_WIDTH*2 + iif(ultimoRelatorio = REL_LRS, LRS_OBS_AJUSTE_HEADER_HEIGHT, LRE_OBS_AJUSTE_HEADER_HEIGHT), 0) + LRS_OBS_AJUSTE_HEIGHT)
 
 #macro list_add_OBS_AJUSTE(__obs, __sit, isPre)
 	scope 
@@ -1076,7 +1077,7 @@ function Efd.gerarLinhaObsAjuste(isFirst as boolean) as PdfTemplateNode ptr
 		clone->setAttrib("hidden", false)
 		relYPos += STROKE_WIDTH*2
 		clone->translateY(-relYPos)
-		relYPos += LRS_OBS_AJUSTE_HEADER_HEIGHT
+		relYPos += iif(ultimoRelatorio = REL_LRS, LRS_OBS_AJUSTE_HEADER_HEIGHT, LRE_OBS_AJUSTE_HEADER_HEIGHT)
 	end if
 	
 	var node = relPage->getNode("ajuste")
@@ -1197,8 +1198,7 @@ end sub
 ''''''''
 sub Efd.adicionarDocRelatorioItemAnal(sit as TipoSituacao, anal as TDocItemAnal ptr)
 	
-	select case sit
-	case REGULAR, EXTEMPORANEO
+	if ISREGULAR(sit) then
 		var row = gerarLinhaAnal()
 		setChildText(row, "CST", format(anal->cst,"000"))
 		setChildText(row, "CFOP", str(anal->cfop))
@@ -1212,15 +1212,14 @@ sub Efd.adicionarDocRelatorioItemAnal(sit as TipoSituacao, anal as TDocItemAnal 
 		if ultimoRelatorio = REL_LRE then
 			setChildText(row, "REDBC", DBL2MONEYBR(anal->redBC))
 		end if
-	end select
+	end if
 
 end sub
 
 ''''''''
 sub Efd.adicionarDocRelatorioObs(sit as TipoSituacao, obs as TDocObs ptr, isFirst as boolean)
 	
-	select case sit
-	case REGULAR, EXTEMPORANEO
+	if ISREGULAR(sit) then
 		var row = gerarLinhaObs(isFirst)
 		var lanc = cast( TObsLancamento ptr, obsLancamentoDict->lookup(obs->idLanc))
 		var text = iif(lanc <> null, lanc->descricao, "")
@@ -1228,15 +1227,14 @@ sub Efd.adicionarDocRelatorioObs(sit as TipoSituacao, obs as TDocObs ptr, isFirs
 			text += " " + obs->extra
 		end if
 		setChildText(row, "DESC-OBS", substr(text, 0.0, AJUSTE_MAX_DESC_LEN), true)
-	end select
+	end if
 
 end sub
 
 ''''''''
 sub Efd.adicionarDocRelatorioObsAjuste(sit as TipoSituacao, ajuste as TDocObsAjuste ptr, isFirst as boolean)
 	
-	select case sit
-	case REGULAR, EXTEMPORANEO
+	if ISREGULAR(sit) then
 		var row = gerarLinhaObsAjuste(isFirst)
 		if ultimoRelatorio = REL_LRS then
 			setChildText(row, "SIT-AJ", format(cdbl(sit),"00"))
@@ -1247,7 +1245,7 @@ sub Efd.adicionarDocRelatorioObsAjuste(sit as TipoSituacao, ajuste as TDocObsAju
 		setChildText(row, "ALIQ-AJ", DBL2MONEYBR(ajuste->aliqIcms))
 		setChildText(row, "ICMS-AJ", DBL2MONEYBR(ajuste->icms))
 		setChildText(row, "OUTROS-AJ", DBL2MONEYBR(ajuste->outros))
-	end select
+	end if
 
 end sub
 
@@ -1318,8 +1316,7 @@ sub Efd.adicionarDocRelatorioSaidas(doc as TDocDF ptr, part as TParticipante ptr
 	setChildText(row, iif(lg, "SUB-LG", "SUB"), doc->subserie)
 	setChildText(row, iif(lg, "SIT-LG", "SIT"), format(cdbl(doc->situacao), "00"))
 	
-	select case doc->situacao
-	case REGULAR, EXTEMPORANEO
+	if ISREGULAR(doc->situacao) then
 		if part <> null then
 			setChildText(row, iif(lg, "CNPJDEST-LG", "CNPJDEST"), iif(len(part->cpf) > 0, STR2CPF(part->cpf), STR2CNPJ(part->cnpj)))
 			setChildText(row, iif(lg, "IEDEST-LG", "IEDEST"), part->ie)
@@ -1331,7 +1328,7 @@ sub Efd.adicionarDocRelatorioSaidas(doc as TDocDF ptr, part as TParticipante ptr
 				setChildText(row, "RAZAODEST2-LG", substr(part->nome, start, LRS_MAX_NAME_LEN), true)
 			end if
 		end if
-	end select
+	end if
 end sub
 
 ''''''''

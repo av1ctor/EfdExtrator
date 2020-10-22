@@ -60,6 +60,16 @@ private sub tablesCtor constructor
 end sub
 
 '''''
+function ISREGULAR(sit as TipoSituacao) as boolean
+	select case as const sit
+	case REGULAR, EXTEMPORANEO, COMPLEMENTAR, COMPLEMENTAR_EXT, REGIME_ESPECIAL, SUBSTITUIDO
+		return true
+	case else
+		return false
+	end select
+end function
+
+'''''
 function UF_SIGLA2COD(s as zstring ptr) as integer
 	
 	if s = null then

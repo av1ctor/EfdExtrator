@@ -10,7 +10,7 @@ const ASSINATURA_P7K_HEADER = "SBRCAAEPDR"
 private function yyyyMmDd2Days(d as const zstring ptr) as uinteger
 
 	if d = null then
-		d = @"19000101"
+		return (1900 * 31*12) + 01
 	end if
 	
 	var days = (cuint(d[0] - asc("0")) * 1000 + _
@@ -26,7 +26,7 @@ private function yyyyMmDd2Days(d as const zstring ptr) as uinteger
 			   (cuint(d[6] - asc("0")) * 10 + _
 				cuint(d[7] - asc("0")) * 01) 
 				
-	function = days
+	function = days - (1900 * (31*12))
 
 end function
 
@@ -41,55 +41,68 @@ private function mergeLists(pSrc1 as TRegistro ptr, pSrc2 as TRegistro ptr) as T
         return pSrc1
 	end if
     
-	dim as zstring ptr dReg = null
-	dim as longint nro = 0
+	dim as zstring ptr dReg
+	dim as uinteger nro
+	dim as boolean isReg
 
 	do while true
 		select case as const pSrc1->tipo
-		case DOC_NF
+		case DOC_NF, DOC_NFSCT, DOC_NF_ELETRIC
+			isReg = ISREGULAR(pSrc1->nf.situacao)
 			dReg = @pSrc1->nf.dataEntSaida
 			nro = pSrc1->nf.numero
 		case DOC_CT
+			isReg = ISREGULAR(pSrc1->ct.situacao)
 			dReg = @pSrc1->ct.dataEntSaida
 			nro = pSrc1->ct.numero
 		case DOC_NF_ITEM
+			isReg = ISREGULAR(pSrc1->itemNF.documentoPai->situacao)
 			dReg = @pSrc1->itemNF.documentoPai->dataEntSaida
 			nro = pSrc1->itemNF.documentoPai->numero
 		case ECF_REDUCAO_Z
+			isReg = true
 			dReg = @pSrc1->ecfRedZ.dataMov
 			nro = pSrc1->ecfRedZ.numIni
 		case DOC_SAT
+			isReg = true
 			dReg = @pSrc1->sat.dataEntSaida
 			nro = pSrc1->sat.numero
 		case else
+			isReg = false
 			dReg = null
 			nro = 0
 		end select
 		
-		var date1 = yyyyMmDd2Days(dReg) shl 32 + nro
+		var date1 = iif(isReg, yyyyMmDd2Days(dReg) shl 32, 0) + nro
 
 		select case as const pSrc2->tipo
-		case DOC_NF
+		case DOC_NF, DOC_NFSCT, DOC_NF_ELETRIC
+			isReg = ISREGULAR(pSrc2->nf.situacao)
 			dReg = @pSrc2->nf.dataEntSaida
 			nro = pSrc2->nf.numero
 		case DOC_CT
+			isReg = ISREGULAR(pSrc2->ct.situacao)
 			dReg = @pSrc2->ct.dataEntSaida
 			nro = pSrc2->ct.numero
 		case DOC_NF_ITEM
+			isReg = ISREGULAR(pSrc2->itemNF.documentoPai->situacao)
 			dReg = @pSrc2->itemNF.documentoPai->dataEntSaida
 			nro = pSrc2->itemNF.documentoPai->numero
 		case ECF_REDUCAO_Z
+			isReg = true
 			dReg = @pSrc2->ecfRedZ.dataMov
 			nro = pSrc2->ecfRedZ.numIni
 		case DOC_SAT
+			isReg = true
 			dReg = @pSrc2->sat.dataEntSaida
 			nro = pSrc2->sat.numero
 		case else
+			isReg = false
 			dReg = null
 			nro = 0
 		end select
 
-		var date2 = yyyyMmDd2Days(dReg) shl 32 + nro
+		var date2 = iif(isReg, yyyyMmDd2Days(dReg) shl 32, 0) + nro
 
 		if date2 < date1 then
 			*ppDst = pSrc2

@@ -1301,6 +1301,7 @@ end type
 
 #define MUNICIPIO2SIGLA(m) (iif(m >= 1100000 and m <= 5399999, ufCod2Sigla(m \ 100000), "EX"))
 
+declare function ISREGULAR(sit as TipoSituacao) as boolean
 declare function csvDate2YYYYMMDD(s as zstring ptr) as string 
 declare function ddMmYyyy2YyyyMmDd(s as const zstring ptr) as string
 declare function yyyyMmDd2YyyyMmDd(s as const zstring ptr) as string

@@ -527,80 +527,76 @@ sub Efd.gerarPlanilhas(nomeArquivo as string)
 			'item de NF-e?
 			case DOC_NF_ITEM
 				var doc = reg->itemNF.documentoPai
-				select case as const doc->situacao
-				case REGULAR, EXTEMPORANEO
-					var part = cast( TParticipante ptr, participanteDict->lookup(doc->idParticipante) )
+				var part = cast( TParticipante ptr, participanteDict->lookup(doc->idParticipante) )
 
-					var emitirLinha = iif(doc->operacao = SAIDA, not opcoes.pularLrs, not opcoes.pularLre)
-					if opcoes.filtrarCnpj andalso emitirLinha then
-						if part <> null then
-							emitirLinha = filtrarPorCnpj(part->cnpj)
-						end if
+				var emitirLinha = iif(doc->operacao = SAIDA, not opcoes.pularLrs, not opcoes.pularLre)
+				if opcoes.filtrarCnpj andalso emitirLinha then
+					if part <> null then
+						emitirLinha = filtrarPorCnpj(part->cnpj)
+					end if
+				end if
+				
+				if opcoes.filtrarChaves andalso emitirLinha then
+					emitirLinha = filtrarPorChave(doc->chave)
+				end if
+				
+				if opcoes.somenteRessarcimentoST andalso emitirLinha then
+					emitirLinha = reg->itemNF.itemRessarcStListHead <> null
+				end if
+				
+				if emitirLinha then
+					'só existe item para entradas (exceto quando há ressarcimento ST)
+					dim as ExcelRow ptr row
+					if doc->operacao = ENTRADA then
+						row = entradas->AddRow()
+					else
+						row = saidas->AddRow()
 					end if
 
-					if opcoes.filtrarChaves andalso emitirLinha then
-						emitirLinha = filtrarPorChave(doc->chave)
+					if part <> null then
+						row->addCell(iif(len(part->cpf) > 0, part->cpf, part->cnpj))
+						row->addCell(part->ie)
+						row->addCell(MUNICIPIO2SIGLA(part->municip))
+						row->addCell(part->nome)
+					else
+						row->addCell("")
+						row->addCell("")
+						row->addCell("")
+						row->addCell("")
 					end if
-					
-					if opcoes.somenteRessarcimentoST andalso emitirLinha then
-						emitirLinha = reg->itemNF.itemRessarcStListHead <> null
+					row->addCell(doc->modelo)
+					row->addCell(doc->serie)
+					row->addCell(doc->numero)
+					row->addCell(YyyyMmDd2Datetime(doc->dataEmi))
+					row->addCell(YyyyMmDd2Datetime(doc->dataEntSaida))
+					row->addCell(doc->chave)
+					row->addCell(codSituacao2Str(doc->situacao))
+					row->addCell(reg->itemNF.bcICMS)
+					row->addCell(reg->itemNF.aliqICMS)
+					row->addCell(reg->itemNF.ICMS)
+					row->addCell(reg->itemNF.bcICMSST)
+					row->addCell(reg->itemNF.aliqICMSST)
+					row->addCell(reg->itemNF.ICMSST)
+					row->addCell(reg->itemNF.IPI)
+					row->addCell(reg->itemNF.valor)
+					row->addCell(reg->itemNF.numItem)
+					row->addCell(reg->itemNF.qtd)
+					row->addCell(reg->itemNF.unidade)
+					row->addCell(reg->itemNF.cfop)
+					row->addCell(reg->itemNF.cstICMS)
+					var itemId = cast( TItemId ptr, itemIdDict->lookup(reg->itemNF.itemId) )
+					if itemId <> null then 
+						row->addCell(itemId->ncm)
+						row->addCell(itemId->id)
+						row->addCell(itemId->descricao)
 					end if
-					
-					if emitirLinha then
-						'só existe item para entradas (exceto quando há ressarcimento ST)
-						dim as ExcelRow ptr row
-						if doc->operacao = ENTRADA then
-							row = entradas->AddRow()
-						else
-							row = saidas->AddRow()
-						end if
-
-						if part <> null then
-							row->addCell(iif(len(part->cpf) > 0, part->cpf, part->cnpj))
-							row->addCell(part->ie)
-							row->addCell(MUNICIPIO2SIGLA(part->municip))
-							row->addCell(part->nome)
-						else
-							row->addCell("")
-							row->addCell("")
-							row->addCell("")
-							row->addCell("")
-						end if
-						row->addCell(doc->modelo)
-						row->addCell(doc->serie)
-						row->addCell(doc->numero)
-						row->addCell(YyyyMmDd2Datetime(doc->dataEmi))
-						row->addCell(YyyyMmDd2Datetime(doc->dataEntSaida))
-						row->addCell(doc->chave)
-						row->addCell(codSituacao2Str(doc->situacao))
-						row->addCell(reg->itemNF.bcICMS)
-						row->addCell(reg->itemNF.aliqICMS)
-						row->addCell(reg->itemNF.ICMS)
-						row->addCell(reg->itemNF.bcICMSST)
-						row->addCell(reg->itemNF.aliqICMSST)
-						row->addCell(reg->itemNF.ICMSST)
-						row->addCell(reg->itemNF.IPI)
-						row->addCell(reg->itemNF.valor)
-						row->addCell(reg->itemNF.numItem)
-						row->addCell(reg->itemNF.qtd)
-						row->addCell(reg->itemNF.unidade)
-						row->addCell(reg->itemNF.cfop)
-						row->addCell(reg->itemNF.cstICMS)
-						var itemId = cast( TItemId ptr, itemIdDict->lookup(reg->itemNF.itemId) )
-						if itemId <> null then 
-							row->addCell(itemId->ncm)
-							row->addCell(itemId->id)
-							row->addCell(itemId->descricao)
-						end if
-						row->addCell(getInfoCompl(doc->infoComplListHead))
-						row->addCell(getObsLanc(doc->obsListHead))
-					end if
-				end select
+					row->addCell(getInfoCompl(doc->infoComplListHead))
+					row->addCell(getObsLanc(doc->obsListHead))
+				end if
 
 			'NF-e?
 			case DOC_NF, DOC_NFSCT, DOC_NF_ELETRIC
-				select case as const reg->nf.situacao
-				case REGULAR, EXTEMPORANEO
+				if ISREGULAR(reg->nf.situacao) then
 					'' NOTA: não existe itemDoc para saídas (exceto quando há ressarcimento ST), só temos informações básicas do DF-e, 
 					'' 	     a não ser que sejam carregados os relatórios .csv do SAFI vindos do infoview
 					if reg->nf.operacao = SAIDA or (reg->nf.operacao = ENTRADA and reg->nf.nroItens = 0) or reg->tipo <> DOC_NF then
@@ -737,31 +733,28 @@ sub Efd.gerarPlanilhas(nomeArquivo as string)
 					
 					end if
 			   
-				case CANCELADO, CANCELADO_EXT, DENEGADO, INUTILIZADO
-					if reg->nf.operacao = SAIDA then
-						var emitirLinha = (opcoes.somenteRessarcimentoST = false) and _
-							(not opcoes.pularLrs)
-						
-						if emitirLinha then
-							var row = saidas->AddRow()
+				else
+					var emitirLinha = (opcoes.somenteRessarcimentoST = false) andalso _
+						iif(reg->nf.operacao = SAIDA, not opcoes.pularLrs, not opcoes.pularLre)
+					
+					if emitirLinha then
+						var row = iif(reg->nf.operacao = SAIDA, saidas, entradas)->AddRow()
 
-							row->addCell("")
-							row->addCell("")
-							row->addCell("")
-							row->addCell("")
-							row->addCell(reg->nf.modelo)
-							row->addCell(reg->nf.serie)
-							row->addCell(reg->nf.numero)
-							'' NOTA: cancelados e inutilizados não vêm com a data preenchida, então retiramos a data da chave ou do registro mestre
-							var dataEmi = iif( len(reg->nf.chave) = 44, "20" + mid(reg->nf.chave,3,2) + mid(reg->nf.chave,5,2) + "01", regMestre->mestre.dataIni )
-							row->addCell(YyyyMmDd2Datetime(dataEmi))
-							row->addCell("")
-							row->addCell(reg->nf.chave)
-							row->addCell(codSituacao2Str(reg->nf.situacao))
-						end if
+						row->addCell("")
+						row->addCell("")
+						row->addCell("")
+						row->addCell("")
+						row->addCell(reg->nf.modelo)
+						row->addCell(reg->nf.serie)
+						row->addCell(reg->nf.numero)
+						'' NOTA: cancelados e inutilizados não vêm com a data preenchida, então retiramos a data da chave ou do registro mestre
+						var dataEmi = iif( len(reg->nf.chave) = 44, "20" + mid(reg->nf.chave,3,2) + mid(reg->nf.chave,5,2) + "01", regMestre->mestre.dataIni )
+						row->addCell(YyyyMmDd2Datetime(dataEmi))
+						row->addCell("")
+						row->addCell(reg->nf.chave)
+						row->addCell(codSituacao2Str(reg->nf.situacao))
 					end if
-
-				end select
+				end if
 				
 			'ressarcimento st?
 			case DOC_NF_ITEM_RESSARC_ST
@@ -814,8 +807,7 @@ sub Efd.gerarPlanilhas(nomeArquivo as string)
 
 			'CT-e?
 			case DOC_CT
-				select case as const reg->ct.situacao
-				case REGULAR, EXTEMPORANEO
+				if ISREGULAR(reg->ct.situacao) then
 					var part = cast( TParticipante ptr, participanteDict->lookup(reg->ct.idParticipante) )
 
 					var emitirLinhas = (opcoes.somenteRessarcimentoST = false) and _
@@ -914,35 +906,35 @@ sub Efd.gerarPlanilhas(nomeArquivo as string)
 						loop while item <> null
 					end if
 				
-				case CANCELADO, CANCELADO_EXT, DENEGADO, INUTILIZADO
-					if reg->ct.operacao = SAIDA then
-						if opcoes.somenteRessarcimentoST = false then
-							var row = saidas->AddRow()
+				else
+					var emitirLinhas = (opcoes.somenteRessarcimentoST = false) and _
+						iif(reg->ct.operacao = SAIDA, not opcoes.pularLrs, not opcoes.pularLre)
 
-							row->addCell("")
-							row->addCell("")
-							row->addCell("")
-							row->addCell("")
-							row->addCell(reg->ct.modelo)
-							row->addCell(reg->ct.serie)
-							row->addCell(reg->ct.numero)
-							'' NOTA: cancelados e inutilizados não vêm com a data preenchida, então retiramos a data da chave ou do registro mestre
-							var dataEmi = iif( len(reg->ct.chave) = 44, "20" + mid(reg->ct.chave,3,2) + mid(reg->ct.chave,5,2) + "01", regMestre->mestre.dataIni )
-							row->addCell(YyyyMmDd2Datetime(dataEmi))
-							row->addCell("")
-							row->addCell(reg->ct.chave)
-							row->addCell(codSituacao2Str(reg->ct.situacao))
-						end if
+					if emitirLinhas then
+						var row = iif(reg->ct.operacao = SAIDA, saidas, entradas)->AddRow()
+
+						row->addCell("")
+						row->addCell("")
+						row->addCell("")
+						row->addCell("")
+						row->addCell(reg->ct.modelo)
+						row->addCell(reg->ct.serie)
+						row->addCell(reg->ct.numero)
+						'' NOTA: cancelados e inutilizados não vêm com a data preenchida, então retiramos a data da chave ou do registro mestre
+						var dataEmi = iif( len(reg->ct.chave) = 44, "20" + mid(reg->ct.chave,3,2) + mid(reg->ct.chave,5,2) + "01", regMestre->mestre.dataIni )
+						row->addCell(YyyyMmDd2Datetime(dataEmi))
+						row->addCell("")
+						row->addCell(reg->ct.chave)
+						row->addCell(codSituacao2Str(reg->ct.situacao))
 					end if
 				
-				end select
+				end if
 				
 			'item de ECF?
 			case DOC_ECF_ITEM
 				if not opcoes.pularLrs then
 					var doc = reg->itemECF.documentoPai
-					select case as const doc->situacao
-					case REGULAR, EXTEMPORANEO
+					if ISREGULAR(doc->situacao) then
 						'só existe cupom para saída
 						if doc->operacao = SAIDA then
 							var emitirLinha = (opcoes.somenteRessarcimentoST = false)
@@ -989,15 +981,14 @@ sub Efd.gerarPlanilhas(nomeArquivo as string)
 								end if
 							end if
 						end if
-					end select
+					end if
 				end if
 				
 			'SAT?
 			case DOC_SAT
 				if not opcoes.pularLrs then
 					var doc = @reg->sat
-					select case as const doc->situacao
-					case REGULAR, EXTEMPORANEO
+					if ISREGULAR(doc->situacao) then
 						'só existe cupom para saída
 						if doc->operacao = SAIDA then
 							var emitirLinha = (opcoes.somenteRessarcimentoST = false)
@@ -1089,7 +1080,7 @@ sub Efd.gerarPlanilhas(nomeArquivo as string)
 								loop
 							end if
 						end if
-					end select
+					end if
 				end if
 				
 			case APURACAO_ICMS_PERIODO
@@ -1332,52 +1323,48 @@ sub Efd.gerarPlanilhas(nomeArquivo as string)
 				if not opcoes.pularLrs then
 					var doc = reg->docItemSint.doc
 					
-					select case as const doc->situacao
-					case REGULAR, EXTEMPORANEO, CANCELADO, CANCELADO_EXT, DENEGADO, INUTILIZADO
-						dim as ExcelRow ptr row 
-						if doc->operacao = SAIDA then
-							row = saidas->AddRow()
-						else
-							row = entradas->AddRow()
-						end if
-						
-						var itemId = cast( TItemId ptr, itemIdDict->lookup(reg->docItemSint.codMercadoria) )
-						  
-						row->addCell(doc->cnpj)
-						row->addCell(doc->ie)
-						row->addCell(ufCod2Sigla(doc->uf))
+					dim as ExcelRow ptr row 
+					if doc->operacao = SAIDA then
+						row = saidas->AddRow()
+					else
+						row = entradas->AddRow()
+					end if
+					
+					var itemId = cast( TItemId ptr, itemIdDict->lookup(reg->docItemSint.codMercadoria) )
+					  
+					row->addCell(doc->cnpj)
+					row->addCell(doc->ie)
+					row->addCell(ufCod2Sigla(doc->uf))
+					row->addCell("")
+					row->addCell(doc->modelo)
+					row->addCell(doc->serie)
+					row->addCell(doc->numero)
+					row->addCell(YyyyMmDd2Datetime(doc->dataEmi))
+					row->addCell("")
+					row->addCell("")
+					row->addCell(codSituacao2Str(doc->situacao))
+					row->addCell(reg->docItemSint.bcICMS)
+					row->addCell(reg->docItemSint.aliqICMS)
+					row->addCell(reg->docItemSint.bcICMS * reg->docItemSint.aliqICMS / 100)
+					row->addCell(reg->docItemSint.bcICMSST)
+					row->addCell("")
+					row->addCell(reg->docSint.ICMSST)
+					row->addCell(reg->docItemSint.valorIPI)
+					row->addCell(reg->docItemSint.valor)
+					row->addCell(reg->docItemSint.nroItem)
+					row->addCell(reg->docItemSint.qtd)
+					if itemId <> null then 
+						row->addCell(rtrim(itemId->unidInventario))
+					else
 						row->addCell("")
-						row->addCell(doc->modelo)
-						row->addCell(doc->serie)
-						row->addCell(doc->numero)
-						row->addCell(YyyyMmDd2Datetime(doc->dataEmi))
-						row->addCell("")
-						row->addCell("")
-						row->addCell(codSituacao2Str(doc->situacao))
-						row->addCell(reg->docItemSint.bcICMS)
-						row->addCell(reg->docItemSint.aliqICMS)
-						row->addCell(reg->docItemSint.bcICMS * reg->docItemSint.aliqICMS / 100)
-						row->addCell(reg->docItemSint.bcICMSST)
-						row->addCell("")
-						row->addCell(reg->docSint.ICMSST)
-						row->addCell(reg->docItemSint.valorIPI)
-						row->addCell(reg->docItemSint.valor)
-						row->addCell(reg->docItemSint.nroItem)
-						row->addCell(reg->docItemSint.qtd)
-						if itemId <> null then 
-							row->addCell(rtrim(itemId->unidInventario))
-						else
-							row->addCell("")
-						end if
-						row->addCell(reg->docItemSint.cfop)
-						row->addCell(reg->docItemSint.cst)
-						if itemId <> null then 
-							row->addCell(itemId->ncm)
-							row->addCell(rtrim(itemId->id))
-							row->addCell(rtrim(itemId->descricao))
-						end if
-						
-					end select
+					end if
+					row->addCell(reg->docItemSint.cfop)
+					row->addCell(reg->docItemSint.cst)
+					if itemId <> null then 
+						row->addCell(itemId->ncm)
+						row->addCell(rtrim(itemId->id))
+						row->addCell(rtrim(itemId->descricao))
+					end if
 				end if
 
 			case LUA_CUSTOM
