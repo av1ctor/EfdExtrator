@@ -21,6 +21,7 @@ const LRE_OBS_AJUSTE_HEADER_HEIGHT = LRS_OBS_AJUSTE_HEADER_HEIGHT - 3.5
 const LRE_MAX_NAME_LEN = 31.25
 const LRS_MAX_NAME_LEN = 34.50
 const AJUSTE_MAX_DESC_LEN = 160
+const RESUMO_AJUSTE_MAX_DESC_LEN = 70
 const LRE_RESUMO_TITLE_HEIGHT = 9
 const LRE_RESUMO_HEADER_HEIGHT = 10
 const LRE_RESUMO_ROW_HEIGHT = 10.0
@@ -1226,7 +1227,7 @@ sub Efd.adicionarDocRelatorioObs(sit as TipoSituacao, obs as TDocObs ptr, isFirs
 		if len(obs->extra) > 0 then
 			text += " " + obs->extra
 		end if
-		setChildText(row, "DESC-OBS", substr(text, 0.0, AJUSTE_MAX_DESC_LEN), true)
+		setChildText(row, "DESC-OBS", substr(text, 0.0!, AJUSTE_MAX_DESC_LEN), true)
 	end if
 
 end sub
@@ -1542,7 +1543,15 @@ sub efd.gerarResumoRelatorio(emitir as boolean, isPre as boolean)
 						end if	
 					
 						setChildText(row, "RES-COD-AJ", soma->idAjuste)
-						setChildText(row, "RES-DESC-AJ", "...")
+						var desc = dbConfig->execScalar("select descricao from CodAjusteDoc where codigo = '" & soma->idAjuste & "'")
+						if desc <> null then
+							var len_ = calcLen(desc)
+							var start = 0.0!
+							setChildText(row, "RES-DESC-AJ", substr(desc, start, RESUMO_AJUSTE_MAX_DESC_LEN))
+							if len_ > cint(RESUMO_AJUSTE_MAX_DESC_LEN + 0.5) then
+								setChildText(row, "RES-DESC2-AJ", substr(desc, start, RESUMO_AJUSTE_MAX_DESC_LEN))
+							end if
+						end if
 						setChildText(row, "RES-VALOR-AJ", DBL2MONEYBR(soma->valor))
 					end if
 				end if
