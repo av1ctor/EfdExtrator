@@ -174,16 +174,16 @@ function PdfPage.getHandle() as FPDF_PAGE
 end function
 
 '''''
-constructor PdfDoc()
-	this.doc = FPDF_CreateNewDocument()
-end constructor
-
 constructor PdfDoc(doc as FPDF_DOCUMENT)
 	this.doc = doc
 end constructor
 
+constructor PdfDoc()
+	constructor(FPDF_CreateNewDocument())
+end constructor
+
 constructor PdfDoc(path as string)
-	doc = FPDF_LoadDocument(path, null)
+	constructor(FPDF_LoadDocument(path, null))
 end constructor
 
 destructor PdfDoc()
@@ -386,10 +386,6 @@ constructor PdfTemplateNode(type_ as PdfTemplateNodeType, id as string, idDict a
 end constructor
 
 destructor PdfTemplateNode()
-	if obj <> null then
-		FPDFPageObj_Destroy(obj)
-	end if
-	
 	var child = this.head
 	do while child <> null
 		var next_ = child->next_
@@ -522,25 +518,25 @@ sub PdfTemplateNode.translateY(yi as single)
 	loop
 end sub
 
-function PdfTemplateNode.emit(doc as FPDF_DOCUMENT, page as FPDF_PAGE, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
+function PdfTemplateNode.emit(doc as PdfDoc ptr, page as PdfTemplatePageNode ptr, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
 	return null
 end function
 
-function PdfTemplateNode.emitAndInsert(doc as FPDF_DOCUMENT, page as FPDF_PAGE, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
+function PdfTemplateNode.emitAndInsert(doc as PdfDoc ptr, page as PdfTemplatePageNode ptr, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
 	if hidden then
 		return null
 	end if
 		
-	obj = this.emit(doc, page, parent)
+	var obj = this.emit(doc, page, parent)
 
 	emitChildren(doc, page, obj)
 	
 	if obj <> null then
-		FPDFPage_InsertObject(page, obj)
+		page->insert(obj)
 	end if
 end function
 
-sub PdfTemplateNode.emitChildren(doc as FPDF_DOCUMENT, page as FPDF_PAGE, parent as FPDF_PAGEOBJECT)
+sub PdfTemplateNode.emitChildren(doc as PdfDoc ptr, page as PdfTemplatePageNode ptr, parent as FPDF_PAGEOBJECT)
 	static d as integer = 0
 	'print space(d*4); typeToString(this.type_)
 	d += 1
@@ -632,7 +628,7 @@ destructor PdfTemplateStrokeNode()
 	end if
 end destructor
 
-function PdfTemplateStrokeNode.emit(doc as FPDF_DOCUMENT, page as FPDF_PAGE, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
+function PdfTemplateStrokeNode.emit(doc as PdfDoc ptr, page as PdfTemplatePageNode ptr, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
 	var path = FPDFPageObj_CreateNewPath(0, 0)
 	
 	FPDFPath_SetDrawMode(path, FPDF_FILLMODE_NONE, 1)
@@ -692,7 +688,7 @@ destructor PdfTemplateFillNode()
 	end if
 end destructor
 
-function PdfTemplateFillNode.emit(doc as FPDF_DOCUMENT, page as FPDF_PAGE, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
+function PdfTemplateFillNode.emit(doc as PdfDoc ptr, page as PdfTemplatePageNode ptr, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
 	var path = FPDFPageObj_CreateNewPath(0, 0)
 	
 	FPDFPath_SetDrawMode(path, mode, 0)
@@ -734,7 +730,7 @@ sub PdfTemplateMoveToNode.translateY(yi as single)
 	this.y += yi
 end sub
 
-function PdfTemplateMoveToNode.emit(doc as FPDF_DOCUMENT, page as FPDF_PAGE, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
+function PdfTemplateMoveToNode.emit(doc as PdfDoc ptr, page as PdfTemplatePageNode ptr, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
 	FPDFPath_MoveTo(parent, this.x, this.y)
 	return null
 end function
@@ -765,7 +761,7 @@ sub PdfTemplateLineToNode.translateY(yi as single)
 	this.y += yi
 end sub
 
-function PdfTemplateLineToNode.emit(doc as FPDF_DOCUMENT, page as FPDF_PAGE, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
+function PdfTemplateLineToNode.emit(doc as PdfDoc ptr, page as PdfTemplatePageNode ptr, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
 	FPDFPath_LineTo(parent, this.x, this.y)
 	return null
 end function
@@ -808,7 +804,7 @@ sub PdfTemplateBezierToNode.translateY(yi as single)
 	this.y3 += yi
 end sub
 
-function PdfTemplateBezierToNode.emit(doc as FPDF_DOCUMENT, page as FPDF_PAGE, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
+function PdfTemplateBezierToNode.emit(doc as PdfDoc ptr, page as PdfTemplatePageNode ptr, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
 	FPDFPath_BezierTo(parent, this.x1, this.y1, this.x2, this.y2, this.x3, this.y3)
 	return null
 end function
@@ -824,7 +820,7 @@ function PdfTemplateClosePathNode.clone(parent as PdfTemplateNode ptr, page as P
 	return dup
 end function
 
-function PdfTemplateClosePathNode.emit(doc as FPDF_DOCUMENT, page as FPDF_PAGE, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
+function PdfTemplateClosePathNode.emit(doc as PdfDoc ptr, page as PdfTemplatePageNode ptr, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
 	FPDFPath_Close(parent)
 	return null
 end function
@@ -861,8 +857,8 @@ sub PdfTemplateHighlightNode.translateY(yi as single)
 	this.top += yi
 end sub
 
-function PdfTemplateHighlightNode.emit(doc as FPDF_DOCUMENT, page as FPDF_PAGE, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
-	highlight(left, bottom, right, top, page)
+function PdfTemplateHighlightNode.emit(doc as PdfDoc ptr, page as PdfTemplatePageNode ptr, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
+	highlight(left, bottom, right, top, page->getPage())
 	return null
 end function
 
@@ -936,13 +932,13 @@ destructor PdfTemplateTextNode()
 	end if
 end destructor
 
-function PdfTemplateTextNode.emit(doc as FPDF_DOCUMENT, page as FPDF_PAGE, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
+function PdfTemplateTextNode.emit(doc as PdfDoc ptr, page as PdfTemplatePageNode ptr, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
 	if text = null orelse len(*text) = 0 then
 		return null
 	end if
 	
-	var fon = FPDFText_LoadStandardFont(doc, font)
-	var tex = FPDFPageObj_CreateTextObj(doc, fon, size)
+	var fon = page->loadFont(doc, font)
+	var tex = FPDFPageObj_CreateTextObj(doc->getDoc(), fon, size)
 	FPDFText_SetText(tex, text)
 	var xpos = x
 	if align <> PdfTextAlignment.TA_LEFT then
@@ -999,7 +995,7 @@ destructor PdfTemplateGroupNode()
 	end if
 end destructor
 
-function PdfTemplateGroupNode.emit(doc as FPDF_DOCUMENT, page as FPDF_PAGE, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
+function PdfTemplateGroupNode.emit(doc as PdfDoc ptr, page as PdfTemplatePageNode ptr, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
 	return null
 end function
 
@@ -1015,7 +1011,7 @@ function PdfTemplateTemplateNode.clone(parent as PdfTemplateNode ptr, page as Pd
 	return dup
 end function
 
-function PdfTemplateTemplateNode.emit(doc as FPDF_DOCUMENT, page as FPDF_PAGE, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
+function PdfTemplateTemplateNode.emit(doc as PdfDoc ptr, page as PdfTemplatePageNode ptr, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
 	return null
 end function
 
@@ -1027,11 +1023,39 @@ constructor PdfTemplatePageNode(x1 as single, y1 as single, x2 as single, y2 as 
 	this.x2 = x2
 	this.y2 = y2
 	idDict = new TDict(64)
+	objList = new TList(1000, len(FPDF_PAGEOBJECT ptr), false)
+	fontList = new TList(10, len(FPDF_FONT ptr), false)
 end constructor
 
 destructor PdfTemplatePageNode()
+	if page <> null then
+		FPDF_ClosePage(page)
+	end if
+	disposeObjs()
 	delete idDict
 end destructor
+
+sub PdfTemplatePageNode.disposeObjs()
+	if objList <> null then
+		var obj = cast(FPDF_PAGEOBJECT, objList->head)
+		do while obj <> null
+			'FPDFPageObj_Destroy(*obj)
+			obj = objList->next_(obj)
+		loop
+		delete objList
+		objList = null
+	end if
+
+	if fontList <> null then
+		var font = cast(FPDF_FONT ptr, fontList->head)
+		do while font <> null
+			FPDFFont_Close(*font)
+			font = fontList->next_(font)
+		loop
+		delete fontList
+		fontList = null
+	end if
+end sub
 
 function PdfTemplatePageNode.clone() as PdfTemplatePageNode ptr
 	var dup = new PdfTemplatePageNode(x1, y1, x2, y2, null)
@@ -1039,33 +1063,47 @@ function PdfTemplatePageNode.clone() as PdfTemplatePageNode ptr
 	return dup
 end function
 
-sub PdfTemplatePageNode.emit(doc as FPDF_DOCUMENT, index as integer, flush_ as boolean)
+sub PdfTemplatePageNode.emit(doc as PdfDoc ptr, index as integer, flush_ as boolean)
 	if hidden then
 		return
 	end if
 	
-	page = FPDFPage_New(doc, index, x2 - x1, y2 - y1)
+	page = FPDFPage_New(doc->getDoc(), index, x2 - x1, y2 - y1)
 	FPDFPage_SetMediaBox(page, x1, y1, x2, y2)
 	FPDFPage_SetCropBox(page, x1, y1, x2, y2)
 	
-	emitChildren(doc, page, null)
+	emitChildren(doc, @this, null)
 	
 	if flush_ then
-		FPDFPage_GenerateContent(page)
-		page = null
+		flush(doc)
 	end if
 end sub
 
-sub PdfTemplatePageNode.emit(doc as PdfDoc ptr, index as integer, flush_ as boolean)
-	emit(doc->getDoc(), index, flush_)
-end sub
-
-sub PdfTemplatePageNode.flush()
+sub PdfTemplatePageNode.flush(doc as PdfDoc ptr)
 	if page <> null then
 		FPDFPage_GenerateContent(page)
+		FPDF_ClosePage(page)
+		disposeObjs()
 		page = null
 	end if
 end sub
+
+sub PdfTemplatePageNode.insert(obj as FPDF_PAGEOBJECT)
+	FPDFPage_InsertObject(page, obj)
+	var p = cast(FPDF_PAGEOBJECT ptr, objList->add())
+	*p = obj
+end sub
+
+function PdfTemplatePageNode.loadFont(doc as PdfDoc ptr, name_ as string) as FPDF_FONT
+	var font = FPDFText_LoadStandardFont(doc->getDoc(), name_)
+	var p = cast(FPDF_FONT ptr, fontList->add())
+	*p = font
+	return font
+end function
+
+function PdfTemplatePageNode.getPage() as FPDF_PAGE
+	return page
+end function
 
 function PdfTemplatePageNode.getIdDict() as TDict ptr
 	return idDict
@@ -1540,16 +1578,16 @@ end function
 sub PdfTemplate.emitTo(doc as PdfDoc ptr, flush_ as boolean)
 	var page = root->getHead()
 	do while page <> null
-		cast(PdfTemplatePageNode ptr, page)->emit(doc->getDoc(), index, flush_)
+		cast(PdfTemplatePageNode ptr, page)->emit(doc, index, flush_)
 		index += 1
 		page = page->getNext()
 	loop
 end sub
 
-sub PdfTemplate.flush()
+sub PdfTemplate.flush(doc as PdfDoc ptr)
 	var page = root->getHead()
 	do while page <> null
-		cast(PdfTemplatePageNode ptr, page)->flush()
+		cast(PdfTemplatePageNode ptr, page)->flush(doc)
 		page = page->getNext()
 	loop
 end sub

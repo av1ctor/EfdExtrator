@@ -1,4 +1,5 @@
 #include once "fpdf.bi"
+#include once "List.bi"
 #ifdef WITH_PARSER
 #	include once "libxml/xmlreader.bi"
 #	include once "Dict.bi"
@@ -153,9 +154,9 @@ public:
 	declare function getTail() as PdfTemplateNode ptr
 	declare function getNext() as PdfTemplateNode ptr
 	declare virtual function clone(parent as PdfTemplateNode ptr, page as PdfTemplatePageNode_ ptr) as PdfTemplateNode ptr
-	declare virtual function emit(doc as FPDF_DOCUMENT, page as FPDF_PAGE, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
-	declare function emitAndInsert(doc as FPDF_DOCUMENT, page as FPDF_PAGE, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
-	declare sub emitChildren(doc as FPDF_DOCUMENT, page as FPDF_PAGE, parent as FPDF_PAGEOBJECT)
+	declare virtual function emit(doc as PdfDoc ptr, page as PdfTemplatePageNode_ ptr, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
+	declare function emitAndInsert(doc as PdfDoc ptr, page as PdfTemplatePageNode_ ptr, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
+	declare sub emitChildren(doc as PdfDoc ptr, page as PdfTemplatePageNode_ ptr, parent as FPDF_PAGEOBJECT)
 	declare virtual function lookupAttrib(name_ as string, byref type_ as PdfTemplateAttribType) as any ptr
 	declare virtual sub translate(xi as single, yi as single)
 	declare virtual sub translateX(xi as single)
@@ -175,20 +176,21 @@ protected:
 	next_ as PdfTemplateNode ptr
 	head as PdfTemplateNode ptr
 	tail as PdfTemplateNode ptr
-private:
-	obj as FPDF_PAGEOBJECT
 end type
 
 type PdfTemplatePageNode extends PdfTemplateNode
 public:
 	declare constructor(x1 as single, y1 as single, x2 as single, y2 as single, parent as PdfTemplateNode ptr)
 	declare destructor()
-	declare sub emit(doc as FPDF_DOCUMENT, index as integer, flush_ as boolean)
+	declare sub disposeObjs()
+	declare sub insert(obj as FPDF_PAGEOBJECT)
+	declare function loadFont(doc as PdfDoc ptr, name_ as string) as FPDF_FONT
 	declare sub emit(doc as PdfDoc ptr, index as integer, flush_ as boolean = true)
-	declare sub flush()
+	declare sub flush(doc as PdfDoc ptr)
 	declare function clone() as PdfTemplatePageNode ptr
 	declare function getIdDict() as TDict ptr
 	declare function getNode(id as string) as PdfTemplateNode ptr
+	declare function getPage() as FPDF_PAGE
 private:
 	x1 as single
 	y1 as single
@@ -196,8 +198,9 @@ private:
 	y2 as single
 	idDict as TDict ptr
 	page as FPDF_PAGE
+	objList as TList ptr 'of FPDF_PAGEOBJECT ptr
+	fontList as TList ptr 'of FPDF_FONT ptr
 end type
-
 
 type PdfRGB
 public:
@@ -216,7 +219,7 @@ public:
 	declare constructor(mode as integer, colorspace as integer, r as ulong, g as ulong, b as ulong, parent as PdfTemplateNode ptr)
 	declare destructor()
 	declare virtual function clone(parent as PdfTemplateNode ptr, page as PdfTemplatePageNode ptr) as PdfTemplateNode ptr
-	declare virtual function emit(doc as FPDF_DOCUMENT, page as FPDF_PAGE, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
+	declare virtual function emit(doc as PdfDoc ptr, page as PdfTemplatePageNode ptr, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
 private:
 	mode as integer
 	colorspace as integer 
@@ -230,7 +233,7 @@ public:
 	declare constructor(width_ as single, miterlin as single, join as integer, cap as integer, colorspace as integer, color_ as PdfRGB ptr, transf as FS_MATRIX ptr, parent as PdfTemplateNode ptr)
 	declare destructor()
 	declare virtual function clone(parent as PdfTemplateNode ptr, page as PdfTemplatePageNode ptr) as PdfTemplateNode ptr
-	declare virtual function emit(doc as FPDF_DOCUMENT, page as FPDF_PAGE, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
+	declare virtual function emit(doc as PdfDoc ptr, page as PdfTemplatePageNode ptr, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
 private:
 	width_ as single
 	miterlin as single
@@ -245,7 +248,7 @@ type PdfTemplateMoveToNode extends PdfTemplateNode
 public:
 	declare constructor(x as single, y as single, parent as PdfTemplateNode ptr = null)
 	declare virtual function clone(parent as PdfTemplateNode ptr, page as PdfTemplatePageNode ptr) as PdfTemplateNode ptr
-	declare virtual function emit(doc as FPDF_DOCUMENT, page as FPDF_PAGE, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
+	declare virtual function emit(doc as PdfDoc ptr, page as PdfTemplatePageNode ptr, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
 	declare virtual sub translate(xi as single, yi as single)
 	declare virtual sub translateX(xi as single)
 	declare virtual sub translateY(yi as single)
@@ -258,7 +261,7 @@ type PdfTemplateLineToNode extends PdfTemplateNode
 public:
 	declare constructor(x as single, y as single, parent as PdfTemplateNode ptr = null)
 	declare virtual function clone(parent as PdfTemplateNode ptr, page as PdfTemplatePageNode ptr) as PdfTemplateNode ptr
-	declare virtual function emit(doc as FPDF_DOCUMENT, page as FPDF_PAGE, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
+	declare virtual function emit(doc as PdfDoc ptr, page as PdfTemplatePageNode ptr, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
 	declare virtual sub translate(xi as single, yi as single)
 	declare virtual sub translateX(xi as single)
 	declare virtual sub translateY(yi as single)
@@ -271,7 +274,7 @@ type PdfTemplateBezierToNode extends PdfTemplateNode
 public:
 	declare constructor(x1 as single, y1 as single, x2 as single, y2 as single, x3 as single, y3 as single, parent as PdfTemplateNode ptr = null)
 	declare virtual function clone(parent as PdfTemplateNode ptr, page as PdfTemplatePageNode ptr) as PdfTemplateNode ptr
-	declare virtual function emit(doc as FPDF_DOCUMENT, page as FPDF_PAGE, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
+	declare virtual function emit(doc as PdfDoc ptr, page as PdfTemplatePageNode ptr, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
 	declare virtual sub translate(xi as single, yi as single)
 	declare virtual sub translateX(xi as single)
 	declare virtual sub translateY(yi as single)
@@ -288,7 +291,7 @@ type PdfTemplateClosePathNode extends PdfTemplateNode
 public:
 	declare constructor(parent as PdfTemplateNode ptr = null)
 	declare virtual function clone(parent as PdfTemplateNode ptr, page as PdfTemplatePageNode ptr) as PdfTemplateNode ptr
-	declare virtual function emit(doc as FPDF_DOCUMENT, page as FPDF_PAGE, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
+	declare virtual function emit(doc as PdfDoc ptr, page as PdfTemplatePageNode ptr, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
 private:
 end type
 
@@ -296,7 +299,7 @@ type PdfTemplateHighlightNode extends PdfTemplateNode
 public:
 	declare constructor(left as single, bottom as single, right as single, top as single, parent as PdfTemplateNode ptr = null)
 	declare virtual function clone(parent as PdfTemplateNode ptr, page as PdfTemplatePageNode ptr) as PdfTemplateNode ptr
-	declare virtual function emit(doc as FPDF_DOCUMENT, page as FPDF_PAGE, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
+	declare virtual function emit(doc as PdfDoc ptr, page as PdfTemplatePageNode ptr, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
 	declare virtual sub translate(xi as single, yi as single)
 	declare virtual sub translateX(xi as single)
 	declare virtual sub translateY(yi as single)
@@ -318,7 +321,7 @@ public:
 	declare constructor (id as string, idDict as TDict ptr, font as string, size as single, mode as FPDF_TEXT_RENDERMODE, x as single, y as single, width_ as single, align as PdfTextAlignment, text as wstring ptr, colorspace as integer, color_ as PdfRGB ptr, transf as FS_MATRIX ptr, parent as PdfTemplateNode ptr)
 	declare destructor()
 	declare virtual function clone(parent as PdfTemplateNode ptr, page as PdfTemplatePageNode ptr) as PdfTemplateNode ptr
-	declare virtual function emit(doc as FPDF_DOCUMENT, page as FPDF_PAGE, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
+	declare virtual function emit(doc as PdfDoc ptr, page as PdfTemplatePageNode ptr, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
 	declare virtual sub translate(xi as single, yi as single)
 	declare virtual sub translateX(xi as single)
 	declare virtual sub translateY(yi as single)
@@ -342,7 +345,7 @@ public:
 	declare constructor(bbox as PdfRectCoords ptr, isolated as boolean, knockout as boolean, blendMode as zstring ptr, alpha as single, parent as PdfTemplateNode ptr)
 	declare destructor()
 	declare virtual function clone(parent as PdfTemplateNode ptr, page as PdfTemplatePageNode ptr) as PdfTemplateNode ptr
-	declare virtual function emit(doc as FPDF_DOCUMENT, page as FPDF_PAGE, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
+	declare virtual function emit(doc as PdfDoc ptr, page as PdfTemplatePageNode ptr, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
 private:
 	bbox as PdfRectCoords ptr
 	isolated as boolean
@@ -355,7 +358,7 @@ type PdfTemplateTemplateNode extends PdfTemplateNode
 public:
 	declare constructor(id as string, idDict as TDict ptr, parent as PdfTemplateNode ptr, hidden as boolean = true)
 	declare virtual function clone(parent as PdfTemplateNode ptr, page as PdfTemplatePageNode ptr) as PdfTemplateNode ptr
-	declare virtual function emit(doc as FPDF_DOCUMENT, page as FPDF_PAGE, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
+	declare virtual function emit(doc as PdfDoc ptr, page as PdfTemplatePageNode ptr, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
 end type
 
 type PdfTemplate
@@ -365,7 +368,7 @@ public:
 	declare destructor()
 	declare function load() as boolean
 	declare sub emitTo(doc as PdfDoc ptr, flush_ as boolean = true)
-	declare sub flush()
+	declare sub flush(doc as PdfDoc ptr)
 	declare sub parseDocument(parent as PdfTemplateNode ptr)
 	declare sub parsePage(parent as PdfTemplateNode ptr)
 	declare function parseObject(tag as zstring ptr, parent as PdfTemplateNode ptr, page as PdfTemplatePageNode ptr) as PdfTemplateNode ptr

@@ -310,7 +310,7 @@ private function onProgress(estagio as const zstring ptr, completado as double =
 			IupSetStrAttribute(curFileGrid->mat, ROWCOL(l, 2), msg)
 		end if
 
-		if len(msg) > 0 orelse completado = 0 orelse completado = 1 orelse completado - ultCompletado >= 0.05 then
+		if len(msg) > 0 orelse completado = 0 orelse completado = 1 orelse completado - ultCompletado >= 0.01 then
 			IupSetInt(curFileGrid->mat, ROWCOL(l, 3), cint(completado * 100))
 			IupSetAttribute(curFileGrid->mat, "REDRAW", "L" & l)
 			IupSetAttribute(curFileGrid->mat, "SHOW", l & ":*")
@@ -323,7 +323,7 @@ private function onProgress(estagio as const zstring ptr, completado as double =
 			IupSetStrAttribute(cast(IHandle ptr, IupGetAttribute(statusBar, "_LABEL")), "TITLE", msg)
 		end if
 
-		if len(msg) > 0 orelse completado = 0 orelse completado = 1 orelse completado - ultCompletado >= 0.05 then
+		if len(msg) > 0 orelse completado = 0 orelse completado = 1 orelse completado - ultCompletado >= 0.01 then
 			IupSetDouble(cast(IHandle ptr, IupGetAttribute(statusBar, "_PROGRESS")), "VALUE", completado)
 			IupFlush()
 			ultCompletado = completado
