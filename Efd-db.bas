@@ -149,8 +149,7 @@ end function
 ''''''''
 function Efd.adicionarDocEscriturado(doc as TDocDF ptr) as long
 	
-	select case as const doc->situacao
-	case REGULAR, EXTEMPORANEO
+	if ISREGULAR(doc->situacao) then
 		var part = cast( TParticipante ptr, participanteDict->lookup(doc->idParticipante) )
 		
 		var uf = iif(part->municip >= 1100000 and part->municip <= 5399999, part->municip \ 100000, 99)
@@ -215,12 +214,9 @@ function Efd.adicionarDocEscriturado(doc as TDocDF ptr) as long
 			return db->lastId()
 		end if
 	
-	case CANCELADO, CANCELADO_EXT, DENEGADO, INUTILIZADO
+	else
 		'' !!!TODO!!! inserir em outra tabela para fazermos análises posteriores
-	
-	case else
-		'' !!!TODO!!! como tratar outras situações? os dados vêm completos?
-	end select
+	end if
 	
 	return 0
 	
@@ -229,8 +225,7 @@ end function
 ''''''''
 function Efd.adicionarDocEscriturado(doc as TDocECF ptr) as long
 	
-	select case as const doc->situacao
-	case REGULAR, EXTEMPORANEO
+	if ISREGULAR(doc->situacao) then
 	
 		'' só existe de saída para ECF
 		if doc->operacao = SAIDA then
@@ -255,12 +250,9 @@ function Efd.adicionarDocEscriturado(doc as TDocECF ptr) as long
 			return db->lastId()
 		end if
 	
-	case CANCELADO, CANCELADO_EXT, DENEGADO, INUTILIZADO
+	else
 		'' !!!TODO!!! inserir em outra tabela para fazermos análises posteriores
-	
-	case else
-		'' !!!TODO!!! como tratar outras situações? os dados vêm completos?
-	end select
+	end if
 
 	return 0
 end function
@@ -268,8 +260,7 @@ end function
 ''''''''
 function Efd.adicionarDocEscriturado(doc as TDocSAT ptr) as long
 	
-	select case as const doc->situacao
-	case REGULAR, EXTEMPORANEO
+	if ISREGULAR(doc->situacao) then
 	
 		'' só existe de saída para SAT
 		if doc->operacao = SAIDA then
@@ -294,12 +285,9 @@ function Efd.adicionarDocEscriturado(doc as TDocSAT ptr) as long
 			return db->lastId()
 		end if
 	
-	case CANCELADO, CANCELADO_EXT, DENEGADO, INUTILIZADO
+	else
 		'' !!!TODO!!! inserir em outra tabela para fazermos análises posteriores
-	
-	case else
-		'' !!!TODO!!! como tratar outras situações? os dados vêm completos?
-	end select
+	end if
 	
 	return 0
 end function
@@ -308,8 +296,7 @@ end function
 function Efd.adicionarItemNFEscriturado(item as TDocNFItem ptr) as long
 	
 	var doc = item->documentoPai
-	select case as const doc->situacao
-	case REGULAR, EXTEMPORANEO
+	if ISREGULAR(doc->situacao) then
 		var part = cast( TParticipante ptr, participanteDict->lookup(doc->idParticipante) )
 		
 		var uf = iif(part->municip >= 1100000 and part->municip <= 5399999, part->municip \ 100000, 99)
@@ -348,7 +335,7 @@ function Efd.adicionarItemNFEscriturado(item as TDocNFItem ptr) as long
 		end if
 		
 		return db->lastId()
-	end select
+	end if
 	
 	return 0
 	

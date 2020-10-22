@@ -1796,7 +1796,6 @@
 					<moveto x="345" y="513.25"/>
 					<lineto x="345" y="502.75"/>
 				</stroke_path>
-
 				<fill_text color="0 0 0">
 					<span font="Helvetica" wmode="0" bidi="0" trm="7 0 0 7" x="345" y="505.34" width="159" align="center" id="ITEM-AJ"></span>
 				</fill_text>
@@ -1816,7 +1815,6 @@
 					<moveto x="504" y="513.25"/>
 					<lineto x="504" y="502.75"/>
 				</stroke_path>
-
 				<fill_text color="0 0 0">
 					<span font="Helvetica" wmode="0" bidi="0" trm="7 0 0 7" x="504" y="505.34" width="63" align="right" id="BC-AJ"></span>
 				</fill_text>
