@@ -267,7 +267,7 @@ sub main()
 		var arquivoEntrada = command(i)
 		do while len(arquivoEntrada) > 0
 			if lcase(right(arquivoEntrada,3)) = "csv" then
-				if not opcoes.pularAnalises orelse opcoes.acrescentarDados then
+				if not opcoes.pularAnalises orelse opcoes.acrescentarDados orelse opcoes.manterDb then
 					onProgress("Carregando arquivo: " + arquivoEntrada, 0)
 					if not ext->carregarCsv( arquivoEntrada ) then
 						onError(!"\r\nErro ao carregar arquivo: " & arquivoEntrada)
@@ -275,7 +275,7 @@ sub main()
 					end if
 				end if
 			elseif lcase(right(arquivoEntrada,4)) = "xlsx" then
-				if not opcoes.pularAnalises orelse opcoes.acrescentarDados then
+				if not opcoes.pularAnalises orelse opcoes.acrescentarDados orelse opcoes.manterDb then
 					onProgress("Carregando arquivo: " + arquivoEntrada, 0)
 					if not ext->carregarXlsx( arquivoEntrada ) then
 						onError(!"\r\nErro ao carregar arquivo: " & arquivoEntrada)

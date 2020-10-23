@@ -454,7 +454,7 @@ end function
 ''''''''
 function Efd.addRegistroAoDB(reg as TRegistro ptr) as long
 
-	if opcoes.pularResumos andalso opcoes.pularAnalises then
+	if opcoes.pularResumos andalso opcoes.pularAnalises andalso not opcoes.manterDb then
 		return 0
 	end if
 
@@ -488,7 +488,7 @@ end function
 ''''''''
 function Efd.adicionarDFe(dfe as TDFe ptr, fazerInsert as boolean) as long
 
-	if opcoes.pularResumos andalso opcoes.pularAnalises then
+	if opcoes.pularResumos andalso opcoes.pularAnalises andalso not opcoes.manterDb then
 		return 0
 	end if
 	
@@ -569,7 +569,7 @@ end function
 ''''''''
 function Efd.adicionarItemDFe(chave as const zstring ptr, item as TDFe_NFeItem ptr) as long
 
-	if opcoes.pularResumos andalso opcoes.pularAnalises then
+	if opcoes.pularResumos andalso opcoes.pularAnalises andalso not opcoes.manterDb then
 		return 0
 	end if
 

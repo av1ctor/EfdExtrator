@@ -398,7 +398,7 @@ private function item_exec_action_cb(item as Ihandle ptr) as long
 			
 			var arquivoEntrada = curFile->path + curFile->name
 			if lcase(right(arquivoEntrada,3)) = "csv" then
-				if not gui->opcoes.pularAnalises orelse gui->opcoes.acrescentarDados then
+				if not gui->opcoes.pularAnalises orelse gui->opcoes.acrescentarDados orelse gui->opcoes.manterDb then
 					onProgress("Carregando")
 					if not ext->carregarCsv( arquivoEntrada ) then
 						onError(!"\r\nErro ao carregar arquivo: " & arquivoEntrada)
@@ -409,7 +409,7 @@ private function item_exec_action_cb(item as Ihandle ptr) as long
 				end if
 				
 			elseif lcase(right(arquivoEntrada,4)) = "xlsx" then
-				if not gui->opcoes.pularAnalises orelse gui->opcoes.acrescentarDados then
+				if not gui->opcoes.pularAnalises orelse gui->opcoes.acrescentarDados orelse gui->opcoes.manterDb then
 					onProgress("Carregando")
 					if not ext->carregarXlsx( arquivoEntrada ) then
 						onError(!"\r\nErro ao carregar arquivo: " & arquivoEntrada)
