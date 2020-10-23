@@ -2,6 +2,7 @@ versão 0.9.3 beta:
 - adicionado: relatório do CIAP em PDF
 - adicionado: observações do lançamento fiscal na LRE e LRS
 - corrigido: ordenação dos registros cancelados e inutilizados estava incorreta no LRE
+- corrigido: vazamento de memória na geração de relatórios em PDF
 
 versão 0.9.2 beta:
 - corrigido: vazamento de memória
