@@ -34,6 +34,54 @@ const CIAP_BEM_HEIGHT = 180 - CIAP_BEM_PRINC_HEIGHT
 const CIAP_DOC_HEIGHT = 82
 const CIAP_DOC_ITEM_HEIGHT = 57
 const CIAP_PAGE_BOTTOM = 480
+const LRAICMS_ITEMS_HEIGHT = 240
+const LRAICMS_PAGE_BOTTOM = 744
+const LRAICMS_AJ_DECOD_HEIGHT = 42
+const LRAICMS_AJ_TITLE_HEIGHT = 18
+const LRAICMS_AJ_HEADER_HEIGHT = 14
+const LRAICMS_AJ_ROW_HEIGHT = 17
+const LRAICMS_AJ_TOTAL_HEIGHT = 21
+const LRAICMS_AJ_SUBTOTAL_HEIGHT = 17
+
+type TMovimento
+	mov as zstring * 2+1
+	descricao as wstring * 64+1
+end type
+
+type AjusteApuracao
+	codigo as zstring * 8+1
+	ajuste as TApuracaoIcmsAjuste ptr
+end type
+
+	dim shared movLut(0 to ...) as TMovimento = { _
+		("SI", "Saldo inicial de bens imobilizados"), _
+		("IM", "Imobilização de bem individual"), _
+		("IA", "Imobilização em Andamento - Componente"), _
+		("CI", "Conclusão de Imobilização em Andamento �?? Bem Resultante"), _
+		("MC", "Imobilização oriunda do Ativo Circulante"), _
+		("BA", "Baixa do bem - Fim do período de apropriação"), _
+		("AT", "Alienação ou Transferência"), _
+		("PE", "Perecimento, Extravio ou Deterioração"), _
+		("OT", "Outras Saídas do Imobilizado") _
+	}
+	
+	dim shared ajusteTipoToDecod(0 to 5) as zstring * 32+1 = { _
+		"Outros débitos", _
+		"Estorno de créditos", _
+		"Outros créditos", _
+		"Estorno de débitos", _
+		"Deduções do imposto apurado", _
+		"Débitos Especiais" _
+	}
+	
+	dim shared ajusteTipoToTitle(0 to 5) as zstring * 32+1 = { _
+		"AJUSTES A D�BITO", _
+		"ESTORNOS DE CR�DITOS", _
+		"AJUSTES A CR�DITO", _
+		"ESTORNOS DE D�BITOS", _
+		"DEDU��ES DE IMPOSTO APURADO", _
+		"D�BITOS ESPECIAIS" _
+	}
 
 	dim shared charWidth(0 to 255) as single = {_
 		0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,_
@@ -745,23 +793,6 @@ function efd.gerarPaginaRelatorio(isLast as boolean, isPre as boolean) as boolea
 
 end function
 
-type TMovimento
-	mov as zstring * 2+1
-	descricao as wstring * 64+1
-end type
-
-	dim shared movLut(0 to ...) as TMovimento = { _
-		("SI", "Saldo inicial de bens imobilizados"), _
-		("IM", "Imobilização de bem individual"), _
-		("IA", "Imobilização em Andamento - Componente"), _
-		("CI", "Conclusão de Imobilização em Andamento �?? Bem Resultante"), _
-		("MC", "Imobilização oriunda do Ativo Circulante"), _
-		("BA", "Baixa do bem - Fim do período de apropriação"), _
-		("AT", "Alienação ou Transferência"), _
-		("PE", "Perecimento, Extravio ou Deterioração"), _
-		("OT", "Outras Saídas do Imobilizado") _
-	}
-	
 private function movToDesc(mov as string) as string
 	for i as integer = 0 to ubound(movLut)
 		if movLut(i).mov = mov then
@@ -943,6 +974,28 @@ sub Efd.gerarRelatorioCiap(nomeArquivo as string, reg as TRegistro ptr, isPre as
 end sub
 
 ''''''''
+sub Efd.gerarAjusteTotalRelatorioApuracaoICMS(tipo as integer, total as double, isPre as boolean)
+	if relYpos + LRAICMS_AJ_TOTAL_HEIGHT > LRAICMS_PAGE_BOTTOM then
+		criarPaginaRelatorio(true, isPre)
+	end if
+	
+	if not isPre then
+		var node = relPage->getNode("ajuste-total")
+		var clone = node->clone(relPage, relPage)
+		clone->setAttrib("hidden", false)
+		clone->translateY(-relYPos)
+		setChildText(clone, "AJ-TOTAL-DESC", "DEMONSTRATIVO DO VALOR TOTAL DOS " & ajusteTipoToTitle(tipo), true)
+		setChildText(clone, "AJ-TOTAL-VAL", DBL2MONEYBR(total))
+	end if
+	
+	relYpos += LRAICMS_AJ_TOTAL_HEIGHT
+end sub
+
+private function ajusteApuracaoCmpCb(key as zstring ptr, node as any ptr) as boolean
+	function = *key < cast(AjusteApuracao ptr, node)->codigo
+end function
+
+''''''''
 sub Efd.gerarRelatorioApuracaoICMS(nomeArquivo as string, reg as TRegistro ptr, isPre as boolean)
 
 	iniciarRelatorio(REL_RAICMS, "apuracao_icms", "RAICMS", isPre)
@@ -970,6 +1023,138 @@ sub Efd.gerarRelatorioApuracaoICMS(nomeArquivo as string, reg as TRegistro ptr, 
 		setNodeText(relPage, "A_RECOLHER", DBL2MONEYBR(reg->apuIcms.icmsRecolher))
 		setNodeText(relPage, "A_TRANSPORTAR", DBL2MONEYBR(reg->apuIcms.saldoCredTransportar))
 		setNodeText(relPage, "EXTRA_APU", DBL2MONEYBR(reg->apuIcms.debExtraApuracao))
+	end if
+	
+	var ajuste = reg->apuIcms.ajustesListHead
+	if ajuste <> null then
+		relYPos += LRAICMS_ITEMS_HEIGHT
+
+		var ordered = new TList(10, len(AjusteApuracao))
+		
+		do while ajuste <> null
+			'' s� opera��es pr�prias
+			var op = cint(mid(ajuste->codigo, 3, 1))
+			if op = 0 then
+				var aj = cast(AjusteApuracao ptr, ordered->addOrdAsc(ajuste->codigo, @ajusteApuracaoCmpCb))
+				aj->codigo = ajuste->codigo
+				aj->ajuste = ajuste
+			end if
+			ajuste = ajuste->next_
+		loop
+		
+		var ultimoTipo = -1
+		var total = 0.0
+		var ultimoCodigo = ""
+		var subtotal = 0.0
+		var cnt = 0
+		
+		var aj = cast(AjusteApuracao ptr, ordered->head)
+		do while aj <> null
+			ajuste = aj->ajuste
+			
+			if ultimoCodigo <> ajuste->codigo then
+				if cnt > 0 then
+					'' subtotal
+					if relYpos + LRAICMS_AJ_SUBTOTAL_HEIGHT > LRAICMS_PAGE_BOTTOM then
+						criarPaginaRelatorio(true, isPre)
+					end if
+
+					if not isPre then
+						var node = relPage->getNode("ajuste-subtotal")
+						var clone = node->clone(relPage, relPage)
+						clone->setAttrib("hidden", false)
+						clone->translateY(-relYPos)
+						setChildText(clone, "AJ-SUB-DESC", "VALOR TOTAL DOS " & ajusteTipoToTitle(ultimoTipo) & "POR CODIGO: " & ultimoCodigo, true)
+						setChildText(clone, "AJ-SUB-VALOR", DBL2MONEYBR(subtotal))
+					end if
+					relYPos += LRAICMS_AJ_SUBTOTAL_HEIGHT
+				end if
+				
+				cnt = 0
+				subtotal = ajuste->valor
+			else
+				cnt += 1
+				subtotal += ajuste->valor
+			end if
+			
+			var tipo = cint(mid(ajuste->codigo, 4, 1))
+			if tipo <> ultimoTipo then
+				'' total
+				if ultimoTipo <> -1 then
+					gerarAjusteTotalRelatorioApuracaoICMS(tipo, total, isPre)
+				end if
+				
+				'' decod
+				relYpos += 7
+					
+				if relYpos + LRAICMS_AJ_DECOD_HEIGHT + LRAICMS_AJ_TITLE_HEIGHT > LRAICMS_PAGE_BOTTOM then
+					criarPaginaRelatorio(true, isPre)
+				end if
+				
+				if not isPre then
+					var node = relPage->getNode("ajuste-decod")
+					var clone = node->clone(relPage, relPage)
+					clone->setAttrib("hidden", false)
+					clone->translateY(-relYPos)
+					setChildText(clone, "AJ-TIPO", tipo & " - " & ajusteTipoToDecod(tipo))
+				end if
+				relYPos += LRAICMS_AJ_DECOD_HEIGHT
+
+				'' title
+				if not isPre then
+					var node = relPage->getNode("ajuste-title")
+					var clone = node->clone(relPage, relPage)
+					clone->setAttrib("hidden", false)
+					clone->translateY(-relYPos)
+					setChildText(clone, "AJ-TITLE", "DEMONSTRATIVO DO VALOR TOTAL DOS " & ajusteTipoToTitle(tipo), true)
+				end if
+				relYPos += LRAICMS_AJ_TITLE_HEIGHT
+
+				total = ajuste->valor
+			else
+				total += ajuste->valor
+			end if
+			
+			if tipo <> ultimoTipo orelse relYpos + LRAICMS_AJ_HEADER_HEIGHT > LRAICMS_PAGE_BOTTOM then
+				'' header
+				if relYpos + LRAICMS_AJ_HEADER_HEIGHT > LRAICMS_PAGE_BOTTOM then
+					criarPaginaRelatorio(true, isPre)
+				end if
+				
+				if not isPre then
+					var node = relPage->getNode("ajuste-header")
+					var clone = node->clone(relPage, relPage)
+					clone->setAttrib("hidden", false)
+					clone->translateY(-relYPos)
+				end if
+				relYPos += LRAICMS_AJ_HEADER_HEIGHT
+			end if
+			
+			'' row
+			if relYpos + LRAICMS_AJ_ROW_HEIGHT > LRAICMS_PAGE_BOTTOM then
+				criarPaginaRelatorio(true, isPre)
+			end if
+
+			if not isPre then
+				var node = relPage->getNode("ajuste-row")
+				var clone = node->clone(relPage, relPage)
+				clone->setAttrib("hidden", false)
+				clone->translateY(-relYPos)
+				setChildText(clone, "AJ-COD", ajuste->codigo)
+				setChildText(clone, "AJ-DESC", ajuste->codigo & " " & ajuste->descricao, true)
+				setChildText(clone, "AJ-VALOR", DBL2MONEYBR(ajuste->valor))
+			end if
+			relYPos += LRAICMS_AJ_ROW_HEIGHT
+			
+			ultimoTipo = tipo
+			ultimoCodigo = ajuste->codigo
+			
+			aj = ordered->next_(aj)
+		loop
+		
+		delete ordered
+		
+		gerarAjusteTotalRelatorioApuracaoICMS(ultimoTipo, total, isPre)
 	end if
 
 	finalizarRelatorio(isPre)

@@ -328,6 +328,387 @@
 				<moveto x="30" y="507"/>
 				<lineto x="564" y="505"/>
 			</stroke_path>
+
+			<template id="ajuste-decod">
+				<fill_path winding="nonzero" color=".8 .8 .8">
+					<moveto x="30" y="744"/>
+					<lineto x="290" y="744"/>
+					<lineto x="290" y="732"/>
+					<lineto x="30" y="732"/>
+					<closepath/>
+				</fill_path>
+				<fill_text color="0 0 0">
+					<span font="Helvetica" wmode="0" bidi="0" trm="10 0 0 10" x="83.85" y="734.21">Decodificação do código de ajuste</span>
+				</fill_text>
+				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
+					<moveto x="29.75" y="744"/>
+					<lineto x="290.25" y="744"/>
+				</stroke_path>
+				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
+					<moveto x="30" y="744.25"/>
+					<lineto x="30" y="731.75"/>
+				</stroke_path>
+				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
+					<moveto x="29.75" y="732"/>
+					<lineto x="290.25" y="732"/>
+				</stroke_path>
+				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
+					<moveto x="290" y="744.25"/>
+					<lineto x="290" y="731.75"/>
+				</stroke_path>
+				<fill_text color="0 0 0">
+					<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="32" y="712.37">0 - ICMS (Operações próprias)</span>
+				</fill_text>
+				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
+					<moveto x="29.75" y="722"/>
+					<lineto x="160.25" y="722"/>
+				</stroke_path>
+				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
+					<moveto x="30" y="722.25"/>
+					<lineto x="30" y="701.75"/>
+				</stroke_path>
+				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
+					<moveto x="29.75" y="702"/>
+					<lineto x="160.25" y="702"/>
+				</stroke_path>
+				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
+					<moveto x="160" y="722.25"/>
+					<lineto x="160" y="701.75"/>
+				</stroke_path>
+				<fill_path winding="nonzero" color=".8 .8 .8">
+					<moveto x="30" y="732"/>
+					<lineto x="160" y="732"/>
+					<lineto x="160" y="722"/>
+					<lineto x="30" y="722"/>
+					<closepath/>
+				</fill_path>
+				<fill_text color="0 0 0">
+					<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="113.74" y="723.96">3º Caracter</span>
+				</fill_text>
+				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
+					<moveto x="29.75" y="732"/>
+					<lineto x="160.25" y="732"/>
+				</stroke_path>
+				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
+					<moveto x="30" y="732.25"/>
+					<lineto x="30" y="721.75"/>
+				</stroke_path>
+				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
+					<moveto x="29.75" y="722"/>
+					<lineto x="160.25" y="722"/>
+				</stroke_path>
+				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
+					<moveto x="160" y="732.25"/>
+					<lineto x="160" y="721.75"/>
+				</stroke_path>
+				<fill_path winding="nonzero" color=".8 .8 .8">
+					<moveto x="160" y="732"/>
+					<lineto x="290" y="732"/>
+					<lineto x="290" y="722"/>
+					<lineto x="160" y="722"/>
+					<closepath/>
+				</fill_path>
+				<fill_text color="0 0 0">
+					<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="243.74" y="723.96">4º Caracter</span>
+				</fill_text>
+				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
+					<moveto x="159.75" y="732"/>
+					<lineto x="290.25" y="732"/>
+				</stroke_path>
+				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
+					<moveto x="160" y="732.25"/>
+					<lineto x="160" y="721.75"/>
+				</stroke_path>
+				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
+					<moveto x="159.75" y="722"/>
+					<lineto x="290.25" y="722"/>
+				</stroke_path>
+				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
+					<moveto x="290" y="732.25"/>
+					<lineto x="290" y="721.75"/>
+				</stroke_path>
+				<fill_text color="0 0 0">
+					<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="162" y="712.37" id="AJ-TIPO">{AJ-TIPO}</span>
+				</fill_text>
+				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
+					<moveto x="159.75" y="722"/>
+					<lineto x="290.25" y="722"/>
+				</stroke_path>
+				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
+					<moveto x="160" y="722.25"/>
+					<lineto x="160" y="701.75"/>
+				</stroke_path>
+				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
+					<moveto x="159.75" y="702"/>
+					<lineto x="290.25" y="702"/>
+				</stroke_path>
+				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
+					<moveto x="290" y="722.25"/>
+					<lineto x="290" y="701.75"/>
+				</stroke_path>
+			</template>
+			
+			<template id="ajuste-title">
+				<fill_path winding="nonzero" color=".8 .8 .8">
+					<moveto x="30" y="744"/>
+					<lineto x="565" y="744"/>
+					<lineto x="565" y="726"/>
+					<lineto x="30" y="726"/>
+					<closepath/>
+				</fill_path>
+				<fill_text color="0 0 0">
+					<span font="Helvetica-Bold" wmode="0" bidi="0" trm="10 0 0 10" x="30" y="731.21" width="535" align="center" id="AJ-TITLE">{AJ-TITLE}</span>
+				</fill_text>
+				<stroke_path linewidth="1" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
+					<moveto x="29.75" y="744"/>
+					<lineto x="565.25" y="744"/>
+				</stroke_path>
+				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
+					<moveto x="30" y="744.5"/>
+					<lineto x="30" y="725.5"/>
+				</stroke_path>
+				<stroke_path linewidth="1" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
+					<moveto x="29.75" y="726"/>
+					<lineto x="565.25" y="726"/>
+				</stroke_path>
+				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
+					<moveto x="565" y="744.5"/>
+					<lineto x="565" y="725.5"/>
+				</stroke_path>
+			</template>
+
+			<template id="ajuste-header">
+				<fill_path winding="nonzero" color=".8 .8 .8">
+					<moveto x="30" y="744"/>
+					<lineto x="120" y="744"/>
+					<lineto x="120" y="730"/>
+					<lineto x="30" y="730"/>
+					<closepath/>
+				</fill_path>
+				<fill_text color="0 0 0">
+					<span font="Helvetica" wmode="0" bidi="0" trm="10 0 0 10" x="33" y="733.21">Código do Ajuste</span>
+				</fill_text>
+				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
+					<moveto x="29.75" y="744"/>
+					<lineto x="120.25" y="744"/>
+				</stroke_path>
+				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
+					<moveto x="30" y="744.25"/>
+					<lineto x="30" y="729.75"/>
+				</stroke_path>
+				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
+					<moveto x="29.75" y="730"/>
+					<lineto x="120.25" y="730"/>
+				</stroke_path>
+				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
+					<moveto x="120" y="744.25"/>
+					<lineto x="120" y="729.75"/>
+				</stroke_path>
+				<fill_path winding="nonzero" color=".8 .8 .8">
+					<moveto x="489" y="744"/>
+					<lineto x="565" y="744"/>
+					<lineto x="565" y="730"/>
+					<lineto x="489" y="730"/>
+					<closepath/>
+				</fill_path>
+				<fill_text color="0 0 0">
+					<span font="Helvetica" wmode="0" bidi="0" trm="10 0 0 10" x="494.19" y="733.21">Valor do Ajuste</span>
+				</fill_text>
+				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
+					<moveto x="488.75" y="744"/>
+					<lineto x="565.25" y="744"/>
+				</stroke_path>
+				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
+					<moveto x="489" y="744.25"/>
+					<lineto x="489" y="729.75"/>
+				</stroke_path>
+				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
+					<moveto x="488.75" y="730"/>
+					<lineto x="565.25" y="730"/>
+				</stroke_path>
+				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
+					<moveto x="565" y="744.25"/>
+					<lineto x="565" y="729.75"/>
+				</stroke_path>
+				<fill_path winding="nonzero" color=".8 .8 .8">
+					<moveto x="120" y="744"/>
+					<lineto x="489" y="744"/>
+					<lineto x="489" y="730"/>
+					<lineto x="120" y="730"/>
+					<closepath/>
+				</fill_path>
+				<fill_text color="0 0 0">
+					<span font="Helvetica" wmode="0" bidi="0" trm="10 0 0 10" x="123" y="733.21">Descrição do Ajuste</span>
+				</fill_text>
+				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
+					<moveto x="119.75" y="744"/>
+					<lineto x="489.25" y="744"/>
+				</stroke_path>
+				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
+					<moveto x="120" y="744.25"/>
+					<lineto x="120" y="729.75"/>
+				</stroke_path>
+				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
+					<moveto x="119.75" y="730"/>
+					<lineto x="489.25" y="730"/>
+				</stroke_path>
+				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
+					<moveto x="489" y="744.25"/>
+					<lineto x="489" y="729.75"/>
+				</stroke_path>
+			</template>
+				
+			<template id="ajuste-row">
+				<fill_text color="0 0 0">
+					<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="32" y="732.46" id="AJ-COD">{AJ-COD}</span>
+				</fill_text>
+				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
+					<moveto x="29.75" y="744"/>
+					<lineto x="120.25" y="744"/>
+				</stroke_path>
+				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
+					<moveto x="30" y="744.25"/>
+					<lineto x="30" y="726.75"/>
+				</stroke_path>
+				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
+					<moveto x="29.75" y="727"/>
+					<lineto x="120.25" y="727"/>
+				</stroke_path>
+				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
+					<moveto x="120" y="744.25"/>
+					<lineto x="120" y="726.75"/>
+				</stroke_path>
+				<fill_text color="0 0 0">
+					<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="125" y="732.46" id="AJ-DESC">{AJ-DESC}</span>
+				</fill_text>
+				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
+					<moveto x="121" y="744"/>
+					<lineto x="489.25" y="744"/>
+				</stroke_path>
+				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
+					<moveto x="121" y="727"/>
+					<lineto x="489.25" y="727"/>
+				</stroke_path>
+				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
+					<moveto x="489" y="744.25"/>
+					<lineto x="489" y="726.75"/>
+				</stroke_path>
+				<fill_text color="0 0 0">
+					<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="489" y="732.46" width="74" align="right" id="AJ-VALOR">{AJ-VALOR}</span>
+				</fill_text>
+				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
+					<moveto x="488.75" y="744"/>
+					<lineto x="565.25" y="744"/>
+				</stroke_path>
+				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
+					<moveto x="489" y="744.25"/>
+					<lineto x="489" y="726.75"/>
+				</stroke_path>
+				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
+					<moveto x="488.75" y="727"/>
+					<lineto x="565.25" y="727"/>
+				</stroke_path>
+				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
+					<moveto x="565" y="744.25"/>
+					<lineto x="565" y="726.75"/>
+				</stroke_path>
+			</template>
+
+			<template id="ajuste-subtotal">
+				<fill_text color="0 0 0">
+					<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="125" y="732.46" id="AJ-SUB-DESC">{AJ-SUB-DESC}</span>
+				</fill_text>
+				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
+					<moveto x="120" y="744"/>
+					<lineto x="489.25" y="744"/>
+				</stroke_path>
+				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
+					<moveto x="120" y="727"/>
+					<lineto x="489.25" y="727"/>
+				</stroke_path>
+				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
+					<moveto x="489" y="744.25"/>
+					<lineto x="489" y="726.75"/>
+				</stroke_path>
+				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
+					<moveto x="120" y="744.25"/>
+					<lineto x="120" y="726.75"/>
+				</stroke_path>
+				<fill_text color="0 0 0">
+					<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="489" y="732.46" width="74" align="right" id="AJ-SUB-VALOR">{AJ-SUB-VALOR}</span>
+				</fill_text>
+				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
+					<moveto x="488.75" y="744"/>
+					<lineto x="565.25" y="744"/>
+				</stroke_path>
+				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
+					<moveto x="489" y="744.25"/>
+					<lineto x="489" y="726.75"/>
+				</stroke_path>
+				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
+					<moveto x="488.75" y="727"/>
+					<lineto x="565.25" y="727"/>
+				</stroke_path>
+				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
+					<moveto x="565" y="744.25"/>
+					<lineto x="565" y="726.75"/>
+				</stroke_path>
+			</template>
+				
+			<template id="ajuste-total">
+				<fill_path winding="nonzero" color=".8 .8 .8">
+					<moveto x="30" y="744"/>
+					<lineto x="489" y="744"/>
+					<lineto x="489" y="723"/>
+					<lineto x="30" y="723"/>
+					<closepath/>
+				</fill_path>
+				<fill_text color="0 0 0">
+					<span font="Helvetica-Bold" wmode="0" bidi="0" trm="8 0 0 8" x="32" y="730.46" id="AJ-TOTAL-DESC">{AJ-TOTAL-DESC}</span>
+				</fill_text>
+				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
+					<moveto x="29.75" y="744"/>
+					<lineto x="489.25" y="744"/>
+				</stroke_path>
+				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
+					<moveto x="30" y="744.25"/>
+					<lineto x="30" y="722.75"/>
+				</stroke_path>
+				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
+					<moveto x="29.75" y="723"/>
+					<lineto x="489.25" y="723"/>
+				</stroke_path>
+				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
+					<moveto x="489" y="744.25"/>
+					<lineto x="489" y="722.75"/>
+				</stroke_path>
+				<fill_path winding="nonzero" color=".8 .8 .8">
+					<moveto x="489" y="744"/>
+					<lineto x="565" y="744"/>
+					<lineto x="565" y="723"/>
+					<lineto x="489" y="723"/>
+					<closepath/>
+				</fill_path>
+				<fill_text color="0 0 0">
+					<span font="Helvetica-Bold" wmode="0" bidi="0" trm="8 0 0 8" x="489" y="730.46" width="74" align="right" id="AJ-TOTAL-VAL">{AJ-TOTAL-VAL}</span>
+				</fill_text>
+				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
+					<moveto x="488.75" y="744"/>
+					<lineto x="565.25" y="744"/>
+				</stroke_path>
+				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
+					<moveto x="489" y="744.25"/>
+					<lineto x="489" y="722.75"/>
+				</stroke_path>
+				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
+					<moveto x="488.75" y="723"/>
+					<lineto x="565.25" y="723"/>
+				</stroke_path>
+				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
+					<moveto x="565" y="744.25"/>
+					<lineto x="565" y="722.75"/>
+				</stroke_path>
+			</template>
 			
 			<template id="footer">
 				<fill_text color="0 0 0">

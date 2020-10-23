@@ -1150,6 +1150,7 @@ private:
 	declare sub gerarRelatorios(nomeArquivo as string)
 	declare sub gerarRelatorioCiap(nomeArquivo as string, reg as TRegistro ptr, isPre as boolean)
 	declare sub gerarRelatorioApuracaoICMS(nomeArquivo as string, reg as TRegistro ptr, isPre as boolean)
+	declare sub gerarAjusteTotalRelatorioApuracaoICMS(tipo as integer, total as double, isPre as boolean)
 	declare sub gerarRelatorioApuracaoICMSST(nomeArquivo as string, reg as TRegistro ptr, isPre as boolean)
 	declare sub iniciarRelatorio(relatorio as TipoRelatorio, nomeRelatorio as string, sufixo as string, isPre as boolean)
 	declare sub adicionarDocRelatorioEntradas(doc as TDocDF ptr, part as TParticipante ptr, highlight as boolean, lg as boolean)
