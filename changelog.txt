@@ -1,6 +1,7 @@
 versão 0.9.3 beta:
 - adicionado: relatório do CIAP em PDF
 - adicionado: observações do lançamento fiscal na LRE e LRS
+- adicionado: informações complementares no livro LRAICMS (ajustes e estornos)
 - adicionado: opções -naoAnalisar e -naoResumir, para não gerar as planilhas de inconsistências e resumos, respectivamente
 - corrigido: ordenação dos registros cancelados e inutilizados estava incorreta no LRE
 - corrigido: vazamento de memória na geração de relatórios em PDF
