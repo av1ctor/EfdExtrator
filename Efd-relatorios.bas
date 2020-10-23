@@ -297,7 +297,7 @@ sub Efd.gerarRelatorios(nomeArquivo as string)
 				end select
 				
 				regCnt += 1
-				if not onProgress(null, (regCnt / nroRegs) * 0.25) then
+				if not onProgress(null, (regCnt / nroRegs) * 0.10) then
 					exit do
 				end if
 				
@@ -306,6 +306,8 @@ sub Efd.gerarRelatorios(nomeArquivo as string)
 		catch
 			onError(!"\r\nErro ao tratar o registro de tipo (" & reg->tipo & !") carregado na linha (" & reg->linha & !")\r\n")
 		endtry
+
+		var totalRegs = nroRegistrosRel
 		
 		finalizarRelatorio(true)
 		
@@ -313,7 +315,6 @@ sub Efd.gerarRelatorios(nomeArquivo as string)
 		iniciarRelatorio(REL_LRE, "entradas", "LRE", false)
 		
 		reg = regListHead
-		regCnt = 0
 		try
 			do while reg <> null
 				'para cada registro..
@@ -343,8 +344,7 @@ sub Efd.gerarRelatorios(nomeArquivo as string)
 					end if
 				end select
 				
-				regCnt += 1
-				if not onProgress(null, 0.25 + (regCnt / nroRegs) * 0.75) then
+				if not onProgress(null, 0.10 + (nroRegistrosRel / totalRegs) * 0.90) then
 					exit do
 				end if
 				
@@ -395,7 +395,7 @@ sub Efd.gerarRelatorios(nomeArquivo as string)
 				end select
 
 				regCnt += 1
-				if not onProgress(null, (regCnt / nroRegs) * 0.25) then
+				if not onProgress(null, (regCnt / nroRegs) * 0.10) then
 					exit do
 				end if
 				
@@ -405,13 +405,14 @@ sub Efd.gerarRelatorios(nomeArquivo as string)
 			onError(!"\r\nErro ao tratar o registro de tipo (" & reg->tipo & !") carregado na linha (" & reg->linha & !")\r\n")
 		endtry
 		
+		var totalRegs = nroRegistrosRel
+		
 		finalizarRelatorio(true)
 		
 		'' LRS (geração de páginas)
 		iniciarRelatorio(REL_LRS, "saidas", "LRS", false)
 		
 		reg = regListHead
-		regCnt = 0
 		try
 			do while reg <> null
 				select case as const reg->tipo
@@ -448,8 +449,7 @@ sub Efd.gerarRelatorios(nomeArquivo as string)
 					end if
 				end select
 
-				regCnt += 1
-				if not onProgress(null, 0.25 + (regCnt / nroRegs) * 0.75) then
+				if not onProgress(null, 0.10 + (nroRegistrosRel / totalRegs) * 0.90) then
 					exit do
 				end if
 				
