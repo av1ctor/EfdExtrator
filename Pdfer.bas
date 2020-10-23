@@ -386,12 +386,13 @@ constructor PdfTemplateNode(type_ as PdfTemplateNodeType, id as string, idDict a
 end constructor
 
 destructor PdfTemplateNode()
-	var child = this.head
+	var child = head
 	do while child <> null
 		var next_ = child->next_
 		delete child
 		child = next_
 	loop
+	head = null
 end destructor
 
 function PdfTemplateNode.clone(parent as PdfTemplateNode ptr, page as PdfTemplatePageNode_ ptr) as PdfTemplateNode ptr
@@ -522,9 +523,9 @@ function PdfTemplateNode.emit(doc as PdfDoc ptr, page as PdfTemplatePageNode ptr
 	return null
 end function
 
-function PdfTemplateNode.emitAndInsert(doc as PdfDoc ptr, page as PdfTemplatePageNode ptr, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
+sub PdfTemplateNode.emitAndInsert(doc as PdfDoc ptr, page as PdfTemplatePageNode ptr, parent as FPDF_PAGEOBJECT)
 	if hidden then
-		return null
+		return
 	end if
 		
 	var obj = this.emit(doc, page, parent)
@@ -534,7 +535,7 @@ function PdfTemplateNode.emitAndInsert(doc as PdfDoc ptr, page as PdfTemplatePag
 	if obj <> null then
 		page->insert(obj)
 	end if
-end function
+end sub
 
 sub PdfTemplateNode.emitChildren(doc as PdfDoc ptr, page as PdfTemplatePageNode ptr, parent as FPDF_PAGEOBJECT)
 	static d as integer = 0
@@ -1023,7 +1024,6 @@ constructor PdfTemplatePageNode(x1 as single, y1 as single, x2 as single, y2 as 
 	this.x2 = x2
 	this.y2 = y2
 	idDict = new TDict(64)
-	objList = new TList(1000, len(FPDF_PAGEOBJECT ptr), false)
 	fontList = new TList(10, len(FPDF_FONT ptr), false)
 end constructor
 
@@ -1036,16 +1036,6 @@ destructor PdfTemplatePageNode()
 end destructor
 
 sub PdfTemplatePageNode.disposeObjs()
-	if objList <> null then
-		var obj = cast(FPDF_PAGEOBJECT, objList->head)
-		do while obj <> null
-			'FPDFPageObj_Destroy(*obj)
-			obj = objList->next_(obj)
-		loop
-		delete objList
-		objList = null
-	end if
-
 	if fontList <> null then
 		var font = cast(FPDF_FONT ptr, fontList->head)
 		do while font <> null
@@ -1083,15 +1073,14 @@ sub PdfTemplatePageNode.flush(doc as PdfDoc ptr)
 	if page <> null then
 		FPDFPage_GenerateContent(page)
 		FPDF_ClosePage(page)
-		disposeObjs()
 		page = null
+		disposeObjs()
 	end if
 end sub
 
 sub PdfTemplatePageNode.insert(obj as FPDF_PAGEOBJECT)
 	FPDFPage_InsertObject(page, obj)
-	var p = cast(FPDF_PAGEOBJECT ptr, objList->add())
-	*p = obj
+	'NOTE: the obj will be automatically freed by FPDF_ClosePage()
 end sub
 
 function PdfTemplatePageNode.loadFont(doc as PdfDoc ptr, name_ as string) as FPDF_FONT
