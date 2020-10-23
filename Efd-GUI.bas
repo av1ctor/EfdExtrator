@@ -395,19 +395,28 @@ private function item_exec_action_cb(item as Ihandle ptr) as long
 	if curFileGrid->files <> null then
 		curFile = cast(TFile ptr, curFileGrid->files->head)
 		do while running andalso curFile <> null
-			onProgress("Carregando")
 			
 			var arquivoEntrada = curFile->path + curFile->name
 			if lcase(right(arquivoEntrada,3)) = "csv" then
-				if not ext->carregarCsv( arquivoEntrada ) then
-					onError(!"\r\nErro ao carregar arquivo: " & arquivoEntrada)
-					errCnt += 1
+				if not gui->opcoes.pularAnalises orelse gui->opcoes.acrescentarDados then
+					onProgress("Carregando")
+					if not ext->carregarCsv( arquivoEntrada ) then
+						onError(!"\r\nErro ao carregar arquivo: " & arquivoEntrada)
+						errCnt += 1
+					end if
+				else
+					onProgress("Ignorado", 1.0)
 				end if
 				
 			elseif lcase(right(arquivoEntrada,4)) = "xlsx" then
-				if not ext->carregarXlsx( arquivoEntrada ) then
-					onError(!"\r\nErro ao carregar arquivo: " & arquivoEntrada)
-					errCnt += 1
+				if not gui->opcoes.pularAnalises orelse gui->opcoes.acrescentarDados then
+					onProgress("Carregando")
+					if not ext->carregarXlsx( arquivoEntrada ) then
+						onError(!"\r\nErro ao carregar arquivo: " & arquivoEntrada)
+						errCnt += 1
+					end if
+				else
+					onProgress("Ignorado", 1.0)
 				end if
 			end if 
 			
@@ -458,13 +467,17 @@ private function item_exec_action_cb(item as Ihandle ptr) as long
 	if running then
 		if errCnt = 0 andalso efdCnt > 0 then
 			if gui->opcoes.formatoDeSaida <> FT_NULL then
-				onProgress("Analisando")
-				IupFlush()
-				ext->analisar()
+				if not gui->opcoes.pularAnalises then
+					onProgress("Analisando")
+					IupFlush()
+					ext->analisar()
+				end if
 
-				onProgress("Resumindo")
-				IupFlush()
-				ext->criarResumos()
+				if not gui->opcoes.pularResumos then
+					onProgress("Resumindo")
+					IupFlush()
+					ext->criarResumos()
+				end if
 			end if
 		end if
 	end if
@@ -645,6 +658,10 @@ private function opcao_action_cb(item as Ihandle ptr, state as long) as long
 		gui->opcoes.pularLraicms = state
 	case "naogerarciap"
 		gui->opcoes.pularCiap = state
+	case "naoanalisar"
+		gui->opcoes.pularAnalises = state
+	case "naoresumir"
+		gui->opcoes.pularResumos = state
 	case "realcar"
 		gui->opcoes.highlight = state
 	case "dbemdisco"
@@ -670,6 +687,7 @@ private function cnpjs_set_cb(item as Ihandle ptr) as long
 	IupSetStrAttribute(list, "1", null)
 	if cnt > 0 then
 		for i as integer = 0 to cnt-1
+			gui->opcoes.listaCnpj(i) = right("00000000000000" & gui->opcoes.listaCnpj(i), 14)
 			IupSetStrAttribute(list, str(1+i), gui->opcoes.listaCnpj(i))
 		next
 		gui->opcoes.filtrarCnpj = true
@@ -688,6 +706,7 @@ private function cnpjs_dropfile_cb(item as Ihandle ptr, fname as zstring ptr, nu
 	var cnt = loadstrings(*fname, gui->opcoes.listaCnpj())
 	if cnt > 0 then
 		for i as integer = 0 to cnt-1
+			gui->opcoes.listaCnpj(i) = right("00000000000000" & gui->opcoes.listaCnpj(i), 14)
 			IupSetStrAttribute(list, str(1+i), gui->opcoes.listaCnpj(i))
 		next
 		gui->opcoes.filtrarCnpj = true
@@ -700,13 +719,13 @@ end function
 
 function EfdGUI.buildCnpjFilterBox() as IHandle ptr
 	cnpjsList = IupList(NULL)
-	IupSetAttribute(cnpjsList, "SIZE", "150x60")
-	IupSetAttribute(cnpjsList, "EXPAND", "HORIZONTAL")
+	IupSetAttribute(cnpjsList, "SIZE", "130x85")
+	IupSetAttribute(cnpjsList, "EXPAND", "YES")
 	IupSetAttribute(cnpjsList, "CANFOCUS", "NO")
 	
 	var edit = IupText(NULL)
 	IupSetAttribute(edit, "CUEBANNER", "Digite a lista, ou arraste e solte o arquivo aqui...")
-	IupSetAttribute(edit, "TIP", "A lista deve ser separada por vírgula, com zeros à esquerda. O arquivo deve conter apenas um CNPJ por linha, com zeros à esquerda, sem espaços ou linhas em branco.")
+	IupSetAttribute(edit, "TIP", "A lista deve ser separada por vírgula. O arquivo deve conter apenas um CNPJ por linha, com zeros à esquerda, sem espaços ou linhas em branco.")
 	IupSetAttribute(edit, "EXPAND", "HORIZONTAL")
 	IupSetCallback(edit, "DROPFILES_CB", cast(Icallback, @cnpjs_dropfile_cb))
 	
@@ -721,10 +740,11 @@ function EfdGUI.buildCnpjFilterBox() as IHandle ptr
 		NULL _
 	)
 	IupSetAttribute(hbox, "MARGIN", "0x0")
+	'IupSetAttribute(hbox, "GAP", "5")
 	
 	var vbox = IupVbox _
 	( _
-		IupLabel("Filtrar por CNPJ (sep. por vírgula, zeros à esquerda)"), _
+		IupLabel("Filtrar por CNPJ (sep. por vírgula)"), _
 		hbox, _
 		cnpjsList, _
 		NULL _
@@ -778,8 +798,8 @@ end function
 
 function EfdGUI.buildChavesFilterBox() as IHandle ptr
 	chavesList = IupList(NULL)
-	IupSetAttribute(chavesList, "SIZE", "150x60")
-	IupSetAttribute(chavesList, "EXPAND", "HORIZONTAL")
+	IupSetAttribute(chavesList, "SIZE", "130x85")
+	IupSetAttribute(chavesList, "EXPAND", "YES")
 	IupSetAttribute(chavesList, "CANFOCUS", "NO")
 	
 	var edit = IupText(NULL)
@@ -828,6 +848,14 @@ private function format_action_cb(self as Ihandle ptr, text as zstring ptr, item
 		case "null"
 			gui->opcoes.formatoDeSaida = FT_NULL
 		end select
+		
+		if gui->opcoes.formatoDeSaida = FT_NULL then
+			gui->opcoes.pularAnalises = true
+			gui->opcoes.pularResumos = true
+		else
+			gui->opcoes.pularAnalises = false
+			gui->opcoes.pularResumos = false
+		end if
 	end if
 
 	return IUP_DEFAULT
@@ -866,14 +894,20 @@ end function
 function EfdGUI.buildOptionsFrame() as Ihandle ptr
 	
 	dim opcoes(0 to ...) as TOption = { _
-		("gerarrelatorios", "Gerar relatórios EFD-ICMS-IPI", "Gerar relatórios do PVA EFD-ICMS-IPI em formato PDF."), _
-		("naogerarlre", "Não extrair LRE", "Não extrair os Livros Registro de Entradas."), _
-		("naogerarlrs", "Não extrair LRS", "Não extrair os Livros Registro de Saídas."), _
-		("naogerarlraicms", "Não extrair LRAICMS", "Não extrair os Livros Registro de Apuração."), _
-		("naogerarciap", "Não extrair CIAP", "Não extrair os registros do CIAP."), _
+		("", "Relatórios", ""), _
+		("gerarrelatorios", "Gerar EFD-ICMS-IPI", "Gerar relatórios do PVA EFD-ICMS-IPI em formato PDF."), _
 		("realcar", "Realçar registros", "Realçar, nos relatórios do EFD-ICMS-IPI, os registros filtrados por CNPJ e/ou chave."), _
-		("dbemdisco", "Gravar DB em disco", "Gravar o banco de dados intermediário em disco, poupando memória."), _
-		("manterdb", "Manter DB em disco", "Manter o banco de dados intermediário em disco.") _
+		("", "Não extrair", ""), _
+		("naogerarlre", "LRE", "Não extrair os Livros Registro de Entradas."), _
+		("naogerarlrs", "LRS", "Não extrair os Livros Registro de Saídas."), _
+		("naogerarlraicms", "LRAICMS", "Não extrair os Livros Registro de Apuração."), _
+		("naogerarciap", "CIAP", "Não extrair os registros do CIAP."), _
+		("", "Não realizar", ""), _
+		("naoanalisar", "Análises", "Não gerar a planilha de inconsistências."), _
+		("naoresumir", "Resumos", "Não gerar a planilha de resumos."), _
+		("", "DB", ""), _
+		("dbemdisco", "Em disco", "Gravar o banco de dados intermediário em disco, poupando memória."), _
+		("manterdb", "Manter", "Manter o banco de dados intermediário em disco.") _
 	}
 	
 	var optionsBox = IupVbox _
@@ -883,13 +917,23 @@ function EfdGUI.buildOptionsFrame() as Ihandle ptr
 	
 	IupSetAttribute(optionsBox, "MARGIN", "5x0")
 	
+	var box = cast(IHandle ptr, null)
+	
 	for i as integer = 0 to ubound(opcoes)
 		var opcao = @opcoes(i)
-		var toggle = IupToggle(opcao->label, NULL)
-		IupSetStrAttribute(toggle, "OPTIONNAME", opcao->name)
-		IupSetStrAttribute(toggle, "TIP", opcao->tip)
-		IupSetCallback(toggle, "ACTION", cast(Icallback, @opcao_action_cb))
-		IupAppend(optionsBox, toggle)
+		if len(opcao->name) > 0 then
+			var toggle = IupToggle(opcao->label, NULL)
+			IupSetStrAttribute(toggle, "OPTIONNAME", opcao->name)
+			IupSetStrAttribute(toggle, "TIP", opcao->tip)
+			IupSetCallback(toggle, "ACTION", cast(Icallback, @opcao_action_cb))
+			IupSetAttribute(toggle, "EXPAND", "HORIZONTAL")
+			IupAppend(box, toggle)
+		else
+			box = IupVBox(NULL)
+			var frm = IupFrame(box)
+			IupSetStrAttribute(frm, "TITLE", opcao->label)
+			IupAppend(optionsBox, frm)
+		end if
 	next
 	
 	IupAppend(optionsBox, buildOutFormatBox())
@@ -942,12 +986,12 @@ function EfdGUI.buildActionsFrame() as IHandle ptr
 	IupSetAttribute(btn_clear, "TIP", "Limpar formulário")
 	IupSetCallback(btn_clear, "ACTION", cast(Icallback, @item_clear_action_cb))
 
-	var btn_stop = IupButton("Parar", NULL)
+	var btn_stop = IupButton("Interromper", NULL)
 	IupSetHandle("EFD_BTN_STOP", btn_stop)
 	IupSetAttribute(btn_stop, "IMAGE", "EFD_EXIT_ICON")
 	IupSetAttribute(btn_stop, "FLAT", "NO")
 	IupSetAttribute(btn_stop, "PADDING", "10x2")
-	IupSetAttribute(btn_stop, "TIP", "Parar extração")
+	IupSetAttribute(btn_stop, "TIP", "Interromper extração")
 	IupSetAttribute(btn_stop, "ACTIVE", "NO")
 	IupSetCallback(btn_stop, "ACTION", cast(Icallback, @item_stop_action_cb))
 
