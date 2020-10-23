@@ -166,6 +166,9 @@ Modo de usar (linha de comando):
          
         -naoGerarLre, -naoGerarLrs e -naoGerarLraicms:
          Deixam de gerar os respectivos livros quando -gerarRelatorios é utilizada.
+
+        -naoAnalisar e -naoResumir:
+         Deixam de gerar as planilhas de inconsistências e resumos, respectivamente.
          
         -formatoDeSaida xml|csv|xlsx|null:
          Altera o formato de saída do padrão xlsx para csv ou XML.

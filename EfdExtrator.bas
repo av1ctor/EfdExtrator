@@ -53,6 +53,8 @@ sub mostrarUso()
 	print wstr(!"  à -filtrarCnpjs ou -filtrarChaves.")
 	print wstr(!" -naoGerarLre, -naoGerarLrs e -naoGerarLraicms:")
 	print wstr(!"  Deixam de gerar os respectivos livros quando -gerarRelatorios é utilizada.")
+	print wstr(!" -naoAnalisar e -naoResumir:")
+	print wstr(!"  Deixam de gerar as planilhas de inconsistências e resumos, respectivamente.")
 	print wstr(!" -formatoDeSaida xml|csv|xlsx|null:")
 	print wstr(!"  Altera o formato de saída do padrão xlsx para csv ou XML.")
 	print wstr(!" -complementarDados:")
@@ -158,6 +160,12 @@ sub main()
 			case "-naogerarciap"
 				opcoes.pularCiap = true
 				nroOpcoes += 1
+			case "-naoresumir"
+				opcoes.pularResumos = true
+				nroOpcoes += 1
+			case "-naoanalisar"
+				opcoes.pularAnalises = true
+				nroOpcoes += 1
 			case "-realcar"
 				opcoes.highlight = true
 			case "-filtrarcnpjs"
@@ -202,6 +210,8 @@ sub main()
 					opcoes.formatoDeSaida = FT_XLSX
 				case "null"
 					opcoes.formatoDeSaida = FT_NULL
+					opcoes.pularAnalises = true
+					opcoes.pularResumos = true
 				case else
 					onError(wstr("Erro: formato de saída inválido"))
 					exit sub
@@ -257,16 +267,20 @@ sub main()
 		var arquivoEntrada = command(i)
 		do while len(arquivoEntrada) > 0
 			if lcase(right(arquivoEntrada,3)) = "csv" then
-				onProgress("Carregando arquivo: " + arquivoEntrada, 0)
-				if not ext->carregarCsv( arquivoEntrada ) then
-					onError(!"\r\nErro ao carregar arquivo: " & arquivoEntrada)
-					end -1
+				if not opcoes.pularAnalises orelse opcoes.acrescentarDados then
+					onProgress("Carregando arquivo: " + arquivoEntrada, 0)
+					if not ext->carregarCsv( arquivoEntrada ) then
+						onError(!"\r\nErro ao carregar arquivo: " & arquivoEntrada)
+						end -1
+					end if
 				end if
 			elseif lcase(right(arquivoEntrada,4)) = "xlsx" then
-				onProgress("Carregando arquivo: " + arquivoEntrada, 0)
-				if not ext->carregarXlsx( arquivoEntrada ) then
-					onError(!"\r\nErro ao carregar arquivo: " & arquivoEntrada)
-					end -1
+				if not opcoes.pularAnalises orelse opcoes.acrescentarDados then
+					onProgress("Carregando arquivo: " + arquivoEntrada, 0)
+					if not ext->carregarXlsx( arquivoEntrada ) then
+						onError(!"\r\nErro ao carregar arquivo: " & arquivoEntrada)
+						end -1
+					end if
 				end if
 			end if 
 
@@ -318,11 +332,15 @@ sub main()
 	
 	''
 	if opcoes.formatoDeSaida <> FT_NULL then
-		print "Analisando:"
-		ext->analisar()
+		if not opcoes.pularAnalises then
+			print "Analisando:"
+			ext->analisar()
+		end if
 
-		print "Resumindo:"
-		ext->criarResumos()
+		if not opcoes.pularResumos then
+			print "Resumindo:"
+			ext->criarResumos()
+		end if
 	end if
    
 	''

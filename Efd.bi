@@ -18,6 +18,8 @@ type OpcoesExtracao
 	pularLrs 						as boolean = false
 	pularLraicms					as boolean = false
 	pularCiap						as boolean = false
+	pularAnalises					as boolean = false
+	pularResumos					as boolean = false
 	acrescentarDados				as boolean = false
 	formatoDeSaida 					as FileType = FT_XLSX
 	somenteRessarcimentoST 			as boolean = false

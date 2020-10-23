@@ -454,6 +454,10 @@ end function
 ''''''''
 function Efd.addRegistroAoDB(reg as TRegistro ptr) as long
 
+	if opcoes.pularResumos andalso opcoes.pularAnalises then
+		return 0
+	end if
+
 	select case as const reg->tipo
 	case DOC_NF
 		return adicionarDocEscriturado(@reg->nf)
@@ -483,6 +487,10 @@ end function
 
 ''''''''
 function Efd.adicionarDFe(dfe as TDFe ptr, fazerInsert as boolean) as long
+
+	if opcoes.pularResumos andalso opcoes.pularAnalises then
+		return 0
+	end if
 	
 	if chaveDFeDict->lookup(dfe->chave) = null then
 		chaveDFeDict->add(dfe->chave, dfe)
@@ -560,41 +568,46 @@ end function
 
 ''''''''
 function Efd.adicionarItemDFe(chave as const zstring ptr, item as TDFe_NFeItem ptr) as long
-		'' (serie, numero, modelo, numItem, chave, cfop, valorProd, valorDesc, valorAcess, bc, aliq, icms, bcIcmsST, , aliqST, icmsST, ncm, cst, qtd, unidade, codProduto, descricao) 
-		db_itensDfeSaidaInsertStmt->reset()
-		db_itensDfeSaidaInsertStmt->bind(1, item->serie)
-		db_itensDfeSaidaInsertStmt->bind(2, item->numero)
-		db_itensDfeSaidaInsertStmt->bind(3, item->modelo)
-		db_itensDfeSaidaInsertStmt->bind(4, item->nroItem)
-		db_itensDfeSaidaInsertStmt->bind(5, chave)
-		db_itensDfeSaidaInsertStmt->bind(6, item->cfop)
-		db_itensDfeSaidaInsertStmt->bind(7, item->valorProduto)
-		db_itensDfeSaidaInsertStmt->bind(8, item->desconto)
-		db_itensDfeSaidaInsertStmt->bind(9, item->despesasAcess)
-		db_itensDfeSaidaInsertStmt->bind(10, item->bcICMS)
-		db_itensDfeSaidaInsertStmt->bind(11, item->aliqICMS)
-		db_itensDfeSaidaInsertStmt->bind(12, item->icms)
-		db_itensDfeSaidaInsertStmt->bind(13, item->bcIcmsST)
-		db_itensDfeSaidaInsertStmt->bind(14, item->aliqIcmsST)
-		db_itensDfeSaidaInsertStmt->bind(15, item->icmsST)
-		db_itensDfeSaidaInsertStmt->bind(16, item->ncm)
-		db_itensDfeSaidaInsertStmt->bind(17, item->cst)
-		db_itensDfeSaidaInsertStmt->bind(18, item->qtd)
-		if opcoes.manterDb then
-			db_itensDfeSaidaInsertStmt->bind(19, item->unidade)
-			db_itensDfeSaidaInsertStmt->bind(20, item->codProduto)
-			db_itensDfeSaidaInsertStmt->bind(21, item->descricao)
-		else
-			db_itensDfeSaidaInsertStmt->bind(19, null)
-			db_itensDfeSaidaInsertStmt->bind(20, null)
-			db_itensDfeSaidaInsertStmt->bind(21, null)
-		end if
+
+	if opcoes.pularResumos andalso opcoes.pularAnalises then
+		return 0
+	end if
+
+	'' (serie, numero, modelo, numItem, chave, cfop, valorProd, valorDesc, valorAcess, bc, aliq, icms, bcIcmsST, , aliqST, icmsST, ncm, cst, qtd, unidade, codProduto, descricao) 
+	db_itensDfeSaidaInsertStmt->reset()
+	db_itensDfeSaidaInsertStmt->bind(1, item->serie)
+	db_itensDfeSaidaInsertStmt->bind(2, item->numero)
+	db_itensDfeSaidaInsertStmt->bind(3, item->modelo)
+	db_itensDfeSaidaInsertStmt->bind(4, item->nroItem)
+	db_itensDfeSaidaInsertStmt->bind(5, chave)
+	db_itensDfeSaidaInsertStmt->bind(6, item->cfop)
+	db_itensDfeSaidaInsertStmt->bind(7, item->valorProduto)
+	db_itensDfeSaidaInsertStmt->bind(8, item->desconto)
+	db_itensDfeSaidaInsertStmt->bind(9, item->despesasAcess)
+	db_itensDfeSaidaInsertStmt->bind(10, item->bcICMS)
+	db_itensDfeSaidaInsertStmt->bind(11, item->aliqICMS)
+	db_itensDfeSaidaInsertStmt->bind(12, item->icms)
+	db_itensDfeSaidaInsertStmt->bind(13, item->bcIcmsST)
+	db_itensDfeSaidaInsertStmt->bind(14, item->aliqIcmsST)
+	db_itensDfeSaidaInsertStmt->bind(15, item->icmsST)
+	db_itensDfeSaidaInsertStmt->bind(16, item->ncm)
+	db_itensDfeSaidaInsertStmt->bind(17, item->cst)
+	db_itensDfeSaidaInsertStmt->bind(18, item->qtd)
+	if opcoes.manterDb then
+		db_itensDfeSaidaInsertStmt->bind(19, item->unidade)
+		db_itensDfeSaidaInsertStmt->bind(20, item->codProduto)
+		db_itensDfeSaidaInsertStmt->bind(21, item->descricao)
+	else
+		db_itensDfeSaidaInsertStmt->bind(19, null)
+		db_itensDfeSaidaInsertStmt->bind(20, null)
+		db_itensDfeSaidaInsertStmt->bind(21, null)
+	end if
+
+	if not db->execNonQuery(db_itensDfeSaidaInsertStmt) then
+		onError("Erro ao inserir Item DFe de entrada: " & *db->getErrorMsg())
+		return 0
+	end if
 	
-		if not db->execNonQuery(db_itensDfeSaidaInsertStmt) then
-			onError("Erro ao inserir Item DFe de entrada: " & *db->getErrorMsg())
-			return 0
-		end if
-		
-		return db->lastId()
+	return db->lastId()
 end function
    
