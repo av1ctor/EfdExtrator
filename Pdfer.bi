@@ -75,6 +75,12 @@ public:
 	a as ulong
 end type
 
+enum PdfPaintMode explicit
+	PM_FILL
+	PM_STROKE
+	PM_FILL_STROKE
+end enum
+
 type PdfText
 public:
 	declare constructor(text as FPDF_TEXTPAGE)
@@ -111,11 +117,14 @@ end type
 type PdfStyle
 	scolor as PdfRGB ptr
 	fcolor as PdfRGB ptr
+	font as FPDF_FONT
+	size as single = 10.0
 	transf as FS_MATRIX ptr
 end type
 
 type PdfDoc
 public:
+	style as PdfStyle
 	declare constructor()
 	declare constructor(doc as FPDF_DOCUMENT)
 	declare constructor(path as string)
@@ -126,8 +135,6 @@ public:
 	declare sub importPages(src as PdfDoc ptr, range as string)
 	declare function saveTo(path as string, version as integer = 17) as boolean
 	declare function getDoc() as FPDF_DOCUMENT
-	
-	style as PdfStyle
 	
 private:
 	doc as FPDF_DOCUMENT
@@ -148,7 +155,7 @@ type PdfElement extends object
 public:
 	declare constructor()
 	declare constructor(parent as PdfElement ptr)
-	declare constructor(id as string, idDict as TDict ptr, parent as PdfElement ptr)
+	declare constructor(id as zstring ptr, idDict as TDict ptr, parent as PdfElement ptr)
 	declare virtual destructor()
 	declare sub cloneChildren(parent as PdfElement ptr, page as PdfPageElement_ ptr)
 	declare function getHead() as PdfElement ptr
@@ -158,19 +165,21 @@ public:
 	declare virtual function emit(doc as PdfDoc ptr, page as PdfPageElement_ ptr, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
 	declare sub emitAndInsert(doc as PdfDoc ptr, page as PdfPageElement_ ptr, parent as FPDF_PAGEOBJECT)
 	declare virtual sub emitChildren(doc as PdfDoc ptr, page as PdfPageElement_ ptr, parent as FPDF_PAGEOBJECT)
-	declare virtual function lookupAttrib(name_ as string, byref type_ as PdfElementAttribType) as any ptr
+	declare virtual function lookupAttrib(name_ as zstring ptr, byref type_ as PdfElementAttribType) as any ptr
+	declare virtual function getWidth() as single
+	declare virtual function getHeight() as single
 	declare virtual sub translate(xi as single, yi as single)
 	declare virtual sub translateX(xi as single)
 	declare virtual sub translateY(yi as single)
-	declare function getChild(id as string) as PdfElement ptr 
-	declare sub setAttrib(name_ as string, value as boolean)
-	declare sub setAttrib(name_ as string, value as integer)
-	declare sub setAttrib(name_ as string, value as single)
-	declare sub setAttrib(name_ as string, value as double)
-	declare sub setAttrib(name_ as string, value as zstring ptr)
-	declare sub setAttrib(name_ as string, value as wstring ptr)
+	declare function getChild(id as zstring ptr) as PdfElement ptr 
+	declare sub setAttrib(name_ as zstring ptr, value as boolean)
+	declare sub setAttrib(name_ as zstring ptr, value as integer)
+	declare sub setAttrib(name_ as zstring ptr, value as single)
+	declare sub setAttrib(name_ as zstring ptr, value as double)
+	declare sub setAttrib(name_ as zstring ptr, value as zstring ptr)
+	declare sub setAttrib(name_ as zstring ptr, value as wstring ptr)
 protected:
-	id as string
+	id as zstring ptr
 	hidden as boolean
 	parent as PdfElement ptr
 	next_ as PdfElement ptr
@@ -182,14 +191,12 @@ type PdfPageElement extends PdfElement
 public:
 	declare constructor(x1 as single, y1 as single, x2 as single, y2 as single, parent as PdfElement ptr)
 	declare virtual destructor()
-	declare sub disposeObjs()
 	declare sub insert(obj as FPDF_PAGEOBJECT)
-	declare function loadFont(doc as PdfDoc ptr, name_ as string) as FPDF_FONT
 	declare sub emit(doc as PdfDoc ptr, index as integer, flush_ as boolean = true)
 	declare sub flush(doc as PdfDoc ptr)
 	declare function clone() as PdfPageElement ptr
 	declare function getIdDict() as TDict ptr
-	declare function getNode(id as string) as PdfElement ptr
+	declare function getNode(id as zstring ptr) as PdfElement ptr
 	declare function getPage() as FPDF_PAGE
 private:
 	x1 as single
@@ -198,7 +205,6 @@ private:
 	y2 as single
 	idDict as TDict ptr
 	page as FPDF_PAGE
-	fontList as TList ptr 'of FPDF_FONT ptr
 end type
 
 type PdfColorElement extends PdfElement
@@ -224,6 +230,18 @@ public:
 	declare virtual sub emitChildren(doc as PdfDoc ptr, page as PdfPageElement_ ptr, parent as FPDF_PAGEOBJECT)
 private:
 	transf as FS_MATRIX ptr
+end type
+
+type PdfFontElement extends PdfElement
+public:
+	declare constructor(name_ as zstring ptr, size as single, parent as PdfElement ptr)
+	declare virtual destructor()
+	declare virtual function clone(parent as PdfElement ptr, page as PdfPageElement ptr) as PdfElement ptr
+	declare virtual sub emitChildren(doc as PdfDoc ptr, page as PdfPageElement_ ptr, parent as FPDF_PAGEOBJECT)
+private:
+	name_ as string
+	size as single
+	font as FPDF_FONT
 end type
 
 type PdfFillElement extends PdfElement
@@ -302,17 +320,24 @@ end type
 
 type PdfRectElement extends PdfElement
 public:
-	declare constructor(x as single, y as single, w as single, h as single, parent as PdfElement ptr = null)
+	declare constructor(x as single, y as single, w as single, h as single, mode as PdfPaintMode, lineWidth as single, miterlin as single, join as integer, cap as integer, parent as PdfElement ptr)
 	declare virtual function clone(parent as PdfElement ptr, page as PdfPageElement ptr) as PdfElement ptr
 	declare virtual function emit(doc as PdfDoc ptr, page as PdfPageElement ptr, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
+	declare virtual function getWidth() as single
+	declare virtual function getHeight() as single
 	declare virtual sub translate(xi as single, yi as single)
 	declare virtual sub translateX(xi as single)
 	declare virtual sub translateY(yi as single)
 private:
+	mode as PdfPaintMode
 	x as single
 	y as single
 	w as single
 	h as single
+	linew as single
+	miterlin as single
+	join as integer
+	cap as integer
 end type
 
 type PdfHighlightElement extends PdfElement
@@ -320,6 +345,8 @@ public:
 	declare constructor(left as single, bottom as single, right as single, top as single, parent as PdfElement ptr = null)
 	declare virtual function clone(parent as PdfElement ptr, page as PdfPageElement ptr) as PdfElement ptr
 	declare virtual function emit(doc as PdfDoc ptr, page as PdfPageElement ptr, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
+	declare virtual function getWidth() as single
+	declare virtual function getHeight() as single
 	declare virtual sub translate(xi as single, yi as single)
 	declare virtual sub translateX(xi as single)
 	declare virtual sub translateY(yi as single)
@@ -338,17 +365,18 @@ end enum
 
 type PdfTextElement extends PdfElement
 public:
-	declare constructor (id as string, idDict as TDict ptr, font as string, size as single, mode as FPDF_TEXT_RENDERMODE, x as single, y as single, width_ as single, align as PdfTextAlignment, text as wstring ptr, parent as PdfElement ptr)
+	declare constructor(id as zstring ptr, idDict as TDict ptr, mode as FPDF_TEXT_RENDERMODE, x as single, y as single, width_ as single, align as PdfTextAlignment, text as wstring ptr, parent as PdfElement ptr)
+	declare constructor(mode as FPDF_TEXT_RENDERMODE, x as single, y as single, width_ as single, align as PdfTextAlignment, text as wstring ptr, parent as PdfElement ptr)
+	declare constructor(x as single, y as single, width_ as single, align as PdfTextAlignment, text as wstring ptr, parent as PdfElement ptr)
+	declare constructor(x as single, y as single, text as wstring ptr, parent as PdfElement ptr)
 	declare virtual destructor()
 	declare virtual function clone(parent as PdfElement ptr, page as PdfPageElement ptr) as PdfElement ptr
 	declare virtual function emit(doc as PdfDoc ptr, page as PdfPageElement ptr, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
 	declare virtual sub translate(xi as single, yi as single)
 	declare virtual sub translateX(xi as single)
 	declare virtual sub translateY(yi as single)
-	declare virtual function lookupAttrib(name_ as string, byref type_ as PdfElementAttribType) as any ptr
+	declare virtual function lookupAttrib(name_ as zstring ptr, byref type_ as PdfElementAttribType) as any ptr
 private:
-	font as string
-	size as single
 	mode as FPDF_TEXT_RENDERMODE
 	x as single
 	y as single
@@ -373,7 +401,7 @@ end type
 
 type PdfTemplateElement extends PdfElement
 public:
-	declare constructor(id as string, idDict as TDict ptr, parent as PdfElement ptr, hidden as boolean = true)
+	declare constructor(id as zstring ptr, idDict as TDict ptr, parent as PdfElement ptr, hidden as boolean = true)
 	declare virtual function clone(parent as PdfElement ptr, page as PdfPageElement ptr) as PdfElement ptr
 	declare virtual function emit(doc as PdfDoc ptr, page as PdfPageElement ptr, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
 end type
@@ -398,7 +426,11 @@ public:
 	declare function parseLineTo(parent as PdfElement ptr, page as PdfPageElement ptr) as PdfLineToElement ptr
 	declare function parseBezierTo(parent as PdfElement ptr, page as PdfPageElement ptr) as PdfBezierToElement ptr
 	declare function parseClosePath(parent as PdfElement ptr, page as PdfPageElement ptr) as PdfClosePathElement ptr
+	declare function parseRect(parent as PdfElement ptr, page as PdfPageElement ptr) as PdfRectElement ptr
 	declare function parseText(parent as PdfElement ptr, page as PdfPageElement ptr) as PdfTextElement ptr
+	declare function parseColor(parent as PdfElement ptr, page as PdfPageElement ptr) as PdfColorElement ptr
+	declare function parseTransform(parent as PdfElement ptr, page as PdfPageElement ptr) as PdfTransformElement ptr
+	declare function parseFont(parent as PdfElement ptr, page as PdfPageElement ptr) as PdfFontElement ptr
 	declare function clonePage(index as integer) as PdfPageElement ptr
 	declare function getPage(index as integer) as PdfPageElement ptr
 	declare static function simplifyXml(inFile as string, outFile as string) as boolean
@@ -411,8 +443,8 @@ private:
 	declare function getXmlAttribAsDouble(name_ as zstring ptr) as double
 	declare function getXmlAttribAsLongArray(name_ as zstring ptr, toArr() as longint, delim as string = " ") as integer
 	declare function getXmlAttribAsDoubleArray(name_ as zstring ptr, toArr() as double, delim as string = " ") as integer
-	declare function parseColorAttrib() as PdfRGB ptr
-	declare function parseTranformAttrib() as FS_MATRIX ptr
+	declare function parseColorAttrib(name_ as zstring ptr = @"color") as PdfRGB ptr
+	declare function parseTransformAttrib(name_ as zstring ptr = @"transform") as FS_MATRIX ptr
 	declare function parseColorspaceAttrib() as integer
 	
 	reader as xmlTextReaderPtr

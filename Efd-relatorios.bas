@@ -1099,7 +1099,7 @@ sub Efd.gerarRelatorioApuracaoICMS(nomeArquivo as string, reg as TRegistro ptr, 
 	
 	var ajuste = reg->apuIcms.ajustesListHead
 	if ajuste <> null then
-
+	
 		var ordered = new TList(10, len(AjusteApuracao))
 		
 		do while ajuste <> null
@@ -1194,6 +1194,12 @@ sub Efd.gerarRelatorioApuracaoICMS(nomeArquivo as string, reg as TRegistro ptr, 
 			end if
 
 			if not isPre then
+				/'
+				var font = new PdfFontElement("Helvetica", 10, relPage)
+				var color_ new PdfColorElement(new PdfRgb(0, 0, 0), font)
+				var text0 = new PdfTextElement(32, relYPos + 12.3, ajuste->codigo, color_)
+				'/
+				
 				var node = relPage->getNode("ajuste-row")
 				var clone = node->clone(relPage, relPage)
 				clone->setAttrib("hidden", false)
