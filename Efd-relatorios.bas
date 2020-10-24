@@ -662,7 +662,7 @@ sub Efd.emitirPaginaRelatorio(emitir as boolean, isPre as boolean)
 				if pg <> null then
 					pg->setAttrib("text", wstr(relNroPaginas & "de " & relNroTotalPaginas))
 				end if
-				relPage->emit(relOutFile, relNroPaginas-1)
+				relPage->render(relOutFile, relNroPaginas-1)
 				delete relPage
 				relPage = null
 			end if

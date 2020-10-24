@@ -568,7 +568,7 @@
 								<span wmode="0" bidi="0" x="32" y="732.46" id="AJ-COD">{AJ-COD}</span>
 							</fill_text>
 						</stroke_rect>
-						<stroke_rect x="120" y="744" w="369" h="17" linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0">
+						<stroke_rect x="120" y="744" w="369" h="17" expand="vert" linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0">
 							<fill_text>
 								<span wmode="0" bidi="0" x="125" y="732.46" id="AJ-DESC">{AJ-DESC}</span>
 							</fill_text>
