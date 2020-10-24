@@ -75,12 +75,6 @@ public:
 	a as ulong
 end type
 
-enum PdfPaintMode explicit
-	PM_FILL
-	PM_STROKE
-	PM_FILL_STROKE
-end enum
-
 type PdfText
 public:
 	declare constructor(text as FPDF_TEXTPAGE)
@@ -171,6 +165,9 @@ public:
 	declare virtual sub translate(xi as single, yi as single)
 	declare virtual sub translateX(xi as single)
 	declare virtual sub translateY(yi as single)
+	declare sub translateChildren(xi as single, yi as single)
+	declare sub translateXChildren(xi as single)
+	declare sub translateYChildren(yi as single)
 	declare function getChild(id as zstring ptr) as PdfElement ptr 
 	declare sub setAttrib(name_ as zstring ptr, value as boolean)
 	declare sub setAttrib(name_ as zstring ptr, value as integer)
@@ -320,7 +317,7 @@ end type
 
 type PdfRectElement extends PdfElement
 public:
-	declare constructor(x as single, y as single, w as single, h as single, mode as PdfPaintMode, lineWidth as single, miterlin as single, join as integer, cap as integer, parent as PdfElement ptr)
+	declare constructor(x as single, y as single, w as single, h as single, mode as integer, lineWidth as single, miterlin as single, join as integer, cap as integer, parent as PdfElement ptr)
 	declare virtual function clone(parent as PdfElement ptr, page as PdfPageElement ptr) as PdfElement ptr
 	declare virtual function emit(doc as PdfDoc ptr, page as PdfPageElement ptr, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
 	declare virtual function getWidth() as single
@@ -329,7 +326,7 @@ public:
 	declare virtual sub translateX(xi as single)
 	declare virtual sub translateY(yi as single)
 private:
-	mode as PdfPaintMode
+	mode as integer
 	x as single
 	y as single
 	w as single
@@ -427,6 +424,8 @@ public:
 	declare function parseBezierTo(parent as PdfElement ptr, page as PdfPageElement ptr) as PdfBezierToElement ptr
 	declare function parseClosePath(parent as PdfElement ptr, page as PdfPageElement ptr) as PdfClosePathElement ptr
 	declare function parseRect(parent as PdfElement ptr, page as PdfPageElement ptr) as PdfRectElement ptr
+	declare function parseFillRect(parent as PdfElement ptr, page as PdfPageElement ptr) as PdfRectElement ptr
+	declare function parseStrokeRect(parent as PdfElement ptr, page as PdfPageElement ptr) as PdfRectElement ptr
 	declare function parseText(parent as PdfElement ptr, page as PdfPageElement ptr) as PdfTextElement ptr
 	declare function parseColor(parent as PdfElement ptr, page as PdfPageElement ptr) as PdfColorElement ptr
 	declare function parseTransform(parent as PdfElement ptr, page as PdfPageElement ptr) as PdfTransformElement ptr
