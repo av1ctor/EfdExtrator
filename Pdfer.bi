@@ -151,23 +151,16 @@ public:
 	declare constructor(parent as PdfElement ptr)
 	declare constructor(id as zstring ptr, idDict as TDict ptr, parent as PdfElement ptr)
 	declare virtual destructor()
-	declare sub cloneChildren(parent as PdfElement ptr, page as PdfPageElement_ ptr)
 	declare function getHead() as PdfElement ptr
 	declare function getTail() as PdfElement ptr
 	declare function getNext() as PdfElement ptr
 	declare virtual function clone(parent as PdfElement ptr, page as PdfPageElement_ ptr) as PdfElement ptr
-	declare virtual function emit(doc as PdfDoc ptr, page as PdfPageElement_ ptr, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
-	declare sub emitAndInsert(doc as PdfDoc ptr, page as PdfPageElement_ ptr, parent as FPDF_PAGEOBJECT)
-	declare virtual sub emitChildren(doc as PdfDoc ptr, page as PdfPageElement_ ptr, parent as FPDF_PAGEOBJECT)
-	declare virtual function lookupAttrib(name_ as zstring ptr, byref type_ as PdfElementAttribType) as any ptr
+	declare virtual function render(doc as PdfDoc ptr, page as PdfPageElement_ ptr, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
 	declare virtual function getWidth() as single
 	declare virtual function getHeight() as single
 	declare virtual sub translate(xi as single, yi as single)
 	declare virtual sub translateX(xi as single)
 	declare virtual sub translateY(yi as single)
-	declare sub translateChildren(xi as single, yi as single)
-	declare sub translateXChildren(xi as single)
-	declare sub translateYChildren(yi as single)
 	declare function getChild(id as zstring ptr) as PdfElement ptr 
 	declare sub setAttrib(name_ as zstring ptr, value as boolean)
 	declare sub setAttrib(name_ as zstring ptr, value as integer)
@@ -182,19 +175,29 @@ protected:
 	next_ as PdfElement ptr
 	head as PdfElement ptr
 	tail as PdfElement ptr
+
+	declare sub cloneChildren(parent as PdfElement ptr, page as PdfPageElement_ ptr)
+	declare virtual sub renderChildren(doc as PdfDoc ptr, page as PdfPageElement_ ptr, parent as FPDF_PAGEOBJECT)
+	declare sub renderInsert(doc as PdfDoc ptr, page as PdfPageElement_ ptr, parent as FPDF_PAGEOBJECT)
+	declare function getChildrenWidth() as single
+	declare function getChildrenHeight() as single
+	declare sub translateChildren(xi as single, yi as single)
+	declare sub translateXChildren(xi as single)
+	declare sub translateYChildren(yi as single)
+	declare virtual function lookupAttrib(name_ as zstring ptr, byref type_ as PdfElementAttribType) as any ptr
 end type
 
 type PdfPageElement extends PdfElement
 public:
 	declare constructor(x1 as single, y1 as single, x2 as single, y2 as single, parent as PdfElement ptr)
 	declare virtual destructor()
-	declare sub insert(obj as FPDF_PAGEOBJECT)
-	declare sub emit(doc as PdfDoc ptr, index as integer, flush_ as boolean = true)
+	declare sub render(doc as PdfDoc ptr, index as integer, flush_ as boolean = true)
 	declare sub flush(doc as PdfDoc ptr)
 	declare function clone() as PdfPageElement ptr
-	declare function getIdDict() as TDict ptr
 	declare function getNode(id as zstring ptr) as PdfElement ptr
+	declare function getIdDict() as TDict ptr
 	declare function getPage() as FPDF_PAGE
+	declare sub insert(obj as FPDF_PAGEOBJECT)
 private:
 	x1 as single
 	y1 as single
@@ -212,7 +215,8 @@ public:
 	declare function withStroke(r as ulong, g as ulong, b as ulong, a as ulong) as PdfColorElement ptr
 	declare function withFill(r as ulong, g as ulong, b as ulong, a as ulong) as PdfColorElement ptr
 	declare virtual function clone(parent as PdfElement ptr, page as PdfPageElement ptr) as PdfElement ptr
-	declare virtual sub emitChildren(doc as PdfDoc ptr, page as PdfPageElement_ ptr, parent as FPDF_PAGEOBJECT)
+protected:
+	declare virtual sub renderChildren(doc as PdfDoc ptr, page as PdfPageElement_ ptr, parent as FPDF_PAGEOBJECT)
 private:
 	fcolor as PdfRGB ptr
 	scolor as PdfRGB ptr
@@ -224,7 +228,8 @@ public:
 	declare constructor(transf as FS_MATRIX ptr, parent as PdfElement ptr)
 	declare virtual destructor()
 	declare virtual function clone(parent as PdfElement ptr, page as PdfPageElement ptr) as PdfElement ptr
-	declare virtual sub emitChildren(doc as PdfDoc ptr, page as PdfPageElement_ ptr, parent as FPDF_PAGEOBJECT)
+protected:
+	declare virtual sub renderChildren(doc as PdfDoc ptr, page as PdfPageElement_ ptr, parent as FPDF_PAGEOBJECT)
 private:
 	transf as FS_MATRIX ptr
 end type
@@ -234,7 +239,8 @@ public:
 	declare constructor(name_ as zstring ptr, size as single, parent as PdfElement ptr)
 	declare virtual destructor()
 	declare virtual function clone(parent as PdfElement ptr, page as PdfPageElement ptr) as PdfElement ptr
-	declare virtual sub emitChildren(doc as PdfDoc ptr, page as PdfPageElement_ ptr, parent as FPDF_PAGEOBJECT)
+protected:
+	declare virtual sub renderChildren(doc as PdfDoc ptr, page as PdfPageElement_ ptr, parent as FPDF_PAGEOBJECT)
 private:
 	name_ as string
 	size as single
@@ -246,7 +252,7 @@ public:
 	declare constructor(mode as integer, parent as PdfElement ptr)
 	declare virtual destructor()
 	declare virtual function clone(parent as PdfElement ptr, page as PdfPageElement ptr) as PdfElement ptr
-	declare virtual function emit(doc as PdfDoc ptr, page as PdfPageElement ptr, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
+	declare virtual function render(doc as PdfDoc ptr, page as PdfPageElement ptr, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
 private:
 	mode as integer
 end type
@@ -256,7 +262,7 @@ public:
 	declare constructor(width_ as single, miterlin as single, join as integer, cap as integer, parent as PdfElement ptr)
 	declare virtual destructor()
 	declare virtual function clone(parent as PdfElement ptr, page as PdfPageElement ptr) as PdfElement ptr
-	declare virtual function emit(doc as PdfDoc ptr, page as PdfPageElement ptr, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
+	declare virtual function render(doc as PdfDoc ptr, page as PdfPageElement ptr, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
 private:
 	width_ as single
 	miterlin as single
@@ -268,7 +274,7 @@ type PdfMoveToElement extends PdfElement
 public:
 	declare constructor(x as single, y as single, parent as PdfElement ptr = null)
 	declare virtual function clone(parent as PdfElement ptr, page as PdfPageElement ptr) as PdfElement ptr
-	declare virtual function emit(doc as PdfDoc ptr, page as PdfPageElement ptr, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
+	declare virtual function render(doc as PdfDoc ptr, page as PdfPageElement ptr, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
 	declare virtual sub translate(xi as single, yi as single)
 	declare virtual sub translateX(xi as single)
 	declare virtual sub translateY(yi as single)
@@ -281,7 +287,7 @@ type PdfLineToElement extends PdfElement
 public:
 	declare constructor(x as single, y as single, parent as PdfElement ptr = null)
 	declare virtual function clone(parent as PdfElement ptr, page as PdfPageElement ptr) as PdfElement ptr
-	declare virtual function emit(doc as PdfDoc ptr, page as PdfPageElement ptr, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
+	declare virtual function render(doc as PdfDoc ptr, page as PdfPageElement ptr, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
 	declare virtual sub translate(xi as single, yi as single)
 	declare virtual sub translateX(xi as single)
 	declare virtual sub translateY(yi as single)
@@ -294,7 +300,7 @@ type PdfBezierToElement extends PdfElement
 public:
 	declare constructor(x1 as single, y1 as single, x2 as single, y2 as single, x3 as single, y3 as single, parent as PdfElement ptr = null)
 	declare virtual function clone(parent as PdfElement ptr, page as PdfPageElement ptr) as PdfElement ptr
-	declare virtual function emit(doc as PdfDoc ptr, page as PdfPageElement ptr, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
+	declare virtual function render(doc as PdfDoc ptr, page as PdfPageElement ptr, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
 	declare virtual sub translate(xi as single, yi as single)
 	declare virtual sub translateX(xi as single)
 	declare virtual sub translateY(yi as single)
@@ -311,7 +317,7 @@ type PdfClosePathElement extends PdfElement
 public:
 	declare constructor(parent as PdfElement ptr = null)
 	declare virtual function clone(parent as PdfElement ptr, page as PdfPageElement ptr) as PdfElement ptr
-	declare virtual function emit(doc as PdfDoc ptr, page as PdfPageElement ptr, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
+	declare virtual function render(doc as PdfDoc ptr, page as PdfPageElement ptr, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
 private:
 end type
 
@@ -319,7 +325,7 @@ type PdfRectElement extends PdfElement
 public:
 	declare constructor(x as single, y as single, w as single, h as single, mode as integer, lineWidth as single, miterlin as single, join as integer, cap as integer, parent as PdfElement ptr)
 	declare virtual function clone(parent as PdfElement ptr, page as PdfPageElement ptr) as PdfElement ptr
-	declare virtual function emit(doc as PdfDoc ptr, page as PdfPageElement ptr, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
+	declare virtual function render(doc as PdfDoc ptr, page as PdfPageElement ptr, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
 	declare virtual function getWidth() as single
 	declare virtual function getHeight() as single
 	declare virtual sub translate(xi as single, yi as single)
@@ -341,7 +347,7 @@ type PdfHighlightElement extends PdfElement
 public:
 	declare constructor(left as single, bottom as single, right as single, top as single, parent as PdfElement ptr = null)
 	declare virtual function clone(parent as PdfElement ptr, page as PdfPageElement ptr) as PdfElement ptr
-	declare virtual function emit(doc as PdfDoc ptr, page as PdfPageElement ptr, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
+	declare virtual function render(doc as PdfDoc ptr, page as PdfPageElement ptr, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
 	declare virtual function getWidth() as single
 	declare virtual function getHeight() as single
 	declare virtual sub translate(xi as single, yi as single)
@@ -368,10 +374,11 @@ public:
 	declare constructor(x as single, y as single, text as wstring ptr, parent as PdfElement ptr)
 	declare virtual destructor()
 	declare virtual function clone(parent as PdfElement ptr, page as PdfPageElement ptr) as PdfElement ptr
-	declare virtual function emit(doc as PdfDoc ptr, page as PdfPageElement ptr, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
+	declare virtual function render(doc as PdfDoc ptr, page as PdfPageElement ptr, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
 	declare virtual sub translate(xi as single, yi as single)
 	declare virtual sub translateX(xi as single)
 	declare virtual sub translateY(yi as single)
+protected:
 	declare virtual function lookupAttrib(name_ as zstring ptr, byref type_ as PdfElementAttribType) as any ptr
 private:
 	mode as FPDF_TEXT_RENDERMODE
@@ -387,7 +394,7 @@ public:
 	declare constructor(bbox as PdfRectCoords ptr, isolated as boolean, knockout as boolean, blendMode as zstring ptr, alpha as single, parent as PdfElement ptr)
 	declare virtual destructor()
 	declare virtual function clone(parent as PdfElement ptr, page as PdfPageElement ptr) as PdfElement ptr
-	declare virtual function emit(doc as PdfDoc ptr, page as PdfPageElement ptr, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
+	declare virtual function render(doc as PdfDoc ptr, page as PdfPageElement ptr, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
 private:
 	bbox as PdfRectCoords ptr
 	isolated as boolean
@@ -400,7 +407,7 @@ type PdfTemplateElement extends PdfElement
 public:
 	declare constructor(id as zstring ptr, idDict as TDict ptr, parent as PdfElement ptr, hidden as boolean = true)
 	declare virtual function clone(parent as PdfElement ptr, page as PdfPageElement ptr) as PdfElement ptr
-	declare virtual function emit(doc as PdfDoc ptr, page as PdfPageElement ptr, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
+	declare virtual function render(doc as PdfDoc ptr, page as PdfPageElement ptr, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
 end type
 
 #ifdef WITH_PARSER
@@ -410,8 +417,14 @@ public:
 	declare constructor(path as string)
 	declare destructor()
 	declare function load() as boolean
-	declare sub emitTo(doc as PdfDoc ptr, flush_ as boolean = true)
+	declare sub renderTo(doc as PdfDoc ptr, flush_ as boolean = true)
 	declare sub flush(doc as PdfDoc ptr)
+	declare function clonePage(index as integer) as PdfPageElement ptr
+	declare function getPage(index as integer) as PdfPageElement ptr
+	declare static function simplifyXml(inFile as string, outFile as string) as boolean
+	declare function getVersion() as integer
+	
+private:
 	declare sub parseDocument(parent as PdfElement ptr)
 	declare sub parsePage(parent as PdfElement ptr)
 	declare function parseObject(tag as zstring ptr, parent as PdfElement ptr, page as PdfPageElement ptr) as PdfElement ptr
@@ -430,12 +443,6 @@ public:
 	declare function parseColor(parent as PdfElement ptr, page as PdfPageElement ptr) as PdfColorElement ptr
 	declare function parseTransform(parent as PdfElement ptr, page as PdfPageElement ptr) as PdfTransformElement ptr
 	declare function parseFont(parent as PdfElement ptr, page as PdfPageElement ptr) as PdfFontElement ptr
-	declare function clonePage(index as integer) as PdfPageElement ptr
-	declare function getPage(index as integer) as PdfPageElement ptr
-	declare static function simplifyXml(inFile as string, outFile as string) as boolean
-	declare function getVersion() as integer
-	
-private:
 	declare function getXmlConstName() as string
 	declare function getXmlAttrib(name_ as zstring ptr) as string
 	declare function getXmlAttribAsLong(name_ as zstring ptr) as longint

@@ -395,6 +395,10 @@ sub PdfElement.setAttrib(name_ as zstring ptr, value as zstring ptr)
 end sub
 
 function PdfElement.getWidth() as single
+	return getChildrenWidth()
+end function
+
+function PdfElement.getChildrenWidth() as single
 	var maxW = 0.0
 	var child = this.head
 	do while child <> null
@@ -408,6 +412,10 @@ function PdfElement.getWidth() as single
 end function
 
 function PdfElement.getHeight() as single
+	return getChildrenHeight()
+end function
+
+function PdfElement.getChildrenHeight() as single
 	var maxH = 0.0
 	var child = this.head
 	do while child <> null
@@ -457,28 +465,28 @@ sub PdfElement.translateYChildren(yi as single)
 end sub
 
 
-function PdfElement.emit(doc as PdfDoc ptr, page as PdfPageElement ptr, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
+function PdfElement.render(doc as PdfDoc ptr, page as PdfPageElement ptr, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
 	return null
 end function
 
-sub PdfElement.emitAndInsert(doc as PdfDoc ptr, page as PdfPageElement ptr, parent as FPDF_PAGEOBJECT)
+sub PdfElement.renderInsert(doc as PdfDoc ptr, page as PdfPageElement ptr, parent as FPDF_PAGEOBJECT)
 	if hidden then
 		return
 	end if
 		
-	var obj = this.emit(doc, page, parent)
+	var obj = render(doc, page, parent)
 
-	emitChildren(doc, page, obj)
+	renderChildren(doc, page, obj)
 	
 	if obj <> null then
 		page->insert(obj)
 	end if
 end sub
 
-sub PdfElement.emitChildren(doc as PdfDoc ptr, page as PdfPageElement ptr, parent as FPDF_PAGEOBJECT)
+sub PdfElement.renderChildren(doc as PdfDoc ptr, page as PdfPageElement ptr, parent as FPDF_PAGEOBJECT)
 	var child = this.head
 	do while child <> null
-		child->emitAndInsert(doc, page, parent)
+		child->renderInsert(doc, page, parent)
 		child = child->next_
 	loop
 end sub
@@ -597,7 +605,7 @@ destructor PdfColorElement()
 	end if
 end destructor
 
-sub PdfColorElement.emitChildren(doc as PdfDoc ptr, page as PdfPageElement_ ptr, parent as FPDF_PAGEOBJECT)
+sub PdfColorElement.renderChildren(doc as PdfDoc ptr, page as PdfPageElement_ ptr, parent as FPDF_PAGEOBJECT)
 	var olds = doc->style.scolor
 	if scolor <> null then
 		doc->style.scolor = scolor
@@ -609,7 +617,7 @@ sub PdfColorElement.emitChildren(doc as PdfDoc ptr, page as PdfPageElement_ ptr,
 	
 	var child = this.head
 	do while child <> null
-		child->emitAndInsert(doc, page, parent)
+		child->renderInsert(doc, page, parent)
 		child = child->next_
 	loop
 	
@@ -636,13 +644,13 @@ destructor PdfTransformElement()
 	end if
 end destructor
 
-sub PdfTransformElement.emitChildren(doc as PdfDoc ptr, page as PdfPageElement_ ptr, parent as FPDF_PAGEOBJECT)
+sub PdfTransformElement.renderChildren(doc as PdfDoc ptr, page as PdfPageElement_ ptr, parent as FPDF_PAGEOBJECT)
 	var old = doc->style.transf
 	doc->style.transf = transf
 
 	var child = this.head
 	do while child <> null
-		child->emitAndInsert(doc, page, parent)
+		child->renderInsert(doc, page, parent)
 		child = child->next_
 	loop
 	
@@ -668,7 +676,7 @@ destructor PdfFontElement()
 	end if
 end destructor
 
-sub PdfFontElement.emitChildren(doc as PdfDoc ptr, page as PdfPageElement_ ptr, parent as FPDF_PAGEOBJECT)
+sub PdfFontElement.renderChildren(doc as PdfDoc ptr, page as PdfPageElement_ ptr, parent as FPDF_PAGEOBJECT)
 	if font = null then
 		font = FPDFText_LoadStandardFont(doc->getDoc(), name_)
 	end if
@@ -684,7 +692,7 @@ sub PdfFontElement.emitChildren(doc as PdfDoc ptr, page as PdfPageElement_ ptr, 
 
 	var child = this.head
 	do while child <> null
-		child->emitAndInsert(doc, page, parent)
+		child->renderInsert(doc, page, parent)
 		child = child->next_
 	loop
 	
@@ -741,7 +749,7 @@ end function
 destructor PdfStrokeElement()
 end destructor
 
-function PdfStrokeElement.emit(doc as PdfDoc ptr, page as PdfPageElement ptr, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
+function PdfStrokeElement.render(doc as PdfDoc ptr, page as PdfPageElement ptr, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
 	return buildPath(doc, FPDF_FILLMODE_NONE, width_, miterlin, join, cap)
 end function
 
@@ -760,7 +768,7 @@ end function
 destructor PdfFillElement()
 end destructor
 
-function PdfFillElement.emit(doc as PdfDoc ptr, page as PdfPageElement ptr, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
+function PdfFillElement.render(doc as PdfDoc ptr, page as PdfPageElement ptr, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
 	return buildPath(doc, mode, 0.0)
 end function
 
@@ -789,7 +797,7 @@ sub PdfMoveToElement.translateY(yi as single)
 	this.y += yi
 end sub
 
-function PdfMoveToElement.emit(doc as PdfDoc ptr, page as PdfPageElement ptr, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
+function PdfMoveToElement.render(doc as PdfDoc ptr, page as PdfPageElement ptr, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
 	FPDFPath_MoveTo(parent, this.x, this.y)
 	return null
 end function
@@ -819,7 +827,7 @@ sub PdfLineToElement.translateY(yi as single)
 	this.y += yi
 end sub
 
-function PdfLineToElement.emit(doc as PdfDoc ptr, page as PdfPageElement ptr, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
+function PdfLineToElement.render(doc as PdfDoc ptr, page as PdfPageElement ptr, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
 	FPDFPath_LineTo(parent, this.x, this.y)
 	return null
 end function
@@ -861,7 +869,7 @@ sub PdfBezierToElement.translateY(yi as single)
 	this.y3 += yi
 end sub
 
-function PdfBezierToElement.emit(doc as PdfDoc ptr, page as PdfPageElement ptr, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
+function PdfBezierToElement.render(doc as PdfDoc ptr, page as PdfPageElement ptr, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
 	FPDFPath_BezierTo(parent, this.x1, this.y1, this.x2, this.y2, this.x3, this.y3)
 	return null
 end function
@@ -877,7 +885,7 @@ function PdfClosePathElement.clone(parent as PdfElement ptr, page as PdfPageElem
 	return dup
 end function
 
-function PdfClosePathElement.emit(doc as PdfDoc ptr, page as PdfPageElement ptr, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
+function PdfClosePathElement.render(doc as PdfDoc ptr, page as PdfPageElement ptr, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
 	FPDFPath_Close(parent)
 	return null
 end function
@@ -903,11 +911,13 @@ function PdfRectElement.clone(parent as PdfElement ptr, page as PdfPageElement p
 end function
 
 function PdfRectElement.getWidth() as single
-	return w
+	var cw = getChildrenWidth()
+	return iif(cw > w, cw, w)
 end function
 
 function PdfRectElement.getHeight() as single
-	return h
+	var ch = getChildrenHeight()
+	return iif(ch > h, ch, h)
 end function
 
 sub PdfRectElement.translate(xi as single, yi as single)
@@ -926,16 +936,30 @@ sub PdfRectElement.translateY(yi as single)
 	translateYChildren(yi)
 end sub
 
-function PdfRectElement.emit(doc as PdfDoc ptr, page as PdfPageElement ptr, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
+function PdfRectElement.render(doc as PdfDoc ptr, page as PdfPageElement ptr, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
 	var path = buildPath(doc, mode, linew, miterlin, join, cap)
 	FPDFPath_MoveTo(path, x, y)
-	FPDFPath_LineTo(path, x+(w), y)
-	FPDFPath_LineTo(path, x+(w), y-(h))
-	FPDFPath_LineTo(path, x, y-(h))
+	FPDFPath_LineTo(path, x+w, y)
+	FPDFPath_LineTo(path, x+w, y-h)
+	FPDFPath_LineTo(path, x, y-h)
 	FPDFPath_LineTo(path, x, y)
 	FPDFPath_Close(path)
 	return path
 end function
+
+/'sub PdfRectElement.renderInsert(doc as PdfDoc ptr, page as PdfPageElement ptr, parent as FPDF_PAGEOBJECT)
+	if hidden then
+		return
+	end if
+		
+	var obj = render(doc, page, parent)
+
+	renderChildren(doc, page, obj)
+	
+	if obj <> null then
+		page->insert(obj)
+	end if
+end sub'/
 
 '''''
 constructor PdfHighlightElement(left as single, bottom as single, right as single, top as single, parent as PdfElement ptr)
@@ -980,7 +1004,7 @@ sub PdfHighlightElement.translateY(yi as single)
 	translateYChildren(yi)
 end sub
 
-function PdfHighlightElement.emit(doc as PdfDoc ptr, page as PdfPageElement ptr, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
+function PdfHighlightElement.render(doc as PdfDoc ptr, page as PdfPageElement ptr, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
 	highlight(left, bottom, right, top, page->getPage())
 	return null
 end function
@@ -1065,7 +1089,7 @@ destructor PdfTextElement()
 	end if
 end destructor
 
-function PdfTextElement.emit(doc as PdfDoc ptr, page as PdfPageElement ptr, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
+function PdfTextElement.render(doc as PdfDoc ptr, page as PdfPageElement ptr, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
 	if text = null orelse len(*text) = 0 then
 		return null
 	end if
@@ -1143,7 +1167,7 @@ destructor PdfGroupElement()
 	end if
 end destructor
 
-function PdfGroupElement.emit(doc as PdfDoc ptr, page as PdfPageElement ptr, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
+function PdfGroupElement.render(doc as PdfDoc ptr, page as PdfPageElement ptr, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
 	return null
 end function
 
@@ -1159,7 +1183,7 @@ function PdfTemplateElement.clone(parent as PdfElement ptr, page as PdfPageEleme
 	return dup
 end function
 
-function PdfTemplateElement.emit(doc as PdfDoc ptr, page as PdfPageElement ptr, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
+function PdfTemplateElement.render(doc as PdfDoc ptr, page as PdfPageElement ptr, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
 	return null
 end function
 
@@ -1186,7 +1210,7 @@ function PdfPageElement.clone() as PdfPageElement ptr
 	return dup
 end function
 
-sub PdfPageElement.emit(doc as PdfDoc ptr, index as integer, flush_ as boolean)
+sub PdfPageElement.render(doc as PdfDoc ptr, index as integer, flush_ as boolean)
 	if hidden then
 		return
 	end if
@@ -1195,7 +1219,7 @@ sub PdfPageElement.emit(doc as PdfDoc ptr, index as integer, flush_ as boolean)
 	FPDFPage_SetMediaBox(page, x1, y1, x2, y2)
 	FPDFPage_SetCropBox(page, x1, y1, x2, y2)
 	
-	emitChildren(doc, @this, null)
+	renderChildren(doc, @this, null)
 	
 	if flush_ then
 		flush(doc)
@@ -1874,10 +1898,10 @@ function PdfTemplate.load() as boolean
 	return false
 end function
 
-sub PdfTemplate.emitTo(doc as PdfDoc ptr, flush_ as boolean)
+sub PdfTemplate.renderTo(doc as PdfDoc ptr, flush_ as boolean)
 	var page = root->getHead()
 	do while page <> null
-		cast(PdfPageElement ptr, page)->emit(doc, index, flush_)
+		cast(PdfPageElement ptr, page)->render(doc, index, flush_)
 		index += 1
 		page = page->getNext()
 	loop
