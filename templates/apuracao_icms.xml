@@ -72,6 +72,9 @@
 				<fill_text color="0 0 0">
 					<span font="Helvetica-Bold" wmode="0" bidi="0" trm="10 0 0 10" x="36" y="754.96">PERÍODO DA ESCRITURAÇÃO:</span>
 				</fill_text>
+			</template>
+			
+			<template id="form">
 				<fill_path winding="nonzero" color="1 1 1">
 					<moveto x="30" y="505"/>
 					<lineto x="565" y="505"/>
@@ -79,6 +82,20 @@
 					<lineto x="30" y="747"/>
 					<lineto x="30" y="505"/>
 				</fill_path>
+				<fill_text color="0 0 0">
+					<span font="Helvetica-Bold" wmode="0" bidi="0" trm="10 0 0 10" x="50" y="734.71">PERÍODO DE APURAÇÃO:</span>
+				</fill_text>
+				<fill_text color="0 0 0">
+					<span font="Helvetica-Bold" wmode="0" bidi="0" trm="10 0 0 10" x="180" y="734.71" id="APU"></span>
+				</fill_text>
+				<stroke_path linewidth="2" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
+					<moveto x="30" y="746"/>
+					<lineto x="565" y="746"/>
+				</stroke_path>
+				<stroke_path linewidth="1" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
+					<moveto x="30" y="731"/>
+					<lineto x="565" y="731"/>
+				</stroke_path>
 				<fill_path winding="nonzero" color=".8 .8 .8">
 					<moveto x="440" y="731"/>
 					<lineto x="565" y="731"/>
@@ -120,214 +137,199 @@
 					<lineto x="440" y="716.5"/>
 				</stroke_path>
 				<fill_text color="0 0 0">
-					<span font="Helvetica-Bold" wmode="0" bidi="0" trm="10 0 0 10" x="50" y="734.71">PERÍODO DE APURAÇÃO:</span>
+					<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="32" y="706.46">SAÍDAS E PRESTAÇÕES COM DÉBITO DO IMPOSTO</span>
+				</fill_text>
+				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
+					<moveto x="440" y="717"/>
+					<lineto x="440" y="702"/>
+				</stroke_path>
+				<fill_text color="0 0 0">
+					<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="30" y="706.46" width="534" align="right" id="SAIDAS"></span>
+				</fill_text>
+				<fill_path winding="nonzero" color=".8 .80392 .81569">
+					<moveto x="30" y="687"/>
+					<lineto x="564" y="687"/>
+					<lineto x="564" y="702"/>
+					<lineto x="30" y="702"/>
+					<lineto x="30" y="687"/>
+				</fill_path>
+				<fill_text color="0 0 0">
+					<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="32" y="691.46">VALOR TOTAL DOS AJUSTES A DÉBITO (decorrentes do documento fiscal)</span>
+				</fill_text>
+				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
+					<moveto x="440" y="702"/>
+					<lineto x="440" y="687"/>
+				</stroke_path>
+				<fill_text color="0 0 0">
+					<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="30" y="691.46" width="534" align="right" id="AJUSTE_DEB"></span>
 				</fill_text>
 				<fill_text color="0 0 0">
-					<span font="Helvetica-Bold" wmode="0" bidi="0" trm="10 0 0 10" x="180" y="734.71" id="APU"></span>
+					<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="32" y="676.46">VALOR TOTAL DOS AJUSTES A DÉBITO DO IMPOSTO</span>
+				</fill_text>
+				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
+					<moveto x="440" y="687"/>
+					<lineto x="440" y="672"/>
+				</stroke_path>
+				<fill_text color="0 0 0">
+					<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="30" y="676.46" width="534" align="right" id="AJUSTE_DEB_IMP"></span>
+				</fill_text>
+				<fill_path winding="nonzero" color=".8 .80392 .81569">
+					<moveto x="30" y="657"/>
+					<lineto x="564" y="657"/>
+					<lineto x="564" y="672"/>
+					<lineto x="30" y="672"/>
+					<lineto x="30" y="657"/>
+				</fill_path>
+				<fill_text color="0 0 0">
+					<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="32" y="661.46">VALOR TOTAL DOS ESTORNOS DE CRÉDITOS</span>
+				</fill_text>
+				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
+					<moveto x="440" y="672"/>
+					<lineto x="440" y="657"/>
+				</stroke_path>
+				<fill_text color="0 0 0">
+					<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="30" y="661.46" width="534" align="right" id="ESTORNO_CRED"></span>
+				</fill_text>
+				<fill_text color="0 0 0">
+					<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="32" y="646.46">VALOR TOTAL DOS CRÉDITOS POR ENTRADAS E AQUISIÇÕES COM CRÉDITO DO IMPOSTO</span>
+				</fill_text>
+				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
+					<moveto x="440" y="657"/>
+					<lineto x="440" y="642"/>
+				</stroke_path>
+				<fill_text color="0 0 0">
+					<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="30" y="646.46" width="534" align="right" id="CREDITO"></span>
+				</fill_text>
+				<fill_path winding="nonzero" color=".8 .80392 .81569">
+					<moveto x="30" y="627"/>
+					<lineto x="564" y="627"/>
+					<lineto x="564" y="642"/>
+					<lineto x="30" y="642"/>
+					<lineto x="30" y="627"/>
+				</fill_path>
+				<fill_text color="0 0 0">
+					<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="32" y="631.46">VALOR TOTAL DOS AJUSTES A CRÉDITO (decorrentes do documento fiscal)</span>
+				</fill_text>
+				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
+					<moveto x="440" y="642"/>
+					<lineto x="440" y="627"/>
+				</stroke_path>
+				<fill_text color="0 0 0">
+					<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="30" y="631.46" width="534" align="right" id="AJUSTE_CRED"></span>
+				</fill_text>
+				<fill_text color="0 0 0">
+					<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="32" y="616.46">VALOR TOTAL DOS AJUSTES A CRÉDITO DO IMPOSTO</span>
+				</fill_text>
+				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
+					<moveto x="440" y="627"/>
+					<lineto x="440" y="612"/>
+				</stroke_path>
+				<fill_text color="0 0 0">
+					<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="30" y="616.46" width="534" align="right" id="AJUSTE_CRED_IMP"></span>
+				</fill_text>
+				<fill_path winding="nonzero" color=".8 .80392 .81569">
+					<moveto x="30" y="597"/>
+					<lineto x="564" y="597"/>
+					<lineto x="564" y="612"/>
+					<lineto x="30" y="612"/>
+					<lineto x="30" y="597"/>
+				</fill_path>
+				<fill_text color="0 0 0">
+					<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="32" y="601.46">VALOR TOTAL DOS ESTORNOS DE DÉBITOS</span>
+				</fill_text>
+				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
+					<moveto x="440" y="612"/>
+					<lineto x="440" y="597"/>
+				</stroke_path>
+				<fill_text color="0 0 0">
+					<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="30" y="601.46" width="534" align="right" id="ESTORNO_DEB"></span>
+				</fill_text>
+				<fill_text color="0 0 0">
+					<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="32" y="586.46">VALOR TOTAL DO SALDO CREDOR DO PERÍODO ANTERIOR</span>
+				</fill_text>
+				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
+					<moveto x="440" y="597"/>
+					<lineto x="440" y="582"/>
+				</stroke_path>
+				<fill_text color="0 0 0">
+					<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="30" y="586.46" width="534" align="right" id="CRED_ANTERIOR"></span>
+				</fill_text>
+				<fill_path winding="nonzero" color=".8 .80392 .81569">
+					<moveto x="30" y="567"/>
+					<lineto x="564" y="567"/>
+					<lineto x="564" y="582"/>
+					<lineto x="30" y="582"/>
+					<lineto x="30" y="567"/>
+				</fill_path>
+				<fill_text color="0 0 0">
+					<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="32" y="571.46">VALOR DO SALDO DEVEDOR</span>
+				</fill_text>
+				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
+					<moveto x="440" y="582"/>
+					<lineto x="440" y="567"/>
+				</stroke_path>
+				<fill_text color="0 0 0">
+					<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="30" y="571.46" width="534" align="right" id="SALDO_DEV"></span>
+				</fill_text>
+				<fill_text color="0 0 0">
+					<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="32" y="556.46">VALOR TOTAL DAS DEDUÇÕES</span>
+				</fill_text>
+				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
+					<moveto x="440" y="567"/>
+					<lineto x="440" y="552"/>
+				</stroke_path>
+				<fill_text color="0 0 0">
+					<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="30" y="556.46" width="534" align="right" id="DEDUCOES"></span>
+				</fill_text>
+				<fill_path winding="nonzero" color=".8 .80392 .81569">
+					<moveto x="30" y="537"/>
+					<lineto x="564" y="537"/>
+					<lineto x="564" y="552"/>
+					<lineto x="30" y="552"/>
+					<lineto x="30" y="537"/>
+				</fill_path>
+				<fill_text color="0 0 0">
+					<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="32" y="541.46">VALOR TOTAL DO ICMS A RECOLHER</span>
+				</fill_text>
+				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
+					<moveto x="440" y="552"/>
+					<lineto x="440" y="537"/>
+				</stroke_path>
+				<fill_text color="0 0 0">
+					<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="30" y="541.46" width="534" align="right" id="A_RECOLHER"></span>
+				</fill_text>
+				<fill_text color="0 0 0">
+					<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="32" y="526.46">VALOR TOTAL DO SALDO CREDOR A TRANSPORTAR PARA O PERÍODO SEGUINTE</span>
+				</fill_text>
+				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
+					<moveto x="440" y="537"/>
+					<lineto x="440" y="522"/>
+				</stroke_path>
+				<fill_text color="0 0 0">
+					<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="30" y="526.46" width="534" align="right" id="A_TRANSPORTAR"></span>
+				</fill_text>
+				<fill_path winding="nonzero" color=".8 .80392 .81569">
+					<moveto x="30" y="507"/>
+					<lineto x="564" y="507"/>
+					<lineto x="564" y="522"/>
+					<lineto x="30" y="522"/>
+					<lineto x="30" y="507"/>
+				</fill_path>
+				<fill_text color="0 0 0">
+					<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="32" y="511.46">VALORES RECOLHIDOS OU A RECOLHER, EXTRA-APURAÇÃO</span>
+				</fill_text>
+				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
+					<moveto x="440" y="522"/>
+					<lineto x="440" y="507"/>
+				</stroke_path>
+				<fill_text color="0 0 0">
+					<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="30" y="511.46" width="534" align="right" id="EXTRA_APU"></span>
 				</fill_text>
 				<stroke_path linewidth="2" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="30" y="746"/>
-					<lineto x="565" y="746"/>
-				</stroke_path>
-				<stroke_path linewidth="1" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="30" y="731"/>
-					<lineto x="565" y="731"/>
+					<moveto x="30" y="507"/>
+					<lineto x="564" y="505"/>
 				</stroke_path>
 			</template>
-			
-			<fill_text color="0 0 0">
-				<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="32" y="706.46">SAÍDAS E PRESTAÇÕES COM DÉBITO DO IMPOSTO</span>
-			</fill_text>
-			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-				<moveto x="440" y="717"/>
-				<lineto x="440" y="702"/>
-			</stroke_path>
-			<fill_text color="0 0 0">
-				<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="30" y="706.46" width="534" align="right" id="SAIDAS"></span>
-			</fill_text>
-			<fill_path winding="nonzero" color=".8 .80392 .81569">
-				<moveto x="30" y="687"/>
-				<lineto x="564" y="687"/>
-				<lineto x="564" y="702"/>
-				<lineto x="30" y="702"/>
-				<lineto x="30" y="687"/>
-			</fill_path>
-			<fill_text color="0 0 0">
-				<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="32" y="691.46">VALOR TOTAL DOS AJUSTES A DÉBITO (decorrentes do documento fiscal)</span>
-			</fill_text>
-			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-				<moveto x="440" y="702"/>
-				<lineto x="440" y="687"/>
-			</stroke_path>
-			<fill_text color="0 0 0">
-				<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="30" y="691.46" width="534" align="right" id="AJUSTE_DEB"></span>
-			</fill_text>
-			<fill_text color="0 0 0">
-				<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="32" y="676.46">VALOR TOTAL DOS AJUSTES A DÉBITO DO IMPOSTO</span>
-			</fill_text>
-			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-				<moveto x="440" y="687"/>
-				<lineto x="440" y="672"/>
-			</stroke_path>
-			<fill_text color="0 0 0">
-				<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="30" y="676.46" width="534" align="right" id="AJUSTE_DEB_IMP"></span>
-			</fill_text>
-			<fill_path winding="nonzero" color=".8 .80392 .81569">
-				<moveto x="30" y="657"/>
-				<lineto x="564" y="657"/>
-				<lineto x="564" y="672"/>
-				<lineto x="30" y="672"/>
-				<lineto x="30" y="657"/>
-			</fill_path>
-			<fill_text color="0 0 0">
-				<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="32" y="661.46">VALOR TOTAL DOS ESTORNOS DE CRÉDITOS</span>
-			</fill_text>
-			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-				<moveto x="440" y="672"/>
-				<lineto x="440" y="657"/>
-			</stroke_path>
-			<fill_text color="0 0 0">
-				<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="30" y="661.46" width="534" align="right" id="ESTORNO_CRED"></span>
-			</fill_text>
-			<fill_text color="0 0 0">
-				<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="32" y="646.46">VALOR TOTAL DOS CRÉDITOS POR ENTRADAS E AQUISIÇÕES COM CRÉDITO DO IMPOSTO</span>
-			</fill_text>
-			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-				<moveto x="440" y="657"/>
-				<lineto x="440" y="642"/>
-			</stroke_path>
-			<fill_text color="0 0 0">
-				<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="30" y="646.46" width="534" align="right" id="CREDITO"></span>
-			</fill_text>
-			<fill_path winding="nonzero" color=".8 .80392 .81569">
-				<moveto x="30" y="627"/>
-				<lineto x="564" y="627"/>
-				<lineto x="564" y="642"/>
-				<lineto x="30" y="642"/>
-				<lineto x="30" y="627"/>
-			</fill_path>
-			<fill_text color="0 0 0">
-				<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="32" y="631.46">VALOR TOTAL DOS AJUSTES A CRÉDITO (decorrentes do documento fiscal)</span>
-			</fill_text>
-			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-				<moveto x="440" y="642"/>
-				<lineto x="440" y="627"/>
-			</stroke_path>
-			<fill_text color="0 0 0">
-				<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="30" y="631.46" width="534" align="right" id="AJUSTE_CRED"></span>
-			</fill_text>
-			<fill_text color="0 0 0">
-				<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="32" y="616.46">VALOR TOTAL DOS AJUSTES A CRÉDITO DO IMPOSTO</span>
-			</fill_text>
-			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-				<moveto x="440" y="627"/>
-				<lineto x="440" y="612"/>
-			</stroke_path>
-			<fill_text color="0 0 0">
-				<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="30" y="616.46" width="534" align="right" id="AJUSTE_CRED_IMP"></span>
-			</fill_text>
-			<fill_path winding="nonzero" color=".8 .80392 .81569">
-				<moveto x="30" y="597"/>
-				<lineto x="564" y="597"/>
-				<lineto x="564" y="612"/>
-				<lineto x="30" y="612"/>
-				<lineto x="30" y="597"/>
-			</fill_path>
-			<fill_text color="0 0 0">
-				<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="32" y="601.46">VALOR TOTAL DOS ESTORNOS DE DÉBITOS</span>
-			</fill_text>
-			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-				<moveto x="440" y="612"/>
-				<lineto x="440" y="597"/>
-			</stroke_path>
-			<fill_text color="0 0 0">
-				<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="30" y="601.46" width="534" align="right" id="ESTORNO_DEB"></span>
-			</fill_text>
-			<fill_text color="0 0 0">
-				<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="32" y="586.46">VALOR TOTAL DO SALDO CREDOR DO PERÍODO ANTERIOR</span>
-			</fill_text>
-			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-				<moveto x="440" y="597"/>
-				<lineto x="440" y="582"/>
-			</stroke_path>
-			<fill_text color="0 0 0">
-				<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="30" y="586.46" width="534" align="right" id="CRED_ANTERIOR"></span>
-			</fill_text>
-			<fill_path winding="nonzero" color=".8 .80392 .81569">
-				<moveto x="30" y="567"/>
-				<lineto x="564" y="567"/>
-				<lineto x="564" y="582"/>
-				<lineto x="30" y="582"/>
-				<lineto x="30" y="567"/>
-			</fill_path>
-			<fill_text color="0 0 0">
-				<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="32" y="571.46">VALOR DO SALDO DEVEDOR</span>
-			</fill_text>
-			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-				<moveto x="440" y="582"/>
-				<lineto x="440" y="567"/>
-			</stroke_path>
-			<fill_text color="0 0 0">
-				<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="30" y="571.46" width="534" align="right" id="SALDO_DEV"></span>
-			</fill_text>
-			<fill_text color="0 0 0">
-				<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="32" y="556.46">VALOR TOTAL DAS DEDUÇÕES</span>
-			</fill_text>
-			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-				<moveto x="440" y="567"/>
-				<lineto x="440" y="552"/>
-			</stroke_path>
-			<fill_text color="0 0 0">
-				<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="30" y="556.46" width="534" align="right" id="DEDUCOES"></span>
-			</fill_text>
-			<fill_path winding="nonzero" color=".8 .80392 .81569">
-				<moveto x="30" y="537"/>
-				<lineto x="564" y="537"/>
-				<lineto x="564" y="552"/>
-				<lineto x="30" y="552"/>
-				<lineto x="30" y="537"/>
-			</fill_path>
-			<fill_text color="0 0 0">
-				<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="32" y="541.46">VALOR TOTAL DO ICMS A RECOLHER</span>
-			</fill_text>
-			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-				<moveto x="440" y="552"/>
-				<lineto x="440" y="537"/>
-			</stroke_path>
-			<fill_text color="0 0 0">
-				<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="30" y="541.46" width="534" align="right" id="A_RECOLHER"></span>
-			</fill_text>
-			<fill_text color="0 0 0">
-				<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="32" y="526.46">VALOR TOTAL DO SALDO CREDOR A TRANSPORTAR PARA O PERÍODO SEGUINTE</span>
-			</fill_text>
-			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-				<moveto x="440" y="537"/>
-				<lineto x="440" y="522"/>
-			</stroke_path>
-			<fill_text color="0 0 0">
-				<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="30" y="526.46" width="534" align="right" id="A_TRANSPORTAR"></span>
-			</fill_text>
-			<fill_path winding="nonzero" color=".8 .80392 .81569">
-				<moveto x="30" y="507"/>
-				<lineto x="564" y="507"/>
-				<lineto x="564" y="522"/>
-				<lineto x="30" y="522"/>
-				<lineto x="30" y="507"/>
-			</fill_path>
-			<fill_text color="0 0 0">
-				<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="32" y="511.46">VALORES RECOLHIDOS OU A RECOLHER, EXTRA-APURAÇÃO</span>
-			</fill_text>
-			<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-				<moveto x="440" y="522"/>
-				<lineto x="440" y="507"/>
-			</stroke_path>
-			<fill_text color="0 0 0">
-				<span font="Helvetica" wmode="0" bidi="0" trm="8 0 0 8" x="30" y="511.46" width="534" align="right" id="EXTRA_APU"></span>
-			</fill_text>
-			<stroke_path linewidth="2" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-				<moveto x="30" y="507"/>
-				<lineto x="564" y="505"/>
-			</stroke_path>
 
 			<template id="ajuste-decod">
 				<fill_path winding="nonzero" color=".8 .8 .8">

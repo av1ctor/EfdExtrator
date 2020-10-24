@@ -1151,6 +1151,7 @@ private:
 	declare sub gerarRelatorioCiap(nomeArquivo as string, reg as TRegistro ptr, isPre as boolean)
 	declare sub gerarRelatorioApuracaoICMS(nomeArquivo as string, reg as TRegistro ptr, isPre as boolean)
 	declare sub gerarAjusteTotalRelatorioApuracaoICMS(tipo as integer, total as double, isPre as boolean)
+	declare sub gerarAjusteSubTotalRelatorioApuracaoICMS(tipo as integer, codigo as string, subtotal as double, isPre as boolean)
 	declare sub gerarRelatorioApuracaoICMSST(nomeArquivo as string, reg as TRegistro ptr, isPre as boolean)
 	declare sub iniciarRelatorio(relatorio as TipoRelatorio, nomeRelatorio as string, sufixo as string, isPre as boolean)
 	declare sub adicionarDocRelatorioEntradas(doc as TDocDF ptr, part as TParticipante ptr, highlight as boolean, lg as boolean)
@@ -1168,14 +1169,14 @@ private:
 	declare sub gerarResumoRelatorio(emitir as boolean, isPre as boolean)
 	declare sub gerarResumoRelatorioHeader(emitir as boolean, isPre as boolean)
 	declare sub gerarResumoAjustesRelatorioHeader(emitir as boolean, isPre as boolean)
-	declare sub setNodeText(page as PdfTemplatePageNode ptr, id as string, value as string, convert as boolean = false)
-	declare sub setNodeText(page as PdfTemplatePageNode ptr, id as string, value as wstring ptr)
-	declare sub setChildText(row as PdfTemplateNode ptr, id as string, value as string, convert as boolean = false)
-	declare sub setChildText(row as PdfTemplateNode ptr, id as string, value as wstring ptr)
-	declare function gerarLinhaDFe(lg as boolean, highlight as boolean) as PdfTemplateNode ptr
-	declare function gerarLinhaAnal() as PdfTemplateNode ptr
-	declare function gerarLinhaObs(isFirst as boolean) as PdfTemplateNode ptr
-	declare function gerarLinhaObsAjuste(isFirst as boolean) as PdfTemplateNode ptr
+	declare sub setNodeText(page as PdfPageElement ptr, id as string, value as string, convert as boolean = false)
+	declare sub setNodeText(page as PdfPageElement ptr, id as string, value as wstring ptr)
+	declare sub setChildText(row as PdfElement ptr, id as string, value as string, convert as boolean = false)
+	declare sub setChildText(row as PdfElement ptr, id as string, value as wstring ptr)
+	declare function gerarLinhaDFe(lg as boolean, highlight as boolean) as PdfElement ptr
+	declare function gerarLinhaAnal() as PdfElement ptr
+	declare function gerarLinhaObs(isFirst as boolean) as PdfElement ptr
+	declare function gerarLinhaObsAjuste(isFirst as boolean) as PdfElement ptr
 	declare sub criarPaginaRelatorio(emitir as boolean, isPre as boolean)
 	declare sub emitirPaginaRelatorio(emitir as boolean, isPre as boolean)
 	
@@ -1279,7 +1280,7 @@ private:
 	relNroPaginas			as integer
 	relNroTotalPaginas		as integer
 	relTemplate				as PdfTemplate ptr
-	relPage					as PdfTemplatePageNode ptr
+	relPage					as PdfPageElement ptr
 	relOutFile 				as PdfDoc ptr
 	
 	''
