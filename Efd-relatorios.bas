@@ -34,8 +34,8 @@ const CIAP_BEM_HEIGHT = 180 - CIAP_BEM_PRINC_HEIGHT
 const CIAP_DOC_HEIGHT = 82
 const CIAP_DOC_ITEM_HEIGHT = 57
 const CIAP_PAGE_BOTTOM = 480
-const LRAICMS_ITEMS_HEIGHT = 240
-const LRAICMS_PAGE_BOTTOM = 744
+const LRAICMS_FORM_HEIGHT = 240
+const LRAICMS_PAGE_BOTTOM = 620
 const LRAICMS_AJ_DECOD_HEIGHT = 42
 const LRAICMS_AJ_TITLE_HEIGHT = 18
 const LRAICMS_AJ_HEADER_HEIGHT = 14
@@ -803,6 +803,54 @@ private function movToDesc(mov as string) as string
 end function
 
 ''''''''
+sub Efd.setChildText(parent as PdfElement ptr, id as string, value as wstring ptr)
+	if value <> null andalso len(*value) > 0 then
+		var node = parent->getChild(id)
+		node->setAttrib("text", value)
+	end if
+end sub
+
+''''''''
+sub Efd.setChildText(parent as PdfElement ptr, id as string, value as string, convert as boolean)
+	if len(value) > 0 then
+		var node = parent->getChild(id)
+		if not convert then
+			node->setAttrib("text", value)
+		else
+			var utf16le = latinToUtf16le(value)
+			if utf16le <> null then
+				node->setAttrib("text", utf16le)
+				deallocate utf16le
+			end if
+		end if
+	end if
+end sub
+
+''''''''
+sub Efd.setNodeText(page as PdfPageElement ptr, id as string, value as wstring ptr)
+	if value <> null andalso len(*value) > 0 then
+		var node = page->getNode(id)
+		node->setAttrib("text", value)
+	end if
+end sub
+
+''''''''
+sub Efd.setNodeText(page as PdfPageElement ptr, id as string, value as string, convert as boolean)
+	if len(value) > 0 then
+		var node = page->getNode(id)
+		if not convert then
+			node->setAttrib("text", value)
+		else
+			var utf16le = latinToUtf16le(value)
+			if utf16le <> null then
+				node->setAttrib("text", utf16le)
+				deallocate utf16le
+			end if
+		end if
+	end if
+end sub
+
+''''''''
 sub Efd.gerarRelatorioCiap(nomeArquivo as string, reg as TRegistro ptr, isPre as boolean)
 
 	iniciarRelatorio(REL_CIAP, "ciap", "CIAP", isPre)
@@ -984,12 +1032,31 @@ sub Efd.gerarAjusteTotalRelatorioApuracaoICMS(tipo as integer, total as double, 
 		var clone = node->clone(relPage, relPage)
 		clone->setAttrib("hidden", false)
 		clone->translateY(-relYPos)
-		setChildText(clone, "AJ-TOTAL-DESC", "DEMONSTRATIVO DO VALOR TOTAL DOS " & ajusteTipoToTitle(tipo), true)
+		setChildText(clone, "AJ-TOTAL-DESC", "VALOR TOTAL DOS " & ajusteTipoToTitle(tipo), true)
 		setChildText(clone, "AJ-TOTAL-VAL", DBL2MONEYBR(total))
 	end if
 	
 	relYpos += LRAICMS_AJ_TOTAL_HEIGHT
 end sub
+
+''''''''
+sub Efd.gerarAjusteSubTotalRelatorioApuracaoICMS(tipo as integer, codigo as string, subtotal as double, isPre as boolean)
+	'' subtotal
+	if relYpos + LRAICMS_AJ_SUBTOTAL_HEIGHT > LRAICMS_PAGE_BOTTOM then
+		criarPaginaRelatorio(true, isPre)
+	end if
+
+	if not isPre then
+		var node = relPage->getNode("ajuste-subtotal")
+		var clone = node->clone(relPage, relPage)
+		clone->setAttrib("hidden", false)
+		clone->translateY(-relYPos)
+		setChildText(clone, "AJ-SUB-DESC", "VALOR TOTAL DOS " & ajusteTipoToTitle(tipo) & "POR CODIGO: " & codigo, true)
+		setChildText(clone, "AJ-SUB-VALOR", DBL2MONEYBR(subtotal))
+	end if
+	relYPos += LRAICMS_AJ_SUBTOTAL_HEIGHT
+end sub
+
 
 private function ajusteApuracaoCmpCb(key as zstring ptr, node as any ptr) as boolean
 	function = *key < cast(AjusteApuracao ptr, node)->codigo
@@ -1007,27 +1074,31 @@ sub Efd.gerarRelatorioApuracaoICMS(nomeArquivo as string, reg as TRegistro ptr, 
 	
 	if not isPre then
 		setNodeText(relPage, "ESCRIT", YyyyMmDd2DatetimeBR(regMestre->mestre.dataIni) + " a " + YyyyMmDd2DatetimeBR(regMestre->mestre.dataFim))
-		setNodeText(relPage, "APU", YyyyMmDd2DatetimeBR(reg->apuIcms.dataIni) + " a " + YyyyMmDd2DatetimeBR(reg->apuIcms.dataFim))
 		
-		setNodeText(relPage, "SAIDAS", DBL2MONEYBR(reg->apuIcms.totalDebitos))
-		setNodeText(relPage, "AJUSTE_DEB", DBL2MONEYBR(reg->apuIcms.ajustesDebitos))
-		setNodeText(relPage, "AJUSTE_DEB_IMP", DBL2MONEYBR(reg->apuIcms.totalAjusteDeb))
-		setNodeText(relPage, "ESTORNO_CRED", DBL2MONEYBR(reg->apuIcms.estornosCredito))
-		setNodeText(relPage, "CREDITO", DBL2MONEYBR(reg->apuIcms.totalCreditos))
-		setNodeText(relPage, "AJUSTE_CRED", DBL2MONEYBR(reg->apuIcms.ajustesCreditos))
-		setNodeText(relPage, "AJUSTE_CRED_IMP", DBL2MONEYBR(reg->apuIcms.totalAjusteCred))
-		setNodeText(relPage, "ESTORNO_DEB", DBL2MONEYBR(reg->apuIcms.estornoDebitos))
-		setNodeText(relPage, "CRED_ANTERIOR", DBL2MONEYBR(reg->apuIcms.saldoCredAnterior))
-		setNodeText(relPage, "SALDO_DEV", DBL2MONEYBR(reg->apuIcms.saldoDevedorApurado))
-		setNodeText(relPage, "DEDUCOES", DBL2MONEYBR(reg->apuIcms.totalDeducoes))
-		setNodeText(relPage, "A_RECOLHER", DBL2MONEYBR(reg->apuIcms.icmsRecolher))
-		setNodeText(relPage, "A_TRANSPORTAR", DBL2MONEYBR(reg->apuIcms.saldoCredTransportar))
-		setNodeText(relPage, "EXTRA_APU", DBL2MONEYBR(reg->apuIcms.debExtraApuracao))
+		var node = relPage->getNode("form")
+		var clone = node->clone(relPage, relPage)
+		clone->setAttrib("hidden", false)
+	
+		setChildText(clone, "APU", YyyyMmDd2DatetimeBR(reg->apuIcms.dataIni) + " a " + YyyyMmDd2DatetimeBR(reg->apuIcms.dataFim))
+		setChildText(clone, "SAIDAS", DBL2MONEYBR(reg->apuIcms.totalDebitos))
+		setChildText(clone, "AJUSTE_DEB", DBL2MONEYBR(reg->apuIcms.ajustesDebitos))
+		setChildText(clone, "AJUSTE_DEB_IMP", DBL2MONEYBR(reg->apuIcms.totalAjusteDeb))
+		setChildText(clone, "ESTORNO_CRED", DBL2MONEYBR(reg->apuIcms.estornosCredito))
+		setChildText(clone, "CREDITO", DBL2MONEYBR(reg->apuIcms.totalCreditos))
+		setChildText(clone, "AJUSTE_CRED", DBL2MONEYBR(reg->apuIcms.ajustesCreditos))
+		setChildText(clone, "AJUSTE_CRED_IMP", DBL2MONEYBR(reg->apuIcms.totalAjusteCred))
+		setChildText(clone, "ESTORNO_DEB", DBL2MONEYBR(reg->apuIcms.estornoDebitos))
+		setChildText(clone, "CRED_ANTERIOR", DBL2MONEYBR(reg->apuIcms.saldoCredAnterior))
+		setChildText(clone, "SALDO_DEV", DBL2MONEYBR(reg->apuIcms.saldoDevedorApurado))
+		setChildText(clone, "DEDUCOES", DBL2MONEYBR(reg->apuIcms.totalDeducoes))
+		setChildText(clone, "A_RECOLHER", DBL2MONEYBR(reg->apuIcms.icmsRecolher))
+		setChildText(clone, "A_TRANSPORTAR", DBL2MONEYBR(reg->apuIcms.saldoCredTransportar))
+		setChildText(clone, "EXTRA_APU", DBL2MONEYBR(reg->apuIcms.debExtraApuracao))
 	end if
+	relYPos += LRAICMS_FORM_HEIGHT
 	
 	var ajuste = reg->apuIcms.ajustesListHead
 	if ajuste <> null then
-		relYPos += LRAICMS_ITEMS_HEIGHT
 
 		var ordered = new TList(10, len(AjusteApuracao))
 		
@@ -1054,20 +1125,7 @@ sub Efd.gerarRelatorioApuracaoICMS(nomeArquivo as string, reg as TRegistro ptr, 
 			
 			if ultimoCodigo <> ajuste->codigo then
 				if cnt > 0 then
-					'' subtotal
-					if relYpos + LRAICMS_AJ_SUBTOTAL_HEIGHT > LRAICMS_PAGE_BOTTOM then
-						criarPaginaRelatorio(true, isPre)
-					end if
-
-					if not isPre then
-						var node = relPage->getNode("ajuste-subtotal")
-						var clone = node->clone(relPage, relPage)
-						clone->setAttrib("hidden", false)
-						clone->translateY(-relYPos)
-						setChildText(clone, "AJ-SUB-DESC", "VALOR TOTAL DOS " & ajusteTipoToTitle(ultimoTipo) & "POR CODIGO: " & ultimoCodigo, true)
-						setChildText(clone, "AJ-SUB-VALOR", DBL2MONEYBR(subtotal))
-					end if
-					relYPos += LRAICMS_AJ_SUBTOTAL_HEIGHT
+					gerarAjusteSubTotalRelatorioApuracaoICMS(ultimoTipo, ultimoCodigo, subtotal, isPre)
 				end if
 				
 				cnt = 0
@@ -1081,7 +1139,7 @@ sub Efd.gerarRelatorioApuracaoICMS(nomeArquivo as string, reg as TRegistro ptr, 
 			if tipo <> ultimoTipo then
 				'' total
 				if ultimoTipo <> -1 then
-					gerarAjusteTotalRelatorioApuracaoICMS(tipo, total, isPre)
+					gerarAjusteTotalRelatorioApuracaoICMS(ultimoTipo, total, isPre)
 				end if
 				
 				'' decod
@@ -1152,9 +1210,13 @@ sub Efd.gerarRelatorioApuracaoICMS(nomeArquivo as string, reg as TRegistro ptr, 
 			aj = ordered->next_(aj)
 		loop
 		
-		delete ordered
+		if cnt > 0 then
+			gerarAjusteSubTotalRelatorioApuracaoICMS(ultimoTipo, ultimoCodigo, subtotal, isPre)
+		end if
 		
 		gerarAjusteTotalRelatorioApuracaoICMS(ultimoTipo, total, isPre)
+
+		delete ordered
 	end if
 
 	finalizarRelatorio(isPre)
@@ -1197,7 +1259,7 @@ sub Efd.gerarRelatorioApuracaoICMSST(nomeArquivo as string, reg as TRegistro ptr
 end sub
 
 ''''''''
-function Efd.gerarLinhaDFe(lg as boolean, highlight as boolean) as PdfTemplateNode ptr
+function Efd.gerarLinhaDFe(lg as boolean, highlight as boolean) as PdfElement ptr
 	if relNroLinhas > 0 then
 		relYPos += ROW_SPACE_BEFORE
 	end if
@@ -1205,7 +1267,7 @@ function Efd.gerarLinhaDFe(lg as boolean, highlight as boolean) as PdfTemplateNo
 	var height = iif(lg, ROW_HEIGHT_LG, ROW_HEIGHT)
 	
 	if highlight then
-		var hl = new PdfTemplateHighlightNode(PAGE_LEFT, (PAGE_TOP-relYpos-height), PAGE_RIGHT, (PAGE_TOP-relYPos), relPage)
+		var hl = new PdfHighlightElement(PAGE_LEFT, (PAGE_TOP-relYpos-height), PAGE_RIGHT, (PAGE_TOP-relYPos), relPage)
 	end if
 	
 	var row = relPage->getNode(iif(lg, "row-lg", "row"))
@@ -1220,7 +1282,7 @@ function Efd.gerarLinhaDFe(lg as boolean, highlight as boolean) as PdfTemplateNo
 end function
 
 ''''''''
-function Efd.gerarLinhaAnal() as PdfTemplateNode ptr
+function Efd.gerarLinhaAnal() as PdfElement ptr
 	var anal = relPage->getNode("anal")
 	var clone = anal->clone(relPage, relPage)
 	clone->setAttrib("hidden", false)
@@ -1233,7 +1295,7 @@ function Efd.gerarLinhaAnal() as PdfTemplateNode ptr
 end function
 
 ''''''''
-function Efd.gerarLinhaObs(isFirst as boolean) as PdfTemplateNode ptr
+function Efd.gerarLinhaObs(isFirst as boolean) as PdfElement ptr
 
 	if isFirst then
 		var node = relPage->getNode("obs-header")
@@ -1255,7 +1317,7 @@ function Efd.gerarLinhaObs(isFirst as boolean) as PdfTemplateNode ptr
 end function
 
 ''''''''
-function Efd.gerarLinhaObsAjuste(isFirst as boolean) as PdfTemplateNode ptr
+function Efd.gerarLinhaObsAjuste(isFirst as boolean) as PdfElement ptr
 
 	if isFirst then
 		var node = relPage->getNode("ajuste-header")
@@ -1331,54 +1393,6 @@ sub Efd.relatorioSomarAjuste(sit as TipoSituacao, ajuste as TDocObsAjuste ptr)
 	end if
 
 	soma->valor += ajuste->icms
-end sub
-
-''''''''
-sub Efd.setChildText(parent as PdfTemplateNode ptr, id as string, value as wstring ptr)
-	if value <> null andalso len(*value) > 0 then
-		var node = parent->getChild(id)
-		node->setAttrib("text", value)
-	end if
-end sub
-
-''''''''
-sub Efd.setChildText(parent as PdfTemplateNode ptr, id as string, value as string, convert as boolean)
-	if len(value) > 0 then
-		var node = parent->getChild(id)
-		if not convert then
-			node->setAttrib("text", value)
-		else
-			var utf16le = latinToUtf16le(value)
-			if utf16le <> null then
-				node->setAttrib("text", utf16le)
-				deallocate utf16le
-			end if
-		end if
-	end if
-end sub
-
-''''''''
-sub Efd.setNodeText(page as PdfTemplatePageNode ptr, id as string, value as wstring ptr)
-	if value <> null andalso len(*value) > 0 then
-		var node = page->getNode(id)
-		node->setAttrib("text", value)
-	end if
-end sub
-
-''''''''
-sub Efd.setNodeText(page as PdfTemplatePageNode ptr, id as string, value as string, convert as boolean)
-	if len(value) > 0 then
-		var node = page->getNode(id)
-		if not convert then
-			node->setAttrib("text", value)
-		else
-			var utf16le = latinToUtf16le(value)
-			if utf16le <> null then
-				node->setAttrib("text", utf16le)
-				deallocate utf16le
-			end if
-		end if
-	end if
 end sub
 
 ''''''''
