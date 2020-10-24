@@ -4,27 +4,45 @@
 #include once "Pdfer.bi"
 #include once "libiconv.bi"
 
-#ifdef WITH_PARSER
 	dim shared cd8to16le as iconv_t
 	dim shared cd16leto8 as iconv_t
-#endif	
 
 '''''
 private sub initialize() constructor
 	FPDF_InitLibrary()
-#ifdef WITH_PARSER
 	cd8to16le = iconv_open("UTF-16LE", "UTF-8")
 	cd16leto8 = iconv_open("UTF-8", "UTF-16LE")
-#endif
 end sub
 
 private sub shutdown() destructor
-#ifdef WITH_PARSER
 	iconv_close(cd16leto8)
 	iconv_close(cd8to16le)
-#endif
 	FPDF_DestroyLibrary()
 end sub
+
+''FIXME: Windows-only
+private function utf8ToUtf16le(src as zstring ptr) as ushort ptr
+	var bytes = len(*src)
+	var dst = allocate((bytes+1) * len(ushort))
+	var srcp = src
+	var srcleft = bytes
+	var dstp = dst
+	var dstleft = bytes*2
+	iconv(cd8to16le, @srcp, @srcleft, @dstp, @dstleft)
+	*cast(ushort ptr, dstp) = 0
+	function = dst
+end function
+
+private function utf16leToUtf8(src as ushort ptr, bytes as integer) as zstring ptr
+	var dst = allocate(bytes+1)
+	var srcp = cast(any ptr, src)
+	var srcleft = bytes
+	var dstp = dst
+	var dstleft = bytes
+	iconv(cd16leto8, @srcp, @srcleft, @dstp, @dstleft)
+	*cast(zstring ptr, dstp) = 0
+	function = dst
+end function
 
 private sub highlight(left_ as single, bottom as single, right_ as single, top as single, page as FPDF_PAGE)
 	var annot = FPDFPage_CreateAnnot(page, FPDF_ANNOT_HIGHLIGHT)
@@ -235,31 +253,875 @@ function PdfDoc.getDoc() as FPDF_DOCUMENT
 	return this.doc
 end function
 
+'''''
+constructor PdfElement()
+end constructor
+
+constructor PdfElement(parent as PdfElement ptr)
+	this.parent = parent
+	if parent then
+		if parent->head = null then
+			parent->head = @this
+			parent->tail = @this
+		else
+			parent->tail->next_ = @this
+			parent->tail = @this
+		end if
+	end if
+end constructor
+
+constructor PdfElement(id as string, idDict as TDict ptr, parent as PdfElement ptr)
+	constructor(parent)
+	if len(id) > 0 then
+		this.id = id
+		if (*idDict)[id] = null then
+			idDict->add(this.id, @this)
+		end if
+	end if
+end constructor
+
+destructor PdfElement()
+	var child = head
+	do while child <> null
+		var next_ = child->next_
+		delete child
+		child = next_
+	loop
+	head = null
+end destructor
+
+function PdfElement.clone(parent as PdfElement ptr, page as PdfPageElement_ ptr) as PdfElement ptr
+	var dup = new PdfElement(id, page->getIdDict(), parent)
+	cloneChildren(dup, page)
+	return dup
+end function
+
+sub PdfElement.cloneChildren(parent as PdfElement ptr, page as PdfPageElement_ ptr)
+	var child = this.head
+	do while child <> null
+		child->clone(parent, page)
+		child = child->next_
+	loop
+end sub
+
+function PdfElement.lookupAttrib(name_ as string, byref type_ as PdfElementAttribType) as any ptr
+	select case name_
+	case "hidden"
+		type_ = PdfElementAttribType.TP_BOOLEAN
+		return @this.hidden
+	end select
+	return null
+end function
+
+sub PdfElement.setAttrib(name_ as string, value as boolean)
+	dim type_ as PdfElementAttribType
+	var attrib = lookupAttrib(name_, type_)
+	if attrib <> null then
+		if type_ = PdfElementAttribType.TP_BOOLEAN then
+			*cast(boolean ptr, attrib) = value
+		end if
+	end if
+end sub
+
+sub PdfElement.setAttrib(name_ as string, value as integer)
+	dim type_ as PdfElementAttribType
+	var attrib = lookupAttrib(name_, type_)
+	if attrib <> null then
+		if type_ = PdfElementAttribType.TP_INTEGER then
+			*cast(integer ptr, attrib) = value
+		end if
+	end if
+end sub
+
+sub PdfElement.setAttrib(name_ as string, value as single)
+	dim type_ as PdfElementAttribType
+	var attrib = lookupAttrib(name_, type_)
+	if attrib <> null then
+		if type_ = PdfElementAttribType.TP_SINGLE then
+			*cast(single ptr, attrib) = value
+		end if
+	end if
+end sub
+
+sub PdfElement.setAttrib(name_ as string, value as double)
+	dim type_ as PdfElementAttribType
+	var attrib = lookupAttrib(name_, type_)
+	if attrib <> null then
+		if type_ = PdfElementAttribType.TP_DOUBLE then
+			*cast(double ptr, attrib) = value
+		end if
+	end if
+end sub
+
+sub PdfElement.setAttrib(name_ as string, value as wstring ptr)
+	dim type_ as PdfElementAttribType
+	var attrib = cast(any ptr ptr, lookupAttrib(name_, type_))
+	if attrib <> null then
+		if type_ = PdfElementAttribType.TP_WSTRINGPTR then
+			if *attrib <> null then
+				deallocate(*attrib)
+			end if
+			if value <> null andalso len(*value) > 0 then
+				*attrib = allocate((len(*value)+1) * len(wstring))
+				**cast(wstring ptr ptr, attrib) = *value
+			else
+				*attrib = null
+			end if
+		end if
+	end if
+end sub
+
+sub PdfElement.setAttrib(name_ as string, value as zstring ptr)
+	dim type_ as PdfElementAttribType
+	var attrib = cast(any ptr ptr, lookupAttrib(name_, type_))
+	if attrib <> null then
+		if type_ = PdfElementAttribType.TP_WSTRINGPTR then
+			if *attrib <> null then
+				deallocate(*attrib)
+			end if
+			if value <> null then
+				if len(*value) > 0 then
+					*attrib = utf8ToUtf16le(value)
+				else
+					*attrib = null
+				end if
+			end if
+		end if
+	end if
+end sub
+
+sub PdfElement.translate(xi as single, yi as single)
+	var child = this.head
+	do while child <> null
+		child->translate(xi, yi)
+		child = child->next_
+	loop
+end sub
+
+sub PdfElement.translateX(xi as single)
+	var child = this.head
+	do while child <> null
+		child->translateX(xi)
+		child = child->next_
+	loop
+end sub
+
+sub PdfElement.translateY(yi as single)
+	var child = this.head
+	do while child <> null
+		child->translateY(yi)
+		child = child->next_
+	loop
+end sub
+
+function PdfElement.emit(doc as PdfDoc ptr, page as PdfPageElement ptr, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
+	return null
+end function
+
+sub PdfElement.emitAndInsert(doc as PdfDoc ptr, page as PdfPageElement ptr, parent as FPDF_PAGEOBJECT)
+	if hidden then
+		return
+	end if
+		
+	var obj = this.emit(doc, page, parent)
+
+	emitChildren(doc, page, obj)
+	
+	if obj <> null then
+		page->insert(obj)
+	end if
+end sub
+
+sub PdfElement.emitChildren(doc as PdfDoc ptr, page as PdfPageElement ptr, parent as FPDF_PAGEOBJECT)
+	var child = this.head
+	do while child <> null
+		child->emitAndInsert(doc, page, parent)
+		child = child->next_
+	loop
+end sub
+
+function PdfElement.getChild(id as string) as PdfElement ptr 
+	var child = this.head
+	do while child <> null
+		if child->id = id then
+			return child
+		end if
+		child = child->next_
+	loop
+
+	if child = null then
+		child = this.head
+		do while child <> null
+			if child->head <> null then
+				var node = child->getChild(id)
+				if node <> null then
+					return node
+				end if
+			end if
+			child = child->next_
+		loop
+	end if
+
+	return null
+end function
+
+function PdfElement.getHead() as PdfElement ptr
+	return this.head
+end function
+
+function PdfElement.getTail() as PdfElement ptr
+	return this.tail
+end function
+
+function PdfElement.getNext() as PdfElement ptr
+	return this.next_
+end function
+
+'''''
+constructor PdfRGB(r as ulong, g as ulong, b as ulong, a as ulong)
+	this.r = r
+	this.g = g
+	this.b = b
+	this.a = a
+end constructor
+
+function PdfRGB.clone() as PdfRGB ptr
+	return new PdfRGB(r, g, b, a)
+end function
+
+'''''
+private function cloneTranform(transf as FS_MATRIX ptr) as FS_MATRIX ptr
+	var dup = new FS_MATRIX
+	dup->a = transf->a
+	dup->b = transf->b
+	dup->c = transf->c
+	dup->d = transf->d
+	dup->e = transf->e
+	dup->f = transf->f
+	return dup
+end function
+
+'''''
+constructor PdfColorElement(fill as PdfRGB ptr, parent as PdfElement ptr)
+	constructor(null, fill, FPDF_COLORSPACE_DEVICERGB, parent)
+end constructor
+
+constructor PdfColorElement(stroke as PdfRGB ptr, fill as PdfRGB ptr, colorspace as integer, parent as PdfElement ptr)
+	base(parent)
+	this.scolor = stroke
+	this.fcolor = fill
+	this.colorspace = colorspace
+end constructor
+
+function PdfColorElement.withStroke(r as ulong, g as ulong, b as ulong, a as ulong) as PdfColorElement ptr
+	if this.scolor = null then
+		this.scolor = new PdfRGB(r, g, b, a)
+	else
+		this.scolor->r = r
+		this.scolor->g = g
+		this.scolor->b = b
+		this.scolor->a = a
+	end if
+	return @this 
+end function
+
+function PdfColorElement.withFill(r as ulong, g as ulong, b as ulong, a as ulong) as PdfColorElement ptr
+	if this.fcolor = null then
+		this.fcolor = new PdfRGB(r, g, b, a)
+	else
+		this.fcolor->r = r
+		this.fcolor->g = g
+		this.fcolor->b = b
+		this.fcolor->a = a
+	end if
+	return @this 
+end function
+
+function PdfColorElement.clone(parent as PdfElement ptr, page as PdfPageElement ptr) as PdfElement ptr
+	var scolor2 = iif(scolor <> null, scolor->clone(), null)
+	var fcolor2 = iif(fcolor <> null, fcolor->clone(), null)
+	var dup = new PdfColorElement(scolor2, fcolor2, colorspace, parent)
+	cloneChildren(dup, page)
+	return dup
+end function
+
+destructor PdfColorElement()
+	if fcolor <> null then
+		delete fcolor
+	end if
+	if scolor <> null then
+		delete scolor
+	end if
+end destructor
+
+sub PdfColorElement.emitChildren(doc as PdfDoc ptr, page as PdfPageElement_ ptr, parent as FPDF_PAGEOBJECT)
+	var olds = doc->style.scolor
+	if scolor <> null then
+		doc->style.scolor = scolor
+	end if
+	var oldf = doc->style.fcolor
+	if fcolor <> null then
+		doc->style.fcolor = fcolor
+	end if
+	
+	var child = this.head
+	do while child <> null
+		child->emitAndInsert(doc, page, parent)
+		child = child->next_
+	loop
+	
+	doc->style.fcolor = olds
+	doc->style.scolor = oldf
+end sub
+
+'''''
+constructor PdfTransformElement(transf as FS_MATRIX ptr, parent as PdfElement ptr)
+	base(parent)
+	this.transf = transf
+end constructor
+
+function PdfTransformElement.clone(parent as PdfElement ptr, page as PdfPageElement ptr) as PdfElement ptr
+	var transf2 = iif(transf <> null, cloneTranform(transf), null)
+	var dup = new PdfTransformElement(transf2, parent)
+	cloneChildren(dup, page)
+	return dup
+end function
+
+destructor PdfTransformElement()
+	if transf <> null then
+		delete transf
+	end if
+end destructor
+
+sub PdfTransformElement.emitChildren(doc as PdfDoc ptr, page as PdfPageElement_ ptr, parent as FPDF_PAGEOBJECT)
+	var old = doc->style.transf
+	doc->style.transf = transf
+
+	var child = this.head
+	do while child <> null
+		child->emitAndInsert(doc, page, parent)
+		child = child->next_
+	loop
+	
+	doc->style.transf = old
+end sub
+
+'''''
+constructor PdfStrokeElement(width_ as single, miterlin as single, join as integer, cap as integer, parent as PdfElement ptr)
+	base(parent)
+	this.width_ = width_
+	this.miterlin = miterlin
+	this.join = join
+	this.cap = cap
+end constructor
+
+function PdfStrokeElement.clone(parent as PdfElement ptr, page as PdfPageElement ptr) as PdfElement ptr
+	var dup = new PdfStrokeElement(width_, miterlin, join, cap, parent)
+	cloneChildren(dup, page)
+	return dup
+end function
+
+destructor PdfStrokeElement()
+end destructor
+
+function PdfStrokeElement.emit(doc as PdfDoc ptr, page as PdfPageElement ptr, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
+	var path = FPDFPageObj_CreateNewPath(0, 0)
+	
+	FPDFPath_SetDrawMode(path, FPDF_FILLMODE_NONE, 1)
+	
+	var col = doc->style.scolor
+	if col <> null then
+		FPDFPageObj_SetStrokeColor(path, col->r, col->g, col->b, col->a)
+	end if
+	
+	if width_ > 0 then
+		FPDFPageObj_SetStrokeWidth(path, width_)
+	end if
+	
+	FPDFPageObj_SetLineCap(path, cap)
+	FPDFPageObj_SetLineJoin(path, join)
+
+	var transf = doc->style.transf
+	if transf <> null then
+		FPDFPageObj_Transform(path, transf->a, transf->b, transf->c, transf->d, transf->e, transf->f)
+	end if
+	
+	return path
+end function
+
+'''''
+constructor PdfFillElement(mode as integer, parent as PdfElement ptr)
+	base(parent)
+	this.mode = mode
+end constructor
+
+function PdfFillElement.clone(parent as PdfElement ptr, page as PdfPageElement ptr) as PdfElement ptr
+	var dup = new PdfFillElement(mode, parent)
+	cloneChildren(dup, page)
+	return dup
+end function
+
+destructor PdfFillElement()
+end destructor
+
+function PdfFillElement.emit(doc as PdfDoc ptr, page as PdfPageElement ptr, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
+	var path = FPDFPageObj_CreateNewPath(0, 0)
+	
+	FPDFPath_SetDrawMode(path, mode, 0)
+
+	var col = doc->style.fcolor
+	if col <> null then
+		FPDFPageObj_SetFillColor(path, col->r, col->g, col->b, col->a)
+	end if
+	
+	var transf = doc->style.transf
+	if transf <> null then
+		FPDFPageObj_Transform(path, transf->a, transf->b, transf->c, transf->d, transf->e, transf->f)
+	end if
+	
+	return path
+end function
+
+'''''
+constructor PdfMoveToElement(x as single, y as single, parent as PdfElement ptr)
+	base(parent)
+	this.x = x 
+	this.y = y
+end constructor
+
+function PdfMoveToElement.clone(parent as PdfElement ptr, page as PdfPageElement ptr) as PdfElement ptr
+	var dup = new PdfMoveToElement(x, y, parent)
+	cloneChildren(dup, page)
+	return dup
+end function
+
+sub PdfMoveToElement.translate(xi as single, yi as single)
+	this.x += xi
+	this.y += yi
+end sub
+
+sub PdfMoveToElement.translateX(xi as single)
+	this.x += xi
+end sub
+
+sub PdfMoveToElement.translateY(yi as single)
+	this.y += yi
+end sub
+
+function PdfMoveToElement.emit(doc as PdfDoc ptr, page as PdfPageElement ptr, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
+	FPDFPath_MoveTo(parent, this.x, this.y)
+	return null
+end function
+
+'''''
+constructor PdfLineToElement(x as single, y as single, parent as PdfElement ptr)
+	base(parent)
+	this.x = x 
+	this.y = y
+end constructor
+
+function PdfLineToElement.clone(parent as PdfElement ptr, page as PdfPageElement ptr) as PdfElement ptr
+	var dup = new PdfLineToElement(x, y, parent)
+	cloneChildren(dup, page)
+	return dup
+end function
+
+sub PdfLineToElement.translate(xi as single, yi as single)
+	this.x += xi
+	this.y += yi
+end sub
+
+sub PdfLineToElement.translateX(xi as single)
+	this.x += xi
+end sub
+
+sub PdfLineToElement.translateY(yi as single)
+	this.y += yi
+end sub
+
+function PdfLineToElement.emit(doc as PdfDoc ptr, page as PdfPageElement ptr, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
+	FPDFPath_LineTo(parent, this.x, this.y)
+	return null
+end function
+
+'''''
+constructor PdfBezierToElement(x1 as single, y1 as single, x2 as single, y2 as single, x3 as single, y3 as single, parent as PdfElement ptr)
+	base(parent)
+	this.x1 = x1 
+	this.y1 = y1
+	this.x2 = x2 
+	this.y2 = y2
+	this.x3 = x3 
+	this.y3 = y3
+end constructor
+
+function PdfBezierToElement.clone(parent as PdfElement ptr, page as PdfPageElement ptr) as PdfElement ptr
+	var dup = new PdfBezierToElement(x1, y1, x2, y2, x3, y3, parent)
+	cloneChildren(dup, page)
+	return dup
+end function
+
+sub PdfBezierToElement.translate(xi as single, yi as single)
+	this.x1 += xi
+	this.y1 += yi
+	this.x2 += xi
+	this.y2 += yi
+	this.x3 += xi
+	this.y3 += yi
+end sub
+
+sub PdfBezierToElement.translateX(xi as single)
+	this.x1 += xi
+	this.x2 += xi
+	this.x3 += xi
+end sub
+
+sub PdfBezierToElement.translateY(yi as single)
+	this.y1 += yi
+	this.y2 += yi
+	this.y3 += yi
+end sub
+
+function PdfBezierToElement.emit(doc as PdfDoc ptr, page as PdfPageElement ptr, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
+	FPDFPath_BezierTo(parent, this.x1, this.y1, this.x2, this.y2, this.x3, this.y3)
+	return null
+end function
+
+'''''
+constructor PdfClosePathElement(parent as PdfElement ptr)
+	base(parent)
+end constructor
+
+function PdfClosePathElement.clone(parent as PdfElement ptr, page as PdfPageElement ptr) as PdfElement ptr
+	var dup = new PdfClosePathElement(parent)
+	cloneChildren(dup, page)
+	return dup
+end function
+
+function PdfClosePathElement.emit(doc as PdfDoc ptr, page as PdfPageElement ptr, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
+	FPDFPath_Close(parent)
+	return null
+end function
+
+'''''
+constructor PdfRectElement(x as single, y as single, w as single, h as single, parent as PdfElement ptr)
+	base(parent)
+	this.x = x 
+	this.y = y
+	this.w = w 
+	this.h = h
+end constructor
+
+function PdfRectElement.clone(parent as PdfElement ptr, page as PdfPageElement ptr) as PdfElement ptr
+	var dup = new PdfRectElement(x, y, w, h, parent)
+	cloneChildren(dup, page)
+	return dup
+end function
+
+sub PdfRectElement.translate(xi as single, yi as single)
+	this.x += xi
+	this.y += yi
+end sub
+
+sub PdfRectElement.translateX(xi as single)
+	this.x += xi
+end sub
+
+sub PdfRectElement.translateY(yi as single)
+	this.y += yi
+end sub
+
+function PdfRectElement.emit(doc as PdfDoc ptr, page as PdfPageElement ptr, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
+	return FPDFPageObj_CreateNewRect(this.x, this.y, this.w, this.h)
+end function
+
+'''''
+constructor PdfHighlightElement(left as single, bottom as single, right as single, top as single, parent as PdfElement ptr)
+	base(parent)
+	this.left = left
+	this.bottom = bottom
+	this.right = right
+	this.top = top
+end constructor
+
+function PdfHighlightElement.clone(parent as PdfElement ptr, page as PdfPageElement ptr) as PdfElement ptr
+	var dup = new PdfHighlightElement(left, bottom, right, top, parent)
+	cloneChildren(dup, page)
+	return dup
+end function
+
+sub PdfHighlightElement.translate(xi as single, yi as single)
+	this.left += xi
+	this.bottom += yi
+	this.right += xi
+	this.top += yi
+end sub
+
+sub PdfHighlightElement.translateX(xi as single)
+	this.left += xi
+	this.right += xi
+end sub
+
+sub PdfHighlightElement.translateY(yi as single)
+	this.bottom += yi
+	this.top += yi
+end sub
+
+function PdfHighlightElement.emit(doc as PdfDoc ptr, page as PdfPageElement ptr, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
+	highlight(left, bottom, right, top, page->getPage())
+	return null
+end function
+
+'''''
+constructor PdfTextElement(id as string, idDict as TDict ptr, font as string, size as single, mode as FPDF_TEXT_RENDERMODE, x as single, y as single, width_ as single, align as PdfTextAlignment, text as wstring ptr, parent as PdfElement ptr)
+	base(id, idDict, parent)
+	this.font = font
+	this.size = size
+	this.mode = mode
+	this.x = x
+	this.y = y
+	this.width_ = width_
+	this.align = align
+	this.text = text
+end constructor
+
+function PdfTextElement.clone(parent as PdfElement ptr, page as PdfPageElement ptr) as PdfElement ptr
+	dim text2 as wstring ptr
+	if text <> null then
+		text2 = cast(wstring ptr, allocate((len(*text)+1) * len(wstring)))
+		*text2 = *text
+	end if
+	var dup = new PdfTextElement(id, page->getIdDict(), font, size, mode, x, y, width_, align, text2, parent)
+	cloneChildren(dup, page)
+	return dup
+end function
+
+sub PdfTextElement.translate(xi as single, yi as single)
+	this.x += xi
+	this.y += yi
+end sub
+
+sub PdfTextElement.translateX(xi as single)
+	this.x += xi
+end sub
+
+sub PdfTextElement.translateY(yi as single)
+	this.y += yi
+end sub
+
+function PdfTextElement.lookupAttrib(name_ as string, byref type_ as PdfElementAttribType) as any ptr
+	select case name_
+	case "text"
+		type_ = PdfElementAttribType.TP_WSTRINGPTR
+		return @this.text
+	case "x"
+		type_ = PdfElementAttribType.TP_SINGLE
+		return @this.x
+	case "y"
+		type_ = PdfElementAttribType.TP_SINGLE
+		return @this.y
+	case else
+		return base.lookupAttrib(name_, type_)
+	end select
+end function
+
+destructor PdfTextElement()
+	if text <> null then
+		deallocate text
+	end if
+end destructor
+
+function PdfTextElement.emit(doc as PdfDoc ptr, page as PdfPageElement ptr, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
+	if text = null orelse len(*text) = 0 then
+		return null
+	end if
+	
+	var fon = page->loadFont(doc, font)
+	var tex = FPDFPageObj_CreateTextObj(doc->getDoc(), fon, size)
+	FPDFText_SetText(tex, text)
+	var xpos = x
+	if align <> PdfTextAlignment.TA_LEFT then
+		dim left as single = any, bottom as single = any, right as single = any, top as single = any
+		FPDFPageObj_GetBounds(tex, @left, @bottom, @right, @top)
+		var dx = (right - left) + 1
+		if align = PdfTextAlignment.TA_CENTER then
+			xpos += (width_ / 2) - (dx / 2)
+		else
+			xpos += width_ - dx
+		end if
+	end if
+	FPDFPageObj_Transform(tex, 1, 0, 0, 1, xpos, y)
+	FPDFTextObj_SetTextRenderMode(tex, mode)
+
+	var col = doc->style.fcolor
+	if col <> null then
+		FPDFPageObj_SetFillColor(tex, col->r, col->g, col->b, col->a)
+	end if
+	
+	return tex
+end function
+
+'''''
+/'
+constructor PdfTableElement(w as single, parent as PdfElement ptr)
+	this.w = w
+end constructor
+
+'''''
+constructor PdfTableRowElement(parent as PdfTableElement ptr)
+	this.cols = cols
+end constructor
+
+function PdfTableRowElement.emit(doc as PdfDoc ptr, page as PdfPageElement ptr, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
+	
+end function
+'/
+
+'''''
+constructor PdfRectCoords()
+end constructor
+
+constructor PdfRectCoords(left as double, top as double, right as double, bottom as double)
+	this.left = left
+	this.right = right
+	this.top = top
+	this.bottom = bottom
+end constructor
+
+function PdfRectCoords.clone() as PdfRectCoords ptr
+	return new PdfRectCoords(left, top, right, bottom)
+end function
+
+'''''
+constructor PdfGroupElement(bbox as PdfRectCoords ptr, isolated as boolean, knockout as boolean, blendMode as zstring ptr, alpha as single, parent as PdfElement ptr)
+	base(parent)
+	this.bbox = bbox
+	this.isolated = isolated
+	this.knockout = knockout
+	this.blendMode = blendMode
+	this.alpha = alpha
+end constructor
+
+function PdfGroupElement.clone(parent as PdfElement ptr, page as PdfPageElement ptr) as PdfElement ptr
+	var bbox2 = iif(bbox <> null, bbox->clone(), null)
+	var dup = new PdfGroupElement(bbox2, isolated, knockout, blendMode, alpha, parent)
+	cloneChildren(dup, page)
+	return dup
+end function
+
+destructor PdfGroupElement()
+	if bbox <> null then
+		delete bbox
+	end if
+end destructor
+
+function PdfGroupElement.emit(doc as PdfDoc ptr, page as PdfPageElement ptr, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
+	return null
+end function
+
+'''''
+constructor PdfTemplateElement(id as string, idDict as TDict ptr, parent as PdfElement ptr, hidden as boolean)
+	base(id, idDict, parent)
+	base.hidden = hidden
+end constructor
+
+function PdfTemplateElement.clone(parent as PdfElement ptr, page as PdfPageElement ptr) as PdfElement ptr
+	var dup = new PdfTemplateElement(id, page->getIdDict(), parent, hidden)
+	cloneChildren(dup, page)
+	return dup
+end function
+
+function PdfTemplateElement.emit(doc as PdfDoc ptr, page as PdfPageElement ptr, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
+	return null
+end function
+
+'''''
+constructor PdfPageElement(x1 as single, y1 as single, x2 as single, y2 as single, parent as PdfElement ptr)
+	base(parent)
+	this.x1 = x1
+	this.y1 = y1
+	this.x2 = x2
+	this.y2 = y2
+	idDict = new TDict(64)
+	fontList = new TList(10, len(FPDF_FONT ptr), false)
+end constructor
+
+destructor PdfPageElement()
+	if page <> null then
+		FPDF_ClosePage(page)
+	end if
+	disposeObjs()
+	delete idDict
+end destructor
+
+sub PdfPageElement.disposeObjs()
+	if fontList <> null then
+		var font = cast(FPDF_FONT ptr, fontList->head)
+		do while font <> null
+			FPDFFont_Close(*font)
+			font = fontList->next_(font)
+		loop
+		delete fontList
+		fontList = null
+	end if
+end sub
+
+function PdfPageElement.clone() as PdfPageElement ptr
+	var dup = new PdfPageElement(x1, y1, x2, y2, null)
+	cloneChildren(dup, dup)
+	return dup
+end function
+
+sub PdfPageElement.emit(doc as PdfDoc ptr, index as integer, flush_ as boolean)
+	if hidden then
+		return
+	end if
+	
+	page = FPDFPage_New(doc->getDoc(), index, x2 - x1, y2 - y1)
+	FPDFPage_SetMediaBox(page, x1, y1, x2, y2)
+	FPDFPage_SetCropBox(page, x1, y1, x2, y2)
+	
+	emitChildren(doc, @this, null)
+	
+	if flush_ then
+		flush(doc)
+	end if
+end sub
+
+sub PdfPageElement.flush(doc as PdfDoc ptr)
+	if page <> null then
+		FPDFPage_GenerateContent(page)
+		FPDF_ClosePage(page)
+		page = null
+		disposeObjs()
+	end if
+end sub
+
+sub PdfPageElement.insert(obj as FPDF_PAGEOBJECT)
+	FPDFPage_InsertObject(page, obj)
+	'NOTE: the obj will be automatically freed by FPDF_ClosePage()
+end sub
+
+function PdfPageElement.loadFont(doc as PdfDoc ptr, name_ as string) as FPDF_FONT
+	var font = FPDFText_LoadStandardFont(doc->getDoc(), name_)
+	var p = cast(FPDF_FONT ptr, fontList->add())
+	*p = font
+	return font
+end function
+
+function PdfPageElement.getPage() as FPDF_PAGE
+	return page
+end function
+
+function PdfPageElement.getIdDict() as TDict ptr
+	return idDict
+end function
+
+function PdfPageElement.getNode(id as string) as PdfElement ptr
+	return cast(PdfElement ptr, (*idDict)[id])
+end function
+
 #ifdef WITH_PARSER
-''FIXME: Windows-only
-private function utf8ToUtf16le(src as zstring ptr) as ushort ptr
-	var bytes = len(*src)
-	var dst = allocate((bytes+1) * len(ushort))
-	var srcp = src
-	var srcleft = bytes
-	var dstp = dst
-	var dstleft = bytes*2
-	iconv(cd8to16le, @srcp, @srcleft, @dstp, @dstleft)
-	*cast(ushort ptr, dstp) = 0
-	function = dst
-end function
-
-private function utf16leToUtf8(src as ushort ptr, bytes as integer) as zstring ptr
-	var dst = allocate(bytes+1)
-	var srcp = cast(any ptr, src)
-	var srcleft = bytes
-	var dstp = dst
-	var dstleft = bytes
-	iconv(cd16leto8, @srcp, @srcleft, @dstp, @dstleft)
-	*cast(zstring ptr, dstp) = 0
-	function = dst
-end function
-
 private function hex2ushort(h as const zstring ptr) as uinteger
 	
 	dim res as uinteger
@@ -323,784 +1185,6 @@ private sub splitStr(text as zstring ptr, delim as zstring ptr, toArray() as zst
 	*toArray(cnt) = buff
    
 end sub
-
-private function typeToString(type_ as PdfTemplateNodeType) as string
-	select case as const type_
-	case PdfTemplateNodeType.INVALID
-		return "INVALID"
-	case PdfTemplateNodeType.DOCUMENT
-		return "DOCUMENT"
-	case PdfTemplateNodeType.PAGE
-		return "PAGE"
-	case PdfTemplateNodeType.GROUP
-		return "GROUP"
-	case PdfTemplateNodeType.TEMPLATE
-		return "TEMPLATE"
-	case PdfTemplateNodeType.FILL
-		return "FILL"
-	case PdfTemplateNodeType.STROKE
-		return "STROKE"
-	case PdfTemplateNodeType.MOVE_TO
-		return "MOVE_TO"
-	case PdfTemplateNodeType.LINE_TO
-		return "LINE_TO"
-	case PdfTemplateNodeType.BEZIER_TO
-		return "BEZIER_TO"
-	case PdfTemplateNodeType.CLOSE_PATH
-		return "CLOSE_PATH"
-	case PdfTemplateNodeType.TEXT
-		return "TEXT"
-	end select
-end function
-
-'''''
-constructor PdfTemplateNode()
-end constructor
-
-constructor PdfTemplateNode(type_ as PdfTemplateNodeType)
-	this.type_ = type_
-end constructor
-
-constructor PdfTemplateNode(type_ as PdfTemplateNodeType, parent as PdfTemplateNode ptr)
-	this.type_ = type_
-	this.parent = parent
-	if parent then
-		if parent->head = null then
-			parent->head = @this
-			parent->tail = @this
-		else
-			parent->tail->next_ = @this
-			parent->tail = @this
-		end if
-	end if
-end constructor
-
-constructor PdfTemplateNode(type_ as PdfTemplateNodeType, id as string, idDict as TDict ptr, parent as PdfTemplateNode ptr)
-	constructor(type_, parent)
-	if len(id) > 0 then
-		this.id = id
-		if (*idDict)[id] = null then
-			idDict->add(this.id, @this)
-		end if
-	end if
-end constructor
-
-destructor PdfTemplateNode()
-	var child = head
-	do while child <> null
-		var next_ = child->next_
-		delete child
-		child = next_
-	loop
-	head = null
-end destructor
-
-function PdfTemplateNode.clone(parent as PdfTemplateNode ptr, page as PdfTemplatePageNode_ ptr) as PdfTemplateNode ptr
-	var dup = new PdfTemplateNode(type_, id, page->getIdDict(), parent)
-	cloneChildren(dup, page)
-	return dup
-end function
-
-sub PdfTemplateNode.cloneChildren(parent as PdfTemplateNode ptr, page as PdfTemplatePageNode_ ptr)
-	var child = this.head
-	do while child <> null
-		child->clone(parent, page)
-		child = child->next_
-	loop
-end sub
-
-function PdfTemplateNode.lookupAttrib(name_ as string, byref type_ as PdfTemplateAttribType) as any ptr
-	select case name_
-	case "hidden"
-		type_ = PdfTemplateAttribType.TP_BOOLEAN
-		return @this.hidden
-	end select
-	return null
-end function
-
-sub PdfTemplateNode.setAttrib(name_ as string, value as boolean)
-	dim type_ as PdfTemplateAttribType
-	var attrib = lookupAttrib(name_, type_)
-	if attrib <> null then
-		if type_ = PdfTemplateAttribType.TP_BOOLEAN then
-			*cast(boolean ptr, attrib) = value
-		end if
-	end if
-end sub
-
-sub PdfTemplateNode.setAttrib(name_ as string, value as integer)
-	dim type_ as PdfTemplateAttribType
-	var attrib = lookupAttrib(name_, type_)
-	if attrib <> null then
-		if type_ = PdfTemplateAttribType.TP_INTEGER then
-			*cast(integer ptr, attrib) = value
-		end if
-	end if
-end sub
-
-sub PdfTemplateNode.setAttrib(name_ as string, value as single)
-	dim type_ as PdfTemplateAttribType
-	var attrib = lookupAttrib(name_, type_)
-	if attrib <> null then
-		if type_ = PdfTemplateAttribType.TP_SINGLE then
-			*cast(single ptr, attrib) = value
-		end if
-	end if
-end sub
-
-sub PdfTemplateNode.setAttrib(name_ as string, value as double)
-	dim type_ as PdfTemplateAttribType
-	var attrib = lookupAttrib(name_, type_)
-	if attrib <> null then
-		if type_ = PdfTemplateAttribType.TP_DOUBLE then
-			*cast(double ptr, attrib) = value
-		end if
-	end if
-end sub
-
-sub PdfTemplateNode.setAttrib(name_ as string, value as wstring ptr)
-	dim type_ as PdfTemplateAttribType
-	var attrib = cast(any ptr ptr, lookupAttrib(name_, type_))
-	if attrib <> null then
-		if type_ = PdfTemplateAttribType.TP_WSTRINGPTR then
-			if *attrib <> null then
-				deallocate(*attrib)
-			end if
-			if value <> null andalso len(*value) > 0 then
-				*attrib = allocate((len(*value)+1) * len(wstring))
-				**cast(wstring ptr ptr, attrib) = *value
-			else
-				*attrib = null
-			end if
-		end if
-	end if
-end sub
-
-sub PdfTemplateNode.setAttrib(name_ as string, value as zstring ptr)
-	dim type_ as PdfTemplateAttribType
-	var attrib = cast(any ptr ptr, lookupAttrib(name_, type_))
-	if attrib <> null then
-		if type_ = PdfTemplateAttribType.TP_WSTRINGPTR then
-			if *attrib <> null then
-				deallocate(*attrib)
-			end if
-			if value <> null then
-				if len(*value) > 0 then
-					*attrib = utf8ToUtf16le(value)
-				else
-					*attrib = null
-				end if
-			end if
-		end if
-	end if
-end sub
-
-sub PdfTemplateNode.translate(xi as single, yi as single)
-	var child = this.head
-	do while child <> null
-		child->translate(xi, yi)
-		child = child->next_
-	loop
-end sub
-
-sub PdfTemplateNode.translateX(xi as single)
-	var child = this.head
-	do while child <> null
-		child->translateX(xi)
-		child = child->next_
-	loop
-end sub
-
-sub PdfTemplateNode.translateY(yi as single)
-	var child = this.head
-	do while child <> null
-		child->translateY(yi)
-		child = child->next_
-	loop
-end sub
-
-function PdfTemplateNode.emit(doc as PdfDoc ptr, page as PdfTemplatePageNode ptr, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
-	return null
-end function
-
-sub PdfTemplateNode.emitAndInsert(doc as PdfDoc ptr, page as PdfTemplatePageNode ptr, parent as FPDF_PAGEOBJECT)
-	if hidden then
-		return
-	end if
-		
-	var obj = this.emit(doc, page, parent)
-
-	emitChildren(doc, page, obj)
-	
-	if obj <> null then
-		page->insert(obj)
-	end if
-end sub
-
-sub PdfTemplateNode.emitChildren(doc as PdfDoc ptr, page as PdfTemplatePageNode ptr, parent as FPDF_PAGEOBJECT)
-	static d as integer = 0
-	'print space(d*4); typeToString(this.type_)
-	d += 1
-	var child = this.head
-	do while child <> null
-		child->emitAndInsert(doc, page, parent)
-		child = child->next_
-	loop
-	d -= 1
-end sub
-
-function PdfTemplateNode.getChild(id as string) as PdfTemplateNode ptr 
-	var child = this.head
-	do while child <> null
-		if child->id = id then
-			return child
-		end if
-		child = child->next_
-	loop
-	return null
-end function
-
-function PdfTemplateNode.getHead() as PdfTemplateNode ptr
-	return this.head
-end function
-
-function PdfTemplateNode.getTail() as PdfTemplateNode ptr
-	return this.tail
-end function
-
-function PdfTemplateNode.getNext() as PdfTemplateNode ptr
-	return this.next_
-end function
-
-'''''
-constructor PdfRGB(r as ulong, g as ulong, b as ulong, a as ulong)
-	this.r = r
-	this.g = g
-	this.b = b
-	this.a = a
-end constructor
-
-function PdfRGB.clone() as PdfRGB ptr
-	return new PdfRGB(r, g, b, a)
-end function
-
-'''''
-private function cloneTranform(transf as FS_MATRIX ptr) as FS_MATRIX ptr
-	var dup = new FS_MATRIX
-	dup->a = transf->a
-	dup->b = transf->b
-	dup->c = transf->c
-	dup->d = transf->d
-	dup->e = transf->e
-	dup->f = transf->f
-	return dup
-end function
-
-'''''
-constructor PdfTemplateStrokeNode()
-	base()
-end constructor
-
-constructor PdfTemplateStrokeNode(width_ as single, miterlin as single, join as integer, cap as integer, colorspace as integer, color_ as PdfRGB ptr, transf as FS_MATRIX ptr, parent as PdfTemplateNode ptr)
-	base(PdfTemplateNodeType.STROKE, parent)
-	this.width_ = width_
-	this.miterlin = miterlin
-	this.join = join
-	this.cap = cap
-	this.colorspace = colorspace
-	this.color_ = color_
-	this.transf = transf
-end constructor
-
-function PdfTemplateStrokeNode.clone(parent as PdfTemplateNode ptr, page as PdfTemplatePageNode ptr) as PdfTemplateNode ptr
-	var color2 = iif(color_ <> null, color_->clone(), null)
-	var transf2 = iif(transf <> null, cloneTranform(transf), null)
-	var dup = new PdfTemplateStrokeNode(width_, miterlin, join, cap, colorspace, color2, transf2, parent)
-	cloneChildren(dup, page)
-	return dup
-end function
-
-destructor PdfTemplateStrokeNode()
-	if color_ <> null then
-		delete color_
-	end if
-	if transf <> null then
-		delete transf
-	end if
-end destructor
-
-function PdfTemplateStrokeNode.emit(doc as PdfDoc ptr, page as PdfTemplatePageNode ptr, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
-	var path = FPDFPageObj_CreateNewPath(0, 0)
-	
-	FPDFPath_SetDrawMode(path, FPDF_FILLMODE_NONE, 1)
-	
-	if color_ <> null then
-		FPDFPageObj_SetStrokeColor(path, color_->r, color_->g, color_->b, color_->a)
-	end if
-	
-	if width_ > 0 then
-		FPDFPageObj_SetStrokeWidth(path, width_)
-	end if
-	
-	FPDFPageObj_SetLineCap(path, cap)
-	FPDFPageObj_SetLineJoin(path, join)
-	
-	if transf <> null then
-		'FPDFPageObj_Transform(path, transf->a, transf->b, transf->c, transf->d, transf->e, transf->f)
-	end if
-	
-	return path
-end function
-
-'''''
-constructor PdfTemplateFillNode()
-	base()
-end constructor
-
-constructor PdfTemplateFillNode(mode as integer, colorspace as integer, color_ as PdfRGB ptr, transf as FS_MATRIX ptr, parent as PdfTemplateNode ptr)
-	base(PdfTemplateNodeType.FILL, parent)
-	this.mode = mode
-	this.colorspace = colorspace
-	this.color_ = color_
-	this.transf = transf
-end constructor
-
-constructor PdfTemplateFillNode(mode as integer, colorspace as integer, r as ulong, g as ulong, b as ulong, parent as PdfTemplateNode ptr)
-	base(PdfTemplateNodeType.FILL, parent)
-	this.mode = mode
-	this.colorspace = colorspace
-	this.color_ = new PdfRGB(r, g, b)
-end constructor
-
-function PdfTemplateFillNode.clone(parent as PdfTemplateNode ptr, page as PdfTemplatePageNode ptr) as PdfTemplateNode ptr
-	var color2 = iif(color_ <> null, color_->clone(), null)
-	var transf2 = iif(transf <> null, cloneTranform(transf), null)
-	var dup = new PdfTemplateFillNode(mode, colorspace, color2, transf2, parent)
-	cloneChildren(dup, page)
-	return dup
-end function
-
-destructor PdfTemplateFillNode()
-	if color_ <> null then
-		delete color_
-	end if
-	if transf <> null then
-		delete transf
-	end if
-end destructor
-
-function PdfTemplateFillNode.emit(doc as PdfDoc ptr, page as PdfTemplatePageNode ptr, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
-	var path = FPDFPageObj_CreateNewPath(0, 0)
-	
-	FPDFPath_SetDrawMode(path, mode, 0)
-	
-	if color_ <> null then
-		FPDFPageObj_SetFillColor(path, color_->r, color_->g, color_->b, color_->a)
-	end if
-	
-	if transf <> null then
-		'FPDFPageObj_Transform(path, transf->a, transf->b, transf->c, transf->d, transf->e, transf->f)
-	end if
-	
-	return path
-end function
-
-'''''
-constructor PdfTemplateMoveToNode(x as single, y as single, parent as PdfTemplateNode ptr)
-	base(PdfTemplateNodeType.MOVE_TO, parent)
-	this.x = x 
-	this.y = y
-end constructor
-
-function PdfTemplateMoveToNode.clone(parent as PdfTemplateNode ptr, page as PdfTemplatePageNode ptr) as PdfTemplateNode ptr
-	var dup = new PdfTemplateMoveToNode(x, y, parent)
-	cloneChildren(dup, page)
-	return dup
-end function
-
-sub PdfTemplateMoveToNode.translate(xi as single, yi as single)
-	this.x += xi
-	this.y += yi
-end sub
-
-sub PdfTemplateMoveToNode.translateX(xi as single)
-	this.x += xi
-end sub
-
-sub PdfTemplateMoveToNode.translateY(yi as single)
-	this.y += yi
-end sub
-
-function PdfTemplateMoveToNode.emit(doc as PdfDoc ptr, page as PdfTemplatePageNode ptr, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
-	FPDFPath_MoveTo(parent, this.x, this.y)
-	return null
-end function
-
-'''''
-constructor PdfTemplateLineToNode(x as single, y as single, parent as PdfTemplateNode ptr)
-	base(PdfTemplateNodeType.LINE_TO, parent)
-	this.x = x 
-	this.y = y
-end constructor
-
-function PdfTemplateLineToNode.clone(parent as PdfTemplateNode ptr, page as PdfTemplatePageNode ptr) as PdfTemplateNode ptr
-	var dup = new PdfTemplateLineToNode(x, y, parent)
-	cloneChildren(dup, page)
-	return dup
-end function
-
-sub PdfTemplateLineToNode.translate(xi as single, yi as single)
-	this.x += xi
-	this.y += yi
-end sub
-
-sub PdfTemplateLineToNode.translateX(xi as single)
-	this.x += xi
-end sub
-
-sub PdfTemplateLineToNode.translateY(yi as single)
-	this.y += yi
-end sub
-
-function PdfTemplateLineToNode.emit(doc as PdfDoc ptr, page as PdfTemplatePageNode ptr, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
-	FPDFPath_LineTo(parent, this.x, this.y)
-	return null
-end function
-
-'''''
-constructor PdfTemplateBezierToNode(x1 as single, y1 as single, x2 as single, y2 as single, x3 as single, y3 as single, parent as PdfTemplateNode ptr)
-	base(PdfTemplateNodeType.BEZIER_TO, parent)
-	this.x1 = x1 
-	this.y1 = y1
-	this.x2 = x2 
-	this.y2 = y2
-	this.x3 = x3 
-	this.y3 = y3
-end constructor
-
-function PdfTemplateBezierToNode.clone(parent as PdfTemplateNode ptr, page as PdfTemplatePageNode ptr) as PdfTemplateNode ptr
-	var dup = new PdfTemplateBezierToNode(x1, y1, x2, y2, x3, y3, parent)
-	cloneChildren(dup, page)
-	return dup
-end function
-
-sub PdfTemplateBezierToNode.translate(xi as single, yi as single)
-	this.x1 += xi
-	this.y1 += yi
-	this.x2 += xi
-	this.y2 += yi
-	this.x3 += xi
-	this.y3 += yi
-end sub
-
-sub PdfTemplateBezierToNode.translateX(xi as single)
-	this.x1 += xi
-	this.x2 += xi
-	this.x3 += xi
-end sub
-
-sub PdfTemplateBezierToNode.translateY(yi as single)
-	this.y1 += yi
-	this.y2 += yi
-	this.y3 += yi
-end sub
-
-function PdfTemplateBezierToNode.emit(doc as PdfDoc ptr, page as PdfTemplatePageNode ptr, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
-	FPDFPath_BezierTo(parent, this.x1, this.y1, this.x2, this.y2, this.x3, this.y3)
-	return null
-end function
-
-'''''
-constructor PdfTemplateClosePathNode(parent as PdfTemplateNode ptr)
-	base(PdfTemplateNodeType.CLOSE_PATH, parent)
-end constructor
-
-function PdfTemplateClosePathNode.clone(parent as PdfTemplateNode ptr, page as PdfTemplatePageNode ptr) as PdfTemplateNode ptr
-	var dup = new PdfTemplateClosePathNode(parent)
-	cloneChildren(dup, page)
-	return dup
-end function
-
-function PdfTemplateClosePathNode.emit(doc as PdfDoc ptr, page as PdfTemplatePageNode ptr, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
-	FPDFPath_Close(parent)
-	return null
-end function
-
-'''''
-constructor PdfTemplateHighlightNode(left as single, bottom as single, right as single, top as single, parent as PdfTemplateNode ptr)
-	base(PdfTemplateNodeType.HIGHLIGHT, parent)
-	this.left = left
-	this.bottom = bottom
-	this.right = right
-	this.top = top
-end constructor
-
-function PdfTemplateHighlightNode.clone(parent as PdfTemplateNode ptr, page as PdfTemplatePageNode ptr) as PdfTemplateNode ptr
-	var dup = new PdfTemplateHighlightNode(left, bottom, right, top, parent)
-	cloneChildren(dup, page)
-	return dup
-end function
-
-sub PdfTemplateHighlightNode.translate(xi as single, yi as single)
-	this.left += xi
-	this.bottom += yi
-	this.right += xi
-	this.top += yi
-end sub
-
-sub PdfTemplateHighlightNode.translateX(xi as single)
-	this.left += xi
-	this.right += xi
-end sub
-
-sub PdfTemplateHighlightNode.translateY(yi as single)
-	this.bottom += yi
-	this.top += yi
-end sub
-
-function PdfTemplateHighlightNode.emit(doc as PdfDoc ptr, page as PdfTemplatePageNode ptr, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
-	highlight(left, bottom, right, top, page->getPage())
-	return null
-end function
-
-'''''
-constructor PdfTemplateTextNode(id as string, idDict as TDict ptr, font as string, size as single, mode as FPDF_TEXT_RENDERMODE, x as single, y as single, width_ as single, align as PdfTextAlignment, text as wstring ptr, colorspace as integer, color_ as PdfRGB ptr, transf as FS_MATRIX ptr, parent as PdfTemplateNode ptr)
-	base(PdfTemplateNodeType.TEXT, id, idDict, parent)
-	this.font = font
-	this.size = size
-	this.mode = mode
-	this.x = x
-	this.y = y
-	this.width_ = width_
-	this.align = align
-	this.text = text
-	this.colorspace = colorspace
-	this.color_ = color_
-	this.transf = transf
-end constructor
-
-function PdfTemplateTextNode.clone(parent as PdfTemplateNode ptr, page as PdfTemplatePageNode ptr) as PdfTemplateNode ptr
-	dim text2 as wstring ptr
-	if text <> null then
-		text2 = cast(wstring ptr, allocate((len(*text)+1) * len(wstring)))
-		*text2 = *text
-	end if
-	var color2 = iif(color_ <> null, color_->clone(), null)
-	var transf2 = iif(transf <> null, cloneTranform(transf), null)
-	var dup = new PdfTemplateTextNode(id, page->getIdDict(), font, size, mode, x, y, width_, align, text2, colorspace, color2, transf2, parent)
-	cloneChildren(dup, page)
-	return dup
-end function
-
-sub PdfTemplateTextNode.translate(xi as single, yi as single)
-	this.x += xi
-	this.y += yi
-end sub
-
-sub PdfTemplateTextNode.translateX(xi as single)
-	this.x += xi
-end sub
-
-sub PdfTemplateTextNode.translateY(yi as single)
-	this.y += yi
-end sub
-
-function PdfTemplateTextNode.lookupAttrib(name_ as string, byref type_ as PdfTemplateAttribType) as any ptr
-	select case name_
-	case "text"
-		type_ = PdfTemplateAttribType.TP_WSTRINGPTR
-		return @this.text
-	case "x"
-		type_ = PdfTemplateAttribType.TP_SINGLE
-		return @this.x
-	case "y"
-		type_ = PdfTemplateAttribType.TP_SINGLE
-		return @this.y
-	case else
-		return base.lookupAttrib(name_, type_)
-	end select
-end function
-
-destructor PdfTemplateTextNode()
-	if text <> null then
-		deallocate text
-	end if
-	if color_ <> null then
-		delete color_
-	end if
-	if transf <> null then
-		delete transf
-	end if
-end destructor
-
-function PdfTemplateTextNode.emit(doc as PdfDoc ptr, page as PdfTemplatePageNode ptr, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
-	if text = null orelse len(*text) = 0 then
-		return null
-	end if
-	
-	var fon = page->loadFont(doc, font)
-	var tex = FPDFPageObj_CreateTextObj(doc->getDoc(), fon, size)
-	FPDFText_SetText(tex, text)
-	var xpos = x
-	if align <> PdfTextAlignment.TA_LEFT then
-		dim left as single = any, bottom as single = any, right as single = any, top as single = any
-		FPDFPageObj_GetBounds(tex, @left, @bottom, @right, @top)
-		var dx = (right - left) + 1
-		if align = PdfTextAlignment.TA_CENTER then
-			xpos += (width_ / 2) - (dx / 2)
-		else
-			xpos += width_ - dx
-		end if
-	end if
-	FPDFPageObj_Transform(tex, 1, 0, 0, 1, xpos, y)
-	FPDFPageObj_SetFillColor(tex, color_->r, color_->g, color_->b, color_->a)
-	FPDFTextObj_SetTextRenderMode(tex, mode)
-	return tex
-end function
-
-'''''
-constructor PdfRectCoords()
-end constructor
-
-constructor PdfRectCoords(left as double, top as double, right as double, bottom as double)
-	this.left = left
-	this.right = right
-	this.top = top
-	this.bottom = bottom
-end constructor
-
-function PdfRectCoords.clone() as PdfRectCoords ptr
-	return new PdfRectCoords(left, top, right, bottom)
-end function
-
-'''''
-constructor PdfTemplateGroupNode(bbox as PdfRectCoords ptr, isolated as boolean, knockout as boolean, blendMode as zstring ptr, alpha as single, parent as PdfTemplateNode ptr)
-	base(PdfTemplateNodeType.GROUP, parent)
-	this.bbox = bbox
-	this.isolated = isolated
-	this.knockout = knockout
-	this.blendMode = blendMode
-	this.alpha = alpha
-end constructor
-
-function PdfTemplateGroupNode.clone(parent as PdfTemplateNode ptr, page as PdfTemplatePageNode ptr) as PdfTemplateNode ptr
-	var bbox2 = iif(bbox <> null, bbox->clone(), null)
-	var dup = new PdfTemplateGroupNode(bbox2, isolated, knockout, blendMode, alpha, parent)
-	cloneChildren(dup, page)
-	return dup
-end function
-
-destructor PdfTemplateGroupNode()
-	if bbox <> null then
-		delete bbox
-	end if
-end destructor
-
-function PdfTemplateGroupNode.emit(doc as PdfDoc ptr, page as PdfTemplatePageNode ptr, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
-	return null
-end function
-
-'''''
-constructor PdfTemplateTemplateNode(id as string, idDict as TDict ptr, parent as PdfTemplateNode ptr, hidden as boolean)
-	base(PdfTemplateNodeType.TEMPLATE, id, idDict, parent)
-	base.hidden = hidden
-end constructor
-
-function PdfTemplateTemplateNode.clone(parent as PdfTemplateNode ptr, page as PdfTemplatePageNode ptr) as PdfTemplateNode ptr
-	var dup = new PdfTemplateTemplateNode(id, page->getIdDict(), parent, hidden)
-	cloneChildren(dup, page)
-	return dup
-end function
-
-function PdfTemplateTemplateNode.emit(doc as PdfDoc ptr, page as PdfTemplatePageNode ptr, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
-	return null
-end function
-
-'''''
-constructor PdfTemplatePageNode(x1 as single, y1 as single, x2 as single, y2 as single, parent as PdfTemplateNode ptr)
-	base(PdfTemplateNodeType.PAGE, parent)
-	this.x1 = x1
-	this.y1 = y1
-	this.x2 = x2
-	this.y2 = y2
-	idDict = new TDict(64)
-	fontList = new TList(10, len(FPDF_FONT ptr), false)
-end constructor
-
-destructor PdfTemplatePageNode()
-	if page <> null then
-		FPDF_ClosePage(page)
-	end if
-	disposeObjs()
-	delete idDict
-end destructor
-
-sub PdfTemplatePageNode.disposeObjs()
-	if fontList <> null then
-		var font = cast(FPDF_FONT ptr, fontList->head)
-		do while font <> null
-			FPDFFont_Close(*font)
-			font = fontList->next_(font)
-		loop
-		delete fontList
-		fontList = null
-	end if
-end sub
-
-function PdfTemplatePageNode.clone() as PdfTemplatePageNode ptr
-	var dup = new PdfTemplatePageNode(x1, y1, x2, y2, null)
-	cloneChildren(dup, dup)
-	return dup
-end function
-
-sub PdfTemplatePageNode.emit(doc as PdfDoc ptr, index as integer, flush_ as boolean)
-	if hidden then
-		return
-	end if
-	
-	page = FPDFPage_New(doc->getDoc(), index, x2 - x1, y2 - y1)
-	FPDFPage_SetMediaBox(page, x1, y1, x2, y2)
-	FPDFPage_SetCropBox(page, x1, y1, x2, y2)
-	
-	emitChildren(doc, @this, null)
-	
-	if flush_ then
-		flush(doc)
-	end if
-end sub
-
-sub PdfTemplatePageNode.flush(doc as PdfDoc ptr)
-	if page <> null then
-		FPDFPage_GenerateContent(page)
-		FPDF_ClosePage(page)
-		page = null
-		disposeObjs()
-	end if
-end sub
-
-sub PdfTemplatePageNode.insert(obj as FPDF_PAGEOBJECT)
-	FPDFPage_InsertObject(page, obj)
-	'NOTE: the obj will be automatically freed by FPDF_ClosePage()
-end sub
-
-function PdfTemplatePageNode.loadFont(doc as PdfDoc ptr, name_ as string) as FPDF_FONT
-	var font = FPDFText_LoadStandardFont(doc->getDoc(), name_)
-	var p = cast(FPDF_FONT ptr, fontList->add())
-	*p = font
-	return font
-end function
-
-function PdfTemplatePageNode.getPage() as FPDF_PAGE
-	return page
-end function
-
-function PdfTemplatePageNode.getIdDict() as TDict ptr
-	return idDict
-end function
-
-function PdfTemplatePageNode.getNode(id as string) as PdfTemplateNode ptr
-	return cast(PdfTemplateNode ptr, (*idDict)[id])
-end function
 
 '''''
 constructor PdfTemplate(buff as zstring ptr, size as integer, encoding_ as zstring ptr)
@@ -1236,7 +1320,7 @@ function PdfTemplate.parseColorspaceAttrib() as integer
 	
 end function
 
-function PdfTemplate.parseFill(parent as PdfTemplateNode ptr, page as PdfTemplatePageNode ptr) as PdfTemplateFillNode ptr
+function PdfTemplate.parseFill(parent as PdfElement ptr, page as PdfPageElement ptr) as PdfFillElement ptr
 	
 	var mode = FPDF_FILLMODE_NONE
 	select case getXmlAttrib("winding")
@@ -1256,11 +1340,19 @@ function PdfTemplate.parseFill(parent as PdfTemplateNode ptr, page as PdfTemplat
 	end if
 	var transf = parseTranformAttrib()
 	
-	return new PdfTemplateFillNode(mode, colorspace, color_, transf, parent)
+	if color_ <> null then
+		parent = new PdfColorElement(null, color_, colorspace, parent)
+	end if
+	
+	if transf <> null then
+		parent = new PdfTransformElement(transf, parent)
+	end if
+	
+	return new PdfFillElement(mode, parent)
 	
 end function
 
-function PdfTemplate.parseStroke(parent as PdfTemplateNode ptr, page as PdfTemplatePageNode ptr) as PdfTemplateStrokeNode ptr
+function PdfTemplate.parseStroke(parent as PdfElement ptr, page as PdfPageElement ptr) as PdfStrokeElement ptr
 	
 	var width_ = getXmlAttribAsDouble("linewidth")
 	var miterlin = getXmlAttribAsDouble("miterlimit")
@@ -1279,30 +1371,38 @@ function PdfTemplate.parseStroke(parent as PdfTemplateNode ptr, page as PdfTempl
 		end if
 	end if
 	var transf = parseTranformAttrib()
+
+	if color_ <> null then
+		parent = new PdfColorElement(null, color_, colorspace, parent)
+	end if
 	
-	return new PdfTemplateStrokeNode(width_, miterlin, join, cap, colorspace, color_, transf, parent)
+	if transf <> null then
+		parent = new PdfTransformElement(transf, parent)
+	end if
+	
+	return new PdfStrokeElement(width_, miterlin, join, cap, parent)
 	
 end function
 
-function PdfTemplate.parseMoveTo(parent as PdfTemplateNode ptr, page as PdfTemplatePageNode ptr) as PdfTemplateMoveToNode ptr
+function PdfTemplate.parseMoveTo(parent as PdfElement ptr, page as PdfPageElement ptr) as PdfMoveToElement ptr
 	
 	var x = getXmlAttribAsDouble("x")
 	var y = getXmlAttribAsDouble("y")
 	
-	return new PdfTemplateMoveToNode(x, y, parent)
+	return new PdfMoveToElement(x, y, parent)
 	
 end function
 
-function PdfTemplate.parseLineTo(parent as PdfTemplateNode ptr, page as PdfTemplatePageNode ptr) as PdfTemplateLineToNode ptr
+function PdfTemplate.parseLineTo(parent as PdfElement ptr, page as PdfPageElement ptr) as PdfLineToElement ptr
 	
 	var x = getXmlAttribAsDouble("x")
 	var y = getXmlAttribAsDouble("y")
 	
-	return new PdfTemplateLineToNode(x, y, parent)
+	return new PdfLineToElement(x, y, parent)
 	
 end function
 
-function PdfTemplate.parseBezierTo(parent as PdfTemplateNode ptr, page as PdfTemplatePageNode ptr) as PdfTemplateBezierToNode ptr
+function PdfTemplate.parseBezierTo(parent as PdfElement ptr, page as PdfPageElement ptr) as PdfBezierToElement ptr
 	
 	var x1 = getXmlAttribAsDouble("x1")
 	var y1 = getXmlAttribAsDouble("y1")
@@ -1311,17 +1411,17 @@ function PdfTemplate.parseBezierTo(parent as PdfTemplateNode ptr, page as PdfTem
 	var x3 = getXmlAttribAsDouble("x3")
 	var y3 = getXmlAttribAsDouble("y3")
 	
-	return new PdfTemplateBezierToNode(x1, y1, x2, y2, x3, y3, parent)
+	return new PdfBezierToElement(x1, y1, x2, y2, x3, y3, parent)
 	
 end function
 
-function PdfTemplate.parseClosePath(parent as PdfTemplateNode ptr, page as PdfTemplatePageNode ptr) as PdfTemplateClosePathNode ptr
+function PdfTemplate.parseClosePath(parent as PdfElement ptr, page as PdfPageElement ptr) as PdfClosePathElement ptr
 	
-	return new PdfTemplateClosePathNode(parent)
+	return new PdfClosePathElement(parent)
 	
 end function
 
-function PdfTemplate.parseGroup(parent as PdfTemplateNode ptr, page as PdfTemplatePageNode ptr) as PdfTemplateGroupNode ptr
+function PdfTemplate.parseGroup(parent as PdfElement ptr, page as PdfPageElement ptr) as PdfGroupElement ptr
 	dim as PdfRectCoords ptr bbox
 	
 	dim bboxArr() as double
@@ -1339,11 +1439,11 @@ function PdfTemplate.parseGroup(parent as PdfTemplateNode ptr, page as PdfTempla
 	var blendMode = getXmlAttrib("blendmode")
 	var alpha = getXmlAttribAsDouble("alpha")
 	
-	return new PdfTemplateGroupNode(bbox, isolated, knockout, blendMode, alpha, parent)
+	return new PdfGroupElement(bbox, isolated, knockout, blendMode, alpha, parent)
 	
 end function
 
-function PdfTemplate.parseTemplate(parent as PdfTemplateNode ptr, page as PdfTemplatePageNode ptr) as PdfTemplateTemplateNode ptr
+function PdfTemplate.parseTemplate(parent as PdfElement ptr, page as PdfPageElement ptr) as PdfTemplateElement ptr
 	
 	var id = getXmlAttrib("id")
 	var attrib = getXmlAttrib("hidden")
@@ -1352,11 +1452,11 @@ function PdfTemplate.parseTemplate(parent as PdfTemplateNode ptr, page as PdfTem
 		hidden = attrib = "true" orelse attrib = "1"
 	end if
 	
-	return new PdfTemplateTemplateNode(id, page->getIdDict(), parent, hidden)
+	return new PdfTemplateElement(id, page->getIdDict(), parent, hidden)
 	
 end function
 
-function PdfTemplate.parseText(parent as PdfTemplateNode ptr, page as PdfTemplatePageNode ptr) as PdfTemplateTextNode ptr
+function PdfTemplate.parseText(parent as PdfElement ptr, page as PdfPageElement ptr) as PdfTextElement ptr
 	
 	var colorspace = parseColorspaceAttrib()
 	var color_ = parseColorAttrib()
@@ -1446,14 +1546,22 @@ function PdfTemplate.parseText(parent as PdfTemplateNode ptr, page as PdfTemplat
 			end if
 		end select
 	loop
+	
+	if color_ <> null then
+		parent = new PdfColorElement(null, color_, colorspace, parent)
+	end if
+	
+	if transf <> null then
+		parent = new PdfTransformElement(transf, parent)
+	end if
 		
-	return new PdfTemplateTextNode(id, page->getIdDict(), font, size, mode, x, y, width_, align, text, colorspace, color_, transf, parent)
+	return new PdfTextElement(id, page->getIdDict(), font, size, mode, x, y, width_, align, text, parent)
 	
 end function
 
-function PdfTemplate.parseObject(tag as zstring ptr, parent as PdfTemplateNode ptr, page as PdfTemplatePageNode ptr) as PdfTemplateNode ptr
+function PdfTemplate.parseObject(tag as zstring ptr, parent as PdfElement ptr, page as PdfPageElement ptr) as PdfElement ptr
 	
-	dim obj as PdfTemplateNode ptr
+	dim obj as PdfElement ptr
 	select case *tag
 	case "fill_text"
 		obj = parseText(parent, page)
@@ -1497,7 +1605,7 @@ function PdfTemplate.parseObject(tag as zstring ptr, parent as PdfTemplateNode p
 
 end function
 
-sub PdfTemplate.parsePage(parent as PdfTemplateNode ptr)
+sub PdfTemplate.parsePage(parent as PdfElement ptr)
 
 	dim mediaboxArr() as double
 	var arrCnt = getXmlAttribAsDoubleArray("mediabox", mediaboxArr())
@@ -1509,7 +1617,7 @@ sub PdfTemplate.parsePage(parent as PdfTemplateNode ptr)
 		y2 = mediaboxArr(3)
 	end if
 	
-	var page = new PdfTemplatePageNode(x1, y1, x2, y2, parent)
+	var page = new PdfPageElement(x1, y1, x2, y2, parent)
 
 	do while xmlTextReaderRead(reader) = 1 
 		select case xmlTextReaderNodeType(reader)
@@ -1527,7 +1635,7 @@ sub PdfTemplate.parsePage(parent as PdfTemplateNode ptr)
 
 end sub
 
-sub PdfTemplate.parseDocument(parent as PdfTemplateNode ptr)
+sub PdfTemplate.parseDocument(parent as PdfElement ptr)
 
 	version = getXmlAttribAsDouble("version") * 10
 
@@ -1555,7 +1663,7 @@ function PdfTemplate.load() as boolean
 		if xmlTextReaderNodeType(reader) = XML_READER_TYPE_ELEMENT then
 			var name_ = getXmlConstName()
 			if name_ = "document" then
-				root = new PdfTemplateNode(PdfTemplateNodeType.DOCUMENT)
+				root = new PdfElement()
 				parseDocument(root)
 				return true
 			end if
@@ -1567,7 +1675,7 @@ end function
 sub PdfTemplate.emitTo(doc as PdfDoc ptr, flush_ as boolean)
 	var page = root->getHead()
 	do while page <> null
-		cast(PdfTemplatePageNode ptr, page)->emit(doc, index, flush_)
+		cast(PdfPageElement ptr, page)->emit(doc, index, flush_)
 		index += 1
 		page = page->getNext()
 	loop
@@ -1576,17 +1684,17 @@ end sub
 sub PdfTemplate.flush(doc as PdfDoc ptr)
 	var page = root->getHead()
 	do while page <> null
-		cast(PdfTemplatePageNode ptr, page)->flush(doc)
+		cast(PdfPageElement ptr, page)->flush(doc)
 		page = page->getNext()
 	loop
 end sub
 
-function PdfTemplate.clonePage(index as integer) as PdfTemplatePageNode ptr
+function PdfTemplate.clonePage(index as integer) as PdfPageElement ptr
 	var page = root->getHead()
 	var cnt = 0
 	do while page <> null
 		if cnt = index then
-			return cast(PdfTemplatePageNode ptr, page)->clone()
+			return cast(PdfPageElement ptr, page)->clone()
 		end if
 		page = page->getNext()
 		cnt += 1
@@ -1696,12 +1804,12 @@ function PdfTemplate.getVersion() as integer
 	return version
 end function
 
-function PdfTemplate.getPage(index as integer) as PdfTemplatePageNode ptr
+function PdfTemplate.getPage(index as integer) as PdfPageElement ptr
 	var page = root->getHead()
 	var cnt = 0
 	do while page <> null
 		if cnt = index then
-			return cast(PdfTemplatePageNode ptr, page)
+			return cast(PdfPageElement ptr, page)
 		end if
 		page = page->getNext()
 		cnt += 1
