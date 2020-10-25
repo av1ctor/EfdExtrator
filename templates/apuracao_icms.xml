@@ -430,7 +430,7 @@
 					<lineto x="290" y="721.75"/>
 				</stroke_path>
 				<fill_text color="0 0 0">
-					<span font="Helvetica" trm="8 0 0 8" x="162" y="712.37" id="AJ-TIPO">{AJ-TIPO}</span>
+					<span font="Helvetica" trm="8 0 0 8" x="162" y="712.37" id="AJ-TIPO"></span>
 				</fill_text>
 				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
 					<moveto x="159.75" y="722"/>
@@ -459,7 +459,7 @@
 					<closepath/>
 				</fill_path>
 				<fill_text color="0 0 0">
-					<span font="Helvetica-Bold" trm="10 0 0 10" x="30" y="731.21" width="535" align="center" id="AJ-TITLE">{AJ-TITLE}</span>
+					<span font="Helvetica-Bold" trm="10 0 0 10" x="30" y="731.21" width="535" align="center" id="AJ-TITLE"></span>
 				</fill_text>
 				<stroke_path linewidth="1" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
 					<moveto x="29.75" y="744"/>
@@ -564,11 +564,11 @@
 				<font name="Helvetica" size="8">
 					<color fill="0 0 0" stroke="0 0 0">
 						<stroke_rect x="30" y="744" w="535" h="17" linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0">
-							<fill_text x="32" y="732.46" id="AJ-COD">{AJ-COD}</fill_text>
+							<fill_text x="32" y="732.46" id="AJ-COD"></fill_text>
 							<vline x="120" y="744" h="17" linewidth=".5" miterlimit="10" linecap="0,0,0" expand="2" />
-							<fill_text x="125" y="732.46" id="AJ-DESC">{AJ-DESC}</fill_text>
+							<fill_text x="125" y="732.46" id="AJ-DESC"></fill_text>
 							<vline x="489" y="744" h="17" linewidth=".5" miterlimit="10" linecap="0,0,0" expand="2" />
-							<fill_text x="489" y="732.46" width="74" align="right" id="AJ-VALOR">{AJ-VALOR}</fill_text>
+							<fill_text x="489" y="732.46" width="74" align="right" id="AJ-VALOR"></fill_text>
 						</stroke_rect>
 					</color>
 				</font>
@@ -576,7 +576,7 @@
 
 			<template id="ajuste-subtotal">
 				<fill_text color="0 0 0">
-					<span font="Helvetica" trm="8 0 0 8" x="125" y="732.46" id="AJ-SUB-DESC">{AJ-SUB-DESC}</span>
+					<span font="Helvetica" trm="8 0 0 8" x="125" y="732.46" id="AJ-SUB-DESC"></span>
 				</fill_text>
 				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
 					<moveto x="120" y="744"/>
@@ -595,7 +595,7 @@
 					<lineto x="120" y="726.75"/>
 				</stroke_path>
 				<fill_text color="0 0 0">
-					<span font="Helvetica" trm="8 0 0 8" x="489" y="732.46" width="74" align="right" id="AJ-SUB-VALOR">{AJ-SUB-VALOR}</span>
+					<span font="Helvetica" trm="8 0 0 8" x="489" y="732.46" width="74" align="right" id="AJ-SUB-VALOR"></span>
 				</fill_text>
 				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
 					<moveto x="488.75" y="744"/>
@@ -624,7 +624,7 @@
 					<closepath/>
 				</fill_path>
 				<fill_text color="0 0 0">
-					<span font="Helvetica-Bold" trm="8 0 0 8" x="32" y="730.46" id="AJ-TOTAL-DESC">{AJ-TOTAL-DESC}</span>
+					<span font="Helvetica-Bold" trm="8 0 0 8" x="32" y="730.46" id="AJ-TOTAL-DESC"></span>
 				</fill_text>
 				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
 					<moveto x="29.75" y="744"/>
@@ -650,7 +650,7 @@
 					<closepath/>
 				</fill_path>
 				<fill_text color="0 0 0">
-					<span font="Helvetica-Bold" trm="8 0 0 8" x="489" y="730.46" width="74" align="right" id="AJ-TOTAL-VAL">{AJ-TOTAL-VAL}</span>
+					<span font="Helvetica-Bold" trm="8 0 0 8" x="489" y="730.46" width="74" align="right" id="AJ-TOTAL-VAL"></span>
 				</fill_text>
 				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
 					<moveto x="488.75" y="744"/>

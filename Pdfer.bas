@@ -268,11 +268,12 @@ constructor PdfElement(parent as PdfElement ptr)
 			parent->tail = @this
 		end if
 	end if
+	next_ = null
 end constructor
 
 constructor PdfElement(id as zstring ptr, idDict as TDict ptr, parent as PdfElement ptr)
 	constructor(parent)
-	if id <> null andalso id[0] <> 0 then
+	if id <> null andalso cast(ubyte ptr, id)[0] <> 0 then
 		this.id = allocate(len(*id)+1)
 		*this.id = *id
 		if (*idDict)[id] = null then
@@ -295,16 +296,16 @@ destructor PdfElement()
 	head = null
 end destructor
 
-function PdfElement.clone(parent as PdfElement ptr, page as PdfPageElement_ ptr) as PdfElement ptr
-	var dup = new PdfElement(id, page->getIdDict(), parent)
+function PdfElement.clone(toParent as PdfElement ptr, page as PdfPageElement_ ptr) as PdfElement ptr
+	var dup = new PdfElement(id, page->getIdDict(), toParent)
 	cloneChildren(dup, page)
 	return dup
 end function
 
-sub PdfElement.cloneChildren(parent as PdfElement ptr, page as PdfPageElement_ ptr)
+sub PdfElement.cloneChildren(toParent as PdfElement ptr, page as PdfPageElement_ ptr)
 	var child = this.head
 	do while child <> null
-		child->clone(parent, page)
+		child->clone(toParent, page)
 		child = child->next_
 	loop
 end sub
@@ -519,27 +520,41 @@ end sub
 function PdfElement.getChild(id as zstring ptr) as PdfElement ptr 
 	var child = this.head
 	do while child <> null
-		if *child->id = *id then
+		if child->id <> null andalso *child->id = *id then
 			return child
 		end if
 		child = child->next_
 	loop
 
-	if child = null then
-		child = this.head
-		do while child <> null
-			if child->head <> null then
-				var node = child->getChild(id)
-				if node <> null then
-					return node
-				end if
+	child = this.head
+	do while child <> null
+		if child->head <> null then
+			var node = child->getChild(id)
+			if node <> null then
+				return node
 			end if
-			child = child->next_
-		loop
-	end if
+		end if
+		child = child->next_
+	loop
 
 	return null
 end function
+
+operator PdfElement.cast() as string
+	return "{'name': 'PdfElement', 'props': {'id':'" & *this.id & "'}}"
+end operator
+
+sub PdfElement.dump()
+	static r as integer = 0
+	print space(r); this
+	var child = this.head
+	do while child <> null
+		r += 1
+		child->dump()
+		r -= 1
+		child = child->next_
+	loop
+end sub
 
 function PdfElement.getParent() as PdfElement ptr
 	return this.parent
@@ -617,13 +632,17 @@ function PdfColorElement.withFill(r as ulong, g as ulong, b as ulong, a as ulong
 	return @this 
 end function
 
-function PdfColorElement.clone(parent as PdfElement ptr, page as PdfPageElement ptr) as PdfElement ptr
+function PdfColorElement.clone(toParent as PdfElement ptr, page as PdfPageElement ptr) as PdfElement ptr
 	var scolor2 = iif(scolor <> null, scolor->clone(), null)
 	var fcolor2 = iif(fcolor <> null, fcolor->clone(), null)
-	var dup = new PdfColorElement(scolor2, fcolor2, colorspace, parent)
+	var dup = new PdfColorElement(scolor2, fcolor2, colorspace, toParent)
 	cloneChildren(dup, page)
 	return dup
 end function
+
+operator PdfColorElement.cast() as string
+	return "{'name': 'PdfColorElement', 'props': {'id':'" & *this.id & "'}}"
+end operator
 
 destructor PdfColorElement()
 	if fcolor <> null then
@@ -660,9 +679,9 @@ constructor PdfTransformElement(transf as FS_MATRIX ptr, parent as PdfElement pt
 	this.transf = transf
 end constructor
 
-function PdfTransformElement.clone(parent as PdfElement ptr, page as PdfPageElement ptr) as PdfElement ptr
+function PdfTransformElement.clone(toParent as PdfElement ptr, page as PdfPageElement ptr) as PdfElement ptr
 	var transf2 = iif(transf <> null, cloneTranform(transf), null)
-	var dup = new PdfTransformElement(transf2, parent)
+	var dup = new PdfTransformElement(transf2, toParent)
 	cloneChildren(dup, page)
 	return dup
 end function
@@ -693,11 +712,15 @@ constructor PdfFontElement(name_ as zstring ptr, size as single, parent as PdfEl
 	this.size = size
 end constructor
 
-function PdfFontElement.clone(parent as PdfElement ptr, page as PdfPageElement ptr) as PdfElement ptr
-	var dup = new PdfFontElement(name_, size, parent)
+function PdfFontElement.clone(toParent as PdfElement ptr, page as PdfPageElement ptr) as PdfElement ptr
+	var dup = new PdfFontElement(name_, size, toParent)
 	cloneChildren(dup, page)
 	return dup
 end function
+
+operator PdfFontElement.cast() as string
+	return "{'name': 'PdfFontElement', 'props': {'id':'" & *this.id & "'}}"
+end operator
 
 destructor PdfFontElement()
 	if font <> null then
@@ -769,11 +792,15 @@ constructor PdfStrokeElement(width_ as single, miterlin as single, join as integ
 	this.cap = cap
 end constructor
 
-function PdfStrokeElement.clone(parent as PdfElement ptr, page as PdfPageElement ptr) as PdfElement ptr
-	var dup = new PdfStrokeElement(width_, miterlin, join, cap, parent)
+function PdfStrokeElement.clone(toParent as PdfElement ptr, page as PdfPageElement ptr) as PdfElement ptr
+	var dup = new PdfStrokeElement(width_, miterlin, join, cap, toParent)
 	cloneChildren(dup, page)
 	return dup
 end function
+
+operator PdfStrokeElement.cast() as string
+	return "{'name': 'PdfStrokeElement', 'props': {'id':'" & *this.id & "'}}"
+end operator
 
 destructor PdfStrokeElement()
 end destructor
@@ -788,11 +815,15 @@ constructor PdfFillElement(mode as integer, parent as PdfElement ptr)
 	this.mode = mode
 end constructor
 
-function PdfFillElement.clone(parent as PdfElement ptr, page as PdfPageElement ptr) as PdfElement ptr
-	var dup = new PdfFillElement(mode, parent)
+function PdfFillElement.clone(toParent as PdfElement ptr, page as PdfPageElement ptr) as PdfElement ptr
+	var dup = new PdfFillElement(mode, toParent)
 	cloneChildren(dup, page)
 	return dup
 end function
+
+operator PdfFillElement.cast() as string
+	return "{'name': 'PdfFillElement', 'props': {'id':'" & *this.id & "'}}"
+end operator
 
 destructor PdfFillElement()
 end destructor
@@ -808,10 +839,14 @@ constructor PdfMoveToElement(x as single, y as single, parent as PdfElement ptr)
 	this.y = y
 end constructor
 
-function PdfMoveToElement.clone(parent as PdfElement ptr, page as PdfPageElement ptr) as PdfElement ptr
-	var dup = new PdfMoveToElement(x, y, parent)
+function PdfMoveToElement.clone(toParent as PdfElement ptr, page as PdfPageElement ptr) as PdfElement ptr
+	var dup = new PdfMoveToElement(x, y, toParent)
 	return dup
 end function
+
+operator PdfMoveToElement.cast() as string
+	return "{'name': 'PdfMoveToElement', 'props': {'id':'" & *this.id & "'}}"
+end operator
 
 sub PdfMoveToElement.translate(xi as single, yi as single)
 	this.x += xi
@@ -838,10 +873,14 @@ constructor PdfLineToElement(x as single, y as single, parent as PdfElement ptr)
 	this.y = y
 end constructor
 
-function PdfLineToElement.clone(parent as PdfElement ptr, page as PdfPageElement ptr) as PdfElement ptr
-	var dup = new PdfLineToElement(x, y, parent)
+function PdfLineToElement.clone(toParent as PdfElement ptr, page as PdfPageElement ptr) as PdfElement ptr
+	var dup = new PdfLineToElement(x, y, toParent)
 	return dup
 end function
+
+operator PdfLineToElement.cast() as string
+	return "{'name': 'PdfLineToElement', 'props': {'id':'" & *this.id & "'}}"
+end operator
 
 sub PdfLineToElement.translate(xi as single, yi as single)
 	this.x += xi
@@ -872,10 +911,14 @@ constructor PdfBezierToElement(x1 as single, y1 as single, x2 as single, y2 as s
 	this.y3 = y3
 end constructor
 
-function PdfBezierToElement.clone(parent as PdfElement ptr, page as PdfPageElement ptr) as PdfElement ptr
-	var dup = new PdfBezierToElement(x1, y1, x2, y2, x3, y3, parent)
+function PdfBezierToElement.clone(toParent as PdfElement ptr, page as PdfPageElement ptr) as PdfElement ptr
+	var dup = new PdfBezierToElement(x1, y1, x2, y2, x3, y3, toParent)
 	return dup
 end function
+
+operator PdfBezierToElement.cast() as string
+	return "{'name': 'PdfBezierToElement', 'props': {'id':'" & *this.id & "'}}"
+end operator
 
 sub PdfBezierToElement.translate(xi as single, yi as single)
 	this.x1 += xi
@@ -908,10 +951,14 @@ constructor PdfClosePathElement(parent as PdfElement ptr)
 	base(parent)
 end constructor
 
-function PdfClosePathElement.clone(parent as PdfElement ptr, page as PdfPageElement ptr) as PdfElement ptr
-	var dup = new PdfClosePathElement(parent)
+function PdfClosePathElement.clone(toParent as PdfElement ptr, page as PdfPageElement ptr) as PdfElement ptr
+	var dup = new PdfClosePathElement(toParent)
 	return dup
 end function
+
+operator PdfClosePathElement.cast() as string
+	return "{'name': 'PdfClosePathElement', 'props': {'id':'" & *this.id & "'}}"
+end operator
 
 function PdfClosePathElement.render(doc as PdfDoc ptr, page as PdfPageElement ptr, parentObj as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
 	FPDFPath_Close(parentObj)
@@ -930,10 +977,14 @@ constructor PdfVlineElement(x as single, y as single, h as single, expand as Pdf
 	this.cap = cap
 end constructor
 
-function PdfVlineElement.clone(parent as PdfElement ptr, page as PdfPageElement ptr) as PdfElement ptr
-	var dup = new PdfVlineElement(x, y, h, expand, linew, miterlin, cap, parent)
+function PdfVlineElement.clone(toParent as PdfElement ptr, page as PdfPageElement ptr) as PdfElement ptr
+	var dup = new PdfVlineElement(x, y, h, expand, linew, miterlin, cap, toParent)
 	return dup
 end function
+
+operator PdfVlineElement.cast() as string
+	return "{'name': 'PdfVlineElement', 'props': {'id':'" & *this.id & "'}}"
+end operator
 
 function PdfVlineElement.lookupAttrib(name_ as zstring ptr, byref type_ as PdfElementAttribType) as any ptr
 	if *name_ = "h" then
@@ -1003,10 +1054,14 @@ constructor PdfHlineElement(x as single, y as single, w as single, expand as Pdf
 	this.cap = cap
 end constructor
 
-function PdfHlineElement.clone(parent as PdfElement ptr, page as PdfPageElement ptr) as PdfElement ptr
-	var dup = new PdfHlineElement(x, y, w, expand, linew, miterlin, cap, parent)
+function PdfHlineElement.clone(toParent as PdfElement ptr, page as PdfPageElement ptr) as PdfElement ptr
+	var dup = new PdfHlineElement(x, y, w, expand, linew, miterlin, cap, toParent)
 	return dup
 end function
+
+operator PdfHlineElement.cast() as string
+	return "{'name': 'PdfHlineElement', 'props': {'id':'" & *this.id & "'}}"
+end operator
 
 function PdfHlineElement.lookupAttrib(name_ as zstring ptr, byref type_ as PdfElementAttribType) as any ptr
 	if *name_ = "w" then
@@ -1079,11 +1134,15 @@ constructor PdfRectElement(x as single, y as single, w as single, h as single, e
 	this.cap = cap
 end constructor
 
-function PdfRectElement.clone(parent as PdfElement ptr, page as PdfPageElement ptr) as PdfElement ptr
-	var dup = new PdfRectElement(x, y, w, h, expand, mode, linew, miterlin, join, cap, parent)
+function PdfRectElement.clone(toParent as PdfElement ptr, page as PdfPageElement ptr) as PdfElement ptr
+	var dup = new PdfRectElement(x, y, w, h, expand, mode, linew, miterlin, join, cap, toParent)
 	cloneChildren(dup, page)
 	return dup
 end function
+
+operator PdfRectElement.cast() as string
+	return "{'name': 'PdfRectElement', 'props': {'id':'" & *this.id & "'}}"
+end operator
 
 function PdfRectElement.lookupAttrib(name_ as zstring ptr, byref type_ as PdfElementAttribType) as any ptr
 	if *name_ = "h" then
@@ -1173,11 +1232,15 @@ constructor PdfHighlightElement(left as single, bottom as single, right as singl
 	this.top = top
 end constructor
 
-function PdfHighlightElement.clone(parent as PdfElement ptr, page as PdfPageElement ptr) as PdfElement ptr
-	var dup = new PdfHighlightElement(left, bottom, right, top, parent)
+function PdfHighlightElement.clone(toParent as PdfElement ptr, page as PdfPageElement ptr) as PdfElement ptr
+	var dup = new PdfHighlightElement(left, bottom, right, top, toParent)
 	cloneChildren(dup, page)
 	return dup
 end function
+
+operator PdfHighlightElement.cast() as string
+	return "{'name': 'PdfHighlightElement', 'props': {'id':'" & *this.id & "'}}"
+end operator
 
 function PdfHighlightElement.getWidth() as single
 	return abs(right - left) + 1
@@ -1235,15 +1298,19 @@ constructor PdfTextElement(x as single, y as single, text as wstring ptr, parent
 	constructor(null, null, FPDF_TEXTRENDERMODE_FILL, x, y, 0.0, PdfTextAlignment.TA_LEFT, text, parent)
 end constructor
 
-function PdfTextElement.clone(parent as PdfElement ptr, page as PdfPageElement ptr) as PdfElement ptr
+function PdfTextElement.clone(toParent as PdfElement ptr, page as PdfPageElement ptr) as PdfElement ptr
 	dim text2 as wstring ptr
 	if text <> null then
 		text2 = cast(wstring ptr, allocate((len(*text)+1) * len(wstring)))
 		*text2 = *text
 	end if
-	var dup = new PdfTextElement(id, page->getIdDict(), mode, x, y, maxWidth, align, text2, parent)
+	var dup = new PdfTextElement(id, page->getIdDict(), mode, x, y, maxWidth, align, text2, toParent)
 	return dup
 end function
+
+operator PdfTextElement.cast() as string
+	return "{'name': 'PdfTextElement', 'props': {'id':'" & *this.id & "'}}"
+end operator
 
 private sub calcDim(obj as FPDF_PAGEOBJECT, byref w as single, byref h as single)
 	dim left_ as single = any, bottom as single = any, right_ as single = any, top as single = any
@@ -1359,12 +1426,16 @@ constructor PdfGroupElement(bbox as PdfRectCoords ptr, isolated as boolean, knoc
 	this.alpha = alpha
 end constructor
 
-function PdfGroupElement.clone(parent as PdfElement ptr, page as PdfPageElement ptr) as PdfElement ptr
+function PdfGroupElement.clone(toParent as PdfElement ptr, page as PdfPageElement ptr) as PdfElement ptr
 	var bbox2 = iif(bbox <> null, bbox->clone(), null)
-	var dup = new PdfGroupElement(bbox2, isolated, knockout, blendMode, alpha, parent)
+	var dup = new PdfGroupElement(bbox2, isolated, knockout, blendMode, alpha, toParent)
 	cloneChildren(dup, page)
 	return dup
 end function
+
+operator PdfGroupElement.cast() as string
+	return "{'name': 'PdfGroupElement', 'props': {'id':'" & *this.id & "'}}"
+end operator
 
 destructor PdfGroupElement()
 	if bbox <> null then
@@ -1382,11 +1453,15 @@ constructor PdfTemplateElement(id as zstring ptr, idDict as TDict ptr, parent as
 	base.hidden = hidden
 end constructor
 
-function PdfTemplateElement.clone(parent as PdfElement ptr, page as PdfPageElement ptr) as PdfElement ptr
-	var dup = new PdfTemplateElement(id, page->getIdDict(), parent, hidden)
+function PdfTemplateElement.clone(toParent as PdfElement ptr, page as PdfPageElement ptr) as PdfElement ptr
+	var dup = new PdfTemplateElement(id, page->getIdDict(), toParent, hidden)
 	cloneChildren(dup, page)
 	return dup
 end function
+
+operator PdfTemplateElement.cast() as string
+	return "{'name': 'PdfTemplateElement', 'props': {'id':'" & *this.id & "'}}"
+end operator
 
 function PdfTemplateElement.render(doc as PdfDoc ptr, page as PdfPageElement ptr, parentObj as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
 	return null
@@ -1414,6 +1489,10 @@ function PdfPageElement.clone() as PdfPageElement ptr
 	cloneChildren(dup, dup)
 	return dup
 end function
+
+operator PdfPageElement.cast() as string
+	return "{'name': 'PdfPageElement', 'props': {'id':'" & *this.id & "'}}"
+end operator
 
 sub PdfPageElement.render(doc as PdfDoc ptr, index as integer, flush_ as boolean)
 	if hidden then
@@ -1919,79 +1998,87 @@ function PdfTemplate.parseText(parent as PdfElement ptr, page as PdfPageElement 
 		end select
 	end if
 	
-	do while xmlTextReaderRead(reader) = 1 
-		select case xmlTextReaderNodeType(reader)
-		case XML_READER_TYPE_ELEMENT
-			var name_ = getXmlConstName()
-			select case name_
-			case "g"
-				if g < 1024 then
-					if g = 0 then
-						text = callocate((1024+1) * len(ushort))
-						var attrib = getXmlAttrib("x")
-						if len(attrib) > 0 then
-							x = val(attrib)
-							y = getXmlAttribAsDouble("y")
+	if xmlTextReaderIsEmptyElement(reader) = 0 then
+		
+		do while xmlTextReaderRead(reader) = 1 
+			select case xmlTextReaderNodeType(reader)
+			case XML_READER_TYPE_ELEMENT
+				var name_ = getXmlConstName()
+				select case name_
+				case "g"
+					if g < 1024 then
+						if g = 0 then
+							text = callocate((1024+1) * len(ushort))
+							var attrib = getXmlAttrib("x")
+							if len(attrib) > 0 then
+								x = val(attrib)
+								y = getXmlAttribAsDouble("y")
+							end if
 						end if
+						
+						var code = getXmlAttrib("unicode")
+						select case as const len(code)
+						case 0
+							text[g] = asc(" ")
+						case 1
+							text[g] = strptr(code)[0]
+						case 6
+							text[g] = hex2ushort(strptr(code) + 2)
+						end select
+						
+						g += 1
 					end if
 					
-					var code = getXmlAttrib("unicode")
-					select case as const len(code)
-					case 0
-						text[g] = asc(" ")
-					case 1
-						text[g] = strptr(code)[0]
-					case 6
-						text[g] = hex2ushort(strptr(code) + 2)
-					end select
+				case "span"
+					isSpan = true
+					id = getXmlAttrib("id")
+					font = getXmlAttrib("font")
+					var trm = getXmlAttrib("trm")
+					size = val(left(trm, instr(trm, " ")))
+					mode = getXmlAttribAsLong("wmode")
+					x = getXmlAttribAsDouble("x")
+					y = getXmlAttribAsDouble("y")
+					maxWidth = getXmlAttribAsDouble("width")
+					var attrib = getXmlAttrib("align")
+					if len(attrib) > 0 then
+						select case attrib
+						case "center"
+							align = PdfTextAlignment.TA_CENTER
+						case "right"
+							align = PdfTextAlignment.TA_RIGHT
+						end select
+					end if
+					g = 0
+				end select
+				
+			case XML_READER_TYPE_TEXT
+				if g = 0 then
+					var value = cast(zstring ptr, xmlTextReaderConstValue(reader))
+					if value <> null andalso len(*value) > 0 then
+						text = utf8ToUtf16le(value)
+					else
+						text = null
+					end if
 					
-					g += 1
+					if not isSpan then
+						exit do
+					end if
+					g = 1024
 				end if
-				
-			case "span"
-				isSpan = true
-				id = getXmlAttrib("id")
-				font = getXmlAttrib("font")
-				var trm = getXmlAttrib("trm")
-				size = val(left(trm, instr(trm, " ")))
-				mode = getXmlAttribAsLong("wmode")
-				x = getXmlAttribAsDouble("x")
-				y = getXmlAttribAsDouble("y")
-				maxWidth = getXmlAttribAsDouble("width")
-				var attrib = getXmlAttrib("align")
-				if len(attrib) > 0 then
-					select case attrib
-					case "center"
-						align = PdfTextAlignment.TA_CENTER
-					case "right"
-						align = PdfTextAlignment.TA_RIGHT
-					end select
-				end if
-				g = 0
-			end select
 			
-		case XML_READER_TYPE_TEXT
-			if g = 0 then
-				var value = cast(zstring ptr, xmlTextReaderConstValue(reader))
-				if value <> null andalso len(*value) > 0 then
-					text = utf8ToUtf16le(value)
-				else
-					text = null
-				end if
-				
-				if not isSpan then
+			case XML_READER_TYPE_END_ELEMENT
+				var name_ = getXmlConstName()
+				select case name_
+				case "span"
+					if isSpan then
+						exit do
+					end if
+				case "fill_text"
 					exit do
-				end if
-				g = 1024
-			end if
-		
-		case XML_READER_TYPE_END_ELEMENT
-			var name_ = getXmlConstName()
-			if name_ = "span" then
-				exit do
-			end if
-		end select
-	loop
+				end select
+			end select
+		loop
+	end if
 	
 	if len(font) > 0 then
 		parent = new PdfFontElement(font, size, parent)
@@ -2041,7 +2128,7 @@ function PdfTemplate.parseObject(tag as zstring ptr, parent as PdfElement ptr, p
 	dim obj as PdfElement ptr
 	select case *tag
 	case "fill_text"
-		obj = parseText(parent, page)
+		return parseText(parent, page)
 	case "fill_path"
 		obj = parseFill(parent, page)
 	case "stroke_path"

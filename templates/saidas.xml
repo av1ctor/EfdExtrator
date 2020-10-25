@@ -1525,25 +1525,13 @@
 			</template>
 			
 			<template id="obs">
-				<fill_text color="0 0 0">
-					<span font="Helvetica" wmode="0" bidi="0" trm="7 0 0 7" x="134" y="505.32" id="DESC-OBS"></span>
-				</fill_text>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="131.75" y="513"/>
-					<lineto x="813.25" y="513"/>
-				</stroke_path>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="132" y="513.25"/>
-					<lineto x="132" y="498.75"/>
-				</stroke_path>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="131.75" y="499"/>
-					<lineto x="813.25" y="499"/>
-				</stroke_path>
-				<stroke_path linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0" color="0 0 0">
-					<moveto x="813" y="513.25"/>
-					<lineto x="813" y="498.75"/>
-				</stroke_path>			
+				<font name="Helvetica" size="7">
+					<color fill="0 0 0" stroke="0 0 0">
+						<stroke_rect x="132" y="513" w="681" h="14" linewidth=".5" miterlimit="10" linecap="0,0,0" linejoin="0">
+							<fill_text x="134" y="505.32" id="DESC-OBS"></fill_text>
+						</stroke_rect>
+					</color>
+				</font>
 			</template>
 			
 			<template id="ajuste-header">

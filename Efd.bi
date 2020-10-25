@@ -1169,10 +1169,10 @@ private:
 	declare sub gerarResumoRelatorio(emitir as boolean, isPre as boolean)
 	declare sub gerarResumoRelatorioHeader(emitir as boolean, isPre as boolean)
 	declare sub gerarResumoAjustesRelatorioHeader(emitir as boolean, isPre as boolean)
-	declare sub setNodeText(page as PdfPageElement ptr, id as string, value as string, convert as boolean = false)
-	declare sub setNodeText(page as PdfPageElement ptr, id as string, value as wstring ptr)
-	declare sub setChildText(row as PdfElement ptr, id as string, value as string, convert as boolean = false)
-	declare sub setChildText(row as PdfElement ptr, id as string, value as wstring ptr)
+	declare sub setNodeText(page as PdfPageElement ptr, id as zstring ptr, value as string, convert as boolean = false)
+	declare sub setNodeText(page as PdfPageElement ptr, id as zstring ptr, value as wstring ptr)
+	declare sub setChildText(row as PdfElement ptr, id as zstring ptr, value as string, convert as boolean = false)
+	declare sub setChildText(row as PdfElement ptr, id as zstring ptr, value as wstring ptr)
 	declare function gerarLinhaDFe(lg as boolean, highlight as boolean) as PdfElement ptr
 	declare function gerarLinhaAnal() as PdfElement ptr
 	declare function gerarLinhaObs(isFirst as boolean) as PdfElement ptr

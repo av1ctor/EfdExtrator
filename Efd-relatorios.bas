@@ -20,7 +20,7 @@ const LRS_OBS_AJUSTE_HEIGHT = ANAL_HEIGHT
 const LRE_OBS_AJUSTE_HEADER_HEIGHT = LRS_OBS_AJUSTE_HEADER_HEIGHT - 3.5
 const LRE_MAX_NAME_LEN = 31.25
 const LRS_MAX_NAME_LEN = 34.50
-const AJUSTE_MAX_DESC_LEN = 160
+const AJUSTE_MAX_DESC_LEN = 135
 const RESUMO_AJUSTE_MAX_DESC_LEN = 70
 const LRE_RESUMO_TITLE_HEIGHT = 9
 const LRE_RESUMO_HEADER_HEIGHT = 10
@@ -743,17 +743,17 @@ private function movToDesc(mov as string) as string
 end function
 
 ''''''''
-sub Efd.setChildText(parent as PdfElement ptr, id as string, value as wstring ptr)
+sub Efd.setChildText(elm as PdfElement ptr, id as zstring ptr, value as wstring ptr)
 	if value <> null andalso len(*value) > 0 then
-		var node = parent->getChild(id)
+		var node = elm->getChild(id)
 		node->setAttrib("text", value)
 	end if
 end sub
 
 ''''''''
-sub Efd.setChildText(parent as PdfElement ptr, id as string, value as string, convert as boolean)
+sub Efd.setChildText(elm as PdfElement ptr, id as zstring ptr, value as string, convert as boolean)
 	if len(value) > 0 then
-		var node = parent->getChild(id)
+		var node = elm->getChild(id)
 		if not convert then
 			node->setAttrib("text", value)
 		else
@@ -767,7 +767,7 @@ sub Efd.setChildText(parent as PdfElement ptr, id as string, value as string, co
 end sub
 
 ''''''''
-sub Efd.setNodeText(page as PdfPageElement ptr, id as string, value as wstring ptr)
+sub Efd.setNodeText(page as PdfPageElement ptr, id as zstring ptr, value as wstring ptr)
 	if value <> null andalso len(*value) > 0 then
 		var node = page->getNode(id)
 		node->setAttrib("text", value)
@@ -775,7 +775,7 @@ sub Efd.setNodeText(page as PdfPageElement ptr, id as string, value as wstring p
 end sub
 
 ''''''''
-sub Efd.setNodeText(page as PdfPageElement ptr, id as string, value as string, convert as boolean)
+sub Efd.setNodeText(page as PdfPageElement ptr, id as zstring ptr, value as string, convert as boolean)
 	if len(value) > 0 then
 		var node = page->getNode(id)
 		if not convert then
@@ -1268,13 +1268,13 @@ function Efd.gerarLinhaObs(isFirst as boolean) as PdfElement ptr
 	end if
 	
 	var node = relPage->getNode("obs")
-	var clone = node->clone(relPage, relPage)
-	clone->setAttrib("hidden", false)
-	clone->translateY(-relYPos)
+	var row = node->clone(relPage, relPage)
+	row->setAttrib("hidden", false)
+	row->translateY(-relYPos)
 	relYPos += LRS_OBS_HEIGHT
 	relNroLinhas += 1
 
-	return clone
+	return row
 end function
 
 ''''''''
