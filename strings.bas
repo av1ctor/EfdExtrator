@@ -157,3 +157,84 @@ function strreplace _
 	function = result
 end function
 
+function strCalcWrapPoints(text as zstring ptr, points() as integer) as integer
+	var items = 20
+	redim points(0 to items-1)
+	var j = 0
+	for i as integer = 0 to len(*text)-1
+		select case cast(ubyte ptr, text)[i]
+		case asc(" ")
+			points(j) = i+1
+			j += 1
+		end select
+		
+		if j >= items then
+			items += items \ 2
+			redim preserve points(0 to items-1)
+		end if
+	next
+
+	return j
+end function
+
+	dim shared helvetica_charWidth(0 to 255) as single = {_
+		0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,_		'00  ,01  ,02  ,03  ,04  ,05  ,06  ,07
+		0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,_		'08  ,09  ,10  ,11  ,12  ,13  ,14  ,15
+		0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,_		'16  ,17  ,18  ,19  ,20  ,21  ,22  ,23
+		0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,_		'24  ,25  ,26  ,27  ,28  ,29  ,30  ,31
+		0.50,0.25,0.25,1.00,1.00,1.00,1.00,0.25,_ 		'    ,!   ,"   ,#   ,$   ,%   ,&   ,'   
+		0.25,0.25,0.25,0.25,0.25,0.25,0.25,0.50,_		'(   ,)   ,*   ,+   ,,   ,-   ,.   ,/   
+		1.00,1.00,1.00,1.00,1.00,1.00,1.00,1.00,_		'0   ,1   ,2   ,3   ,4   ,5   ,6   ,7
+		1.00,1.00,0.25,0.25,1.00,1.00,1.00,0.50,_		'8   ,9   ,:   ,;   ,<   ,=   ,>   ,?
+		1.00,1.00,1.00,1.00,1.00,1.00,1.00,1.00,_		'@   ,A   ,B   ,C   ,D   ,E   ,F   ,G
+		1.00,0.25,0.75,1.00,1.00,1.00,1.00,1.00,_		'H   ,I   ,J   ,K   ,L   ,M   ,N   ,O
+		1.00,1.00,1.00,1.00,1.00,1.00,1.00,1.00,_		'P   ,Q   ,R   ,S   ,T   ,U   ,V   ,W
+		1.00,1.00,1.00,0.25,0.25,0.25,0.50,0.50,_		'X   ,Y   ,Z   ,[   ,\   ,]   ,^   ,_
+		0.25,1.00,1.00,1.00,1.00,1.00,1.00,1.00,_		'`   ,a   ,b   ,c   ,d   ,e   ,f   ,g
+		1.00,0.25,0.25,1.00,0.25,1.25,1.00,1.00,_		'h   ,i   ,j   ,k   ,l   ,m   ,n   ,o
+		1.00,1.00,1.00,1.00,1.00,1.00,1.00,1.00,_		'p   ,q   ,r   ,s   ,t   ,u   ,v   ,w
+		1.00,1.00,1.00,0.25,0.25,0.25,0.50,0.00,_		'x   ,y   ,z   ,{   ,|   ,}   ,~   , 
+		1.00,1.00,1.00,1.00,1.00,1.00,1.00,1.00,_		'
+		1.00,1.00,1.00,1.00,1.00,1.00,1.00,1.00,_
+		1.00,1.00,1.00,1.00,1.00,1.00,1.00,1.00,_
+		1.00,1.00,1.00,1.00,1.00,1.00,1.00,1.00,_
+		1.00,1.00,1.00,1.00,1.00,1.00,1.00,1.00,_		'ß   ,à   ,á   ,â   ,ã   ,ä   ,v   ,æ
+		1.00,1.00,1.00,1.00,1.00,1.00,1.00,1.00,_       'ç   ,è   ,é   ,ê   ,ë   ,ì   ,í   ,î 
+		1.00,1.00,1.00,1.00,1.00,1.00,1.00,1.00,_		'ï   ,ð   ,ñ   ,ò   ,ó   ,ô   ,õ   ,ö
+		1.00,1.00,1.00,1.00,1.00,1.00,1.00,1.00,_		'÷   ,ø   ,ù   ,ú   ,û   ,û   ,ü   ,ý
+		1.00,1.00,0.00,0.00,0.00,0.00,0.00,0.00 _		'þ   ,ÿ   ,192 ,193 ,mrk1,mrk2,mrk...
+	}
+
+function ttfLen(src as const zstring ptr) as double
+	var lgt = 0.0
+	for i as integer = 0 to len(*src) - 1
+		lgt += helvetica_charWidth(cast(ubyte ptr, src)[i])
+	next
+	return lgt
+end function
+
+function ttfSubstr(src as const zstring ptr, byref start as single, maxWidth as single) as string
+	var res = ""
+	var i = 0
+	var width_ = 0.0
+	do 
+		var c = cast(ubyte ptr, src)[i]
+		if c = 0 then
+			exit do
+		end if
+		i += 1
+		
+		var cw = helvetica_charWidth(c)
+		if width_+cw > start+maxWidth then
+			start = width_
+			exit do
+		end if
+		
+		if width_ >= start then
+			res += chr(c)
+		end if
+		
+		width_ += cw
+	loop
+	return res
+end function

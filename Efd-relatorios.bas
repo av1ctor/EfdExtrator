@@ -42,6 +42,7 @@ const LRAICMS_AJ_HEADER_HEIGHT = 14
 const LRAICMS_AJ_ROW_HEIGHT = 17
 const LRAICMS_AJ_TOTAL_HEIGHT = 21
 const LRAICMS_AJ_SUBTOTAL_HEIGHT = 17
+const LRAICMS_AJ_DESC_MAX_LEN = 60
 
 type TMovimento
 	mov as zstring * 2+1
@@ -82,67 +83,6 @@ end type
 		"DEDUÇÕES DE IMPOSTO APURADO", _
 		"DÉBITOS ESPECIAIS" _
 	}
-
-	dim shared charWidth(0 to 255) as single = {_
-		0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,_
-		0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,_
-		0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,_
-		0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,_
-		0.50,0.25,0.25,1.00,1.00,1.00,1.00,0.25,_ 		'   ,!   ,"   ,#   ,$   ,%   ,&   ,'   
-		0.25,0.25,0.25,0.25,0.25,0.25,0.25,0.50,_		'(  ,)   ,*   ,+   ,,   ,-   ,.   ,/   
-		1.00,1.00,1.00,1.00,1.00,1.00,1.00,1.00,_		'0  ,1   ,2   ,3   ,4   ,5   ,6   ,7
-		1.00,1.00,0.25,0.25,1.00,1.00,1.00,0.50,_		'8  ,9   ,:   ,;   ,<   ,=   ,>   ,?
-		1.00,1.00,1.00,1.00,1.00,1.00,1.00,1.00,_		'@  ,A   ,B   ,C   ,D   ,E   ,F   ,G
-		1.00,0.25,0.75,1.00,1.00,1.00,1.00,1.00,_		'H  ,I   ,J   ,K   ,L   ,M   ,N   ,O
-		1.00,1.00,1.00,1.00,1.00,1.00,1.00,1.00,_		'P  ,Q   ,R   ,S   ,T   ,U   ,V   ,W
-		1.00,1.00,1.00,0.25,0.25,0.25,0.50,0.50,_		'X  ,Y   ,Z   ,[   ,\   ,]   ,^   ,_
-		0.25,1.00,1.00,1.00,1.00,1.00,1.00,1.00,_		'`  ,a   ,b   ,c   ,d   ,e   ,f   ,g
-		1.00,0.25,0.25,1.00,0.25,1.25,1.00,1.00,_		'h  ,i   ,j   ,k   ,l   ,m   ,n   ,o
-		1.00,1.00,1.00,1.00,1.00,1.00,1.00,1.00,_		'p  ,q   ,r   ,s   ,t   ,u   ,v   ,w
-		1.00,1.00,1.00,0.25,0.25,0.25,0.50,0.00,_		'x  ,y   ,z   ,{   ,|   ,}   ,~   , 
-		1.00,1.00,1.00,1.00,1.00,1.00,1.00,1.00,_
-		1.00,1.00,1.00,1.00,1.00,1.00,1.00,1.00,_
-		1.00,1.00,1.00,1.00,1.00,1.00,1.00,1.00,_
-		1.00,1.00,1.00,1.00,1.00,1.00,1.00,1.00,_
-		1.00,1.00,1.00,1.00,1.00,1.00,1.00,1.00,_
-		1.00,1.00,1.00,1.00,1.00,1.00,1.00,1.00,_
-		1.00,1.00,1.00,1.00,1.00,1.00,1.00,1.00,_
-		1.00,1.00,1.00,1.00,1.00,1.00,1.00,1.00 _
-	}
-
-private function calcLen(src as const zstring ptr) as double
-	var lgt = 0.0
-	for i as integer = 0 to len(*src) - 1
-		lgt += charWidth(cast(ubyte ptr, src)[i])
-	next
-	return lgt
-end function
-
-private function substr(src as const zstring ptr, byref start as single, maxWidth as single) as string
-	var res = ""
-	var i = 0
-	var width_ = 0.0
-	do 
-		var c = cast(ubyte ptr, src)[i]
-		if c = 0 then
-			exit do
-		end if
-		i += 1
-		
-		var cw = charWidth(c)
-		if width_+cw > start+maxWidth then
-			start = width_
-			exit do
-		end if
-		
-		if width_ >= start then
-			res += chr(c)
-		end if
-		
-		width_ += cw
-	loop
-	return res
-end function
 
 #macro list_add_ANAL(__doc, __sit, isPre)
 	scope
@@ -223,7 +163,7 @@ end function
 
 #macro list_add_DF_ENTRADA(__doc, __part, isPre)
 	scope
-		var len_ = iif(part <> null, calcLen(part->nome), 0)
+		var len_ = iif(part <> null, ttfLen(part->nome), 0)
 		var lg = len_ > cint(LRE_MAX_NAME_LEN + 0.5)
 		if relYPos + calcHeight(lg) > PAGE_BOTTOM then
 			gerarPaginaRelatorio(false, isPre)
@@ -246,7 +186,7 @@ end function
 
 #macro list_add_DF_SAIDA(__doc, __part, isPre)
 	scope
-		var len_ = iif(part <> null, calcLen(part->nome), 0)
+		var len_ = iif(part <> null, ttfLen(part->nome), 0)
 		var lg = len_ > cint(LRS_MAX_NAME_LEN + 0.5)
 		if relYPos + calcHeight(lg) > PAGE_BOTTOM then
 			gerarPaginaRelatorio(false, isPre)
@@ -1188,27 +1128,42 @@ sub Efd.gerarRelatorioApuracaoICMS(nomeArquivo as string, reg as TRegistro ptr, 
 				relYPos += LRAICMS_AJ_HEADER_HEIGHT
 			end if
 			
+			var text = ajuste->codigo & " " & ajuste->descricao
+			var textLen = ttfLen(text)
+			var parts = cint(textLen / LRAICMS_AJ_DESC_MAX_LEN + 0.5)
+				
 			'' row
-			if relYpos + LRAICMS_AJ_ROW_HEIGHT > LRAICMS_PAGE_BOTTOM then
+			if relYpos + LRAICMS_AJ_ROW_HEIGHT + (10.0 * (parts-1)) > LRAICMS_PAGE_BOTTOM then
 				criarPaginaRelatorio(true, isPre)
 			end if
 
 			if not isPre then
-				/'
-				var font = new PdfFontElement("Helvetica", 10, relPage)
-				var color_ new PdfColorElement(new PdfRgb(0, 0, 0), font)
-				var text0 = new PdfTextElement(32, relYPos + 12.3, ajuste->codigo, color_)
-				'/
-				
 				var node = relPage->getNode("ajuste-row")
-				var clone = node->clone(relPage, relPage)
-				clone->setAttrib("hidden", false)
-				clone->translateY(-relYPos)
-				setChildText(clone, "AJ-COD", ajuste->codigo)
-				setChildText(clone, "AJ-DESC", ajuste->codigo & " " & ajuste->descricao, true)
-				setChildText(clone, "AJ-VALOR", DBL2MONEYBR(ajuste->valor))
+				var row = node->clone(relPage, relPage)
+				row->setAttrib("hidden", false)
+				row->translateY(-relYPos)
+				setChildText(row, "AJ-COD", ajuste->codigo)
+				setChildText(row, "AJ-VALOR", DBL2MONEYBR(ajuste->valor))
+				
+				var desc = row->getChild("AJ-DESC")
+				if parts > 1 then
+					desc->getParent()->setAttrib("h", LRAICMS_AJ_ROW_HEIGHT + (10.0 * (parts-1)))
+				end if
+				
+				var start = 0.0!
+				for i as integer = 0 to parts-1
+					var utf16le = latinToUtf16le(ttfSubstr(text, start, LRAICMS_AJ_DESC_MAX_LEN))
+					desc->setAttrib("text", utf16le)
+					deallocate utf16le
+					if i < parts-1 then
+						desc = desc->clone(desc->getParent(), relPage)
+						desc->translateY(-10.0)
+					end if
+				next
+				
 			end if
-			relYPos += LRAICMS_AJ_ROW_HEIGHT
+			
+			relYPos += LRAICMS_AJ_ROW_HEIGHT + (10.0 * (parts-1))
 			
 			ultimoTipo = tipo
 			ultimoCodigo = ajuste->codigo
@@ -1432,7 +1387,7 @@ sub Efd.adicionarDocRelatorioObs(sit as TipoSituacao, obs as TDocObs ptr, isFirs
 		if len(obs->extra) > 0 then
 			text += " " + obs->extra
 		end if
-		setChildText(row, "DESC-OBS", substr(text, 0.0!, AJUSTE_MAX_DESC_LEN), true)
+		setChildText(row, "DESC-OBS", ttfSubstr(text, 0.0!, AJUSTE_MAX_DESC_LEN), true)
 	end if
 
 end sub
@@ -1529,9 +1484,9 @@ sub Efd.adicionarDocRelatorioSaidas(doc as TDocDF ptr, part as TParticipante ptr
 			setChildText(row, iif(lg, "UFDEST-LG", "UFDEST"), MUNICIPIO2SIGLA(part->municip))
 			setChildText(row, iif(lg, "MUNDEST-LG", "MUNDEST"), str(part->municip))
 			var start = 0.0!
-			setChildText(row, iif(lg, "RAZAODEST-LG", "RAZAODEST"), substr(part->nome, start, LRS_MAX_NAME_LEN), true)
+			setChildText(row, iif(lg, "RAZAODEST-LG", "RAZAODEST"), ttfSubstr(part->nome, start, LRS_MAX_NAME_LEN), true)
 			if lg then
-				setChildText(row, "RAZAODEST2-LG", substr(part->nome, start, LRS_MAX_NAME_LEN), true)
+				setChildText(row, "RAZAODEST2-LG", ttfSubstr(part->nome, start, LRS_MAX_NAME_LEN), true)
 			end if
 		end if
 	end if
@@ -1554,9 +1509,9 @@ sub Efd.adicionarDocRelatorioEntradas(doc as TDocDF ptr, part as TParticipante p
 		setChildText(row, iif(lg, "UFEMI-LG", "UFEMI"), MUNICIPIO2SIGLA(part->municip))
 		setChildText(row, iif(lg, "MUNEMI-LG", "MUNEMI"), codMunicipio2Nome(part->municip))
 		var start = 0.0!
-		setChildText(row, iif(lg, "RAZAOEMI-LG", "RAZAOEMI"), substr(part->nome, start, LRE_MAX_NAME_LEN), true)
+		setChildText(row, iif(lg, "RAZAOEMI-LG", "RAZAOEMI"), ttfSubstr(part->nome, start, LRE_MAX_NAME_LEN), true)
 		if lg then
-			setChildText(row, "RAZAOEMI2-LG", substr(part->nome, start, LRS_MAX_NAME_LEN), true)
+			setChildText(row, "RAZAOEMI2-LG", ttfSubstr(part->nome, start, LRS_MAX_NAME_LEN), true)
 		end if
 	end if
 end sub
@@ -1750,11 +1705,11 @@ sub efd.gerarResumoRelatorio(emitir as boolean, isPre as boolean)
 						setChildText(row, "RES-COD-AJ", soma->idAjuste)
 						var desc = dbConfig->execScalar("select descricao from CodAjusteDoc where codigo = '" & soma->idAjuste & "'")
 						if desc <> null then
-							var len_ = calcLen(desc)
+							var len_ = ttfLen(desc)
 							var start = 0.0!
-							setChildText(row, "RES-DESC-AJ", substr(desc, start, RESUMO_AJUSTE_MAX_DESC_LEN))
+							setChildText(row, "RES-DESC-AJ", ttfSubstr(desc, start, RESUMO_AJUSTE_MAX_DESC_LEN))
 							if len_ > cint(RESUMO_AJUSTE_MAX_DESC_LEN + 0.5) then
-								setChildText(row, "RES-DESC2-AJ", substr(desc, start, RESUMO_AJUSTE_MAX_DESC_LEN))
+								setChildText(row, "RES-DESC2-AJ", ttfSubstr(desc, start, RESUMO_AJUSTE_MAX_DESC_LEN))
 							end if
 						end if
 						setChildText(row, "RES-VALOR-AJ", DBL2MONEYBR(soma->valor))
