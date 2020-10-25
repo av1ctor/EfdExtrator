@@ -14,13 +14,13 @@ const ROW_HEIGHT = STROKE_WIDTH + 9.5 + STROKE_WIDTH + 0.5 	'' espaço anterior, 
 const ROW_HEIGHT_LG = ROW_HEIGHT + 5.5						'' linha larga (quando len(razãoSocial) > MAX_NAME_LEN)
 const ANAL_HEIGHT = STROKE_WIDTH + 9.5 						'' linha superior, conteúdo, linha inferior
 const LRS_OBS_HEADER_HEIGHT = ANAL_HEIGHT
-const LRS_OBS_HEIGHT = ROW_HEIGHT_LG - 2.5
+const LRS_OBS_HEIGHT = 14.0
 const LRS_OBS_AJUSTE_HEADER_HEIGHT = LRS_OBS_HEIGHT + ANAL_HEIGHT - 1.0
 const LRS_OBS_AJUSTE_HEIGHT = ANAL_HEIGHT
 const LRE_OBS_AJUSTE_HEADER_HEIGHT = LRS_OBS_AJUSTE_HEADER_HEIGHT - 3.5
 const LRE_MAX_NAME_LEN = 31.25
 const LRS_MAX_NAME_LEN = 34.50
-const AJUSTE_MAX_DESC_LEN = 135
+const AJUSTE_MAX_DESC_LEN = 140
 const RESUMO_AJUSTE_MAX_DESC_LEN = 70
 const LRE_RESUMO_TITLE_HEIGHT = 9
 const LRE_RESUMO_HEADER_HEIGHT = 10
@@ -112,8 +112,10 @@ end type
 		var cnt = 0
 		var ajuste = __obs->ajusteListHead
 		do while ajuste <> null
-			if relYPos + calcObsAjusteHeight(cnt = 0) > PAGE_BOTTOM then
+			var height_ = calcObsAjusteHeight(cnt = 0)
+			if relYPos + height_ > PAGE_BOTTOM then
 				gerarPaginaRelatorio(false, isPre)
+				height_ = calcObsAjusteHeight(true)
 				cnt = 0
 			end if
 			if not isPre then
@@ -123,7 +125,7 @@ end type
 				lin->ajuste.sit = __sit
 				lin->ajuste.isFirst = (cnt = 0)
 			end if
-			relYPos += calcObsAjusteHeight(cnt = 0)
+			relYPos += height_
 			relNroLinhas += 1
 			cnt += 1
 			relatorioSomarAjuste(__sit, ajuste)
@@ -132,15 +134,15 @@ end type
 	end scope
 #endmacro
 
-#define calcObsHeight(isFirst) (iif(isFirst, STROKE_WIDTH*2 + LRS_OBS_HEADER_HEIGHT, 0) + LRS_OBS_HEIGHT)
-
 #macro list_add_OBS(__doc, __sit, isPre)
 	scope 
 		var cnt = 0
 		var obs = __doc.obsListHead
 		do while obs <> null
-			if relYPos + calcObsHeight(cnt = 0) > PAGE_BOTTOM then
+			var height_ = calcObsHeight(__sit, obs, cnt = 0)
+			if relYPos + height_ > PAGE_BOTTOM then
 				gerarPaginaRelatorio(false, isPre)
+				height_ = calcObsHeight(__sit, obs, true)
 				cnt = 0
 			end if
 			if not isPre then
@@ -150,7 +152,7 @@ end type
 				lin->obs.sit = __sit
 				lin->obs.isFirst = (cnt = 0)
 			end if
-			relYPos += calcObsHeight(cnt = 0)
+			relYPos += height_
 			relNroLinhas += 1
 			list_add_OBS_AJUSTE(obs, __sit, isPre)
 			cnt += 1
@@ -165,8 +167,10 @@ end type
 	scope
 		var len_ = iif(part <> null, ttfLen(part->nome), 0)
 		var lg = len_ > cint(LRE_MAX_NAME_LEN + 0.5)
-		if relYPos + calcHeight(lg) > PAGE_BOTTOM then
+		var height_ = calcHeight(lg)
+		if relYPos + height_ > PAGE_BOTTOM then
 			gerarPaginaRelatorio(false, isPre)
+			height_ = calcHeight(lg)
 		end if
 		if not isPre then
 			var lin = cast(RelLinha ptr, relLinhasList->add())
@@ -176,7 +180,7 @@ end type
 			lin->df.doc = @__doc
 			lin->df.part = __part
 		end if
-		relYPos += calcHeight(lg)
+		relYPos += height_
 		relNroLinhas += 1
 		nroRegistrosRel += 1
 		list_add_ANAL(__doc, __doc.situacao, isPre)
@@ -188,8 +192,10 @@ end type
 	scope
 		var len_ = iif(part <> null, ttfLen(part->nome), 0)
 		var lg = len_ > cint(LRS_MAX_NAME_LEN + 0.5)
-		if relYPos + calcHeight(lg) > PAGE_BOTTOM then
+		var height_ = calcHeight(lg)
+		if relYPos + height_ > PAGE_BOTTOM then
 			gerarPaginaRelatorio(false, isPre)
+			height_ = calcHeight(lg)
 		end if
 		if not isPre then
 			var lin = cast(RelLinha ptr, relLinhasList->add())
@@ -199,7 +205,7 @@ end type
 			lin->df.doc = @__doc
 			lin->df.part = __part
 		end if
-		relYPos += calcHeight(lg)
+		relYPos += height_
 		relNroLinhas += 1
 		nroRegistrosRel += 1
 		list_add_ANAL(__doc, __doc.situacao, isPre)
@@ -209,8 +215,10 @@ end type
 
 #macro list_add_REDZ(__doc, isPre)
 	scope
-		if relYPos + calcHeight(false) > PAGE_BOTTOM then
+		var height_ = calcHeight(false)
+		if relYPos + height_ > PAGE_BOTTOM then
 			gerarPaginaRelatorio(false, isPre)
+			height_ = calcHeight(false)
 		end if
 		if not isPre then
 			var lin = cast(RelLinha ptr, relLinhasList->add())
@@ -219,7 +227,7 @@ end type
 			lin->large = false
 			lin->redz.doc = @__doc
 		end if
-		relYPos += calcHeight(false)
+		relYPos += height_
 		relNroLinhas += 1
 		nroRegistrosRel += 1
 		list_add_ANAL(__doc, REGULAR, isPre)
@@ -228,8 +236,10 @@ end type
 
 #macro list_add_SAT(__doc, isPre)
 	scope
-		if relYPos + calcHeight(false) > PAGE_BOTTOM then
+		var height_ = calcHeight(false)
+		if relYPos + height_ > PAGE_BOTTOM then
 			gerarPaginaRelatorio(false, isPre)
+			height_ = calcHeight(false)
 		end if
 		if not isPre then
 			var lin = cast(RelLinha ptr, relLinhasList->add())
@@ -238,7 +248,7 @@ end type
 			lin->large = false
 			lin->sat.doc = @__doc
 		end if
-		relYPos += calcHeight(false)
+		relYPos += height_
 		relNroLinhas += 1
 		nroRegistrosRel += 1
 		list_add_ANAL(__doc, REGULAR, isPre)
@@ -705,9 +715,9 @@ function efd.gerarPaginaRelatorio(isLast as boolean, isPre as boolean) as boolea
 					case REL_LIN_DF_ITEM_ANAL
 						relYPos += ANAL_HEIGHT
 					case REL_LIN_DF_OBS
-						relYPos += calcObsHeight(n->obs.isFirst)
+						relYPos += calcObsHeight(n->obs.sit, n->obs.obs, n->obs.isFirst)
 					case REL_LIN_DF_OBS_AJUSTE
-						relYPos += calcObsHeight(n->ajuste.isFirst)
+						relYPos += calcObsAjusteHeight(n->ajuste.isFirst)
 					end select
 				end if
 			end if
@@ -1255,12 +1265,28 @@ function Efd.gerarLinhaAnal() as PdfElement ptr
 	return clone
 end function
 
+function Efd.calcObsHeight(sit as TipoSituacao, obs as TDocObs ptr, isFirst as boolean) as double
+	if not ISREGULAR(sit) then
+		return 0.0
+	end if
+	
+	var lanc = cast( TObsLancamento ptr, obsLancamentoDict->lookup(obs->idLanc))
+	var text = iif(lanc <> null, lanc->descricao, "")
+	if len(obs->extra) > 0 then
+		text += " " + obs->extra
+	end if
+	var textLen = ttfLen(text)
+	var parts = cint(textLen / AJUSTE_MAX_DESC_LEN + 0.5)
+
+	return iif(isFirst, STROKE_WIDTH*2 + LRS_OBS_HEADER_HEIGHT, 0) + LRS_OBS_HEIGHT + ((parts-1) * 8.0)
+end function
+
 ''''''''
-function Efd.gerarLinhaObs(isFirst as boolean) as PdfElement ptr
+function Efd.gerarLinhaObs(isFirst as boolean, parts as integer) as PdfElement ptr
 
 	if isFirst then
 		var node = relPage->getNode("obs-header")
-		var clone = node->clone(relPage, relPage)
+		var clone = node->clone(node->getParent(), relPage)
 		clone->setAttrib("hidden", false)
 		relYPos += STROKE_WIDTH*2
 		clone->translateY(-relYPos)
@@ -1268,10 +1294,10 @@ function Efd.gerarLinhaObs(isFirst as boolean) as PdfElement ptr
 	end if
 	
 	var node = relPage->getNode("obs")
-	var row = node->clone(relPage, relPage)
+	var row = node->clone(node->getParent(), relPage)
 	row->setAttrib("hidden", false)
 	row->translateY(-relYPos)
-	relYPos += LRS_OBS_HEIGHT
+	relYPos += LRS_OBS_HEIGHT + ((parts-1) * 8.0)
 	relNroLinhas += 1
 
 	return row
@@ -1282,7 +1308,7 @@ function Efd.gerarLinhaObsAjuste(isFirst as boolean) as PdfElement ptr
 
 	if isFirst then
 		var node = relPage->getNode("ajuste-header")
-		var clone = node->clone(relPage, relPage)
+		var clone = node->clone(node->getParent(), relPage)
 		clone->setAttrib("hidden", false)
 		relYPos += STROKE_WIDTH*2
 		clone->translateY(-relYPos)
@@ -1290,7 +1316,7 @@ function Efd.gerarLinhaObsAjuste(isFirst as boolean) as PdfElement ptr
 	end if
 	
 	var node = relPage->getNode("ajuste")
-	var clone = node->clone(relPage, relPage)
+	var clone = node->clone(node->getParent(), relPage)
 	clone->setAttrib("hidden", false)
 	clone->translateY(-relYPos)
 	relYPos += LRS_OBS_AJUSTE_HEIGHT
@@ -1381,13 +1407,32 @@ end sub
 sub Efd.adicionarDocRelatorioObs(sit as TipoSituacao, obs as TDocObs ptr, isFirst as boolean)
 	
 	if ISREGULAR(sit) then
-		var row = gerarLinhaObs(isFirst)
 		var lanc = cast( TObsLancamento ptr, obsLancamentoDict->lookup(obs->idLanc))
 		var text = iif(lanc <> null, lanc->descricao, "")
 		if len(obs->extra) > 0 then
 			text += " " + obs->extra
 		end if
-		setChildText(row, "DESC-OBS", ttfSubstr(text, 0.0!, AJUSTE_MAX_DESC_LEN), true)
+
+		var textLen = ttfLen(text)
+		var parts = cint(textLen / AJUSTE_MAX_DESC_LEN + 0.5)
+
+		var row = gerarLinhaObs(isFirst, parts)
+		
+		var desc = row->getChild("DESC-OBS")
+		if parts > 1 then
+			desc->getParent()->setAttrib("h", LRS_OBS_HEIGHT + (8.0 * (parts-1)))
+		end if
+		
+		var start = 0.0!
+		for i as integer = 0 to parts-1
+			var utf16le = latinToUtf16le(ttfSubstr(text, start, AJUSTE_MAX_DESC_LEN))
+			desc->setAttrib("text", utf16le)
+			deallocate utf16le
+			if i < parts-1 then
+				desc = desc->clone(desc->getParent(), relPage)
+				desc->translateY(-8.0)
+			end if
+		next
 	end if
 
 end sub
