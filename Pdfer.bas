@@ -321,9 +321,12 @@ sub PdfElement.setAttrib(name_ as zstring ptr, value as boolean)
 	dim type_ as PdfElementAttribType
 	var attrib = lookupAttrib(name_, type_)
 	if attrib <> null then
-		if type_ = PdfElementAttribType.TP_BOOLEAN then
+		select case type_
+		case PdfElementAttribType.TP_BOOLEAN
 			*cast(boolean ptr, attrib) = value
-		end if
+		case PdfElementAttribType.TP_INTEGER
+			*cast(integer ptr, attrib) = value
+		end select
 	end if
 end sub
 
@@ -331,9 +334,16 @@ sub PdfElement.setAttrib(name_ as zstring ptr, value as integer)
 	dim type_ as PdfElementAttribType
 	var attrib = lookupAttrib(name_, type_)
 	if attrib <> null then
-		if type_ = PdfElementAttribType.TP_INTEGER then
+		select case type_
+		case PdfElementAttribType.TP_BOOLEAN
+			*cast(boolean ptr, attrib) = value
+		case PdfElementAttribType.TP_INTEGER
 			*cast(integer ptr, attrib) = value
-		end if
+		case PdfElementAttribType.TP_SINGLE
+			*cast(single ptr, attrib) = value
+		case PdfElementAttribType.TP_DOUBLE
+			*cast(double ptr, attrib) = value
+		end select
 	end if
 end sub
 
@@ -341,9 +351,14 @@ sub PdfElement.setAttrib(name_ as zstring ptr, value as single)
 	dim type_ as PdfElementAttribType
 	var attrib = lookupAttrib(name_, type_)
 	if attrib <> null then
-		if type_ = PdfElementAttribType.TP_SINGLE then
+		select case type_
+		case PdfElementAttribType.TP_INTEGER
+			*cast(integer ptr, attrib) = cint(value)
+		case PdfElementAttribType.TP_SINGLE
 			*cast(single ptr, attrib) = value
-		end if
+		case PdfElementAttribType.TP_DOUBLE
+			*cast(double ptr, attrib) = value
+		end select
 	end if
 end sub
 
@@ -351,9 +366,14 @@ sub PdfElement.setAttrib(name_ as zstring ptr, value as double)
 	dim type_ as PdfElementAttribType
 	var attrib = lookupAttrib(name_, type_)
 	if attrib <> null then
-		if type_ = PdfElementAttribType.TP_DOUBLE then
+		select case type_
+		case PdfElementAttribType.TP_INTEGER
+			*cast(integer ptr, attrib) = cint(value)
+		case PdfElementAttribType.TP_SINGLE
+			*cast(single ptr, attrib) = value
+		case PdfElementAttribType.TP_DOUBLE
 			*cast(double ptr, attrib) = value
-		end if
+		end select
 	end if
 end sub
 
@@ -399,16 +419,13 @@ function PdfElement.getWidth() as single
 end function
 
 function PdfElement.getChildrenWidth() as single
-	var maxW = 0.0
+	var w = 0.0
 	var child = this.head
 	do while child <> null
-		var w = child->getWidth()
-		if w > maxW then
-			maxW = w
-		end if
+		w += child->getWidth()
 		child = child->next_
 	loop
-	return maxW
+	return w
 end function
 
 function PdfElement.getHeight() as single
@@ -416,16 +433,13 @@ function PdfElement.getHeight() as single
 end function
 
 function PdfElement.getChildrenHeight() as single
-	var maxH = 0.0
+	var h = 0.0
 	var child = this.head
 	do while child <> null
-		var h = child->getHeight()
-		if h > maxH then
-			maxH = h
-		end if
+		h += child->getHeight()
 		child = child->next_
 	loop
-	return maxH
+	return h
 end function
 
 sub PdfElement.translate(xi as single, yi as single)
@@ -464,17 +478,28 @@ sub PdfElement.translateYChildren(yi as single)
 	loop
 end sub
 
+sub PdfElement.scale(xf as single, yf as single)
+	scaleChildren(xf, yf)
+end sub
 
-function PdfElement.render(doc as PdfDoc ptr, page as PdfPageElement ptr, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
+sub PdfElement.scaleChildren(xf as single, yf as single)
+	var child = this.head
+	do while child <> null
+		child->scale(xf, yf)
+		child = child->next_
+	loop
+end sub
+
+function PdfElement.render(doc as PdfDoc ptr, page as PdfPageElement ptr, parentObj as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
 	return null
 end function
 
-sub PdfElement.renderInsert(doc as PdfDoc ptr, page as PdfPageElement ptr, parent as FPDF_PAGEOBJECT)
+sub PdfElement.emit(doc as PdfDoc ptr, page as PdfPageElement ptr, parentObj as FPDF_PAGEOBJECT)
 	if hidden then
 		return
 	end if
 		
-	var obj = render(doc, page, parent)
+	var obj = render(doc, page, parentObj)
 
 	renderChildren(doc, page, obj)
 	
@@ -483,10 +508,10 @@ sub PdfElement.renderInsert(doc as PdfDoc ptr, page as PdfPageElement ptr, paren
 	end if
 end sub
 
-sub PdfElement.renderChildren(doc as PdfDoc ptr, page as PdfPageElement ptr, parent as FPDF_PAGEOBJECT)
+sub PdfElement.renderChildren(doc as PdfDoc ptr, page as PdfPageElement ptr, parentObj as FPDF_PAGEOBJECT)
 	var child = this.head
 	do while child <> null
-		child->renderInsert(doc, page, parent)
+		child->emit(doc, page, parentObj)
 		child = child->next_
 	loop
 end sub
@@ -516,11 +541,15 @@ function PdfElement.getChild(id as zstring ptr) as PdfElement ptr
 	return null
 end function
 
-function PdfElement.getHead() as PdfElement ptr
+function PdfElement.getParent() as PdfElement ptr
+	return this.parent
+end function
+
+function PdfElement.getFirstChild() as PdfElement ptr
 	return this.head
 end function
 
-function PdfElement.getTail() as PdfElement ptr
+function PdfElement.getLastChild() as PdfElement ptr
 	return this.tail
 end function
 
@@ -605,7 +634,7 @@ destructor PdfColorElement()
 	end if
 end destructor
 
-sub PdfColorElement.renderChildren(doc as PdfDoc ptr, page as PdfPageElement_ ptr, parent as FPDF_PAGEOBJECT)
+sub PdfColorElement.renderChildren(doc as PdfDoc ptr, page as PdfPageElement_ ptr, parentObj as FPDF_PAGEOBJECT)
 	var olds = doc->style.scolor
 	if scolor <> null then
 		doc->style.scolor = scolor
@@ -617,7 +646,7 @@ sub PdfColorElement.renderChildren(doc as PdfDoc ptr, page as PdfPageElement_ pt
 	
 	var child = this.head
 	do while child <> null
-		child->renderInsert(doc, page, parent)
+		child->emit(doc, page, parentObj)
 		child = child->next_
 	loop
 	
@@ -644,13 +673,13 @@ destructor PdfTransformElement()
 	end if
 end destructor
 
-sub PdfTransformElement.renderChildren(doc as PdfDoc ptr, page as PdfPageElement_ ptr, parent as FPDF_PAGEOBJECT)
+sub PdfTransformElement.renderChildren(doc as PdfDoc ptr, page as PdfPageElement_ ptr, parentObj as FPDF_PAGEOBJECT)
 	var old = doc->style.transf
 	doc->style.transf = transf
 
 	var child = this.head
 	do while child <> null
-		child->renderInsert(doc, page, parent)
+		child->emit(doc, page, parentObj)
 		child = child->next_
 	loop
 	
@@ -676,7 +705,7 @@ destructor PdfFontElement()
 	end if
 end destructor
 
-sub PdfFontElement.renderChildren(doc as PdfDoc ptr, page as PdfPageElement_ ptr, parent as FPDF_PAGEOBJECT)
+sub PdfFontElement.renderChildren(doc as PdfDoc ptr, page as PdfPageElement_ ptr, parentObj as FPDF_PAGEOBJECT)
 	if font = null then
 		font = FPDFText_LoadStandardFont(doc->getDoc(), name_)
 	end if
@@ -692,7 +721,7 @@ sub PdfFontElement.renderChildren(doc as PdfDoc ptr, page as PdfPageElement_ ptr
 
 	var child = this.head
 	do while child <> null
-		child->renderInsert(doc, page, parent)
+		child->emit(doc, page, parentObj)
 		child = child->next_
 	loop
 	
@@ -749,7 +778,7 @@ end function
 destructor PdfStrokeElement()
 end destructor
 
-function PdfStrokeElement.render(doc as PdfDoc ptr, page as PdfPageElement ptr, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
+function PdfStrokeElement.render(doc as PdfDoc ptr, page as PdfPageElement ptr, parentObj as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
 	return buildPath(doc, FPDF_FILLMODE_NONE, width_, miterlin, join, cap)
 end function
 
@@ -768,7 +797,7 @@ end function
 destructor PdfFillElement()
 end destructor
 
-function PdfFillElement.render(doc as PdfDoc ptr, page as PdfPageElement ptr, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
+function PdfFillElement.render(doc as PdfDoc ptr, page as PdfPageElement ptr, parentObj as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
 	return buildPath(doc, mode, 0.0)
 end function
 
@@ -797,8 +826,8 @@ sub PdfMoveToElement.translateY(yi as single)
 	this.y += yi
 end sub
 
-function PdfMoveToElement.render(doc as PdfDoc ptr, page as PdfPageElement ptr, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
-	FPDFPath_MoveTo(parent, this.x, this.y)
+function PdfMoveToElement.render(doc as PdfDoc ptr, page as PdfPageElement ptr, parentObj as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
+	FPDFPath_MoveTo(parentObj, this.x, this.y)
 	return null
 end function
 
@@ -827,8 +856,8 @@ sub PdfLineToElement.translateY(yi as single)
 	this.y += yi
 end sub
 
-function PdfLineToElement.render(doc as PdfDoc ptr, page as PdfPageElement ptr, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
-	FPDFPath_LineTo(parent, this.x, this.y)
+function PdfLineToElement.render(doc as PdfDoc ptr, page as PdfPageElement ptr, parentObj as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
+	FPDFPath_LineTo(parentObj, this.x, this.y)
 	return null
 end function
 
@@ -869,8 +898,8 @@ sub PdfBezierToElement.translateY(yi as single)
 	this.y3 += yi
 end sub
 
-function PdfBezierToElement.render(doc as PdfDoc ptr, page as PdfPageElement ptr, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
-	FPDFPath_BezierTo(parent, this.x1, this.y1, this.x2, this.y2, this.x3, this.y3)
+function PdfBezierToElement.render(doc as PdfDoc ptr, page as PdfPageElement ptr, parentObj as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
+	FPDFPath_BezierTo(parentObj, this.x1, this.y1, this.x2, this.y2, this.x3, this.y3)
 	return null
 end function
 
@@ -881,18 +910,164 @@ end constructor
 
 function PdfClosePathElement.clone(parent as PdfElement ptr, page as PdfPageElement ptr) as PdfElement ptr
 	var dup = new PdfClosePathElement(parent)
-	cloneChildren(dup, page)
 	return dup
 end function
 
-function PdfClosePathElement.render(doc as PdfDoc ptr, page as PdfPageElement ptr, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
-	FPDFPath_Close(parent)
+function PdfClosePathElement.render(doc as PdfDoc ptr, page as PdfPageElement ptr, parentObj as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
+	FPDFPath_Close(parentObj)
 	return null
 end function
 
 '''''
-constructor PdfRectElement(x as single, y as single, w as single, h as single, mode as integer, lineWidth as single, miterlin as single, join as integer, cap as integer, parent as PdfElement ptr)
+constructor PdfVlineElement(x as single, y as single, h as single, expand as PdfExpand, lineWidth as single, miterlin as single, cap as integer, parent as PdfElement ptr)
 	base(parent)
+	this.expand = expand
+	this.x = x 
+	this.y = y
+	this.h = h
+	this.linew = lineWidth
+	this.miterlin = miterlin
+	this.cap = cap
+end constructor
+
+function PdfVlineElement.clone(parent as PdfElement ptr, page as PdfPageElement ptr) as PdfElement ptr
+	var dup = new PdfVlineElement(x, y, h, expand, linew, miterlin, cap, parent)
+	return dup
+end function
+
+function PdfVlineElement.lookupAttrib(name_ as zstring ptr, byref type_ as PdfElementAttribType) as any ptr
+	if *name_ = "h" then
+		type_ = PdfElementAttribType.TP_SINGLE
+		return @h
+	elseif *name_ = "x" then
+		type_ = PdfElementAttribType.TP_SINGLE
+		return @x
+	elseif *name_ = "y" then
+		type_ = PdfElementAttribType.TP_SINGLE
+		return @y
+	else
+		return base.lookupAttrib(name_, type_)
+	end if
+end function
+
+function PdfVlineElement.getWidth() as single
+	return linew
+end function
+
+function PdfVlineElement.getHeight() as single
+	return h
+end function
+
+sub PdfVlineElement.translate(xi as single, yi as single)
+	this.x += xi
+	this.y += yi
+	translateChildren(xi, yi)
+end sub
+
+sub PdfVlineElement.translateX(xi as single)
+	this.x += xi
+	translateXChildren(xi)
+end sub
+
+sub PdfVlineElement.translateY(yi as single)
+	this.y += yi
+	translateYChildren(yi)
+end sub
+
+function PdfVlineElement.render(doc as PdfDoc ptr, page as PdfPageElement ptr, parentObj as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
+	var height = h
+	select case expand
+	case PdfExpand.EX_VERT, PdfExpand.EX_BOTH
+		var ph = parent->getHeight()
+		if ph > h then
+			height = ph
+		end if
+	end select
+
+	var path = buildPath(doc, FPDF_FILLMODE_NONE, linew, miterlin, 0, cap)
+	FPDFPath_MoveTo(path, x, y-height)
+	FPDFPath_LineTo(path, x, y)
+	FPDFPath_Close(path)
+	return path
+end function
+
+'''''
+constructor PdfHlineElement(x as single, y as single, w as single, expand as PdfExpand, lineWidth as single, miterlin as single, cap as integer, parent as PdfElement ptr)
+	base(parent)
+	this.expand = expand
+	this.x = x 
+	this.y = y
+	this.w = w
+	this.linew = lineWidth
+	this.miterlin = miterlin
+	this.cap = cap
+end constructor
+
+function PdfHlineElement.clone(parent as PdfElement ptr, page as PdfPageElement ptr) as PdfElement ptr
+	var dup = new PdfHlineElement(x, y, w, expand, linew, miterlin, cap, parent)
+	return dup
+end function
+
+function PdfHlineElement.lookupAttrib(name_ as zstring ptr, byref type_ as PdfElementAttribType) as any ptr
+	if *name_ = "w" then
+		type_ = PdfElementAttribType.TP_SINGLE
+		return @w
+	elseif *name_ = "x" then
+		type_ = PdfElementAttribType.TP_SINGLE
+		return @x
+	elseif *name_ = "y" then
+		type_ = PdfElementAttribType.TP_SINGLE
+		return @y
+	else
+		return base.lookupAttrib(name_, type_)
+	end if
+end function
+
+function PdfHlineElement.getWidth() as single
+	return w
+end function
+
+function PdfHlineElement.getHeight() as single
+	return linew
+end function
+
+sub PdfHlineElement.translate(xi as single, yi as single)
+	this.x += xi
+	this.y += yi
+	translateChildren(xi, yi)
+end sub
+
+sub PdfHlineElement.translateX(xi as single)
+	this.x += xi
+	translateXChildren(xi)
+end sub
+
+sub PdfHlineElement.translateY(yi as single)
+	this.y += yi
+	translateYChildren(yi)
+end sub
+
+function PdfHlineElement.render(doc as PdfDoc ptr, page as PdfPageElement ptr, parentObj as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
+	var width_ = w
+	select case expand
+	case PdfExpand.EX_HORZ, PdfExpand.EX_BOTH
+		var pw = parent->getWidth()
+		if pw > w then
+			width_ = pw
+		end if
+	end select
+
+	var path = buildPath(doc, FPDF_FILLMODE_NONE, linew, miterlin, 0, cap)
+	FPDFPath_MoveTo(path, x, y)
+	FPDFPath_LineTo(path, x+width_, y)
+	FPDFPath_Close(path)
+	return path
+end function
+
+'''''
+constructor PdfRectElement(x as single, y as single, w as single, h as single, expand as PdfExpand, mode as integer, lineWidth as single, miterlin as single, join as integer, cap as integer, parent as PdfElement ptr)
+	base(parent)
+	this.expand = expand
 	this.mode = mode
 	this.x = x 
 	this.y = y
@@ -905,19 +1080,35 @@ constructor PdfRectElement(x as single, y as single, w as single, h as single, m
 end constructor
 
 function PdfRectElement.clone(parent as PdfElement ptr, page as PdfPageElement ptr) as PdfElement ptr
-	var dup = new PdfRectElement(x, y, w, h, mode, linew, miterlin, join, cap, parent)
+	var dup = new PdfRectElement(x, y, w, h, expand, mode, linew, miterlin, join, cap, parent)
 	cloneChildren(dup, page)
 	return dup
 end function
 
+function PdfRectElement.lookupAttrib(name_ as zstring ptr, byref type_ as PdfElementAttribType) as any ptr
+	if *name_ = "h" then
+		type_ = PdfElementAttribType.TP_SINGLE
+		return @h
+	elseif *name_ = "w" then
+		type_ = PdfElementAttribType.TP_SINGLE
+		return @w
+	elseif *name_ = "x" then
+		type_ = PdfElementAttribType.TP_SINGLE
+		return @x
+	elseif *name_ = "y" then
+		type_ = PdfElementAttribType.TP_SINGLE
+		return @y
+	else
+		return base.lookupAttrib(name_, type_)
+	end if
+end function
+
 function PdfRectElement.getWidth() as single
-	var cw = getChildrenWidth()
-	return iif(cw > w, cw, w)
+	return w
 end function
 
 function PdfRectElement.getHeight() as single
-	var ch = getChildrenHeight()
-	return iif(ch > h, ch, h)
+	return h
 end function
 
 sub PdfRectElement.translate(xi as single, yi as single)
@@ -936,7 +1127,7 @@ sub PdfRectElement.translateY(yi as single)
 	translateYChildren(yi)
 end sub
 
-function PdfRectElement.render(doc as PdfDoc ptr, page as PdfPageElement ptr, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
+function PdfRectElement.render(doc as PdfDoc ptr, page as PdfPageElement ptr, parentObj as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
 	var path = buildPath(doc, mode, linew, miterlin, join, cap)
 	FPDFPath_MoveTo(path, x, y)
 	FPDFPath_LineTo(path, x+w, y)
@@ -947,19 +1138,31 @@ function PdfRectElement.render(doc as PdfDoc ptr, page as PdfPageElement ptr, pa
 	return path
 end function
 
-/'sub PdfRectElement.renderInsert(doc as PdfDoc ptr, page as PdfPageElement ptr, parent as FPDF_PAGEOBJECT)
+sub PdfRectElement.emit(doc as PdfDoc ptr, page as PdfPageElement ptr, parentObj as FPDF_PAGEOBJECT)
 	if hidden then
 		return
 	end if
 		
-	var obj = render(doc, page, parent)
-
-	renderChildren(doc, page, obj)
+	renderChildren(doc, page, null)
 	
+	select case expand
+	case PdfExpand.EX_HORZ
+		var cw = getChildrenWidth()
+		if cw > w then
+			w = cw
+		end if
+	case PdfExpand.EX_VERT
+		var ch = getChildrenHeight()
+		if ch > h then
+			h = ch
+		end if
+	end select
+	
+	var obj = render(doc, page, parentObj)
 	if obj <> null then
 		page->insert(obj)
 	end if
-end sub'/
+end sub
 
 '''''
 constructor PdfHighlightElement(left as single, bottom as single, right as single, top as single, parent as PdfElement ptr)
@@ -1004,28 +1207,28 @@ sub PdfHighlightElement.translateY(yi as single)
 	translateYChildren(yi)
 end sub
 
-function PdfHighlightElement.render(doc as PdfDoc ptr, page as PdfPageElement ptr, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
+function PdfHighlightElement.render(doc as PdfDoc ptr, page as PdfPageElement ptr, parentObj as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
 	highlight(left, bottom, right, top, page->getPage())
 	return null
 end function
 
 '''''
-constructor PdfTextElement(id as zstring ptr, idDict as TDict ptr, mode as FPDF_TEXT_RENDERMODE, x as single, y as single, width_ as single, align as PdfTextAlignment, text as wstring ptr, parent as PdfElement ptr)
+constructor PdfTextElement(id as zstring ptr, idDict as TDict ptr, mode as FPDF_TEXT_RENDERMODE, x as single, y as single, maxWidth as single, align as PdfTextAlignment, text as wstring ptr, parent as PdfElement ptr)
 	base(id, idDict, parent)
 	this.mode = mode
 	this.x = x
 	this.y = y
-	this.width_ = width_
+	this.maxWidth = maxWidth
 	this.align = align
 	this.text = text
 end constructor
 
-constructor PdfTextElement(mode as FPDF_TEXT_RENDERMODE, x as single, y as single, width_ as single, align as PdfTextAlignment, text as wstring ptr, parent as PdfElement ptr)
-	constructor(null, null, mode, x, y, width_, align, text, parent)
+constructor PdfTextElement(mode as FPDF_TEXT_RENDERMODE, x as single, y as single, maxWidth as single, align as PdfTextAlignment, text as wstring ptr, parent as PdfElement ptr)
+	constructor(null, null, mode, x, y, maxWidth, align, text, parent)
 end constructor
 
-constructor PdfTextElement(x as single, y as single, width_ as single, align as PdfTextAlignment, text as wstring ptr, parent as PdfElement ptr)
-	constructor(null, null, FPDF_TEXTRENDERMODE_FILL, x, y, width_, align, text, parent)
+constructor PdfTextElement(x as single, y as single, maxWidth as single, align as PdfTextAlignment, text as wstring ptr, parent as PdfElement ptr)
+	constructor(null, null, FPDF_TEXTRENDERMODE_FILL, x, y, maxWidth, align, text, parent)
 end constructor
 
 constructor PdfTextElement(x as single, y as single, text as wstring ptr, parent as PdfElement ptr)
@@ -1038,17 +1241,11 @@ function PdfTextElement.clone(parent as PdfElement ptr, page as PdfPageElement p
 		text2 = cast(wstring ptr, allocate((len(*text)+1) * len(wstring)))
 		*text2 = *text
 	end if
-	var dup = new PdfTextElement(id, page->getIdDict(), mode, x, y, width_, align, text2, parent)
+	var dup = new PdfTextElement(id, page->getIdDict(), mode, x, y, maxWidth, align, text2, parent)
 	return dup
 end function
 
 private sub calcDim(obj as FPDF_PAGEOBJECT, byref w as single, byref h as single)
-	if obj = null then
-		w = 0.0
-		h = 0.0
-		return
-	end if
-	
 	dim left_ as single = any, bottom as single = any, right_ as single = any, top as single = any
 	FPDFPageObj_GetBounds(obj, @left_, @bottom, @right_, @top)
 	w = abs(right_ - left_) + 1
@@ -1067,6 +1264,14 @@ end sub
 sub PdfTextElement.translateY(yi as single)
 	y += yi
 end sub
+
+function PdfTextElement.getHeight() as single
+	return h
+end function
+
+function PdfTextElement.getWidth() as single
+	return w
+end function
 
 function PdfTextElement.lookupAttrib(name_ as zstring ptr, byref type_ as PdfElementAttribType) as any ptr
 	if *name_ = "text" then
@@ -1089,14 +1294,12 @@ destructor PdfTextElement()
 	end if
 end destructor
 
-function PdfTextElement.render(doc as PdfDoc ptr, page as PdfPageElement ptr, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
+function PdfTextElement.render(doc as PdfDoc ptr, page as PdfPageElement ptr, parentObj as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
 	if text = null orelse len(*text) = 0 then
 		return null
 	end if
 	
 	var obj = FPDFPageObj_CreateTextObj(doc->getDoc(), doc->style.font, doc->style.size)
-
-	FPDFText_SetText(obj, text)
 
 	if mode = FPDF_TEXTRENDERMODE_FILL orelse mode = FPDF_TEXTRENDERMODE_FILL_STROKE then
 		var col = doc->style.fcolor
@@ -1114,18 +1317,20 @@ function PdfTextElement.render(doc as PdfDoc ptr, page as PdfPageElement ptr, pa
 	
 	FPDFTextObj_SetTextRenderMode(obj, mode)
 	
+	FPDFText_SetText(obj, text)
+
+	calcDim(obj, w, h)
+
 	var xpos = x
 	if align <> PdfTextAlignment.TA_LEFT then
-		dim dx as single = any, dy as single = any
-		calcDim(obj, dx, dy)
 		if align = PdfTextAlignment.TA_CENTER then
-			xpos += (width_ / 2) - (dx / 2)
+			xpos += (maxWidth / 2) - (w / 2)
 		else
-			xpos += width_ - dx
+			xpos += maxWidth - w
 		end if
 	end if
 	FPDFPageObj_Transform(obj, 1, 0, 0, 1, xpos, y)
-	
+
 	return obj
 end function
 
@@ -1167,7 +1372,7 @@ destructor PdfGroupElement()
 	end if
 end destructor
 
-function PdfGroupElement.render(doc as PdfDoc ptr, page as PdfPageElement ptr, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
+function PdfGroupElement.render(doc as PdfDoc ptr, page as PdfPageElement ptr, parentObj as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
 	return null
 end function
 
@@ -1183,7 +1388,7 @@ function PdfTemplateElement.clone(parent as PdfElement ptr, page as PdfPageEleme
 	return dup
 end function
 
-function PdfTemplateElement.render(doc as PdfDoc ptr, page as PdfPageElement ptr, parent as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
+function PdfTemplateElement.render(doc as PdfDoc ptr, page as PdfPageElement ptr, parentObj as FPDF_PAGEOBJECT) as FPDF_PAGEOBJECT
 	return null
 end function
 
@@ -1560,6 +1765,7 @@ function PdfTemplate.parseRect(parent as PdfElement ptr, page as PdfPageElement 
 	var y = getXmlAttribAsDouble("y")
 	var w = getXmlAttribAsDouble("w")
 	var h = getXmlAttribAsDouble("h")
+	var expand = cast(PdfExpand, getXmlAttribAsLong("expand"))
 	var mode = getXmlAttribAsLong("mode")
 	var linew = getXmlAttribAsDouble("linewidth")
 	var miterlin = getXmlAttribAsDouble("miterlimit")
@@ -1570,7 +1776,7 @@ function PdfTemplate.parseRect(parent as PdfElement ptr, page as PdfPageElement 
 		cap = valint(left(attrib, 1))
 	end if
 	
-	return new PdfRectElement(x, y, w, h, mode, linew, miterlin, join, cap, parent)
+	return new PdfRectElement(x, y, w, h, expand, mode, linew, miterlin, join, cap, parent)
 	
 end function
 
@@ -1580,8 +1786,9 @@ function PdfTemplate.parseFillRect(parent as PdfElement ptr, page as PdfPageElem
 	var y = getXmlAttribAsDouble("y")
 	var w = getXmlAttribAsDouble("w")
 	var h = getXmlAttribAsDouble("h")
+	var expand = cast(PdfExpand, getXmlAttribAsLong("expand"))
 	
-	return new PdfRectElement(x, y, w, h, FPDF_FILLMODE_ALTERNATE, 0, 0, 0, 0, parent)
+	return new PdfRectElement(x, y, w, h, expand, FPDF_FILLMODE_ALTERNATE, 0, 0, 0, 0, parent)
 	
 end function
 
@@ -1591,6 +1798,7 @@ function PdfTemplate.parseStrokeRect(parent as PdfElement ptr, page as PdfPageEl
 	var y = getXmlAttribAsDouble("y")
 	var w = getXmlAttribAsDouble("w")
 	var h = getXmlAttribAsDouble("h")
+	var expand = cast(PdfExpand, getXmlAttribAsLong("expand"))
 	var linew = getXmlAttribAsDouble("linewidth")
 	var miterlin = getXmlAttribAsDouble("miterlimit")
 	var join = getXmlAttribAsLong("linejoin")
@@ -1600,7 +1808,43 @@ function PdfTemplate.parseStrokeRect(parent as PdfElement ptr, page as PdfPageEl
 		cap = valint(left(attrib, 1))
 	end if
 	
-	return new PdfRectElement(x, y, w, h, FPDF_FILLMODE_NONE, linew, miterlin, join, cap, parent)
+	return new PdfRectElement(x, y, w, h, expand, FPDF_FILLMODE_NONE, linew, miterlin, join, cap, parent)
+	
+end function
+
+function PdfTemplate.parseVline(parent as PdfElement ptr, page as PdfPageElement ptr) as PdfVlineElement ptr
+	
+	var x = getXmlAttribAsDouble("x")
+	var y = getXmlAttribAsDouble("y")
+	var h = getXmlAttribAsDouble("h")
+	var expand = cast(PdfExpand, getXmlAttribAsLong("expand"))
+	var linew = getXmlAttribAsDouble("linewidth")
+	var miterlin = getXmlAttribAsDouble("miterlimit")
+	dim cap as integer = FPDF_LINECAP_BUTT
+	var attrib = getXmlAttrib("linecap")
+	if len(attrib) >= 1 then
+		cap = valint(left(attrib, 1))
+	end if
+	
+	return new PdfVlineElement(x, y, h, expand, linew, miterlin, cap, parent)
+	
+end function
+
+function PdfTemplate.parseHline(parent as PdfElement ptr, page as PdfPageElement ptr) as PdfHlineElement ptr
+	
+	var x = getXmlAttribAsDouble("x")
+	var y = getXmlAttribAsDouble("y")
+	var w = getXmlAttribAsDouble("w")
+	var expand = cast(PdfExpand, getXmlAttribAsLong("expand"))
+	var linew = getXmlAttribAsDouble("linewidth")
+	var miterlin = getXmlAttribAsDouble("miterlimit")
+	dim cap as integer = FPDF_LINECAP_BUTT
+	var attrib = getXmlAttrib("linecap")
+	if len(attrib) >= 1 then
+		cap = valint(left(attrib, 1))
+	end if
+	
+	return new PdfHlineElement(x, y, w, expand, linew, miterlin, cap, parent)
 	
 end function
 
@@ -1641,6 +1885,12 @@ end function
 
 function PdfTemplate.parseText(parent as PdfElement ptr, page as PdfPageElement ptr) as PdfTextElement ptr
 	
+	var align = PdfTextAlignment.TA_LEFT
+	''FIXME: Windows-only
+	var text = cast(ushort ptr, null)
+	var g = 0
+	var isSpan = false
+
 	var colorspace = parseColorspaceAttrib()
 	var color_ = parseColorAttrib()
 	if color_ <> null then
@@ -1651,15 +1901,23 @@ function PdfTemplate.parseText(parent as PdfElement ptr, page as PdfPageElement 
 	end if
 	var transf = parseTransformAttrib()
 	
-	dim id as string
-	dim font as string
-	var size = 0.0
-	var x = 0.0, y = 0.0, width_ = 0.0
-	var align = PdfTextAlignment.TA_LEFT
-	var mode = FPDF_TEXTRENDERMODE_FILL
-	''FIXME: Windows-only
-	var text = cast(ushort ptr, null)
-	var g = 0
+	var id = getXmlAttrib("id")
+	var font = getXmlAttrib("font")
+	var trm = getXmlAttrib("trm")
+	var size = val(left(trm, instr(trm, " ")))
+	var mode = getXmlAttribAsLong("wmode")
+	var x = getXmlAttribAsDouble("x")
+	var y = getXmlAttribAsDouble("y")
+	var maxWidth = getXmlAttribAsDouble("width")
+	var attrib = getXmlAttrib("align")
+	if len(attrib) > 0 then
+		select case attrib
+		case "center"
+			align = PdfTextAlignment.TA_CENTER
+		case "right"
+			align = PdfTextAlignment.TA_RIGHT
+		end select
+	end if
 	
 	do while xmlTextReaderRead(reader) = 1 
 		select case xmlTextReaderNodeType(reader)
@@ -1691,6 +1949,7 @@ function PdfTemplate.parseText(parent as PdfElement ptr, page as PdfPageElement 
 				end if
 				
 			case "span"
+				isSpan = true
 				id = getXmlAttrib("id")
 				font = getXmlAttrib("font")
 				var trm = getXmlAttrib("trm")
@@ -1698,7 +1957,7 @@ function PdfTemplate.parseText(parent as PdfElement ptr, page as PdfPageElement 
 				mode = getXmlAttribAsLong("wmode")
 				x = getXmlAttribAsDouble("x")
 				y = getXmlAttribAsDouble("y")
-				width_ = getXmlAttribAsDouble("width")
+				maxWidth = getXmlAttribAsDouble("width")
 				var attrib = getXmlAttrib("align")
 				if len(attrib) > 0 then
 					select case attrib
@@ -1718,6 +1977,10 @@ function PdfTemplate.parseText(parent as PdfElement ptr, page as PdfPageElement 
 					text = utf8ToUtf16le(value)
 				else
 					text = null
+				end if
+				
+				if not isSpan then
+					exit do
 				end if
 				g = 1024
 			end if
@@ -1742,7 +2005,7 @@ function PdfTemplate.parseText(parent as PdfElement ptr, page as PdfPageElement 
 		parent = new PdfTransformElement(transf, parent)
 	end if
 	
-	return new PdfTextElement(id, page->getIdDict(), mode, x, y, width_, align, text, parent)
+	return new PdfTextElement(id, page->getIdDict(), mode, x, y, maxWidth, align, text, parent)
 	
 end function
 
@@ -1807,6 +2070,10 @@ function PdfTemplate.parseObject(tag as zstring ptr, parent as PdfElement ptr, p
 		obj = parseFillRect(parent, page)
 	case "stroke_rect"
 		obj = parseStrokeRect(parent, page)
+	case "vline"
+		obj = parseVline(parent, page)
+	case "hline"
+		obj = parseHline(parent, page)
 	end select
 
 	if xmlTextReaderIsEmptyElement(reader) then
@@ -1899,7 +2166,7 @@ function PdfTemplate.load() as boolean
 end function
 
 sub PdfTemplate.renderTo(doc as PdfDoc ptr, flush_ as boolean)
-	var page = root->getHead()
+	var page = root->getFirstChild()
 	do while page <> null
 		cast(PdfPageElement ptr, page)->render(doc, index, flush_)
 		index += 1
@@ -1908,7 +2175,7 @@ sub PdfTemplate.renderTo(doc as PdfDoc ptr, flush_ as boolean)
 end sub
 
 sub PdfTemplate.flush(doc as PdfDoc ptr)
-	var page = root->getHead()
+	var page = root->getFirstChild()
 	do while page <> null
 		cast(PdfPageElement ptr, page)->flush(doc)
 		page = page->getNext()
@@ -1916,7 +2183,7 @@ sub PdfTemplate.flush(doc as PdfDoc ptr)
 end sub
 
 function PdfTemplate.clonePage(index as integer) as PdfPageElement ptr
-	var page = root->getHead()
+	var page = root->getFirstChild()
 	var cnt = 0
 	do while page <> null
 		if cnt = index then
@@ -2031,7 +2298,7 @@ function PdfTemplate.getVersion() as integer
 end function
 
 function PdfTemplate.getPage(index as integer) as PdfPageElement ptr
-	var page = root->getHead()
+	var page = root->getFirstChild()
 	var cnt = 0
 	do while page <> null
 		if cnt = index then
