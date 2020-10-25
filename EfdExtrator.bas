@@ -117,7 +117,7 @@ sub main()
 	dim opcoes as OpcoesExtracao
 	
 	if len(command(1)) = 0 then
-		FreeConsole()
+		'FreeConsole()
 		var gui = new EfdGUI()
 		gui->build()
 		gui->run()

@@ -719,7 +719,7 @@ function PdfFontElement.clone(toParent as PdfElement ptr, page as PdfPageElement
 end function
 
 operator PdfFontElement.cast() as string
-	return "{'name': 'PdfFontElement', 'props': {'id':'" & *this.id & "'}}"
+	return "{'name': 'PdfFontElement', 'props': {'id':'" & *this.id & "', 'name':'" & name_ & "', 'size':" & size & "}}"
 end operator
 
 destructor PdfFontElement()
@@ -845,7 +845,7 @@ function PdfMoveToElement.clone(toParent as PdfElement ptr, page as PdfPageEleme
 end function
 
 operator PdfMoveToElement.cast() as string
-	return "{'name': 'PdfMoveToElement', 'props': {'id':'" & *this.id & "'}}"
+	return "{'name': 'PdfMoveToElement', 'props': {'id':'" & *this.id & "', 'x':" & x & ", 'y':" & y & "}}"
 end operator
 
 sub PdfMoveToElement.translate(xi as single, yi as single)
@@ -879,7 +879,7 @@ function PdfLineToElement.clone(toParent as PdfElement ptr, page as PdfPageEleme
 end function
 
 operator PdfLineToElement.cast() as string
-	return "{'name': 'PdfLineToElement', 'props': {'id':'" & *this.id & "'}}"
+	return "{'name': 'PdfLineToElement', 'props': {'id':'" & *this.id & "', 'x':" & x & ", 'y':" & y & "}}"
 end operator
 
 sub PdfLineToElement.translate(xi as single, yi as single)
@@ -983,7 +983,7 @@ function PdfVlineElement.clone(toParent as PdfElement ptr, page as PdfPageElemen
 end function
 
 operator PdfVlineElement.cast() as string
-	return "{'name': 'PdfVlineElement', 'props': {'id':'" & *this.id & "'}}"
+	return "{'name': 'PdfVlineElement', 'props': {'id':'" & *this.id & "', 'x':" & x & ", 'y':" & y & ", 'h':" & h & "}}"
 end operator
 
 function PdfVlineElement.lookupAttrib(name_ as zstring ptr, byref type_ as PdfElementAttribType) as any ptr
@@ -1060,7 +1060,7 @@ function PdfHlineElement.clone(toParent as PdfElement ptr, page as PdfPageElemen
 end function
 
 operator PdfHlineElement.cast() as string
-	return "{'name': 'PdfHlineElement', 'props': {'id':'" & *this.id & "'}}"
+	return "{'name': 'PdfHlineElement', 'props': {'id':'" & *this.id & "', 'x':" & x & ", 'y':" & y & ", 'w':" & w & "}}"
 end operator
 
 function PdfHlineElement.lookupAttrib(name_ as zstring ptr, byref type_ as PdfElementAttribType) as any ptr
@@ -1141,7 +1141,7 @@ function PdfRectElement.clone(toParent as PdfElement ptr, page as PdfPageElement
 end function
 
 operator PdfRectElement.cast() as string
-	return "{'name': 'PdfRectElement', 'props': {'id':'" & *this.id & "'}}"
+	return "{'name': 'PdfRectElement', 'props': {'id':'" & *this.id & "', 'x':" & x & ", 'y':" & y & ", 'w':" & w & ", 'h':" & h & "}}"
 end operator
 
 function PdfRectElement.lookupAttrib(name_ as zstring ptr, byref type_ as PdfElementAttribType) as any ptr
@@ -1309,7 +1309,7 @@ function PdfTextElement.clone(toParent as PdfElement ptr, page as PdfPageElement
 end function
 
 operator PdfTextElement.cast() as string
-	return "{'name': 'PdfTextElement', 'props': {'id':'" & *this.id & "'}}"
+	return "{'name': 'PdfTextElement', 'props': {'id':'" & *this.id & "', 'x':" & x & ", 'y':" & y & ", 'align':" & align & ", 'text':'" & *text & "'}}"
 end operator
 
 private sub calcDim(obj as FPDF_PAGEOBJECT, byref w as single, byref h as single)

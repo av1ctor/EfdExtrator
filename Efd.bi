@@ -1175,10 +1175,11 @@ private:
 	declare sub setChildText(row as PdfElement ptr, id as zstring ptr, value as wstring ptr)
 	declare function gerarLinhaDFe(lg as boolean, highlight as boolean) as PdfElement ptr
 	declare function gerarLinhaAnal() as PdfElement ptr
-	declare function gerarLinhaObs(isFirst as boolean) as PdfElement ptr
+	declare function gerarLinhaObs(isFirst as boolean, parts as integer) as PdfElement ptr
 	declare function gerarLinhaObsAjuste(isFirst as boolean) as PdfElement ptr
 	declare sub criarPaginaRelatorio(emitir as boolean, isPre as boolean)
 	declare sub emitirPaginaRelatorio(emitir as boolean, isPre as boolean)
+	declare function calcObsHeight(sit as TipoSituacao, obs as TDocObs ptr, isFirst as boolean) as double
 	
 	declare sub analisarInconsistenciasLRE()
 	declare sub analisarInconsistenciasLRS()
