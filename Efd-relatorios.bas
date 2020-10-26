@@ -1720,7 +1720,7 @@ sub efd.gerarResumoRelatorio(emitir as boolean, isPre as boolean)
 
 	'' tabela de ajustes
 	scope
-		rowHeight += 3.5
+		rowHeight += iif(ultimoRelatorio = REL_LRS, 3.5, 6.0)
 		var soma = cast(RelSomatorioAjuste ptr, relSomaAjustesList->head)
 		if soma <> null then
 			if relYPos + ROW_SPACE_BEFORE + titleHeight + headerHeight + rowHeight > PAGE_BOTTOM then

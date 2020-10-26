@@ -5,7 +5,7 @@ Quando o aplicativo é executado sem passar nenhum parâmetro, será mostrada a int
 
 Recursos:
 
-    - Suporta tanto arquivos do Sped EFD, quanto do Integra
+    - Suporta tanto arquivos do Sped EFD, quanto do Sintegra
     
     - Suporta os seguintes arquivos csv gerados pelos relatórios do SAFI no Infoview BO:
         - SAFI_NFe_Destinatario
