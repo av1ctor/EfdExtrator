@@ -56,50 +56,6 @@ private sub highlight(left_ as single, bottom as single, right_ as single, top a
 end sub
 
 '''''
-destructor PdfObj
-	if obj <> null then
-		FPDFPageObj_Destroy(obj)
-	end if
-end destructor
-
-sub PdfObj.setBorder(r as ulong, g as ulong, b as ulong, a as ulong, width_ as single)
-	FPDFPageObj_SetStrokeColor(obj, r, g, b, a)
-	if width_ >= 0 then
-		FPDFPageObj_SetStrokeWidth(obj, width_)
-	end if
-end sub
-
-sub PdfObj.setBackground(r as ulong, g as ulong, b as ulong, a as ulong)
-	FPDFPageObj_SetFillColor(obj, r, g, b, a)
-end sub
-
-'''''
-constructor PdfRect(x as single, y as single, w as single, h as single)
-	obj = FPDFPageObj_CreateNewRect(x, y, w, h)
-end constructor
-
-'''''
-constructor PdfPath(x as single, y as single)
-	obj = FPDFPageObj_CreateNewPath(x, y)
-end constructor
-
-sub PdfPath.moveTo(x as single, y as single)
-	FPDFPath_MoveTo(obj, x, y)
-end sub
-
-sub PdfPath.lineTo(x as single, y as single)
-	FPDFPath_LineTo(obj, x, y)
-end sub
-
-sub PdfPath.bezierTo(x1 as single, y1 as single, x2 as single, y2 as single, x3 as single, y3 as single)
-	FPDFPath_BezierTo(obj, x1, y1, x2, y2, x3, y3)
-end sub
-
-sub PdfPath.close()
-	FPDFPath_Close(obj)
-end sub
-
-'''''
 constructor PdfFinder(handle as FPDF_SCHHANDLE)
 	this.handle = handle
 end constructor
