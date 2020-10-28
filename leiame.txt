@@ -116,7 +116,7 @@ Recursos:
          - seleciona operações de transferências interestaduais para outros estabelecimentos da empresa
             NOTA: realizada somente a seleção por CNPJ base
          - operações com destinatários incluídos no cadastro de inidôneos
-            NOTA: impossível ocorrer com a NF-e/CT-e, já que só é permitir emitir o DF-e se o destinatário estiver ativo
+            NOTA: impossível ocorrer com a NF-e/CT-e, já que só é permitido emitir o DF-e se o destinatário estiver ativo
          - seleciona operações escrituradas nos CFOP 5949/6949 (“outras saídas”)
             NOTA: selecionadas as 1000 maiores operações
          - operações de remessa para depósito fechado ou armazém geral (CFOP 5905/6905), verificando se o destinatário está regularmente inscrito como depósito fechado ou armazém geral
