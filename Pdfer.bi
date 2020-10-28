@@ -5,29 +5,6 @@
 #	include once "Dict.bi"
 #endif
 
-type PdfObj
-public:
-	declare destructor()
-	declare sub setBorder(r as ulong, g as ulong, b as ulong, a as ulong = 255, width_ as single = -1.0)
-	declare sub setBackground(r as ulong, g as ulong, b as ulong, a as ulong = 255)
-protected:
-	obj as FPDF_PAGEOBJECT
-end type
-
-type PdfRect extends PdfObj
-public:
-	declare constructor(x as single, y as single, w as single, h as single)
-end type
-
-type PdfPath extends PdfObj
-public:
-	declare constructor(x as single, y as single)
-	declare sub moveTo(x as single, y as single)
-	declare sub lineTo(x as single, y as single)
-	declare sub bezierTo(x1 as single, y1 as single, x2 as single, y2 as single, x3 as single, y3 as single)
-	declare sub close()
-end type
-
 type PdfFinderResult
 	index	as long
 	count	as long
@@ -65,16 +42,6 @@ type PdfRectCoords
 	declare function clone() as PdfRectCoords ptr
 end type
 
-type PdfRGB
-public:
-	declare constructor(r as ulong, g as ulong, b as ulong, a as ulong = 255)
-	declare function clone() as PdfRGB ptr
-	r as ulong
-	g as ulong
-	b as ulong
-	a as ulong
-end type
-
 type PdfText
 public:
 	declare constructor(text as FPDF_TEXTPAGE)
@@ -106,6 +73,16 @@ type PdfFileWriter extends FPDF_FILEWRITE
 	maxSize as ulong
 	mask as string
 	count as integer
+end type
+
+type PdfRGB
+public:
+	declare constructor(r as ulong, g as ulong, b as ulong, a as ulong = 255)
+	declare function clone() as PdfRGB ptr
+	r as ulong
+	g as ulong
+	b as ulong
+	a as ulong
 end type
 
 type PdfStyle
