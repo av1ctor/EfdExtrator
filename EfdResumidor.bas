@@ -1,10 +1,34 @@
-#include once "efd.bi"
+#include once "EfdResumidor.bi"
 #include once "ExcelWriter.bi"
 #include once "vbcompat.bi"
 #include once "DB.bi"
 #include once "Lua/lualib.bi"
 #include once "Lua/lauxlib.bi"
 #include once "trycatch.bi"
+
+''''''''
+constructor EfdResumidor(tableExp as EfdTabelaExportador ptr)
+	this.tableExp = tableExp
+end constructor
+
+''''''''
+function EfdResumidor.withDBs(db as TDb ptr) as EfdResumidor ptr
+	this.db = db
+	return @this
+end function
+
+''''''''
+function EfdResumidor.withCallbacks(onProgress as OnProgressCB, onError as OnErrorCB) as EfdResumidor ptr
+	this.onProgress = onProgress
+	this.onError = onError
+	return @this
+end function
+
+''''''''
+function EfdResumidor.withLua(lua as lua_State ptr) as EfdResumidor ptr
+	this.lua = lua
+	return @this
+end function
 
 ''''''''
 private sub resumoAddHeaderCfopLRE(ws as ExcelWorksheet ptr)
@@ -325,19 +349,13 @@ private function luacb_efd_plan_resumos_Reset cdecl(byval L as lua_State ptr) as
 end function
 
 ''''''''
-sub Efd.criarResumos() 
+sub EfdResumidor.executar(safiFornecidoMask as long) 
 
 	'' configurar lua
 	lua_register(lua, "efd_plan_resumos_AddRow", @luacb_efd_plan_resumos_AddRow)
 	lua_register(lua, "efd_plan_resumos_Reset", @luacb_efd_plan_resumos_Reset)
 	
 	luaL_dofile(lua, ExePath + "\scripts\resumos.lua")
-	
-	''
-	var safiFornecidoMask = iif(nfeDestSafiFornecido, MASK_BO_NFe_DEST_FORNECIDO, 0)
-	safiFornecidoMask or= iif(nfeEmitSafiFornecido, MASK_BO_NFe_EMIT_FORNECIDO, 0)
-	safiFornecidoMask or= iif(itemNFeSafiFornecido, MASK_BO_ITEM_NFE_FORNECIDO, 0)
-	safiFornecidoMask or= iif(cteSafiFornecido, MASK_BO_CTe_FORNECIDO, 0)
 	
 	lua_pushnumber(lua, safiFornecidoMask)
 	lua_setglobal(lua, "dfeFornecidoMask")
@@ -349,9 +367,11 @@ sub Efd.criarResumos()
 end sub
 
 ''''''''
-sub Efd.criarResumosLRE()
+sub EfdResumidor.criarResumosLRE()
 
 	onProgress(!"\tResumos das entradas", 0)
+	
+	var resumosLRE = tableExp->getPlanilha("resumos LRE")
 	
 	' CFOP
 	resumoAddHeaderCfopLRE(resumosLRE)
@@ -399,9 +419,11 @@ sub Efd.criarResumosLRE()
 end sub
 
 ''''''''
-sub Efd.criarResumosLRS()
+sub EfdResumidor.criarResumosLRS()
 	
 	onProgress(!"\tResumos das saídas", 0)
+	
+	var resumosLRS = tableExp->getPlanilha("resumos LRS")
 
 	' CFOP
 	resumoAddHeaderCfopLRS(resumosLRS)

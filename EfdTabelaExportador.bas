@@ -1,37 +1,104 @@
-#include once "efd.bi"
+#include once "EfdTabelaExportador.bi"
 #include once "vbcompat.bi"
 #include once "trycatch.bi"
 
 ''''''''
-function EFd.getPlanilha(nome as const zstring ptr) as ExcelWorksheet ptr
-		dim as ExcelWorksheet ptr plan = null
-		select case lcase(*nome)
-		case "entradas"
-			plan = entradas
-		case "saidas"
-			plan = saidas
-		case "inconsistencias LRE"
-			plan = inconsistenciasLRE
-		case "inconsistencias LRS"
-			plan = inconsistenciasLRS
-		case "resumos LRE"
-			plan = resumosLRE
-		case "resumos LRS"
-			plan = resumosLRS
-		case "ciap"
-			plan = ciap
-		case "estoque"
-			plan = estoque
-		case "producao"
-			plan = producao
-		case "inventario"
-			plan = inventario
-		end select
-		function = plan
+constructor EfdTabelaExportador(nomeArquivo as String, opcoes as OpcoesExtracao ptr)
+	this.nomeArquivo = nomeArquivo
+	this.opcoes = opcoes
+	
+	ew = new ExcelWriter
+	ew->create(nomeArquivo, opcoes->formatoDeSaida)
+
+	entradas = null
+	saidas = null
+end constructor
+
+''''''''
+destructor EfdTabelaExportador()
+	if ew <> null then
+		delete ew
+	end if
+end destructor
+
+''''''''
+function EfdTabelaExportador.withCallbacks(onProgress as OnProgressCB, onError as OnErrorCB) as EfdTabelaExportador ptr
+	this.onProgress = onProgress
+	this.onError = onError
+	return @this
 end function
 
 ''''''''
-private sub adicionarColunasComuns(sheet as ExcelWorksheet ptr, ehEntrada as Boolean, itemNFeSafiFornecido as boolean)
+function EfdTabelaExportador.withLua(lua as lua_State ptr, customLuaCbDict as TDict ptr) as EfdTabelaExportador ptr
+	this.lua = lua
+	this.customLuaCbDict = customLuaCbDict
+	return @this
+end function
+
+''''''''
+function EfdTabelaExportador.withState(itemNFeSafiFornecido as boolean) as EfdTabelaExportador ptr
+	this.itemNFeSafiFornecido = itemNFeSafiFornecido
+	return @this
+end function
+
+''''''''
+function EfdTabelaExportador.withFiltros( _
+		filtrarPorCnpj as OnFilterByStrCB, _
+		filtrarPorChave as OnFilterByStrCB _
+	) as EfdTabelaExportador ptr
+	this.filtrarPorCnpj = filtrarPorCnpj
+	this.filtrarPorChave = filtrarPorChave
+	return @this
+end function
+
+''''''''
+function EfdTabelaExportador.withDicionarios( _
+		participanteDict as TDict ptr, _
+		itemIdDict as TDict ptr, _
+		chaveDFeDict as TDict ptr, _
+		infoComplDict as TDict ptr, _
+		obsLancamentoDict as TDict ptr, _
+		bemCiapDict as TDict ptr _
+	) as EfdTabelaExportador ptr
+	this.participanteDict = participanteDict
+	this.itemIdDict = itemIdDict
+	this.chaveDFeDict = chaveDFeDict
+	this.infoComplDict = infoComplDict
+	this.obsLancamentoDict = obsLancamentoDict
+	this.bemCiapDict = bemCiapDict
+	return @this
+end function
+
+''''''''
+function EfdTabelaExportador.getPlanilha(nome as const zstring ptr) as ExcelWorksheet ptr
+		select case lcase(*nome)
+		case "entradas"
+			return entradas
+		case "saidas"
+			return saidas
+		case "inconsistencias lre"
+			return inconsistenciasLRE
+		case "inconsistencias lrs"
+			return inconsistenciasLRS
+		case "resumos lre"
+			return resumosLRE
+		case "resumos lrs"
+			return resumosLRS
+		case "ciap"
+			return ciap
+		case "estoque"
+			return estoque
+		case "producao"
+			return producao
+		case "inventario"
+			return inventario
+		case else
+			return null
+		end select
+end function
+
+''''''''
+private sub adicionarColunasComuns(sheet as ExcelWorksheet ptr, ehEntrada as Boolean)
 
 	var row = sheet->addRow(true)
 	row->addCell("CNPJ " + iif(ehEntrada, "Emitente", "Destinatario"))
@@ -393,14 +460,14 @@ private sub criarColunasRessarcST(sheet as ExcelWorksheet ptr)
 end sub
 
 ''''''''
-sub Efd.criarPlanilhas()
+sub EfdTabelaExportador.criarPlanilhas()
 	'' planilha de entradas
 	entradas = ew->AddWorksheet("Entradas")
-	adicionarColunasComuns(entradas, true, itemNFeSafiFornecido)
+	adicionarColunasComuns(entradas, true)
 
 	'' planilha de saídas
 	saidas = ew->AddWorksheet("Saidas")
-	adicionarColunasComuns(saidas, false, itemNFeSafiFornecido)
+	adicionarColunasComuns(saidas, false)
 
 	'' apuração do ICMS
 	apuracaoIcms = ew->AddWorksheet("Apuracao ICMS")
@@ -451,7 +518,7 @@ sub Efd.criarPlanilhas()
 	
 end sub
 
-function Efd.getInfoCompl(info as TDocInfoCompl ptr) as string
+function EfdTabelaExportador.getInfoCompl(info as TDocInfoCompl ptr) as string
 	var res = ""
 	
 	do while info <> null
@@ -468,7 +535,7 @@ function Efd.getInfoCompl(info as TDocInfoCompl ptr) as string
 	function = res
 end function
 
-function Efd.getObsLanc(obs as TDocObs ptr) as string
+function EfdTabelaExportador.getObsLanc(obs as TDocObs ptr) as string
 	var res = ""
 	
 	do while obs <> null
@@ -509,10 +576,10 @@ function Efd.getObsLanc(obs as TDocObs ptr) as string
 end function
 
 ''''''''
-sub Efd.gerarPlanilhas(nomeArquivo as string)
+sub EfdTabelaExportador.gerar(regListHead as TRegistro ptr, regMestre as TRegistro ptr, nroRegs as integer)
 	
 	if entradas = null then
-		criarPlanilhas
+		criarPlanilhas()
 	end if
 	
 	onProgress(!"\tGerando planilhas", 0)
@@ -529,18 +596,18 @@ sub Efd.gerarPlanilhas(nomeArquivo as string)
 				var doc = reg->itemNF.documentoPai
 				var part = cast( TParticipante ptr, participanteDict->lookup(doc->idParticipante) )
 
-				var emitirLinha = iif(doc->operacao = SAIDA, not opcoes.pularLrs, not opcoes.pularLre)
-				if opcoes.filtrarCnpj andalso emitirLinha then
+				var emitirLinha = iif(doc->operacao = SAIDA, not opcoes->pularLrs, not opcoes->pularLre)
+				if opcoes->filtrarCnpj andalso emitirLinha then
 					if part <> null then
-						emitirLinha = filtrarPorCnpj(part->cnpj)
+						emitirLinha = filtrarPorCnpj(part->cnpj, opcoes->listaCnpj())
 					end if
 				end if
 				
-				if opcoes.filtrarChaves andalso emitirLinha then
-					emitirLinha = filtrarPorChave(doc->chave)
+				if opcoes->filtrarChaves andalso emitirLinha then
+					emitirLinha = filtrarPorChave(doc->chave, opcoes->listaChaves())
 				end if
 				
-				if opcoes.somenteRessarcimentoST andalso emitirLinha then
+				if opcoes->somenteRessarcimentoST andalso emitirLinha then
 					emitirLinha = reg->itemNF.itemRessarcStListHead <> null
 				end if
 				
@@ -601,7 +668,7 @@ sub Efd.gerarPlanilhas(nomeArquivo as string)
 					'' 	     a não ser que sejam carregados os relatórios .csv do SAFI vindos do infoview
 					if reg->nf.operacao = SAIDA or (reg->nf.operacao = ENTRADA and reg->nf.nroItens = 0) or reg->tipo <> DOC_NF then
 						dim as TDFe_NFeItem ptr item = null
-						if itemNFeSafiFornecido and opcoes.acrescentarDados then
+						if itemNFeSafiFornecido and opcoes->acrescentarDados then
 							if len(reg->nf.chave) > 0 then
 								var dfe = cast( TDFe ptr, chaveDFeDict->lookup(reg->nf.chave) )
 								if dfe <> null then
@@ -612,16 +679,16 @@ sub Efd.gerarPlanilhas(nomeArquivo as string)
 
 						var part = cast( TParticipante ptr, participanteDict->lookup(reg->nf.idParticipante) )
 
-						var emitirLinhas = (opcoes.somenteRessarcimentoST = false) and _
-							iif(reg->nf.operacao = SAIDA, not opcoes.pularLrs, not opcoes.pularLre)
-						if opcoes.filtrarCnpj andalso emitirLinhas then
+						var emitirLinhas = (opcoes->somenteRessarcimentoST = false) and _
+							iif(reg->nf.operacao = SAIDA, not opcoes->pularLrs, not opcoes->pularLre)
+						if opcoes->filtrarCnpj andalso emitirLinhas then
 							if part <> null then
-								emitirLinhas = filtrarPorCnpj(part->cnpj)
+								emitirLinhas = filtrarPorCnpj(part->cnpj, opcoes->listaCnpj())
 							end if
 						end if
 
-						if opcoes.filtrarChaves andalso emitirLinhas then
-							emitirLinhas = filtrarPorChave(reg->nf.chave)
+						if opcoes->filtrarChaves andalso emitirLinhas then
+							emitirLinhas = filtrarPorChave(reg->nf.chave, opcoes->listaChaves())
 						end if
 
 						var anal = iif(item = null, reg->nf.itemAnalListHead, null)
@@ -655,7 +722,7 @@ sub Efd.gerarPlanilhas(nomeArquivo as string)
 								row->addCell(reg->nf.chave)
 								row->addCell(codSituacao2Str(reg->nf.situacao))
 
-								if ((itemNFeSafiFornecido and opcoes.acrescentarDados) or _
+								if ((itemNFeSafiFornecido and opcoes->acrescentarDados) or _
 								   cbool((reg->nf.operacao = ENTRADA) and (reg->tipo = DOC_NF))) and _
 								   cbool(item <> null) then
 									row->addCell(item->bcICMS)
@@ -734,8 +801,8 @@ sub Efd.gerarPlanilhas(nomeArquivo as string)
 					end if
 			   
 				else
-					var emitirLinha = (opcoes.somenteRessarcimentoST = false) andalso _
-						iif(reg->nf.operacao = SAIDA, not opcoes.pularLrs, not opcoes.pularLre)
+					var emitirLinha = (opcoes->somenteRessarcimentoST = false) andalso _
+						iif(reg->nf.operacao = SAIDA, not opcoes->pularLrs, not opcoes->pularLre)
 					
 					if emitirLinha then
 						var row = iif(reg->nf.operacao = SAIDA, saidas, entradas)->AddRow()
@@ -761,10 +828,10 @@ sub Efd.gerarPlanilhas(nomeArquivo as string)
 				var doc = @reg->itemRessarcSt
 				var part = cast( TParticipante ptr, participanteDict->lookup(doc->idParticipanteUlt) )
 
-				var emitirLinha = iif(reg->ct.operacao = SAIDA, not opcoes.pularLrs, not opcoes.pularLre)
-				if opcoes.filtrarCnpj andalso emitirLinha then
+				var emitirLinha = iif(reg->ct.operacao = SAIDA, not opcoes->pularLrs, not opcoes->pularLre)
+				if opcoes->filtrarCnpj andalso emitirLinha then
 					if part <> null then
-						emitirLinha = filtrarPorCnpj(part->cnpj)
+						emitirLinha = filtrarPorCnpj(part->cnpj, opcoes->listaCnpj())
 					end if
 				end if
 
@@ -810,17 +877,17 @@ sub Efd.gerarPlanilhas(nomeArquivo as string)
 				if ISREGULAR(reg->ct.situacao) then
 					var part = cast( TParticipante ptr, participanteDict->lookup(reg->ct.idParticipante) )
 
-					var emitirLinhas = (opcoes.somenteRessarcimentoST = false) and _
-						iif(reg->ct.operacao = SAIDA, not opcoes.pularLrs, not opcoes.pularLre)
+					var emitirLinhas = (opcoes->somenteRessarcimentoST = false) and _
+						iif(reg->ct.operacao = SAIDA, not opcoes->pularLrs, not opcoes->pularLre)
 					
-					if opcoes.filtrarCnpj andalso emitirLinhas then
+					if opcoes->filtrarCnpj andalso emitirLinhas then
 						if part <> null then
-							emitirLinhas = filtrarPorCnpj(part->cnpj)
+							emitirLinhas = filtrarPorCnpj(part->cnpj, opcoes->listaCnpj())
 						end if
 					end if
 
-					if opcoes.filtrarChaves andalso emitirLinhas then
-						emitirLinhas = filtrarPorChave(reg->ct.chave)
+					if opcoes->filtrarChaves andalso emitirLinhas then
+						emitirLinhas = filtrarPorChave(reg->ct.chave, opcoes->listaChaves())
 					end if
 						
 					if emitirLinhas then
@@ -907,8 +974,8 @@ sub Efd.gerarPlanilhas(nomeArquivo as string)
 					end if
 				
 				else
-					var emitirLinhas = (opcoes.somenteRessarcimentoST = false) and _
-						iif(reg->ct.operacao = SAIDA, not opcoes.pularLrs, not opcoes.pularLre)
+					var emitirLinhas = (opcoes->somenteRessarcimentoST = false) and _
+						iif(reg->ct.operacao = SAIDA, not opcoes->pularLrs, not opcoes->pularLre)
 
 					if emitirLinhas then
 						var row = iif(reg->ct.operacao = SAIDA, saidas, entradas)->AddRow()
@@ -932,18 +999,18 @@ sub Efd.gerarPlanilhas(nomeArquivo as string)
 				
 			'item de ECF?
 			case DOC_ECF_ITEM
-				if not opcoes.pularLrs then
+				if not opcoes->pularLrs then
 					var doc = reg->itemECF.documentoPai
 					if ISREGULAR(doc->situacao) then
 						'só existe cupom para saída
 						if doc->operacao = SAIDA then
-							var emitirLinha = (opcoes.somenteRessarcimentoST = false)
-							if opcoes.filtrarCnpj andalso emitirLinha then
-								emitirLinha = filtrarPorCnpj(doc->cpfCnpjAdquirente)
+							var emitirLinha = (opcoes->somenteRessarcimentoST = false)
+							if opcoes->filtrarCnpj andalso emitirLinha then
+								emitirLinha = filtrarPorCnpj(doc->cpfCnpjAdquirente, opcoes->listaCnpj())
 							end if
 
-							if opcoes.filtrarChaves andalso emitirLinha then
-								emitirLinha = filtrarPorChave(doc->chave)
+							if opcoes->filtrarChaves andalso emitirLinha then
+								emitirLinha = filtrarPorChave(doc->chave, opcoes->listaChaves())
 							end if
 							
 							if emitirLinha then
@@ -986,23 +1053,23 @@ sub Efd.gerarPlanilhas(nomeArquivo as string)
 				
 			'SAT?
 			case DOC_SAT
-				if not opcoes.pularLrs then
+				if not opcoes->pularLrs then
 					var doc = @reg->sat
 					if ISREGULAR(doc->situacao) then
 						'só existe cupom para saída
 						if doc->operacao = SAIDA then
-							var emitirLinha = (opcoes.somenteRessarcimentoST = false)
-							if opcoes.filtrarCnpj andalso emitirLinha then
-								emitirLinha = filtrarPorCnpj(doc->cpfCnpjAdquirente)
+							var emitirLinha = (opcoes->somenteRessarcimentoST = false)
+							if opcoes->filtrarCnpj andalso emitirLinha then
+								emitirLinha = filtrarPorCnpj(doc->cpfCnpjAdquirente, opcoes->listaCnpj())
 							end if
 							
-							if opcoes.filtrarChaves andalso emitirLinha then
-								emitirLinha = filtrarPorChave(doc->chave)
+							if opcoes->filtrarChaves andalso emitirLinha then
+								emitirLinha = filtrarPorChave(doc->chave, opcoes->listaChaves())
 							end if
 							
 							if emitirLinha then
 								dim as TDFe_NFeItem ptr item = null
-								if itemNFeSafiFornecido and opcoes.acrescentarDados then
+								if itemNFeSafiFornecido and opcoes->acrescentarDados then
 									var dfe = cast( TDFe ptr, chaveDFeDict->lookup(doc->chave) )
 									if dfe <> null then
 										item = dfe->nfe.itemListHead
@@ -1084,7 +1151,7 @@ sub Efd.gerarPlanilhas(nomeArquivo as string)
 				end if
 				
 			case APURACAO_ICMS_PERIODO
-				if not opcoes.pularLraicms then
+				if not opcoes->pularLraicms then
 					var row = apuracaoIcms->AddRow()
 
 					row->addCell(YyyyMmDd2Datetime(reg->apuIcms.dataIni))
@@ -1116,7 +1183,7 @@ sub Efd.gerarPlanilhas(nomeArquivo as string)
 				end if
 				
 			case APURACAO_ICMS_ST_PERIODO
-				if not opcoes.pularLraicms then
+				if not opcoes->pularLraicms then
 					var row = apuracaoIcmsST->AddRow()
 
 					row->addCell(YyyyMmDd2Datetime(reg->apuIcmsST.dataIni))
@@ -1174,7 +1241,7 @@ sub Efd.gerarPlanilhas(nomeArquivo as string)
 				row->addCell(reg->invItem.valorItemIR)
 
 			case CIAP_ITEM
-				if not opcoes.pularCiap then
+				if not opcoes->pularCiap then
 					if reg->ciapItem.docCnt = 0 then
 						var row = ciap->AddRow()
 						
@@ -1206,7 +1273,7 @@ sub Efd.gerarPlanilhas(nomeArquivo as string)
 				end if
 
 			case CIAP_ITEM_DOC
-				if not opcoes.pularCiap then
+				if not opcoes->pularCiap then
 				
 					var row = ciap->AddRow()
 					
@@ -1320,7 +1387,7 @@ sub Efd.gerarPlanilhas(nomeArquivo as string)
 
 			'item de documento do sintegra?
 			case SINTEGRA_DOCUMENTO_ITEM
-				if not opcoes.pularLrs then
+				if not opcoes->pularLrs then
 					var doc = reg->docItemSint.doc
 					
 					dim as ExcelRow ptr row 
@@ -1393,3 +1460,11 @@ sub Efd.gerarPlanilhas(nomeArquivo as string)
 	onProgress(null, 1)
 	
 end sub
+
+''''''''
+sub EfdTabelaExportador.finalizar()
+	onProgress("Gravando planilha: " + nomeArquivo, 0)
+	ew->Flush(onProgress)
+	ew->Close
+end sub
+

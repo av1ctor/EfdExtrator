@@ -1784,32 +1784,6 @@ private sub Efd.lerAssinatura(bf as bfile)
 end sub
 
 ''''''''
-function Efd.filtrarPorCnpj(cnpj as const zstring ptr) as boolean
-	
-	for i as integer = 0 to ubound(opcoes.listaCnpj)
-		if(*cnpj = opcoes.listaCnpj(i)) then
-			return true
-		end if
-	next
-	
-	function = false
-	
-end function
-
-''''''''
-function Efd.filtrarPorChave(chave as const zstring ptr) as boolean
-	
-	for i as integer = 0 to ubound(opcoes.listaChaves)
-		if(*chave = opcoes.listaChaves(i)) then
-			return true
-		end if
-	next
-	
-	function = false
-	
-end function
-
-''''''''
 function Efd.lerRegistro(bf as bfile, reg as TRegistro ptr) as Boolean
 	static as zstring * 4+1 tipo
 	

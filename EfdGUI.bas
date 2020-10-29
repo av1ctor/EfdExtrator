@@ -1,4 +1,4 @@
-﻿#include once "Efd-GUI.bi"
+﻿#include once "EfdGUI.bi"
 
 #include "icons.bas"
 
@@ -370,7 +370,7 @@ private function item_exec_action_cb(item as Ihandle ptr) as long
 	end if
 	
 	dim arquivoSaida as string =  "__efd__"
-	ext->iniciarExtracao(arquivoSaida, gui->opcoes)
+	ext->iniciar(arquivoSaida, gui->opcoes)
 
 	var errCnt = 0
 	
@@ -476,14 +476,14 @@ private function item_exec_action_cb(item as Ihandle ptr) as long
 				if not gui->opcoes.pularResumos then
 					onProgress("Resumindo")
 					IupFlush()
-					ext->criarResumos()
+					ext->resumir()
 				end if
 			end if
 		end if
 	end if
 
 	IupFlush()
-	ext->finalizarExtracao()
+	ext->finalizar()
 	
 	onProgress("Finalizado!")
 
