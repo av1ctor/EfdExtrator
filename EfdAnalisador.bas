@@ -1,11 +1,35 @@
 
-#include once "efd.bi"
+#include once "EfdAnalisador.bi"
 #include once "ExcelWriter.bi"
 #include once "vbcompat.bi"
 #include once "DB.bi"
 #include once "Lua/lualib.bi"
 #include once "Lua/lauxlib.bi"
 #include once "trycatch.bi"
+
+''''''''
+constructor EfdAnalisador(tableExp as EfdTabelaExportador ptr)
+	this.tableExp = tableExp
+end constructor
+
+''''''''
+function EfdAnalisador.withDBs(db as TDb ptr) as EfdAnalisador ptr
+	this.db = db
+	return @this
+end function
+
+''''''''
+function EfdAnalisador.withCallbacks(onProgress as OnProgressCB, onError as OnErrorCB) as EfdAnalisador ptr
+	this.onProgress = onProgress
+	this.onError = onError
+	return @this
+end function
+
+''''''''
+function EfdAnalisador.withLua(lua as lua_State ptr) as EfdAnalisador ptr
+	this.lua = lua
+	return @this
+end function
 
 ''''''''
 private sub inconsistenciaAddHeader(ws as ExcelWorksheet ptr)
@@ -34,7 +58,7 @@ private sub inconsistenciaAddHeader(ws as ExcelWorksheet ptr)
 end sub
 
 ''''''''
-private sub inconsistenciaAddRow(xrow as ExcelRow ptr, byref drow as TDataSetRow, tIncons as TipoInconsistencia, descricao as const zstring ptr)
+private sub inconsistenciaAddRow(xrow as ExcelRow ptr, byref drow as TDataSetRow, incons as TipoInconsistencia, descricao as const zstring ptr)
 	xrow->addCell(drow["chave"])
 	xrow->addCell(yyyyMmDd2Datetime(drow["dataEmit"]))
 	xrow->addCell(drow["cnpj"])
@@ -43,7 +67,7 @@ private sub inconsistenciaAddRow(xrow as ExcelRow ptr, byref drow as TDataSetRow
 	xrow->addCell(drow["serie"])
 	xrow->addCell(drow["numero"])
 	xrow->addCell(drow["valorOp"])
-	xrow->addCell(tIncons)
+	xrow->addCell(incons)
 	xrow->addCell(*descricao)
 end sub
 
@@ -65,18 +89,12 @@ private function luacb_efd_plan_inconsistencias_AddRow cdecl(byval L as lua_Stat
 end function
 
 ''''''''
-sub Efd.analisar() 
+sub EfdAnalisador.executar(safiFornecidoMask as long) 
 
 	'' configurar lua
 	lua_register(lua, "efd_plan_inconsistencias_AddRow", @luacb_efd_plan_inconsistencias_AddRow)
 	
 	luaL_dofile(lua, ExePath + "\scripts\analises.lua")
-	
-	''
-	var safiFornecidoMask = iif(nfeDestSafiFornecido, MASK_BO_NFe_DEST_FORNECIDO, 0)
-	safiFornecidoMask or= iif(nfeEmitSafiFornecido, MASK_BO_NFe_EMIT_FORNECIDO, 0)
-	safiFornecidoMask or= iif(itemNFeSafiFornecido, MASK_BO_ITEM_NFE_FORNECIDO, 0)
-	safiFornecidoMask or= iif(cteSafiFornecido, MASK_BO_CTe_FORNECIDO, 0)
 	
 	lua_pushnumber(lua, safiFornecidoMask)
 	lua_setglobal(lua, "dfeFornecidoMask")
@@ -88,8 +106,9 @@ sub Efd.analisar()
 end sub
 
 ''''''''
-sub Efd.analisarInconsistenciasLRE()
+sub EfdAnalisador.analisarInconsistenciasLRE()
 
+	var inconsistenciasLRE = tableExp->getPlanilha("inconsistencias LRE")
 	inconsistenciaAddHeader(inconsistenciasLRE)
 	
 	onProgress(!"\tInconsistências nas entradas", 0)
@@ -108,8 +127,9 @@ sub Efd.analisarInconsistenciasLRE()
 end sub
 
 ''''''''
-sub Efd.analisarInconsistenciasLRS()
+sub EfdAnalisador.analisarInconsistenciasLRS()
 	
+	var inconsistenciasLRS = tableExp->getPlanilha("inconsistencias LRS")
 	inconsistenciaAddHeader(inconsistenciasLRS)
 	
 	onProgress(!"\tInconsistências nas saídas", 0)

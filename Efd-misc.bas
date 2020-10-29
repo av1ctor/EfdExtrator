@@ -215,24 +215,6 @@ function STR2IE(ie as string) as string
 end function
 
 ''''''''
-function EFd.codMunicipio2Nome(cod as integer) as string
-	
-	var nome = cast(zstring ptr, municipDict->lookup(cod))
-	if nome <> null then
-		return *nome
-	end if
-	
-	var nomedb = dbConfig->execScalar("select Nome || ' - ' || uf nome from Municipio where Codigo = " & cod)
-	if nomedb = null then
-		return ""
-	end if
-	
-	municipDict->add(cod, nomedb)
-	
-	function = *nomedb
-end function
-
-''''''''
 function tipoItem2Str(tipo as TipoItemId) as string
 	select case as const tipo
 	case TI_Mercadoria_para_Revenda
@@ -305,6 +287,52 @@ function lerLinha(bf as bfile) as string
 	function = res
 	
 end function
+
+''''''''
+function filtrarPorCnpj(cnpj as const zstring ptr, listaCnpj() as string) as boolean
+	
+	for i as integer = 0 to ubound(listaCnpj)
+		if(*cnpj = listaCnpj(i)) then
+			return true
+		end if
+	next
+	
+	function = false
+	
+end function
+
+''''''''
+function filtrarPorChave(chave as const zstring ptr, listaChaves() as string) as boolean
+	
+	for i as integer = 0 to ubound(listaChaves)
+		if(*chave = listaChaves(i)) then
+			return true
+		end if
+	next
+	
+	function = false
+	
+end function
+
+''''''''
+function codMunicipio2Nome(cod as integer, municipDict as TDict ptr, configDb as TDb ptr) as string
+	
+	var nome = cast(zstring ptr, municipDict->lookup(cod))
+	if nome <> null then
+		return *nome
+	end if
+	
+	var nomedb = configDb->execScalar("select Nome || ' - ' || uf nome from Municipio where Codigo = " & cod)
+	if nomedb = null then
+		return ""
+	end if
+	
+	municipDict->add(cod, nomedb)
+	
+	function = *nomedb
+end function
+
+
 
 ''''''''
 sub lua_setarGlobal overload (lua as lua_State ptr, varName as const zstring ptr, value as integer)

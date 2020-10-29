@@ -1,5 +1,8 @@
 
 #include once "efd.bi"
+#include once "EfdAnalisador.bi"
+#include once "EfdResumidor.bi"
+#include once "EfdPdfExportador.bi"
 #include once "bfile.bi"
 #include once "Dict.bi"
 #include once "ExcelWriter.bi"
@@ -43,13 +46,13 @@ constructor Efd(onProgress as OnProgressCB, onError as OnErrorCB)
 	arquivos = new TList(10, len(TArquivoInfo))
 	
 	''
-	baseTemplatesDir = ExePath + "\templates\"
+	baseTemplatesDir = ExePath() + "\templates\"
 	
 	municipDict = new TDict(2^10, true, true, true)
 	
 	''
-	dbConfig = new TDb
-	dbConfig->open(ExePath + "\db\config.db")
+	configDb = new TDb
+	configDb->open(ExePath + "\db\config.db")
 	
 end constructor
 
@@ -59,8 +62,8 @@ destructor Efd()
 	descarregarDFe()
 
 	''
-	dbConfig->close()
-	delete dbConfig
+	configDb->close()
+	delete configDb
 	
 	''
 	delete municipDict
@@ -154,14 +157,9 @@ sub EFd.configurarScripting()
 end sub
 
 ''''''''
-sub Efd.iniciarExtracao(nomeArquivo as String, opcoes as OpcoesExtracao)
+sub Efd.iniciar(nomeArquivo as String, opcoes as OpcoesExtracao)
 	
 	''
-	ew = new ExcelWriter
-	ew->create(nomeArquivo, opcoes.formatoDeSaida)
-
-	entradas = null
-	saidas = null
 	nomeArquivoSaida = nomeArquivo
 	this.opcoes = opcoes
 	
@@ -171,16 +169,21 @@ sub Efd.iniciarExtracao(nomeArquivo as String, opcoes as OpcoesExtracao)
 	''
 	configurarDB()
 	
+	''
+	tableExp = (new EfdTabelaExportador(nomeArquivo, @opcoes)) _
+		->withCallbacks(onProgress, onError) _
+		->withLua(lua, customLuaCbDict) _
+		->withFiltros(@filtrarPorCnpj, @filtrarPorChave)
+	
 end sub
 
 ''''''''
-sub Efd.finalizarExtracao()
+sub Efd.finalizar()
 
 	''
-	onProgress("Gravando planilha: " + nomeArquivoSaida, 0)
-	ew->Flush(onProgress)
-	ew->Close
-	delete ew
+	if tableExp <> null then
+		tableExp->finalizar()
+	end if
    
 	''
 	fecharDb()
@@ -199,16 +202,30 @@ end sub
 function Efd.processar(nomeArquivo as string) as Boolean
    
 	if opcoes.formatoDeSaida <> FT_NULL then
-		gerarPlanilhas(nomeArquivo)
+		tableExp _
+			->withState(itemNFeSafiFornecido) _
+			->withDicionarios(participanteDict, itemIdDict, chaveDFeDict, infoComplDict, obsLancamentoDict, bemCiapDict) _
+			->gerar(regListHead, regMestre, nroRegs)
 	else
 		onProgress(null, 1)
 	end if
 	
 	if opcoes.gerarRelatorios then
 		if tipoArquivo = TIPO_ARQUIVO_EFD then
-			infAssinatura = lerInfoAssinatura(nomeArquivo, assinaturaP7K_DER())
+			var infAssinatura = lerInfoAssinatura(nomeArquivo, assinaturaP7K_DER())
 		
-			gerarRelatorios(nomeArquivo)
+			var rel = (new EfdPdfExportador(baseTemplatesDir, infAssinatura, @opcoes)) _
+				->withDBs(configDb) _
+				->withCallbacks(onProgress, onError) _
+				->withLua(lua, customLuaCbDict) _
+				->withFiltros(@filtrarPorCnpj, @filtrarPorChave) _
+				->withDicionarios(participanteDict, itemIdDict, chaveDFeDict, infoComplDict, _
+					obsLancamentoDict, bemCiapDict, contaContabDict, centroCustoDict, _
+					municipDict)
+				
+			rel->gerar(regListHead, regMestre, nroRegs)
+			
+			delete rel
 			
 			if infAssinatura <> NULL then
 				delete infAssinatura
@@ -237,6 +254,36 @@ function Efd.processar(nomeArquivo as string) as Boolean
 end function
 
 ''''''''
+function Efd.getDfeMask() as long
+	return iif(nfeDestSafiFornecido, MASK_BO_NFe_DEST_FORNECIDO, 0) or _
+		iif(nfeEmitSafiFornecido, MASK_BO_NFe_EMIT_FORNECIDO, 0) or _
+		iif(itemNFeSafiFornecido, MASK_BO_ITEM_NFE_FORNECIDO, 0) or _
+		iif(cteSafiFornecido, MASK_BO_CTe_FORNECIDO, 0)
+end function
+
+''''''''
+sub Efd.analisar() 
+	var anal = (new EfdAnalisador(tableExp)) _
+		->withDBs(db) _
+		->withCallbacks(onProgress, onError) _
+		->withLua(lua)
+	
+	anal->executar(getDfeMask())
+	delete anal
+end sub
+
+''''''''
+sub Efd.resumir() 
+	var res = (new EfdResumidor(tableExp)) _
+		->withDBs(db) _
+		->withCallbacks(onProgress, onError) _
+		->withLua(lua)
+	
+	res->executar(getDfeMask())
+	delete res
+end sub
+
+''''''''
 private function luacb_efd_plan_get cdecl(byval L as lua_State ptr) as long
 	var args = lua_gettop(L)
 	
@@ -247,50 +294,9 @@ private function luacb_efd_plan_get cdecl(byval L as lua_State ptr) as long
 	if args = 1 then
 		var planName = lua_tostring(L, 1)
 
-		var plan = g_efd->getPlanilha(planName)
+		var plan = g_efd->tableExp->getPlanilha(planName)
 		if plan <> null then
 			lua_pushlightuserdata(L, plan)
-		else
-			lua_pushnil(L)
-		end if
-	else
-		 lua_pushnil(L)
-	end if
-	
-	function = 1
-	
-end function
-
-''''''''
-static function Efd.luacb_efd_participante_get cdecl(byval L as lua_State ptr) as long
-	var args = lua_gettop(L)
-
-	lua_getglobal(L, "efd")
-	var g_efd = cast(Efd ptr, lua_touserdata(L, -1))
-	lua_pop(L, 1)
-	
-	if args = 2 then
-		var idParticipante = lua_tostring(L, 1)
-		var formatar = lua_toboolean(L, 2) <> 0
-
-		var part = cast( TParticipante ptr, g_efd->participanteDict->lookup(idParticipante) )
-		if part <> null then
-			lua_newtable(L)
-			lua_pushstring(L, "cnpj")
-			lua_pushstring(L, iif(formatar, iif(len(part->cpf) > 0, STR2CPF(part->cpf), STR2CNPJ(part->cnpj)), iif(len(part->cpf) > 0, part->cpf, part->cnpj)))
-			lua_settable(L, -3)
-			lua_pushstring(L, "ie")
-			lua_pushstring(L, iif(formatar, STR2IE(part->ie), part->ie))
-			lua_settable(L, -3)
-			lua_pushstring(L, "uf")
-			lua_pushstring(L, MUNICIPIO2SIGLA(part->municip))
-			lua_settable(L, -3)
-			lua_pushstring(L, "municip")
-			lua_pushstring(L, g_efd->codMunicipio2Nome(part->municip))
-			lua_settable(L, -3)			
-			lua_pushstring(L, "nome")
-			lua_pushstring(L, iif(formatar, left(part->nome, 64), part->nome))
-			lua_settable(L, -3)
 		else
 			lua_pushnil(L)
 		end if
@@ -336,6 +342,47 @@ private function luacb_efd_onError cdecl(L as lua_State ptr) as long
 end function
 
 ''''''''
+static function Efd.luacb_efd_participante_get cdecl(byval L as lua_State ptr) as long
+	var args = lua_gettop(L)
+
+	lua_getglobal(L, "efd")
+	var g_efd = cast(Efd ptr, lua_touserdata(L, -1))
+	lua_pop(L, 1)
+	
+	if args = 2 then
+		var idParticipante = lua_tostring(L, 1)
+		var formatar = lua_toboolean(L, 2) <> 0
+
+		var part = cast( TParticipante ptr, g_efd->participanteDict->lookup(idParticipante) )
+		if part <> null then
+			lua_newtable(L)
+			lua_pushstring(L, "cnpj")
+			lua_pushstring(L, iif(formatar, iif(len(part->cpf) > 0, STR2CPF(part->cpf), STR2CNPJ(part->cnpj)), iif(len(part->cpf) > 0, part->cpf, part->cnpj)))
+			lua_settable(L, -3)
+			lua_pushstring(L, "ie")
+			lua_pushstring(L, iif(formatar, STR2IE(part->ie), part->ie))
+			lua_settable(L, -3)
+			lua_pushstring(L, "uf")
+			lua_pushstring(L, MUNICIPIO2SIGLA(part->municip))
+			lua_settable(L, -3)
+			lua_pushstring(L, "municip")
+			lua_pushstring(L, codMunicipio2Nome(part->municip, g_efd->municipDict, g_efd->configDb))
+			lua_settable(L, -3)			
+			lua_pushstring(L, "nome")
+			lua_pushstring(L, iif(formatar, left(part->nome, 64), part->nome))
+			lua_settable(L, -3)
+		else
+			lua_pushnil(L)
+		end if
+	else
+		 lua_pushnil(L)
+	end if
+	
+	function = 1
+	
+end function
+
+''''''''
 sub Efd.exportAPI(L as lua_State ptr)
 	
 	lua_setarGlobal(L, "TI_ESCRIT_FALTA", TI_ESCRIT_FALTA)
@@ -363,8 +410,8 @@ sub Efd.exportAPI(L as lua_State ptr)
 	lua_setarGlobal(L, "efd", @this)
 	
 	lua_register(L, "efd_plan_get", @luacb_efd_plan_get)
-	lua_register(L, "efd_participante_get", @luacb_efd_participante_get)
-	lua_register(L, "efd_rel_addItemAnalitico", @luacb_efd_rel_addItemAnalitico)
+	'lua_register(L, "efd_participante_get", @luacb_efd_participante_get)
+	'lua_register(L, "efd_rel_addItemAnalitico", @luacb_efd_rel_addItemAnalitico)
 	lua_register(L, "onProgress", @luacb_efd_onProgress)
 	lua_register(L, "onError", @luacb_efd_onError)
 	

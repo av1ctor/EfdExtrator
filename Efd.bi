@@ -989,6 +989,7 @@ end type
 
 type OnProgressCB as function(estagio as const zstring ptr, porCompleto as double) as boolean
 type OnErrorCB as sub(msg as const zstring ptr)
+type OnFilterByStrCB as function(key as const zstring ptr, arr() as string) as boolean
 
 enum TipoLivro
 	TL_ENTRADAS
@@ -1035,21 +1036,24 @@ type CustomLuaCb
 	rel_outros		as zstring ptr
 end type
 
+#include once "EfdTabelaExportador.bi"
+type EfdTabelaExportador_ as EfdTabelaExportador
+
 type Efd
 public:
 	declare constructor (onProgress as OnProgressCB, onError as OnErrorCB)
 	declare destructor ()
-	declare sub iniciarExtracao(nomeArquivo as String, opcoes as OpcoesExtracao)
-	declare sub finalizarExtracao()
+	declare sub iniciar(nomeArquivo as String, opcoes as OpcoesExtracao)
+	declare sub finalizar()
 	declare function carregarTxt(nomeArquivo as String) as Boolean
 	declare function carregarCsv(nomeArquivo as String) as Boolean
 	declare function carregarXlsx(nomeArquivo as String) as Boolean
 	declare function processar(nomeArquivo as string) as Boolean
 	declare sub analisar()
-	declare sub criarResumos()
-	declare function getPlanilha(nome as const zstring ptr) as ExcelWorksheet ptr
+	declare sub resumir()
 	declare sub descarregarDFe()
 
+	tableExp				as EfdTabelaExportador_ ptr
 	onProgress 				as OnProgressCB
 	onError 				as OnErrorCB
    
@@ -1137,74 +1141,20 @@ private:
 	declare function adicionarItemEscriturado(item as TItemId ptr) as long
 	declare function adicionarMestre(reg as TMestre ptr) as long
 	
-	declare function filtrarPorCnpj(idParticipante as const zstring ptr) as boolean
-	declare function filtrarPorChave(chave as const zstring ptr) as boolean
-	declare function getInfoCompl(info as TDocInfoCompl ptr) as string
-	declare function getObsLanc(obs as TDocObs ptr) as string
-	
 	declare function addRegistroAoDB(reg as TRegistro ptr) as long
 	
-	declare sub criarPlanilhas()
-	declare sub gerarPlanilhas(nomeArquivo as string)
-	
-	declare sub gerarRelatorios(nomeArquivo as string)
-	declare sub gerarRelatorioCiap(nomeArquivo as string, reg as TRegistro ptr, isPre as boolean)
-	declare sub gerarRelatorioApuracaoICMS(nomeArquivo as string, reg as TRegistro ptr, isPre as boolean)
-	declare sub gerarAjusteTotalRelatorioApuracaoICMS(tipo as integer, total as double, isPre as boolean)
-	declare sub gerarAjusteSubTotalRelatorioApuracaoICMS(tipo as integer, codigo as string, subtotal as double, isPre as boolean)
-	declare sub gerarRelatorioApuracaoICMSST(nomeArquivo as string, reg as TRegistro ptr, isPre as boolean)
-	declare sub iniciarRelatorio(relatorio as TipoRelatorio, nomeRelatorio as string, sufixo as string, isPre as boolean)
-	declare sub adicionarDocRelatorioEntradas(doc as TDocDF ptr, part as TParticipante ptr, highlight as boolean, lg as boolean)
-	declare sub adicionarDocRelatorioSaidas(doc as TDocDF ptr, part as TParticipante ptr, highlight as boolean, lg as boolean)
-	declare sub adicionarDocRelatorioSaidas(doc as TECFReducaoZ ptr, highlight as boolean)
-	declare sub adicionarDocRelatorioSaidas(doc as TDocSAT ptr, highlight as boolean)
-	declare sub adicionarDocRelatorioItemAnal(sit as TipoSituacao, anal as TDocItemAnal ptr)
-	declare sub adicionarDocRelatorioObs(sit as TipoSituacao, obs as TDocObs ptr, isFirst as boolean)
-	declare sub adicionarDocRelatorioObsAjuste(sit as TipoSituacao, ajuste as TDocObsAjuste ptr, isFirst as boolean)
-	declare sub finalizarRelatorio(isPre as boolean)
-	declare sub relatorioSomarAnal(sit as TipoSituacao, anal as TDocItemAnal ptr, isPre as boolean)
-	declare sub relatorioSomarAjuste(sit as TipoSituacao, ajuste as TDocObsAjuste ptr)
-	declare function codMunicipio2Nome(cod as integer) as string
-	declare function gerarPaginaRelatorio(lastPage as boolean, isPre as boolean) as boolean
-	declare sub gerarResumoRelatorio(emitir as boolean, isPre as boolean)
-	declare sub gerarResumoRelatorioHeader(emitir as boolean, isPre as boolean)
-	declare sub gerarResumoAjustesRelatorioHeader(emitir as boolean, isPre as boolean)
-	declare sub setNodeText(page as PdfPageElement ptr, id as zstring ptr, value as string, convert as boolean = false)
-	declare sub setNodeText(page as PdfPageElement ptr, id as zstring ptr, value as wstring ptr)
-	declare sub setChildText(row as PdfElement ptr, id as zstring ptr, value as string, convert as boolean = false)
-	declare sub setChildText(row as PdfElement ptr, id as zstring ptr, value as wstring ptr)
-	declare function gerarLinhaDFe(lg as boolean, highlight as boolean) as PdfElement ptr
-	declare function gerarLinhaAnal() as PdfElement ptr
-	declare function gerarLinhaObs(isFirst as boolean, parts as integer) as PdfElement ptr
-	declare function gerarLinhaObsAjuste(isFirst as boolean) as PdfElement ptr
-	declare sub criarPaginaRelatorio(emitir as boolean, isPre as boolean)
-	declare sub emitirPaginaRelatorio(emitir as boolean, isPre as boolean)
-	declare function calcObsHeight(sit as TipoSituacao, obs as TDocObs ptr, isFirst as boolean) as double
-	
-	declare sub analisarInconsistenciasLRE()
-	declare sub analisarInconsistenciasLRS()
-	
-	declare sub criarResumosLRE()
-	declare sub criarResumosLRS()
-	
 	declare sub exportAPI(L as lua_State ptr)
-	declare static function luacb_efd_rel_addItemAnalitico cdecl(L as lua_State ptr) as long
 	declare static function luacb_efd_participante_get cdecl(L as lua_State ptr) as long
+	
+	declare function getDfeMask() as long
 
 	arquivos				as TList ptr 		'' de TArquivoInfo
 	tipoArquivo				as TTipoArquivo
 	
 	'' registros das EFD's e do Sintegra (reiniciados a cada novo .txt carregado)
 	regListHead         	as TRegistro ptr = null
+	regMestre				as TRegistro ptr
 	nroRegs             	as integer = 0
-	participanteDict    	as TDict ptr
-	itemIdDict          	as TDict ptr
-	bemCiapDict          	as TDict ptr
-	contaContabDict        	as TDict ptr
-	centroCustoDict        	as TDict ptr
-	infoComplDict			as TDict ptr
-	obsLancamentoDict		as TDict ptr
-	sintegraDict			as TDict ptr
 	ultimoReg   			as TRegistro ptr
 	ultimoDocNFItem  		as TDocNFItem ptr
 	ultimoEquipECF			as TEquipECF ptr
@@ -1217,28 +1167,26 @@ private:
 	ultimoCiapItemDoc		as TCiapItemDoc ptr
 	ultimoEstoque			as TEstoquePeriodo ptr
 	nroLinha				as integer
-	regMestre				as TRegistro ptr
+	assinaturaP7K_DER(any) 	as byte
 
-	'' planilhas que serão geradas (mantidos do início ao fim da extração)
-	ew                  	as ExcelWriter ptr
-	entradas            	as ExcelWorksheet ptr
-	saidas              	as ExcelWorksheet ptr
-	apuracaoIcms			as ExcelWorksheet ptr
-	apuracaoIcmsST			as ExcelWorksheet ptr
-	inventario				as ExcelWorksheet ptr
-	ciap					as ExcelWorksheet ptr
-	estoque					as ExcelWorksheet ptr
-	producao				as ExcelWorksheet ptr
-	ressarcST				as ExcelWorksheet ptr
-	inconsistenciasLRE		as ExcelWorksheet ptr
-	inconsistenciasLRS		as ExcelWorksheet ptr
-	resumosLRE				as ExcelWorksheet ptr
-	resumosLRS				as ExcelWorksheet ptr
+	'' dicionários
+	participanteDict    	as TDict ptr
+	itemIdDict          	as TDict ptr
+	bemCiapDict          	as TDict ptr
+	contaContabDict        	as TDict ptr
+	centroCustoDict        	as TDict ptr
+	infoComplDict			as TDict ptr
+	obsLancamentoDict		as TDict ptr
+	sintegraDict			as TDict ptr
+	municipDict				as TDict ptr
+	chaveDFeDict			as TDict ptr
+	
+	''
 	nomeArquivoSaida		as string
 	opcoes					as OpcoesExtracao
+	baseTemplatesDir		as string
 
 	'' registros das NF-e's e CT-e's retirados dos relatórios do Infoview (mantidos do início ao fim da extração)
-	chaveDFeDict			as TDict ptr
 	dfeListHead				as TDFe ptr = null
 	dfeListTail				as TDFe ptr = null
 	nroDfe					as integer = 0
@@ -1250,7 +1198,7 @@ private:
 	cteSafiFornecido		as boolean
 	
 	'' base de dados de configuração
-	dbConfig				as TDb ptr
+	configDb				as TDb ptr
 	
 	'' base de dados temporária usadada para análises e cruzamentos
 	db						as TDb ptr
@@ -1265,34 +1213,13 @@ private:
 	db_itensIdInsertStmt 	as TDbStmt ptr
 	db_mestreInsertStmt 	as TDbStmt ptr
 	
-	'' geração de relatórios em formato PDF com o layout do programa EFD-ICMS-IPI da RFB
-	baseTemplatesDir		as string
-	ultimoRelatorio			as TipoRelatorio
-	ultimoRelatorioSufixo	as string
-	relSomaAnalDict			as TDict ptr
-	relSomaAnalList			as TList ptr		'' de RelSomatorioAnal
-	relSomaAjustesDict		as TDict ptr
-	relSomaAjustesList		as TList ptr		'' de RelSomatorioAjuste
-	nroRegistrosRel			as integer
-	municipDict				as TDict ptr
-	relLinhasList			as TList ptr		'' de RelLinha
-	relNroLinhas			as double
-	relYPos					as double
-	relNroPaginas			as integer
-	relNroTotalPaginas		as integer
-	relTemplate				as PdfTemplate ptr
-	relPage					as PdfPageElement ptr
-	relOutFile 				as PdfDoc ptr
-	
-	''
-	assinaturaP7K_DER(any)	as byte
-	infAssinatura			as InfoAssinatura ptr
-	
 	'' scripting
 	lua						as lua_State ptr
 	customLuaCbDict			as TDict ptr		'' de CustomLuaCb
 end type
 
+declare function filtrarPorCnpj(idParticipante as const zstring ptr, listaCnpj() as string) as boolean
+declare function filtrarPorChave(chave as const zstring ptr, listaChaves() as string) as boolean
 
 ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
@@ -1315,6 +1242,7 @@ declare function YyyyMmDd2DatetimeBR(s as const zstring ptr) as string
 declare function STR2IE(ie as string) as string
 declare function tipoItem2Str(tipo as TipoItemId) as string
 declare function UF_SIGLA2COD(s as zstring ptr) as integer
+declare function codMunicipio2Nome(cod as integer, municipDict as TDict ptr, configDb as TDb ptr) as string
 declare sub pularLinha(bf as bfile)
 declare function lerLinha(bf as bfile) as string
 declare sub lua_setarGlobal overload (lua as lua_State ptr, varName as const zstring ptr, value as integer)
@@ -1325,3 +1253,4 @@ extern as TDict ptr ufSigla2CodDict
 extern as string codSituacao2Str(0 to __TipoSituacao__LEN__-1)
 
 #include once "strings.bi"
+
