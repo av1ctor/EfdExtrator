@@ -7,6 +7,8 @@
 #include once "Lua/lualib.bi"
 #include once "PDFer.bi"
 
+#undef imp
+
 enum TTipoArquivo
 	TIPO_ARQUIVO_EFD
 	TIPO_ARQUIVO_SINTEGRA
@@ -1036,8 +1038,11 @@ type CustomLuaCb
 	rel_outros		as zstring ptr
 end type
 
-#include once "EfdTabelaExportador.bi"
-type EfdTabelaExportador_ as EfdTabelaExportador
+#include once "EfdTabelaExport.bi"
+type EfdTabelaExport_ as EfdTabelaExport
+
+#include once "EfdBaseImport.bi"
+type EfdBaseImport_ as EfdBaseImport
 
 type Efd
 public:
@@ -1045,15 +1050,15 @@ public:
 	declare destructor ()
 	declare sub iniciar(nomeArquivo as String, opcoes as OpcoesExtracao)
 	declare sub finalizar()
-	declare function carregarTxt(nomeArquivo as String) as Boolean
+	declare function carregarTxt(nomeArquivo as String) as EfdBaseImport_ ptr
 	declare function carregarCsv(nomeArquivo as String) as Boolean
 	declare function carregarXlsx(nomeArquivo as String) as Boolean
-	declare function processar(nomeArquivo as string) as Boolean
+	declare function processar(imp as EfdBaseImport_ ptr, nomeArquivo as string) as Boolean
 	declare sub analisar()
 	declare sub resumir()
 	declare sub descarregarDFe()
 
-	tableExp				as EfdTabelaExportador_ ptr
+	exp						as EfdTabelaExport_ ptr
 	onProgress 				as OnProgressCB
 	onError 				as OnErrorCB
    
@@ -1061,59 +1066,6 @@ private:
 	declare sub configurarDB()
 	declare sub fecharDb()
 	declare sub configurarScripting()
-	
-	declare function lerRegistro(bf as bfile, reg as TRegistro ptr) as Boolean
-	declare function lerRegistroSintegra(bf as bfile, reg as TRegistro ptr) as Boolean
-	declare function lerTipo(bf as bfile, tipo as zstring ptr) as TipoRegistro
-	declare function lerRegMestre(bf as bfile, reg as TRegistro ptr) as Boolean
-	declare function lerRegParticipante(bf as bfile, reg as TRegistro ptr) as Boolean
-	declare function lerRegDocNF(bf as bfile, reg as TRegistro ptr) as Boolean
-	declare function lerRegDocNFInfo(bf as bfile, reg as TRegistro ptr, pai as TDocNF ptr) as Boolean
-	declare function lerRegDocNFItem(bf as bfile, reg as TRegistro ptr, documentoPai as TDocNF ptr) as Boolean
-	declare function lerRegDocNFItemAnal(bf as bfile, reg as TRegistro ptr, documentoPai as TRegistro ptr) as Boolean
-	declare function lerRegDocNFItemRessarcSt(bf as bfile, reg as TRegistro ptr, documentoPai as TDocNFItem ptr) as Boolean
-	declare function lerRegDocNFDifal(bf as bfile, reg as TRegistro ptr, documentoPai as TDocNF ptr) as Boolean
-	declare function lerRegDocCT(bf as bfile, reg as TRegistro ptr) as Boolean
-	declare function lerRegDocCTItemAnal(bf as bfile, reg as TRegistro ptr, docPai as TRegistro ptr) as Boolean
-	declare function lerRegDocCTDifal(bf as bfile, reg as TRegistro ptr, docPai as TDocCT ptr) as Boolean
-	declare function lerRegEquipECF(bf as bfile, reg as TRegistro ptr) as Boolean
-	declare function lerRegDocECF(bf as bfile, reg as TRegistro ptr, equipECF as TEquipECF ptr) as Boolean
-	declare function lerRegECFReducaoZ(bf as bfile, reg as TRegistro ptr, equipECF as TEquipECF ptr) as Boolean
-	declare function lerRegDocECFItem(bf as bfile, reg as TRegistro ptr, documentoPai as TDocECF ptr) as Boolean
-	declare function lerRegDocECFItemAnal(bf as bfile, reg as TRegistro ptr, documentoPai as TRegistro ptr) as Boolean
-	declare function lerRegDocSAT(bf as bfile, reg as TRegistro ptr) as Boolean
-	declare function lerRegDocSATItemAnal(bf as bfile, reg as TRegistro ptr, documentoPai as TRegistro ptr) as Boolean
-	declare function lerRegDocNFSCT(bf as bfile, reg as TRegistro ptr) as Boolean
-	declare function lerRegDocNFSCTItemAnal(bf as bfile, reg as TRegistro ptr, documentoPai as TRegistro ptr) as Boolean
-	declare function lerRegDocNFElet(bf as bfile, reg as TRegistro ptr) as Boolean
-	declare function lerRegDocNFEletItemAnal(bf as bfile, reg as TRegistro ptr, documentoPai as TRegistro ptr) as Boolean
-	declare function lerRegDocObs(bf as bfile, reg as TRegistro ptr) as Boolean
-	declare function lerRegDocObsAjuste(bf as bfile, reg as TRegistro ptr) as Boolean
-	declare function lerRegItemId(bf as bfile, reg as TRegistro ptr) as Boolean
-	declare function lerRegBemCiap(bf as bfile, reg as TRegistro ptr) as Boolean
-	declare function lerRegBemCiapInfo(bf as bfile, reg as TBemCiap ptr) as Boolean
-	declare function lerRegContaContab(bf as bfile, reg as TRegistro ptr) as Boolean
-	declare function lerRegCentroCusto(bf as bfile, reg as TRegistro ptr) as Boolean
-	declare function lerRegInfoCompl(bf as bfile, reg as TRegistro ptr) as Boolean
-	declare function lerRegObsLancamento(bf as bfile, reg as TRegistro ptr) as Boolean
-	declare function lerRegApuIcmsPeriodo(bf as bfile, reg as TRegistro ptr) as Boolean
-	declare function lerRegApuIcmsProprio(bf as bfile, reg as TRegistro ptr) as Boolean
-	declare function lerRegApuIcmsAjuste(bf as bfile, reg as TRegistro ptr, pai as TApuracaoIcmsPeriodo ptr) as Boolean
-	declare function lerRegApuIcmsSTPeriodo(bf as bfile, reg as TRegistro ptr) as Boolean
-	declare function lerRegApuIcmsST(bf as bfile, reg as TRegistro ptr) as Boolean
-	declare function lerRegInventarioTotais(bf as bfile, reg as TRegistro ptr) as Boolean
-	declare function lerRegInventarioItem(bf as bfile, reg as TRegistro ptr, inventarioPai as TInventarioTotais ptr) as Boolean
-	declare function lerRegCiapTotal(bf as bfile, reg as TRegistro ptr) as Boolean
-	declare function lerRegCiapItem(bf as bfile, reg as TRegistro ptr, pai as TCiapTotal ptr) as Boolean
-	declare function lerRegCiapItemDoc(bf as bfile, reg as TRegistro ptr, pai as TCiapItem ptr) as Boolean
-	declare function lerRegCiapItemDocItem(bf as bfile, reg as TRegistro ptr, pai as TCiapItemDoc ptr) as Boolean
-	declare function lerRegEstoquePeriodo(bf as bfile, reg as TRegistro ptr) as Boolean
-	declare function lerRegEstoqueItem(bf as bfile, reg as TRegistro ptr, pai as TEstoquePeriodo ptr) as Boolean
-	declare function lerRegEstoqueOrdemProd(bf as bfile, reg as TRegistro ptr, pai as TEstoquePeriodo ptr) as Boolean
-	declare sub lerAssinatura(bf as bfile)
-	declare function lerInfoAssinatura(nomeArquivo as string, assinaturaP7K_DER() as byte) as InfoAssinatura ptr
-	
-	declare function carregarSintegra(bf as bfile) as Boolean
 	
 	declare function carregarCsvNFeDestSAFI(bf as bfile, emModoOutrasUFs as boolean) as TDFe ptr
 	declare function carregarCsvNFeEmitSAFI(bf as bfile) as TDFe ptr
@@ -1132,52 +1084,13 @@ private:
 	declare function adicionarDFe(dfe as TDFe ptr, fazerInsert as boolean = true) as long
 	declare function adicionarItemDFe(chave as const zstring ptr, item as TDFe_NFeItem ptr) as long
 	declare function adicionarEfdDfe(chave as zstring ptr, operacao as TipoOperacao, dataEmi as zstring ptr, valorOperacao as double) as long
-	declare function adicionarDocEscriturado(doc as TDocDF ptr) as long
-	declare function adicionarDocEscriturado(doc as TDocECF ptr) as long
-	declare function adicionarDocEscriturado(doc as TDocSAT ptr) as long
-	declare function adicionarItemNFEscriturado(item as TDocNFItem ptr) as long
-	declare function adicionarAnalEscriturado(item as TDocItemAnal ptr) as long
-	declare function adicionarRessarcStEscriturado(doc as TDocNFItemRessarcSt ptr) as long
-	declare function adicionarItemEscriturado(item as TItemId ptr) as long
-	declare function adicionarMestre(reg as TMestre ptr) as long
-	
-	declare function addRegistroAoDB(reg as TRegistro ptr) as long
 	
 	declare sub exportAPI(L as lua_State ptr)
 	declare static function luacb_efd_participante_get cdecl(L as lua_State ptr) as long
 	
 	declare function getDfeMask() as long
 
-	arquivos				as TList ptr 		'' de TArquivoInfo
-	tipoArquivo				as TTipoArquivo
-	
-	'' registros das EFD's e do Sintegra (reiniciados a cada novo .txt carregado)
-	regListHead         	as TRegistro ptr = null
-	regMestre				as TRegistro ptr
-	nroRegs             	as integer = 0
-	ultimoReg   			as TRegistro ptr
-	ultimoDocNFItem  		as TDocNFItem ptr
-	ultimoEquipECF			as TEquipECF ptr
-	ultimoECFRedZ			as TRegistro ptr
-	ultimoDocObs			as TDocObs ptr
-	ultimoInventario		as TInventarioTotais ptr
-	ultimoBemCiap			as TBemCiap ptr
-	ultimoCiap				as TCiapTotal ptr
-	ultimoCiapItem			as TCiapItem ptr
-	ultimoCiapItemDoc		as TCiapItemDoc ptr
-	ultimoEstoque			as TEstoquePeriodo ptr
-	nroLinha				as integer
-	assinaturaP7K_DER(any) 	as byte
-
 	'' dicionários
-	participanteDict    	as TDict ptr
-	itemIdDict          	as TDict ptr
-	bemCiapDict          	as TDict ptr
-	contaContabDict        	as TDict ptr
-	centroCustoDict        	as TDict ptr
-	infoComplDict			as TDict ptr
-	obsLancamentoDict		as TDict ptr
-	sintegraDict			as TDict ptr
 	municipDict				as TDict ptr
 	chaveDFeDict			as TDict ptr
 	
@@ -1218,9 +1131,6 @@ private:
 	customLuaCbDict			as TDict ptr		'' de CustomLuaCb
 end type
 
-declare function filtrarPorCnpj(idParticipante as const zstring ptr, listaCnpj() as string) as boolean
-declare function filtrarPorChave(chave as const zstring ptr, listaChaves() as string) as boolean
-
 ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
 #define DdMmYyyy2Yyyy_Mm(s) (mid(s,1,4) + "-" + mid(s,5,2))
@@ -1247,6 +1157,8 @@ declare sub pularLinha(bf as bfile)
 declare function lerLinha(bf as bfile) as string
 declare sub lua_setarGlobal overload (lua as lua_State ptr, varName as const zstring ptr, value as integer)
 declare sub lua_setarGlobal overload (lua as lua_State ptr, varName as const zstring ptr, value as any ptr)
+declare function filtrarPorCnpj(idParticipante as const zstring ptr, listaCnpj() as string) as boolean
+declare function filtrarPorChave(chave as const zstring ptr, listaChaves() as string) as boolean
 
 extern as string ufCod2Sigla(11 to 53)
 extern as TDict ptr ufSigla2CodDict

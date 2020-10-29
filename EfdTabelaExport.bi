@@ -1,14 +1,14 @@
 #include once "Efd.bi"
 #include once "ExcelWriter.bi"
 
-type EfdTabelaExportador
+type EfdTabelaExport
 public:
 	declare constructor(nomeArquivo as String, opcoes as OpcoesExtracao ptr)
-	declare function withCallbacks(onProgress as OnProgressCB, onError as OnErrorCB) as EfdTabelaExportador ptr
-	declare function withLua(lua as lua_State ptr, customLuaCbDict as TDict ptr) as EfdTabelaExportador ptr
-	declare function withState(itemNFeSafiFornecido as boolean) as EfdTabelaExportador ptr
-	declare function withDicionarios(participanteDict as TDict ptr, itemIdDict as TDict ptr, chaveDFeDict as TDict ptr, infoComplDict as TDict ptr, obsLancamentoDict as TDict ptr, bemCiapDict as TDict ptr) as EfdTabelaExportador ptr
-	declare function withFiltros(filtrarPorCnpj as OnFilterByStrCB, filtrarPorChave as OnFilterByStrCB) as EfdTabelaExportador ptr
+	declare function withCallbacks(onProgress as OnProgressCB, onError as OnErrorCB) as EfdTabelaExport ptr
+	declare function withLua(lua as lua_State ptr, customLuaCbDict as TDict ptr) as EfdTabelaExport ptr
+	declare function withState(itemNFeSafiFornecido as boolean) as EfdTabelaExport ptr
+	declare function withDicionarios(participanteDict as TDict ptr, itemIdDict as TDict ptr, chaveDFeDict as TDict ptr, infoComplDict as TDict ptr, obsLancamentoDict as TDict ptr, bemCiapDict as TDict ptr) as EfdTabelaExport ptr
+	declare function withFiltros(filtrarPorCnpj as OnFilterByStrCB, filtrarPorChave as OnFilterByStrCB) as EfdTabelaExport ptr
 	declare destructor()
 	declare function getPlanilha(nome as const zstring ptr) as ExcelWorksheet ptr
 	declare sub gerar(regListHead as TRegistro ptr, regMestre as TRegistro ptr, nroRegs as integer)

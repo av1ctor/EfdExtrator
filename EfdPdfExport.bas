@@ -1,4 +1,4 @@
-#include once "EfdPdfExportador.bi"
+#include once "EfdPdfExport.bi"
 #include once "Dict.bi"
 #include once "vbcompat.bi"
 #include once "DB.bi"
@@ -85,48 +85,48 @@ end type
 	}
 
 ''''''''
-constructor EfdPdfExportador(baseTemplatesDir as string, infAssinatura as InfoAssinatura ptr, opcoes as OpcoesExtracao ptr)
+constructor EfdPdfExport(baseTemplatesDir as string, infAssinatura as InfoAssinatura ptr, opcoes as OpcoesExtracao ptr)
 	this.baseTemplatesDir = baseTemplatesDir
 	this.infAssinatura = infAssinatura
 	this.opcoes = opcoes
 end constructor
 
 ''''''''
-destructor EfdPdfExportador()
+destructor EfdPdfExport()
 end destructor
 
 ''''''''
-function EfdPdfExportador.withDBs(configDb as TDb ptr) as EfdPdfExportador ptr
+function EfdPdfExport.withDBs(configDb as TDb ptr) as EfdPdfExport ptr
 	this.configDb = configDb
 	return @this
 end function
 
 ''''''''
-function EfdPdfExportador.withCallbacks(onProgress as OnProgressCB, onError as OnErrorCB) as EfdPdfExportador ptr
+function EfdPdfExport.withCallbacks(onProgress as OnProgressCB, onError as OnErrorCB) as EfdPdfExport ptr
 	this.onProgress = onProgress
 	this.onError = onError
 	return @this
 end function
 
 ''''''''
-function EfdPdfExportador.withLua(lua as lua_State ptr, customLuaCbDict as TDict ptr) as EfdPdfExportador ptr
+function EfdPdfExport.withLua(lua as lua_State ptr, customLuaCbDict as TDict ptr) as EfdPdfExport ptr
 	this.lua = lua
 	this.customLuaCbDict = customLuaCbDict
 	return @this
 end function
 
 ''''''''
-function EfdPdfExportador.withFiltros( _
+function EfdPdfExport.withFiltros( _
 		filtrarPorCnpj as OnFilterByStrCB, _
 		filtrarPorChave as OnFilterByStrCB _
-	) as EfdPdfExportador ptr
+	) as EfdPdfExport ptr
 	this.filtrarPorCnpj = filtrarPorCnpj
 	this.filtrarPorChave = filtrarPorChave
 	return @this
 end function
 
 ''''''''
-function EfdPdfExportador.withDicionarios( _
+function EfdPdfExport.withDicionarios( _
 		participanteDict as TDict ptr, _
 		itemIdDict as TDict ptr, _
 		chaveDFeDict as TDict ptr, _
@@ -136,7 +136,7 @@ function EfdPdfExportador.withDicionarios( _
 		contaContabDict as TDict ptr, _
 		centroCustoDict as TDict ptr, _
 		municipDict as TDict ptr _
-	) as EfdPdfExportador ptr
+	) as EfdPdfExport ptr
 	this.participanteDict = participanteDict
 	this.itemIdDict = itemIdDict
 	this.chaveDFeDict = chaveDFeDict
@@ -322,7 +322,7 @@ end function
 #endmacro
 
 ''''''''
-sub EfdPdfExportador.gerar(regListHead as TRegistro ptr, regMestre as TRegistro ptr, nroRegs as integer)
+sub EfdPdfExport.gerar(regListHead as TRegistro ptr, regMestre as TRegistro ptr, nroRegs as integer)
 	
 	if opcoes->somenteRessarcimentoST then
 		onError(!"\tNão será possivel gerar relatórios porque só foram extraídos os registros com ressarcimento ST")
@@ -582,7 +582,7 @@ sub EfdPdfExportador.gerar(regListHead as TRegistro ptr, regMestre as TRegistro 
 end sub
 
 ''''''''
-sub EfdPdfExportador.iniciarRelatorio(relatorio as TipoRelatorio, nomeRelatorio as string, sufixo as string, isPre as boolean)
+sub EfdPdfExport.iniciarRelatorio(relatorio as TipoRelatorio, nomeRelatorio as string, sufixo as string, isPre as boolean)
 
 	if ultimoRelatorio = relatorio then
 		return
@@ -650,7 +650,7 @@ sub EfdPdfExportador.iniciarRelatorio(relatorio as TipoRelatorio, nomeRelatorio 
 end sub
 
 ''''''''
-sub EfdPdfExportador.criarPaginaRelatorio(emitir as boolean, isPre as boolean)
+sub EfdPdfExport.criarPaginaRelatorio(emitir as boolean, isPre as boolean)
 	
 	if not isPre then
 		if emitir then
@@ -671,7 +671,7 @@ sub EfdPdfExportador.criarPaginaRelatorio(emitir as boolean, isPre as boolean)
 	
 end sub
 
-sub EfdPdfExportador.emitirPaginaRelatorio(emitir as boolean, isPre as boolean)
+sub EfdPdfExport.emitirPaginaRelatorio(emitir as boolean, isPre as boolean)
 	if not isPre then
 		if emitir then
 			if relPage <> null then
@@ -688,7 +688,7 @@ sub EfdPdfExportador.emitirPaginaRelatorio(emitir as boolean, isPre as boolean)
 end sub
 
 ''''''''
-function EfdPdfExportador.gerarPaginaRelatorio(isLast as boolean, isPre as boolean) as boolean
+function EfdPdfExport.gerarPaginaRelatorio(isLast as boolean, isPre as boolean) as boolean
 
 	var gerar_ = true
 	
@@ -820,7 +820,7 @@ private function movToDesc(mov as string) as string
 end function
 
 ''''''''
-sub EfdPdfExportador.setChildText(elm as PdfElement ptr, id as zstring ptr, value as wstring ptr)
+sub EfdPdfExport.setChildText(elm as PdfElement ptr, id as zstring ptr, value as wstring ptr)
 	if value <> null andalso len(*value) > 0 then
 		var node = elm->getChild(id)
 		node->setAttrib("text", value)
@@ -828,7 +828,7 @@ sub EfdPdfExportador.setChildText(elm as PdfElement ptr, id as zstring ptr, valu
 end sub
 
 ''''''''
-sub EfdPdfExportador.setChildText(elm as PdfElement ptr, id as zstring ptr, value as string, convert as boolean)
+sub EfdPdfExport.setChildText(elm as PdfElement ptr, id as zstring ptr, value as string, convert as boolean)
 	if len(value) > 0 then
 		var node = elm->getChild(id)
 		if not convert then
@@ -844,7 +844,7 @@ sub EfdPdfExportador.setChildText(elm as PdfElement ptr, id as zstring ptr, valu
 end sub
 
 ''''''''
-sub EfdPdfExportador.setNodeText(page as PdfPageElement ptr, id as zstring ptr, value as wstring ptr)
+sub EfdPdfExport.setNodeText(page as PdfPageElement ptr, id as zstring ptr, value as wstring ptr)
 	if value <> null andalso len(*value) > 0 then
 		var node = page->getNode(id)
 		node->setAttrib("text", value)
@@ -852,7 +852,7 @@ sub EfdPdfExportador.setNodeText(page as PdfPageElement ptr, id as zstring ptr, 
 end sub
 
 ''''''''
-sub EfdPdfExportador.setNodeText(page as PdfPageElement ptr, id as zstring ptr, value as string, convert as boolean)
+sub EfdPdfExport.setNodeText(page as PdfPageElement ptr, id as zstring ptr, value as string, convert as boolean)
 	if len(value) > 0 then
 		var node = page->getNode(id)
 		if not convert then
@@ -868,7 +868,7 @@ sub EfdPdfExportador.setNodeText(page as PdfPageElement ptr, id as zstring ptr, 
 end sub
 
 ''''''''
-sub EfdPdfExportador.gerarRelatorioCiap(reg as TRegistro ptr, isPre as boolean)
+sub EfdPdfExport.gerarRelatorioCiap(reg as TRegistro ptr, isPre as boolean)
 
 	iniciarRelatorio(REL_CIAP, "ciap", "CIAP", isPre)
 	
@@ -1039,7 +1039,7 @@ sub EfdPdfExportador.gerarRelatorioCiap(reg as TRegistro ptr, isPre as boolean)
 end sub
 
 ''''''''
-sub EfdPdfExportador.gerarAjusteTotalRelatorioApuracaoICMS(tipo as integer, total as double, isPre as boolean)
+sub EfdPdfExport.gerarAjusteTotalRelatorioApuracaoICMS(tipo as integer, total as double, isPre as boolean)
 	if relYpos + LRAICMS_AJ_TOTAL_HEIGHT > LRAICMS_PAGE_BOTTOM then
 		criarPaginaRelatorio(true, isPre)
 	end if
@@ -1057,7 +1057,7 @@ sub EfdPdfExportador.gerarAjusteTotalRelatorioApuracaoICMS(tipo as integer, tota
 end sub
 
 ''''''''
-sub EfdPdfExportador.gerarAjusteSubTotalRelatorioApuracaoICMS(tipo as integer, codigo as string, subtotal as double, isPre as boolean)
+sub EfdPdfExport.gerarAjusteSubTotalRelatorioApuracaoICMS(tipo as integer, codigo as string, subtotal as double, isPre as boolean)
 	'' subtotal
 	if relYpos + LRAICMS_AJ_SUBTOTAL_HEIGHT > LRAICMS_PAGE_BOTTOM then
 		criarPaginaRelatorio(true, isPre)
@@ -1080,7 +1080,7 @@ private function ajusteApuracaoCmpCb(key as zstring ptr, node as any ptr) as boo
 end function
 
 ''''''''
-sub EfdPdfExportador.gerarRelatorioApuracaoICMS(reg as TRegistro ptr, isPre as boolean)
+sub EfdPdfExport.gerarRelatorioApuracaoICMS(reg as TRegistro ptr, isPre as boolean)
 
 	iniciarRelatorio(REL_RAICMS, "apuracao_icms", "RAICMS", isPre)
 	if isPre then
@@ -1262,7 +1262,7 @@ sub EfdPdfExportador.gerarRelatorioApuracaoICMS(reg as TRegistro ptr, isPre as b
 end sub
 
 ''''''''
-sub EfdPdfExportador.gerarRelatorioApuracaoICMSST(reg as TRegistro ptr, isPre as boolean)
+sub EfdPdfExport.gerarRelatorioApuracaoICMSST(reg as TRegistro ptr, isPre as boolean)
 
 	iniciarRelatorio(REL_RAICMSST, "apuracao_icms_st", "RAICMSST_" + reg->apuIcmsST.UF, isPre)
 	if isPre then
@@ -1297,7 +1297,7 @@ sub EfdPdfExportador.gerarRelatorioApuracaoICMSST(reg as TRegistro ptr, isPre as
 end sub
 
 ''''''''
-function EfdPdfExportador.gerarLinhaDFe(lg as boolean, highlight as boolean) as PdfElement ptr
+function EfdPdfExport.gerarLinhaDFe(lg as boolean, highlight as boolean) as PdfElement ptr
 	if relNroLinhas > 0 then
 		relYPos += ROW_SPACE_BEFORE
 	end if
@@ -1320,7 +1320,7 @@ function EfdPdfExportador.gerarLinhaDFe(lg as boolean, highlight as boolean) as 
 end function
 
 ''''''''
-function EfdPdfExportador.gerarLinhaAnal() as PdfElement ptr
+function EfdPdfExport.gerarLinhaAnal() as PdfElement ptr
 	var anal = relPage->getNode("anal")
 	var clone = anal->clone(relPage, relPage)
 	clone->setAttrib("hidden", false)
@@ -1332,7 +1332,7 @@ function EfdPdfExportador.gerarLinhaAnal() as PdfElement ptr
 	return clone
 end function
 
-function EfdPdfExportador.calcObsHeight(sit as TipoSituacao, obs as TDocObs ptr, isFirst as boolean) as double
+function EfdPdfExport.calcObsHeight(sit as TipoSituacao, obs as TDocObs ptr, isFirst as boolean) as double
 	if not ISREGULAR(sit) then
 		return 0.0
 	end if
@@ -1349,7 +1349,7 @@ function EfdPdfExportador.calcObsHeight(sit as TipoSituacao, obs as TDocObs ptr,
 end function
 
 ''''''''
-function EfdPdfExportador.gerarLinhaObs(isFirst as boolean, parts as integer) as PdfElement ptr
+function EfdPdfExport.gerarLinhaObs(isFirst as boolean, parts as integer) as PdfElement ptr
 
 	if isFirst then
 		var node = relPage->getNode("obs-header")
@@ -1371,7 +1371,7 @@ function EfdPdfExportador.gerarLinhaObs(isFirst as boolean, parts as integer) as
 end function
 
 ''''''''
-function EfdPdfExportador.gerarLinhaObsAjuste(isFirst as boolean) as PdfElement ptr
+function EfdPdfExport.gerarLinhaObsAjuste(isFirst as boolean) as PdfElement ptr
 
 	if isFirst then
 		var node = relPage->getNode("ajuste-header")
@@ -1397,7 +1397,7 @@ private function somaAnalCmpCb(key as zstring ptr, node as any ptr) as boolean
 end function
 
 ''''''''
-sub EfdPdfExportador.relatorioSomarAnal(sit as TipoSituacao, anal as TDocItemAnal ptr, isPre as boolean)
+sub EfdPdfExport.relatorioSomarAnal(sit as TipoSituacao, anal as TDocItemAnal ptr, isPre as boolean)
 	
 	dim as string chave = iif(ultimoRelatorio = REL_LRS, str(sit), "0")
 	
@@ -1431,7 +1431,7 @@ private function somaAjustesCmpCb(key as zstring ptr, node as any ptr) as boolea
 end function
 
 ''''''''
-sub EfdPdfExportador.relatorioSomarAjuste(sit as TipoSituacao, ajuste as TDocObsAjuste ptr)
+sub EfdPdfExport.relatorioSomarAjuste(sit as TipoSituacao, ajuste as TDocObsAjuste ptr)
 	
 	sit = 0 'BUG: o PVA RFB não faz a separação por situação, somando tudo e exibindo só a situação 00, mesmo para NF's canceladas
 	
@@ -1450,7 +1450,7 @@ sub EfdPdfExportador.relatorioSomarAjuste(sit as TipoSituacao, ajuste as TDocObs
 end sub
 
 ''''''''
-sub EfdPdfExportador.adicionarDocRelatorioItemAnal(sit as TipoSituacao, anal as TDocItemAnal ptr)
+sub EfdPdfExport.adicionarDocRelatorioItemAnal(sit as TipoSituacao, anal as TDocItemAnal ptr)
 	
 	if ISREGULAR(sit) then
 		var row = gerarLinhaAnal()
@@ -1471,7 +1471,7 @@ sub EfdPdfExportador.adicionarDocRelatorioItemAnal(sit as TipoSituacao, anal as 
 end sub
 
 ''''''''
-sub EfdPdfExportador.adicionarDocRelatorioObs(sit as TipoSituacao, obs as TDocObs ptr, isFirst as boolean)
+sub EfdPdfExport.adicionarDocRelatorioObs(sit as TipoSituacao, obs as TDocObs ptr, isFirst as boolean)
 	
 	if ISREGULAR(sit) then
 		var lanc = cast( TObsLancamento ptr, obsLancamentoDict->lookup(obs->idLanc))
@@ -1505,7 +1505,7 @@ sub EfdPdfExportador.adicionarDocRelatorioObs(sit as TipoSituacao, obs as TDocOb
 end sub
 
 ''''''''
-sub EfdPdfExportador.adicionarDocRelatorioObsAjuste(sit as TipoSituacao, ajuste as TDocObsAjuste ptr, isFirst as boolean)
+sub EfdPdfExport.adicionarDocRelatorioObsAjuste(sit as TipoSituacao, ajuste as TDocObsAjuste ptr, isFirst as boolean)
 	
 	if ISREGULAR(sit) then
 		var row = gerarLinhaObsAjuste(isFirst)
@@ -1523,7 +1523,7 @@ sub EfdPdfExportador.adicionarDocRelatorioObsAjuste(sit as TipoSituacao, ajuste 
 end sub
 
 ''''''''
-static function EfdPdfExportador.luacb_efd_rel_addItemAnalitico cdecl(L as lua_State ptr) as long
+static function EfdPdfExport.luacb_efd_rel_addItemAnalitico cdecl(L as lua_State ptr) as long
 	var args = lua_gettop(L)
 	
 	lua_getglobal(L, "efd")
@@ -1574,7 +1574,7 @@ static function EfdPdfExportador.luacb_efd_rel_addItemAnalitico cdecl(L as lua_S
 end function
 
 ''''''''
-sub EfdPdfExportador.adicionarDocRelatorioSaidas(doc as TDocDF ptr, part as TParticipante ptr, highlight as boolean, lg as boolean)
+sub EfdPdfExport.adicionarDocRelatorioSaidas(doc as TDocDF ptr, part as TParticipante ptr, highlight as boolean, lg as boolean)
 	var row = gerarLinhaDFe(lg, highlight)
 	
 	if len(doc->dataEmi) > 0 then
@@ -1605,7 +1605,7 @@ sub EfdPdfExportador.adicionarDocRelatorioSaidas(doc as TDocDF ptr, part as TPar
 end sub
 
 ''''''''
-sub EfdPdfExportador.adicionarDocRelatorioEntradas(doc as TDocDF ptr, part as TParticipante ptr, highlight as boolean, lg as boolean)
+sub EfdPdfExport.adicionarDocRelatorioEntradas(doc as TDocDF ptr, part as TParticipante ptr, highlight as boolean, lg as boolean)
 	var row = gerarLinhaDFe(lg, highlight)
 	
 	setChildText(row, iif(lg, "DEMI-LG", "DEMI"), YyyyMmDd2DatetimeBR(doc->dataEmi))
@@ -1629,7 +1629,7 @@ sub EfdPdfExportador.adicionarDocRelatorioEntradas(doc as TDocDF ptr, part as TP
 end sub
 
 ''''''''
-sub EfdPdfExportador.adicionarDocRelatorioSaidas(doc as TECFReducaoZ ptr, highlight as boolean)
+sub EfdPdfExport.adicionarDocRelatorioSaidas(doc as TECFReducaoZ ptr, highlight as boolean)
 	var equip = doc->equipECF
 
 	var row = gerarLinhaDFe(false, highlight)
@@ -1644,7 +1644,7 @@ sub EfdPdfExportador.adicionarDocRelatorioSaidas(doc as TECFReducaoZ ptr, highli
 end sub
 
 ''''''''
-sub EfdPdfExportador.adicionarDocRelatorioSaidas(doc as TDocSAT ptr, highlight as boolean)
+sub EfdPdfExport.adicionarDocRelatorioSaidas(doc as TDocSAT ptr, highlight as boolean)
 	var row = gerarLinhaDFe(false, highlight)
 	
 	setChildText(row, "DEMI", YyyyMmDd2DatetimeBR(doc->dataEmi))
@@ -1655,7 +1655,7 @@ sub EfdPdfExportador.adicionarDocRelatorioSaidas(doc as TDocSAT ptr, highlight a
 end sub
 
 ''''''''
-sub EfdPdfExportador.gerarResumoRelatorioHeader(emitir as boolean, isPre as boolean)
+sub EfdPdfExport.gerarResumoRelatorioHeader(emitir as boolean, isPre as boolean)
 	relYPos += ROW_SPACE_BEFORE
 	
 	if not isPre then
@@ -1678,7 +1678,7 @@ sub EfdPdfExportador.gerarResumoRelatorioHeader(emitir as boolean, isPre as bool
 end sub
 
 ''''''''
-sub EfdPdfExportador.gerarResumoAjustesRelatorioHeader(emitir as boolean, isPre as boolean)
+sub EfdPdfExport.gerarResumoAjustesRelatorioHeader(emitir as boolean, isPre as boolean)
 	relYPos += ROW_SPACE_BEFORE
 	
 	if not isPre then
@@ -1700,7 +1700,7 @@ sub EfdPdfExportador.gerarResumoAjustesRelatorioHeader(emitir as boolean, isPre 
 	relYPos += iif(ultimoRelatorio = REL_LRS, LRS_RESUMO_HEADER_HEIGHT, LRE_RESUMO_HEADER_HEIGHT)
 end sub
 
-sub EfdPdfExportador.gerarResumoRelatorio(emitir as boolean, isPre as boolean)
+sub EfdPdfExport.gerarResumoRelatorio(emitir as boolean, isPre as boolean)
 	var titleHeight = iif(ultimoRelatorio = REL_LRS, LRS_RESUMO_TITLE_HEIGHT, LRE_RESUMO_TITLE_HEIGHT)
 	var headerHeight = iif(ultimoRelatorio = REL_LRS, LRS_RESUMO_HEADER_HEIGHT, LRE_RESUMO_HEADER_HEIGHT)
 	var rowHeight = iif(ultimoRelatorio = REL_LRS, LRS_RESUMO_ROW_HEIGHT, LRE_RESUMO_ROW_HEIGHT)
@@ -1837,7 +1837,7 @@ sub EfdPdfExportador.gerarResumoRelatorio(emitir as boolean, isPre as boolean)
 end sub
 
 ''''''''
-sub EfdPdfExportador.finalizarRelatorio(isPre as boolean)
+sub EfdPdfExport.finalizarRelatorio(isPre as boolean)
 
 	if ultimoRelatorio = -1 then
 		return

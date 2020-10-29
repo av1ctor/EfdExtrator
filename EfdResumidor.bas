@@ -7,7 +7,7 @@
 #include once "trycatch.bi"
 
 ''''''''
-constructor EfdResumidor(tableExp as EfdTabelaExportador ptr)
+constructor EfdResumidor(tableExp as EfdTabelaExport ptr)
 	this.tableExp = tableExp
 end constructor
 

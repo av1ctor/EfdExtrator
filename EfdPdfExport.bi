@@ -1,14 +1,14 @@
 #include once "Efd.bi"
 
-type EfdPdfExportador
+type EfdPdfExport
 public:
 	declare constructor(baseTemplatesDir as string, infAssinatura as InfoAssinatura ptr, opcoes as OpcoesExtracao ptr)
-	declare function withDBs(configDb as TDb ptr) as EfdPdfExportador ptr
-	declare function withCallbacks(onProgress as OnProgressCB, onError as OnErrorCB) as EfdPdfExportador ptr
-	declare function withLua(lua as lua_State ptr, customLuaCbDict as TDict ptr) as EfdPdfExportador ptr
+	declare function withDBs(configDb as TDb ptr) as EfdPdfExport ptr
+	declare function withCallbacks(onProgress as OnProgressCB, onError as OnErrorCB) as EfdPdfExport ptr
+	declare function withLua(lua as lua_State ptr, customLuaCbDict as TDict ptr) as EfdPdfExport ptr
 	declare function withDicionarios(participanteDict as TDict ptr, itemIdDict as TDict ptr, chaveDFeDict as TDict ptr, infoComplDict as TDict ptr, _
-		obsLancamentoDict as TDict ptr, bemCiapDict as TDict ptr, contaContabDict as TDict ptr, centroCustoDict as TDict ptr, municipDict as TDict ptr) as EfdPdfExportador ptr
-	declare function withFiltros(filtrarPorCnpj as OnFilterByStrCB, filtrarPorChave as OnFilterByStrCB) as EfdPdfExportador ptr
+		obsLancamentoDict as TDict ptr, bemCiapDict as TDict ptr, contaContabDict as TDict ptr, centroCustoDict as TDict ptr, municipDict as TDict ptr) as EfdPdfExport ptr
+	declare function withFiltros(filtrarPorCnpj as OnFilterByStrCB, filtrarPorChave as OnFilterByStrCB) as EfdPdfExport ptr
 	declare destructor()
 	declare sub gerar(regListHead as TRegistro ptr, regMestre as TRegistro ptr, nroRegs as integer)
 

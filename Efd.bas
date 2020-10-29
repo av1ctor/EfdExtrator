@@ -1,8 +1,10 @@
 
-#include once "efd.bi"
+#include once "Efd.bi"
+#include once "EfdSpedImport.bi"
+#include once "EfdSintegraImport.bi"
 #include once "EfdAnalisador.bi"
 #include once "EfdResumidor.bi"
-#include once "EfdPdfExportador.bi"
+#include once "EfdPdfExport.bi"
 #include once "bfile.bi"
 #include once "Dict.bi"
 #include once "ExcelWriter.bi"
@@ -43,7 +45,6 @@ constructor Efd(onProgress as OnProgressCB, onError as OnErrorCB)
 	cteSafiFornecido = false
 	dfeListHead = null
 	dfeListTail = null
-	arquivos = new TList(10, len(TArquivoInfo))
 	
 	''
 	baseTemplatesDir = ExePath() + "\templates\"
@@ -67,10 +68,6 @@ destructor Efd()
 	
 	''
 	delete municipDict
-	
-	''
-	
-	delete arquivos
 	
 end destructor
 
@@ -170,7 +167,7 @@ sub Efd.iniciar(nomeArquivo as String, opcoes as OpcoesExtracao)
 	configurarDB()
 	
 	''
-	tableExp = (new EfdTabelaExportador(nomeArquivo, @opcoes)) _
+	exp = (new EfdTabelaExport(nomeArquivo, @opcoes)) _
 		->withCallbacks(onProgress, onError) _
 		->withLua(lua, customLuaCbDict) _
 		->withFiltros(@filtrarPorCnpj, @filtrarPorChave)
@@ -181,8 +178,8 @@ end sub
 sub Efd.finalizar()
 
 	''
-	if tableExp <> null then
-		tableExp->finalizar()
+	if exp <> null then
+		exp->finalizar()
 	end if
    
 	''
@@ -198,32 +195,62 @@ sub Efd.finalizar()
 	
 end sub
 
+function Efd.carregarTxt(nomeArquivo as string) as EfdBaseImport_ ptr
+	
+	var imp = cast(EfdBaseImport_ ptr, null)
+	
+	if instr(nomeArquivo, "SpedEFD") >= 0 then
+		imp = (new EfdSpedImport(@opcoes)) _
+			->withStmts(this.db_LREInsertStmt, db_itensNfLRInsertStmt, db_LRSInsertStmt, db_analInsertStmt, _
+				db_ressarcStItensNfLRSInsertStmt, db_itensIdInsertStmt, db_mestreInsertStmt) _
+			->withCallbacks(onProgress, onError) _
+			->withLua(lua, customLuaCbDict) _
+			->withDBs(db)
+	
+	elseif instr(nomeArquivo, "SP_") >= 0 then
+		imp = (new EfdSintegraImport(@opcoes)) _
+			->withCallbacks(onProgress, onError) _
+			->withLua(lua, customLuaCbDict) _
+			->withDBs(db)
+	else
+		return null
+	end if
+	
+	if imp->carregar(nomeArquivo) then
+		return imp
+	else
+		delete imp
+		return null
+	end if
+	
+end function
+
 ''''''''
-function Efd.processar(nomeArquivo as string) as Boolean
+function Efd.processar(imp as EfdBaseImport_ ptr, nomeArquivo as string) as Boolean
    
 	if opcoes.formatoDeSaida <> FT_NULL then
-		tableExp _
-			->withState(itemNFeSafiFornecido) _
-			->withDicionarios(participanteDict, itemIdDict, chaveDFeDict, infoComplDict, obsLancamentoDict, bemCiapDict) _
-			->gerar(regListHead, regMestre, nroRegs)
+		exp ->withState(itemNFeSafiFornecido) _
+			->withDicionarios(imp->getParticipanteDict(), imp->getItemIdDict(), chaveDFeDict, _
+				imp->getInfoComplDict(), imp->getObsLancamentoDict(), imp->getBemCiapDict()) _
+			->gerar(imp->getFirstReg(), imp->getMestreReg(), imp->getNroRegs())
 	else
 		onProgress(null, 1)
 	end if
 	
 	if opcoes.gerarRelatorios then
-		if tipoArquivo = TIPO_ARQUIVO_EFD then
-			var infAssinatura = lerInfoAssinatura(nomeArquivo, assinaturaP7K_DER())
+		if imp->getTipoArquivo() = TIPO_ARQUIVO_EFD then
+			var infAssinatura = cast(EfdSpedImport ptr, imp)->lerInfoAssinatura(nomeArquivo)
 		
-			var rel = (new EfdPdfExportador(baseTemplatesDir, infAssinatura, @opcoes)) _
+			var rel = (new EfdPdfExport(baseTemplatesDir, infAssinatura, @opcoes)) _
 				->withDBs(configDb) _
 				->withCallbacks(onProgress, onError) _
 				->withLua(lua, customLuaCbDict) _
 				->withFiltros(@filtrarPorCnpj, @filtrarPorChave) _
-				->withDicionarios(participanteDict, itemIdDict, chaveDFeDict, infoComplDict, _
-					obsLancamentoDict, bemCiapDict, contaContabDict, centroCustoDict, _
+				->withDicionarios(imp->getParticipanteDict(), imp->getItemIdDict(), chaveDFeDict, imp->getInfoComplDict(), _
+					imp->getObsLancamentoDict(), imp->getBemCiapDict, imp->getContaContabDict(), imp->getCentroCustoDict(), _
 					municipDict)
 				
-			rel->gerar(regListHead, regMestre, nroRegs)
+			rel->gerar(imp->getFirstReg(), imp->getMestreReg(), imp->getNroRegs())
 			
 			delete rel
 			
@@ -233,23 +260,6 @@ function Efd.processar(nomeArquivo as string) as Boolean
 		end if
 	end if
 	
-	do while regListHead <> null
-		var next_ = regListHead->next_
-		delete regListHead
-		regListHead = next_
-	loop
-
-	regListHead = null
-
-	delete sintegraDict
-	delete infoComplDict
-	delete obsLancamentoDict
-	delete centroCustoDict
-	delete contaContabDict
-	delete bemCiapDict
-	delete itemIdDict
-	delete participanteDict
-
 	function = true
 end function
 
@@ -263,7 +273,7 @@ end function
 
 ''''''''
 sub Efd.analisar() 
-	var anal = (new EfdAnalisador(tableExp)) _
+	var anal = (new EfdAnalisador(exp)) _
 		->withDBs(db) _
 		->withCallbacks(onProgress, onError) _
 		->withLua(lua)
@@ -274,7 +284,7 @@ end sub
 
 ''''''''
 sub Efd.resumir() 
-	var res = (new EfdResumidor(tableExp)) _
+	var res = (new EfdResumidor(exp)) _
 		->withDBs(db) _
 		->withCallbacks(onProgress, onError) _
 		->withLua(lua)
@@ -294,7 +304,7 @@ private function luacb_efd_plan_get cdecl(byval L as lua_State ptr) as long
 	if args = 1 then
 		var planName = lua_tostring(L, 1)
 
-		var plan = g_efd->tableExp->getPlanilha(planName)
+		var plan = g_efd->exp->getPlanilha(planName)
 		if plan <> null then
 			lua_pushlightuserdata(L, plan)
 		else
@@ -353,7 +363,7 @@ static function Efd.luacb_efd_participante_get cdecl(byval L as lua_State ptr) a
 		var idParticipante = lua_tostring(L, 1)
 		var formatar = lua_toboolean(L, 2) <> 0
 
-		var part = cast( TParticipante ptr, g_efd->participanteDict->lookup(idParticipante) )
+		var part = cast( TParticipante ptr, /'g_efd->imp->getParticipanteDict()->lookup(idParticipante)'/ null )
 		if part <> null then
 			lua_newtable(L)
 			lua_pushstring(L, "cnpj")

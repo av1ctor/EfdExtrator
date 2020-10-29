@@ -439,7 +439,8 @@ private function item_exec_action_cb(item as Ihandle ptr) as long
 			var arquivoEntrada = curFile->path + curFile->name
 			if lcase(right(arquivoEntrada,3)) = "txt" then
 				onProgress("Carregando")
-				if not ext->carregarTxt( arquivoEntrada ) then
+				var txt = ext->carregarTxt( arquivoEntrada )
+				if txt = null  then
 					onError(!"\r\nErro ao carregar arquivo: " & arquivoEntrada)
 					errCnt += 1
 				end if
@@ -448,10 +449,14 @@ private function item_exec_action_cb(item as Ihandle ptr) as long
 				
 				if errCnt = 0 then
 					onProgress("Processando")
-					if not ext->processar( arquivoEntrada ) then
+					if not ext->processar( txt, arquivoEntrada ) then
 						onError(!"\r\nErro ao extrair arquivo: " & arquivoEntrada)
 						errCnt += 1
 					end if
+				end if
+				
+				if txt <> null then
+					delete txt
 				end if
 			end if 
 			
