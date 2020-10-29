@@ -1,9 +1,9 @@
-#include once "EfdTabelaExportador.bi"
+#include once "EfdTabelaExport.bi"
 #include once "vbcompat.bi"
 #include once "trycatch.bi"
 
 ''''''''
-constructor EfdTabelaExportador(nomeArquivo as String, opcoes as OpcoesExtracao ptr)
+constructor EfdTabelaExport(nomeArquivo as String, opcoes as OpcoesExtracao ptr)
 	this.nomeArquivo = nomeArquivo
 	this.opcoes = opcoes
 	
@@ -15,51 +15,51 @@ constructor EfdTabelaExportador(nomeArquivo as String, opcoes as OpcoesExtracao 
 end constructor
 
 ''''''''
-destructor EfdTabelaExportador()
+destructor EfdTabelaExport()
 	if ew <> null then
 		delete ew
 	end if
 end destructor
 
 ''''''''
-function EfdTabelaExportador.withCallbacks(onProgress as OnProgressCB, onError as OnErrorCB) as EfdTabelaExportador ptr
+function EfdTabelaExport.withCallbacks(onProgress as OnProgressCB, onError as OnErrorCB) as EfdTabelaExport ptr
 	this.onProgress = onProgress
 	this.onError = onError
 	return @this
 end function
 
 ''''''''
-function EfdTabelaExportador.withLua(lua as lua_State ptr, customLuaCbDict as TDict ptr) as EfdTabelaExportador ptr
+function EfdTabelaExport.withLua(lua as lua_State ptr, customLuaCbDict as TDict ptr) as EfdTabelaExport ptr
 	this.lua = lua
 	this.customLuaCbDict = customLuaCbDict
 	return @this
 end function
 
 ''''''''
-function EfdTabelaExportador.withState(itemNFeSafiFornecido as boolean) as EfdTabelaExportador ptr
+function EfdTabelaExport.withState(itemNFeSafiFornecido as boolean) as EfdTabelaExport ptr
 	this.itemNFeSafiFornecido = itemNFeSafiFornecido
 	return @this
 end function
 
 ''''''''
-function EfdTabelaExportador.withFiltros( _
+function EfdTabelaExport.withFiltros( _
 		filtrarPorCnpj as OnFilterByStrCB, _
 		filtrarPorChave as OnFilterByStrCB _
-	) as EfdTabelaExportador ptr
+	) as EfdTabelaExport ptr
 	this.filtrarPorCnpj = filtrarPorCnpj
 	this.filtrarPorChave = filtrarPorChave
 	return @this
 end function
 
 ''''''''
-function EfdTabelaExportador.withDicionarios( _
+function EfdTabelaExport.withDicionarios( _
 		participanteDict as TDict ptr, _
 		itemIdDict as TDict ptr, _
 		chaveDFeDict as TDict ptr, _
 		infoComplDict as TDict ptr, _
 		obsLancamentoDict as TDict ptr, _
 		bemCiapDict as TDict ptr _
-	) as EfdTabelaExportador ptr
+	) as EfdTabelaExport ptr
 	this.participanteDict = participanteDict
 	this.itemIdDict = itemIdDict
 	this.chaveDFeDict = chaveDFeDict
@@ -70,7 +70,7 @@ function EfdTabelaExportador.withDicionarios( _
 end function
 
 ''''''''
-function EfdTabelaExportador.getPlanilha(nome as const zstring ptr) as ExcelWorksheet ptr
+function EfdTabelaExport.getPlanilha(nome as const zstring ptr) as ExcelWorksheet ptr
 		select case lcase(*nome)
 		case "entradas"
 			return entradas
@@ -460,7 +460,7 @@ private sub criarColunasRessarcST(sheet as ExcelWorksheet ptr)
 end sub
 
 ''''''''
-sub EfdTabelaExportador.criarPlanilhas()
+sub EfdTabelaExport.criarPlanilhas()
 	'' planilha de entradas
 	entradas = ew->AddWorksheet("Entradas")
 	adicionarColunasComuns(entradas, true)
@@ -518,7 +518,7 @@ sub EfdTabelaExportador.criarPlanilhas()
 	
 end sub
 
-function EfdTabelaExportador.getInfoCompl(info as TDocInfoCompl ptr) as string
+function EfdTabelaExport.getInfoCompl(info as TDocInfoCompl ptr) as string
 	var res = ""
 	
 	do while info <> null
@@ -535,7 +535,7 @@ function EfdTabelaExportador.getInfoCompl(info as TDocInfoCompl ptr) as string
 	function = res
 end function
 
-function EfdTabelaExportador.getObsLanc(obs as TDocObs ptr) as string
+function EfdTabelaExport.getObsLanc(obs as TDocObs ptr) as string
 	var res = ""
 	
 	do while obs <> null
@@ -576,7 +576,7 @@ function EfdTabelaExportador.getObsLanc(obs as TDocObs ptr) as string
 end function
 
 ''''''''
-sub EfdTabelaExportador.gerar(regListHead as TRegistro ptr, regMestre as TRegistro ptr, nroRegs as integer)
+sub EfdTabelaExport.gerar(regListHead as TRegistro ptr, regMestre as TRegistro ptr, nroRegs as integer)
 	
 	if entradas = null then
 		criarPlanilhas()
@@ -1462,7 +1462,7 @@ sub EfdTabelaExportador.gerar(regListHead as TRegistro ptr, regMestre as TRegist
 end sub
 
 ''''''''
-sub EfdTabelaExportador.finalizar()
+sub EfdTabelaExport.finalizar()
 	onProgress("Gravando planilha: " + nomeArquivo, 0)
 	ew->Flush(onProgress)
 	ew->Close

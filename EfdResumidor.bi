@@ -2,7 +2,7 @@
 
 type EfdResumidor
 public:
-	declare constructor(tableExp as EfdTabelaExportador ptr)
+	declare constructor(tableExp as EfdTabelaExport ptr)
 	declare function withDBs(db as TDb ptr) as EfdResumidor ptr
 	declare function withCallbacks(onProgress as OnProgressCB, onError as OnErrorCB) as EfdResumidor ptr
 	declare function withLua(lua as lua_State ptr) as EfdResumidor ptr
@@ -10,7 +10,7 @@ public:
 	
 private:
 	db						as TDb ptr
-	tableExp				as EfdTabelaExportador ptr
+	tableExp				as EfdTabelaExport ptr
 	onProgress 				as OnProgressCB
 	onError 				as OnErrorCB
 	

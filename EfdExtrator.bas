@@ -1,6 +1,6 @@
 '' Extrator de EFD
 '' Copyleft 2017-2020 André Vicentini (avtvicentini)
-'' fbc.exe EfdExtrator.bas EfdGUI.bas Efd.bas Efd-loader-sped.bas Efd-loader-sintegra.bas Efd-loader-csv-safi.bas Efd-loader-csv.bas Efd-loader-xlsx.bas EfdTabelaExportador.bas EfdPdfExportador.bas EfdAnalisador.bas EfdResumidor.bas Efd-db.bas Efd-misc.bas strings.bas bfile.bas ExcelReader.bas ExcelWriter.bas list.bas Dict.bas Pdfer.bas DB.bas VarBox.bas trycatch.bas gui.rc -d WITH_PARSER -o 3
+'' fbc.exe EfdExtrator.bas EfdGUI.bas Efd.bas EfdBaseImport.bas EfdSpedImport.bas EfdSintegraImport.bas Efd-loader-csv-safi.bas Efd-loader-csv.bas Efd-loader-xlsx.bas EfdTabelaExport.bas EfdPdfExport.bas EfdAnalisador.bas EfdResumidor.bas Efd-db.bas Efd-misc.bas strings.bas bfile.bas ExcelReader.bas ExcelWriter.bas list.bas Dict.bas Pdfer.bas DB.bas VarBox.bas trycatch.bas gui.rc -d WITH_PARSER -o 3
 
 #include once "Efd.bi"
 #include once "EfdGUI.bi"
@@ -298,18 +298,23 @@ sub main()
 		do while len(arquivoEntrada) > 0
 			if lcase(right(arquivoEntrada,3)) = "txt" then
 				onProgress("Carregando arquivo: " + arquivoEntrada, 0)
-				if not ext->carregarTxt( arquivoEntrada ) then
+				var txt = ext->carregarTxt( arquivoEntrada )
+				if txt = null  then
 					onError(!"\r\nErro ao carregar arquivo: " & arquivoEntrada)
 					end -1
 				end if
 				
 				print "Processando:"
-				if not ext->processar( arquivoEntrada ) then
+				if not ext->processar( txt, arquivoEntrada ) then
 					onError(!"\r\nErro ao extrair arquivo: " & arquivoEntrada)
 					end -1
 				end if
+				
+				if txt <> null then
+					delete txt
+				end if
 			end if 
-			 
+			
 			i += 1
 			arquivoEntrada = command(i)
 		loop
@@ -318,16 +323,19 @@ sub main()
 	else
 		var arquivoEntrada = command(nroOpcoes+1)
 		onProgress("Carregando arquivo: " + arquivoEntrada, 0)
-		if not ext->carregarTxt( arquivoEntrada ) then
+		var txt = ext->carregarTxt( arquivoEntrada )
+		if txt = null  then
 			onError(!"\r\nErro ao carregar arquivo: " & arquivoEntrada)
 			end -1
 		end if
 	
 		print "Processando:"
-		if not ext->processar( arquivoEntrada ) then
+		if not ext->processar( txt, arquivoEntrada ) then
 			onError(!"\r\nErro ao extrair arquivo: " & arquivoEntrada)
 			end -1
 		end if
+		
+		delete txt
 	end if
 	
 	''

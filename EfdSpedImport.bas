@@ -1,10 +1,39 @@
-#include once "efd.bi"
-#include once "bfile.bi"
-#include once "Dict.bi"
+#include once "EfdSpedImport.bi"
 #include once "ssl_helper.bi"
 #include once "trycatch.bi"
 
 const ASSINATURA_P7K_HEADER = "SBRCAAEPDR"
+
+''''''''
+constructor EfdSpedImport(opcoes as OpcoesExtracao ptr)
+	base(opcoes)
+end constructor
+
+''''''''
+destructor EfdSpedImport()
+end destructor
+
+''''''''
+function EfdSpedImport.withStmts( _
+	lreInsertStmt as TDbStmt ptr, _
+	itensNfLRInsertStmt as TDbStmt ptr, _
+	lrsInsertStmt as TDbStmt ptr, _
+	analInsertStmt as TDbStmt ptr, _
+	ressarcStItensNfLRSInsertStmt as TDbStmt ptr, _
+	itensIdInsertStmt as TDbStmt ptr, _
+	mestreInsertStmt as TDbStmt ptr _
+	) as EfdSpedImport ptr
+	
+	this.db_LREInsertStmt = lreInsertStmt
+	this.db_itensNfLRInsertStmt = itensNfLRInsertStmt
+	this.db_LRSInsertStmt = lrsInsertStmt
+	this.db_analInsertStmt = analInsertStmt
+	this.db_ressarcStItensNfLRSInsertStmt = ressarcStItensNfLRSInsertStmt
+	this.db_itensIdInsertStmt = itensIdInsertStmt
+	this.db_mestreInsertStmt = mestreInsertStmt
+	
+	return @this
+end function
 
 ''''''''
 private function yyyyMmDd2Days(d as const zstring ptr) as uinteger
@@ -163,7 +192,7 @@ private function ordenarRegistrosPorData(head as TRegistro ptr) as TRegistro ptr
 end function
 
 ''''''''
-function Efd.lerTipo(bf as bfile, tipo as zstring ptr) as TipoRegistro
+function EfdSpedImport.lerTipo(bf as bfile, tipo as zstring ptr) as TipoRegistro
 
 	if bf.peek1 <> asc("|") then
 		onError("Erro: fora de sincronia na linha:" & nroLinha)
@@ -306,7 +335,7 @@ function Efd.lerTipo(bf as bfile, tipo as zstring ptr) as TipoRegistro
 end function
 
 ''''''''
-function Efd.lerRegMestre(bf as bfile, reg as TRegistro ptr) as Boolean
+function EfdSpedImport.lerRegMestre(bf as bfile, reg as TRegistro ptr) as Boolean
    
 	bf.char1		'pular |
 
@@ -343,7 +372,7 @@ function Efd.lerRegMestre(bf as bfile, reg as TRegistro ptr) as Boolean
 end function
 
 ''''''''
-function Efd.lerRegParticipante(bf as bfile, reg as TRegistro ptr) as Boolean
+function EfdSpedImport.lerRegParticipante(bf as bfile, reg as TRegistro ptr) as Boolean
    
 	bf.char1		'pular |
 
@@ -375,7 +404,7 @@ function Efd.lerRegParticipante(bf as bfile, reg as TRegistro ptr) as Boolean
 end function
 
 ''''''''
-function Efd.lerRegDocNF(bf as bfile, reg as TRegistro ptr) as Boolean
+function EfdSpedImport.lerRegDocNF(bf as bfile, reg as TRegistro ptr) as Boolean
 
 	bf.char1		'pular |
 
@@ -433,7 +462,7 @@ function Efd.lerRegDocNF(bf as bfile, reg as TRegistro ptr) as Boolean
 end function
 
 ''''''''
-function Efd.lerRegDocNFInfo(bf as bfile, reg as TRegistro ptr, pai as TDocNF ptr) as Boolean
+function EfdSpedImport.lerRegDocNFInfo(bf as bfile, reg as TRegistro ptr, pai as TDocNF ptr) as Boolean
 
 	bf.char1		'pular |
 
@@ -456,7 +485,7 @@ function Efd.lerRegDocNFInfo(bf as bfile, reg as TRegistro ptr, pai as TDocNF pt
 end function
 
 ''''''''
-function Efd.lerRegDocObs(bf as bfile, reg as TRegistro ptr) as Boolean
+function EfdSpedImport.lerRegDocObs(bf as bfile, reg as TRegistro ptr) as Boolean
 
 	bf.char1		'pular |
 
@@ -478,7 +507,7 @@ function Efd.lerRegDocObs(bf as bfile, reg as TRegistro ptr) as Boolean
 end function
 
 ''''''''
-function Efd.lerRegDocObsAjuste(bf as bfile, reg as TRegistro ptr) as Boolean
+function EfdSpedImport.lerRegDocObsAjuste(bf as bfile, reg as TRegistro ptr) as Boolean
 
 	bf.char1		'pular |
 
@@ -505,7 +534,7 @@ function Efd.lerRegDocObsAjuste(bf as bfile, reg as TRegistro ptr) as Boolean
 end function
 
 ''''''''
-function Efd.lerRegDocNFItem(bf as bfile, reg as TRegistro ptr, documentoPai as TDocNF ptr) as Boolean
+function EfdSpedImport.lerRegDocNFItem(bf as bfile, reg as TRegistro ptr, documentoPai as TDocNF ptr) as Boolean
 
 	bf.char1		'pular |
 
@@ -571,7 +600,7 @@ function Efd.lerRegDocNFItem(bf as bfile, reg as TRegistro ptr, documentoPai as 
 end function
 
 ''''''''
-function Efd.lerRegDocNFItemAnal(bf as bfile, reg as TRegistro ptr, documentoPai as TRegistro ptr) as Boolean
+function EfdSpedImport.lerRegDocNFItemAnal(bf as bfile, reg as TRegistro ptr, documentoPai as TRegistro ptr) as Boolean
 
 	bf.char1		'pular |
 
@@ -606,7 +635,7 @@ function Efd.lerRegDocNFItemAnal(bf as bfile, reg as TRegistro ptr, documentoPai
 end function
 
 ''''''''
-function Efd.lerRegDocNFItemRessarcSt(bf as bfile, reg as TRegistro ptr, documentoPai as TDocNFItem ptr) as Boolean
+function EfdSpedImport.lerRegDocNFItemRessarcSt(bf as bfile, reg as TRegistro ptr, documentoPai as TDocNFItem ptr) as Boolean
 
 	bf.char1		'pular |
 
@@ -660,7 +689,7 @@ function Efd.lerRegDocNFItemRessarcSt(bf as bfile, reg as TRegistro ptr, documen
 end function
 
 ''''''''
-function Efd.lerRegDocNFDifal(bf as bfile, reg as TRegistro ptr, documentoPai as TDocNF ptr) as Boolean
+function EfdSpedImport.lerRegDocNFDifal(bf as bfile, reg as TRegistro ptr, documentoPai as TDocNF ptr) as Boolean
 
 	bf.char1		'pular |
 
@@ -683,7 +712,7 @@ function Efd.lerRegDocNFDifal(bf as bfile, reg as TRegistro ptr, documentoPai as
 end function
 
 ''''''''
-function Efd.lerRegDocCT(bf as bfile, reg as TRegistro ptr) as Boolean
+function EfdSpedImport.lerRegDocCT(bf as bfile, reg as TRegistro ptr) as Boolean
 
 	bf.char1		'pular |
 
@@ -739,7 +768,7 @@ function Efd.lerRegDocCT(bf as bfile, reg as TRegistro ptr) as Boolean
 end function
 
 ''''''''
-function Efd.lerRegDocCTItemAnal(bf as bfile, reg as TRegistro ptr, docPai as TRegistro ptr) as Boolean
+function EfdSpedImport.lerRegDocCTItemAnal(bf as bfile, reg as TRegistro ptr, docPai as TRegistro ptr) as Boolean
 
 	bf.char1		'pular |
 
@@ -769,7 +798,7 @@ function Efd.lerRegDocCTItemAnal(bf as bfile, reg as TRegistro ptr, docPai as TR
 end function
 
 ''''''''
-function Efd.lerRegDocCTDifal(bf as bfile, reg as TRegistro ptr, docPai as TDocCT ptr) as Boolean
+function EfdSpedImport.lerRegDocCTDifal(bf as bfile, reg as TRegistro ptr, docPai as TDocCT ptr) as Boolean
 
 	bf.char1		'pular |
 
@@ -792,7 +821,7 @@ function Efd.lerRegDocCTDifal(bf as bfile, reg as TRegistro ptr, docPai as TDocC
 end function
 
 ''''''''
-function Efd.lerRegEquipECF(bf as bfile, reg as TRegistro ptr) as Boolean
+function EfdSpedImport.lerRegEquipECF(bf as bfile, reg as TRegistro ptr) as Boolean
 
 	bf.char1		'pular |
 
@@ -817,7 +846,7 @@ function Efd.lerRegEquipECF(bf as bfile, reg as TRegistro ptr) as Boolean
 end function
 
 ''''''''
-function Efd.lerRegDocECF(bf as bfile, reg as TRegistro ptr, equipECF as TEquipECF ptr) as Boolean
+function EfdSpedImport.lerRegDocECF(bf as bfile, reg as TRegistro ptr, equipECF as TEquipECF ptr) as Boolean
 
 	bf.char1		'pular |
 
@@ -852,7 +881,7 @@ function Efd.lerRegDocECF(bf as bfile, reg as TRegistro ptr, equipECF as TEquipE
 end function
 
 ''''''''
-function Efd.lerRegECFReducaoZ(bf as bfile, reg as TRegistro ptr, equipECF as TEquipECF ptr) as Boolean
+function EfdSpedImport.lerRegECFReducaoZ(bf as bfile, reg as TRegistro ptr, equipECF as TEquipECF ptr) as Boolean
 
 	bf.char1		'pular |
 
@@ -884,7 +913,7 @@ function Efd.lerRegECFReducaoZ(bf as bfile, reg as TRegistro ptr, equipECF as TE
 end function
 
 ''''''''
-function Efd.lerRegDocECFItem(bf as bfile, reg as TRegistro ptr, documentoPai as TDocECF ptr) as Boolean
+function EfdSpedImport.lerRegDocECFItem(bf as bfile, reg as TRegistro ptr, documentoPai as TDocECF ptr) as Boolean
 
 	bf.char1		'pular |
 
@@ -919,7 +948,7 @@ function Efd.lerRegDocECFItem(bf as bfile, reg as TRegistro ptr, documentoPai as
 end function
 
 ''''''''
-function Efd.lerRegDocECFItemAnal(bf as bfile, reg as TRegistro ptr, documentoPai as TRegistro ptr) as Boolean
+function EfdSpedImport.lerRegDocECFItemAnal(bf as bfile, reg as TRegistro ptr, documentoPai as TRegistro ptr) as Boolean
 
 	bf.char1		'pular |
 
@@ -948,7 +977,7 @@ function Efd.lerRegDocECFItemAnal(bf as bfile, reg as TRegistro ptr, documentoPa
 end function
 
 ''''''''
-function Efd.lerRegDocSAT(bf as bfile, reg as TRegistro ptr) as Boolean
+function EfdSpedImport.lerRegDocSAT(bf as bfile, reg as TRegistro ptr) as Boolean
 
 	bf.char1		'pular |
 
@@ -987,7 +1016,7 @@ function Efd.lerRegDocSAT(bf as bfile, reg as TRegistro ptr) as Boolean
 end function
 
 ''''''''
-function Efd.lerRegDocSATItemAnal(bf as bfile, reg as TRegistro ptr, documentoPai as TRegistro ptr) as Boolean
+function EfdSpedImport.lerRegDocSATItemAnal(bf as bfile, reg as TRegistro ptr, documentoPai as TRegistro ptr) as Boolean
 
 	bf.char1		'pular |
 
@@ -1017,7 +1046,7 @@ end function
 
 
 ''''''''
-function Efd.lerRegDocNFSCT(bf as bfile, reg as TRegistro ptr) as Boolean
+function EfdSpedImport.lerRegDocNFSCT(bf as bfile, reg as TRegistro ptr) as Boolean
 
 	bf.char1		'pular |
 
@@ -1069,7 +1098,7 @@ function Efd.lerRegDocNFSCT(bf as bfile, reg as TRegistro ptr) as Boolean
 end function
 
 ''''''''
-function Efd.lerRegDocNFSCTItemAnal(bf as bfile, reg as TRegistro ptr, documentoPai as TRegistro ptr) as Boolean
+function EfdSpedImport.lerRegDocNFSCTItemAnal(bf as bfile, reg as TRegistro ptr, documentoPai as TRegistro ptr) as Boolean
 
 	bf.char1		'pular |
 
@@ -1101,7 +1130,7 @@ function Efd.lerRegDocNFSCTItemAnal(bf as bfile, reg as TRegistro ptr, documento
 end function
 
 ''''''''
-function Efd.lerRegDocNFElet(bf as bfile, reg as TRegistro ptr) as Boolean
+function EfdSpedImport.lerRegDocNFElet(bf as bfile, reg as TRegistro ptr) as Boolean
 
 	bf.char1		'pular |
 
@@ -1164,7 +1193,7 @@ function Efd.lerRegDocNFElet(bf as bfile, reg as TRegistro ptr) as Boolean
 end function
 
 ''''''''
-function Efd.lerRegDocNFEletItemAnal(bf as bfile, reg as TRegistro ptr, documentoPai as TRegistro ptr) as Boolean
+function EfdSpedImport.lerRegDocNFEletItemAnal(bf as bfile, reg as TRegistro ptr, documentoPai as TRegistro ptr) as Boolean
 
 	bf.char1		'pular |
 
@@ -1196,7 +1225,7 @@ function Efd.lerRegDocNFEletItemAnal(bf as bfile, reg as TRegistro ptr, document
 end function
 
 ''''''''
-function Efd.lerRegItemId(bf as bfile, reg as TRegistro ptr) as Boolean
+function EfdSpedImport.lerRegItemId(bf as bfile, reg as TRegistro ptr) as Boolean
 
 	bf.char1		'pular |
 
@@ -1231,7 +1260,7 @@ function Efd.lerRegItemId(bf as bfile, reg as TRegistro ptr) as Boolean
 end function
 
 ''''''''
-function Efd.lerRegBemCiap(bf as bfile, reg as TRegistro ptr) as Boolean
+function EfdSpedImport.lerRegBemCiap(bf as bfile, reg as TRegistro ptr) as Boolean
 
 	bf.char1		'pular |
 
@@ -1257,7 +1286,7 @@ function Efd.lerRegBemCiap(bf as bfile, reg as TRegistro ptr) as Boolean
 end function
 
 ''''''''
-function Efd.lerRegBemCiapInfo(bf as bfile, reg as TBemCiap ptr) as Boolean
+function EfdSpedImport.lerRegBemCiapInfo(bf as bfile, reg as TBemCiap ptr) as Boolean
 
 	bf.char1		'pular |
 
@@ -1280,7 +1309,7 @@ function Efd.lerRegBemCiapInfo(bf as bfile, reg as TBemCiap ptr) as Boolean
 end function
 
 ''''''''
-function Efd.lerRegObsLancamento(bf as bfile, reg as TRegistro ptr) as Boolean
+function EfdSpedImport.lerRegObsLancamento(bf as bfile, reg as TRegistro ptr) as Boolean
 
 	bf.char1		'pular |
 
@@ -1302,7 +1331,7 @@ function Efd.lerRegObsLancamento(bf as bfile, reg as TRegistro ptr) as Boolean
 end function
 
 ''''''''
-function Efd.lerRegContaContab(bf as bfile, reg as TRegistro ptr) as Boolean
+function EfdSpedImport.lerRegContaContab(bf as bfile, reg as TRegistro ptr) as Boolean
 
 	bf.char1		'pular |
 
@@ -1328,7 +1357,7 @@ function Efd.lerRegContaContab(bf as bfile, reg as TRegistro ptr) as Boolean
 end function
 
 ''''''''
-function Efd.lerRegCentroCusto(bf as bfile, reg as TRegistro ptr) as Boolean
+function EfdSpedImport.lerRegCentroCusto(bf as bfile, reg as TRegistro ptr) as Boolean
 
 	bf.char1		'pular |
 
@@ -1351,7 +1380,7 @@ function Efd.lerRegCentroCusto(bf as bfile, reg as TRegistro ptr) as Boolean
 end function
 
 ''''''''
-function Efd.lerRegInfoCompl(bf as bfile, reg as TRegistro ptr) as Boolean
+function EfdSpedImport.lerRegInfoCompl(bf as bfile, reg as TRegistro ptr) as Boolean
 
 	bf.char1		'pular |
 
@@ -1373,7 +1402,7 @@ function Efd.lerRegInfoCompl(bf as bfile, reg as TRegistro ptr) as Boolean
 end function
 
 ''''''''
-function Efd.lerRegApuIcmsPeriodo(bf as bfile, reg as TRegistro ptr) as Boolean
+function EfdSpedImport.lerRegApuIcmsPeriodo(bf as bfile, reg as TRegistro ptr) as Boolean
 
    bf.char1		'pular |
 
@@ -1395,7 +1424,7 @@ function Efd.lerRegApuIcmsPeriodo(bf as bfile, reg as TRegistro ptr) as Boolean
 end function
 
 ''''''''
-function Efd.lerRegApuIcmsProprio(bf as bfile, reg as TRegistro ptr) as Boolean
+function EfdSpedImport.lerRegApuIcmsProprio(bf as bfile, reg as TRegistro ptr) as Boolean
 
 	bf.char1		'pular |
 
@@ -1432,7 +1461,7 @@ function Efd.lerRegApuIcmsProprio(bf as bfile, reg as TRegistro ptr) as Boolean
 end function
 
 ''''''''
-function Efd.lerRegApuIcmsAjuste(bf as bfile, reg as TRegistro ptr, pai as TApuracaoIcmsPeriodo ptr) as Boolean
+function EfdSpedImport.lerRegApuIcmsAjuste(bf as bfile, reg as TRegistro ptr, pai as TApuracaoIcmsPeriodo ptr) as Boolean
 
 	bf.char1		'pular |
 	
@@ -1455,7 +1484,7 @@ function Efd.lerRegApuIcmsAjuste(bf as bfile, reg as TRegistro ptr, pai as TApur
 end function
 
 ''''''''
-function Efd.lerRegApuIcmsSTPeriodo(bf as bfile, reg as TRegistro ptr) as Boolean
+function EfdSpedImport.lerRegApuIcmsSTPeriodo(bf as bfile, reg as TRegistro ptr) as Boolean
 
 	bf.char1		'pular |
 
@@ -1478,7 +1507,7 @@ function Efd.lerRegApuIcmsSTPeriodo(bf as bfile, reg as TRegistro ptr) as Boolea
 end function
 
 ''''''''
-function Efd.lerRegApuIcmsST(bf as bfile, reg as TRegistro ptr) as Boolean
+function EfdSpedImport.lerRegApuIcmsST(bf as bfile, reg as TRegistro ptr) as Boolean
 
 	bf.char1		'pular |
 
@@ -1515,7 +1544,7 @@ function Efd.lerRegApuIcmsST(bf as bfile, reg as TRegistro ptr) as Boolean
 end function
 
 ''''''''
-function Efd.lerRegInventarioTotais(bf as bfile, reg as TRegistro ptr) as Boolean
+function EfdSpedImport.lerRegInventarioTotais(bf as bfile, reg as TRegistro ptr) as Boolean
 
 	bf.char1		'pular |
 
@@ -1538,7 +1567,7 @@ function Efd.lerRegInventarioTotais(bf as bfile, reg as TRegistro ptr) as Boolea
 end function
 
 ''''''''
-function Efd.lerRegInventarioItem(bf as bfile, reg as TRegistro ptr, inventarioPai as TInventarioTotais ptr) as Boolean
+function EfdSpedImport.lerRegInventarioItem(bf as bfile, reg as TRegistro ptr, inventarioPai as TInventarioTotais ptr) as Boolean
 
 	bf.char1		'pular |
 
@@ -1569,7 +1598,7 @@ function Efd.lerRegInventarioItem(bf as bfile, reg as TRegistro ptr, inventarioP
 end function
 
 ''''''''
-function Efd.lerRegCiapTotal(bf as bfile, reg as TRegistro ptr) as Boolean
+function EfdSpedImport.lerRegCiapTotal(bf as bfile, reg as TRegistro ptr) as Boolean
 
 	bf.char1		'pular |
 
@@ -1598,7 +1627,7 @@ function Efd.lerRegCiapTotal(bf as bfile, reg as TRegistro ptr) as Boolean
 end function
 
 ''''''''
-function Efd.lerRegCiapItem(bf as bfile, reg as TRegistro ptr, pai as TCiapTotal ptr) as Boolean
+function EfdSpedImport.lerRegCiapItem(bf as bfile, reg as TRegistro ptr, pai as TCiapTotal ptr) as Boolean
 
 	bf.char1		'pular |
 
@@ -1629,7 +1658,7 @@ function Efd.lerRegCiapItem(bf as bfile, reg as TRegistro ptr, pai as TCiapTotal
 end function
 
 ''''''''
-function Efd.lerRegCiapItemDoc(bf as bfile, reg as TRegistro ptr, pai as TCiapItem ptr) as Boolean
+function EfdSpedImport.lerRegCiapItemDoc(bf as bfile, reg as TRegistro ptr, pai as TCiapItem ptr) as Boolean
 
 	bf.char1		'pular |
 
@@ -1661,7 +1690,7 @@ function Efd.lerRegCiapItemDoc(bf as bfile, reg as TRegistro ptr, pai as TCiapIt
 end function
 
 ''''''''
-function Efd.lerRegCiapItemDocItem(bf as bfile, reg as TRegistro ptr, pai as TCiapItemDoc ptr) as Boolean
+function EfdSpedImport.lerRegCiapItemDocItem(bf as bfile, reg as TRegistro ptr, pai as TCiapItemDoc ptr) as Boolean
 
 	bf.char1		'pular |
 
@@ -1692,7 +1721,7 @@ function Efd.lerRegCiapItemDocItem(bf as bfile, reg as TRegistro ptr, pai as TCi
 end function
 
 ''''''''
-function Efd.lerRegEstoquePeriodo(bf as bfile, reg as TRegistro ptr) as Boolean
+function EfdSpedImport.lerRegEstoquePeriodo(bf as bfile, reg as TRegistro ptr) as Boolean
 
 	bf.char1		'pular |
 
@@ -1714,7 +1743,7 @@ function Efd.lerRegEstoquePeriodo(bf as bfile, reg as TRegistro ptr) as Boolean
 end function
 
 ''''''''
-function Efd.lerRegEstoqueItem(bf as bfile, reg as TRegistro ptr, pai as TEstoquePeriodo ptr) as Boolean
+function EfdSpedImport.lerRegEstoqueItem(bf as bfile, reg as TRegistro ptr, pai as TEstoquePeriodo ptr) as Boolean
 
 	bf.char1		'pular |
 
@@ -1740,7 +1769,7 @@ function Efd.lerRegEstoqueItem(bf as bfile, reg as TRegistro ptr, pai as TEstoqu
 end function
 
 ''''''''
-function Efd.lerRegEstoqueOrdemProd(bf as bfile, reg as TRegistro ptr, pai as TEstoquePeriodo ptr) as Boolean
+function EfdSpedImport.lerRegEstoqueOrdemProd(bf as bfile, reg as TRegistro ptr, pai as TEstoquePeriodo ptr) as Boolean
 
 	bf.char1		'pular |
 
@@ -1767,7 +1796,7 @@ function Efd.lerRegEstoqueOrdemProd(bf as bfile, reg as TRegistro ptr, pai as TE
 end function
 
 ''''''''
-private sub Efd.lerAssinatura(bf as bfile)
+private sub EfdSpedImport.lerAssinatura(bf as bfile)
 
 	'' verificar header
 	var header = bf.nchar(len(ASSINATURA_P7K_HEADER))
@@ -1784,7 +1813,7 @@ private sub Efd.lerAssinatura(bf as bfile)
 end sub
 
 ''''''''
-function Efd.lerRegistro(bf as bfile, reg as TRegistro ptr) as Boolean
+function EfdSpedImport.lerRegistro(bf as bfile, reg as TRegistro ptr) as Boolean
 	static as zstring * 4+1 tipo
 	
 	reg->tipo = lerTipo(bf, @tipo)
@@ -2385,7 +2414,7 @@ function Efd.lerRegistro(bf as bfile, reg as TRegistro ptr) as Boolean
 end function
 
 ''''''''
-function Efd.carregarTxt(nomeArquivo as String) as Boolean
+function EfdSpedImport.carregar(nomeArquivo as string) as boolean
 
 	dim bf as bfile
    
@@ -2393,94 +2422,75 @@ function Efd.carregarTxt(nomeArquivo as String) as Boolean
 		return false
 	end if
 
-	participanteDict = new TDict(2^20)
-	itemIdDict = new TDict(2^20)	 
-	bemCiapDict = new TDict(2^16)
-	infoComplDict = new TDict(2^16)
-	sintegraDict = new TDict(2^20)
-	obsLancamentoDict = new TDict(2^10)
-	contaContabDict = new TDict(2^10)
-	centroCustoDict = new TDict(2^10)
-
+	tipoArquivo = TIPO_ARQUIVO_EFD
 	regListHead = null
 	nroRegs = 0
 	
-	dim as TArquivoInfo ptr arquivo = arquivos->add()
-	arquivo->nome = nomeArquivo
-	
-	if bf.peek1 <> asc("|") then
-		tipoArquivo = TIPO_ARQUIVO_SINTEGRA
-		function = carregarSintegra(bf)
-	else
-		try
-			tipoArquivo = TIPO_ARQUIVO_EFD
-			var fsize = bf.tamanho - 6500 			'' descontar certificado digital no final do arquivo
-			nroLinha = 1
+	try
+		var fsize = bf.tamanho - 6500 			'' descontar certificado digital no final do arquivo
+		nroLinha = 1
+		
+		dim as TRegistro ptr tail = null
+
+		do while bf.temProximo()		 
+			var reg = new TRegistro
+
+			if not onProgress(null, (bf.posicao / fsize) * 0.66) then
+				exit do
+			end if
 			
-			dim as TRegistro ptr tail = null
-
-			do while bf.temProximo()		 
-				var reg = new TRegistro
-				reg->arquivo = arquivo
-
-				if not onProgress(null, (bf.posicao / fsize) * 0.66) then
-					exit do
-				end if
-				
-				if lerRegistro( bf, reg ) then 
-					if reg->tipo <> DESCONHECIDO then
-						select case as const reg->tipo
-						'' fim de arquivo?
-						case FIM_DO_ARQUIVO
-							delete reg
-							onProgress(null, 1)
-							exit do
-
-						'' adicionar ao DB
-						case DOC_NF, _
-							 DOC_NF_ITEM, _
-							 DOC_NF_ANAL, _
-							 DOC_CT, _
-							 ECF_REDUCAO_Z, _
-							 DOC_SAT, _
-							 DOC_NF_ITEM_RESSARC_ST, _
-							 ITEM_ID, _
-							 MESTRE
-							addRegistroAoDB(reg)
-						end select
-						
-						'' adicionar ao fim da lista
-						if tail = null then
-							regListHead = reg
-							tail = reg
-						else
-							tail->next_ = reg
-							tail = reg
-						end if
-
-						nroRegs += 1
-					else
+			if lerRegistro( bf, reg ) then 
+				if reg->tipo <> DESCONHECIDO then
+					select case as const reg->tipo
+					'' fim de arquivo?
+					case FIM_DO_ARQUIVO
 						delete reg
+						onProgress(null, 1)
+						exit do
+
+					'' adicionar ao DB
+					case DOC_NF, _
+						 DOC_NF_ITEM, _
+						 DOC_NF_ANAL, _
+						 DOC_CT, _
+						 ECF_REDUCAO_Z, _
+						 DOC_SAT, _
+						 DOC_NF_ITEM_RESSARC_ST, _
+						 ITEM_ID, _
+						 MESTRE
+						addRegistroAoDB(reg)
+					end select
+					
+					'' adicionar ao fim da lista
+					if tail = null then
+						regListHead = reg
+						tail = reg
+					else
+						tail->next_ = reg
+						tail = reg
 					end if
-				 
-					nroLinha += 1
+
+					nroRegs += 1
 				else
-					exit do
+					delete reg
 				end if
-			loop
-		
-		catch
-			onError(!"\r\nErro ao carregar o registro da linha (" & nroLinha & !") do arquivo\r\n")
-		endtry
-		
-		regListHead = ordenarRegistrosPorData(regListHead)
-		
-		onProgress(null, 1)
+			 
+				nroLinha += 1
+			else
+				exit do
+			end if
+		loop
+	
+	catch
+		onError(!"\r\nErro ao carregar o registro da linha (" & nroLinha & !") do arquivo\r\n")
+	endtry
+	
+	regListHead = ordenarRegistrosPorData(regListHead)
+	
+	onProgress(null, 1)
 
-		function = true
-	  
-	end if
-
+	function = true
+  
 	bf.fechar()
    
 end function
@@ -2507,7 +2517,7 @@ private function HashReadCB cdecl(ctx_ as any ptr, buffer as ubyte ptr, maxLen a
 end function
 
 ''''''''
-function Efd.lerInfoAssinatura(nomeArquivo as string, assinaturaP7K_DER() as byte) as InfoAssinatura ptr
+function EfdSpedImport.lerInfoAssinatura(nomeArquivo as string) as InfoAssinatura ptr
 	
 	try
 		var res = new InfoAssinatura
@@ -2557,5 +2567,365 @@ function Efd.lerInfoAssinatura(nomeArquivo as string, assinaturaP7K_DER() as byt
 		onError("Erro ao ler assinatura digital. As informações relativas à assinatura estarão em branco nos relatórios gerados")
 		function = null
 	endtry
+	
+end function
+
+''''''''
+function EfdSpedImport.adicionarMestre(reg as TMestre ptr) as long
+
+	'' (versao, original, dataIni, dataFim, nome, cnpj, uf, ie)
+	db_mestreInsertStmt->reset()
+	db_mestreInsertStmt->bind(1, reg->versaoLayout)
+	db_mestreInsertStmt->bind(2, cint(reg->original))
+	db_mestreInsertStmt->bind(3, reg->dataIni)
+	db_mestreInsertStmt->bind(4, reg->dataFim)
+	db_mestreInsertStmt->bind(5, reg->nome)
+	db_mestreInsertStmt->bind(6, reg->cnpj)
+	db_mestreInsertStmt->bind(7, reg->uf)
+	db_mestreInsertStmt->bind(8, reg->ie)
+	
+	if not db->execNonQuery(db_mestreInsertStmt) then
+		onError("Erro ao inserir registro na EFD_Mestre: " & *db->getErrorMsg())
+		return 0
+	end if
+	
+	return db->lastId()
+
+end function
+
+''''''''
+function EfdSpedImport.adicionarDocEscriturado(doc as TDocDF ptr) as long
+	
+	if ISREGULAR(doc->situacao) then
+		var part = cast( TParticipante ptr, participanteDict->lookup(doc->idParticipante) )
+		
+		var uf = iif(part->municip >= 1100000 and part->municip <= 5399999, part->municip \ 100000, 99)
+		
+		'' adicionar ao db
+		if doc->operacao = ENTRADA then
+			'' (periodo, cnpjEmit, ufEmit, serie, numero, modelo, chave, dataEmit, valorOp, IE)
+			db_LREInsertStmt->reset()
+			db_LREInsertStmt->bind(1, valint(regMestre->mestre.dataIni))
+			if len(part->cpf) > 0 then 
+				db_LREInsertStmt->bind(2, part->cpf)
+			else
+				db_LREInsertStmt->bind(2, part->cnpj)
+			end if
+			db_LREInsertStmt->bind(3, uf)
+			db_LREInsertStmt->bind(4, doc->serie)
+			db_LREInsertStmt->bind(5, doc->numero)
+			db_LREInsertStmt->bind(6, doc->modelo)
+			db_LREInsertStmt->bind(7, doc->chave)
+			db_LREInsertStmt->bind(8, doc->dataEmi)
+			db_LREInsertStmt->bind(9, doc->valorTotal)
+			if len(part->ie) > 0 then
+				db_LREInsertStmt->bind(10, trim(part->ie))
+			else
+				db_LREInsertStmt->bindNull(10)
+			end if
+			
+			if not db->execNonQuery(db_LREInsertStmt) then
+				onError("Erro ao inserir registro na EFD_LRE: " & *db->getErrorMsg())
+				return 0
+			end if
+			
+			return db->lastId()
+			
+		else
+			'' (periodo, cnpjDest, ufDest, serie, numero, modelo, chave, dataEmit, valorOp, IE)
+			db_LRSInsertStmt->reset()
+			db_LRSInsertStmt->bind(1, valint(regMestre->mestre.dataIni))
+			if len(part->cpf) > 0 then 
+				db_LRSInsertStmt->bind(2, part->cpf)
+			else
+				db_LRSInsertStmt->bind(2, part->cnpj)
+			end if
+			db_LRSInsertStmt->bind(3, uf)
+			db_LRSInsertStmt->bind(4, doc->serie)
+			db_LRSInsertStmt->bind(5, doc->numero)
+			db_LRSInsertStmt->bind(6, doc->modelo)
+			db_LRSInsertStmt->bind(7, doc->chave)
+			db_LRSInsertStmt->bind(8, doc->dataEmi)
+			db_LRSInsertStmt->bind(9, doc->valorTotal)
+			if len(part->ie) > 0 then
+				db_LRSInsertStmt->bind(10, trim(part->ie))
+			else
+				db_LRSInsertStmt->bindNull(10)
+			end if
+		
+			if not db->execNonQuery(db_LRSInsertStmt) then
+				onError("Erro ao inserir registro na EFD_LRS: " & *db->getErrorMsg())
+				return 0
+			end if
+			
+			return db->lastId()
+		end if
+	
+	else
+		'' !!!TODO!!! inserir em outra tabela para fazermos análises posteriores
+	end if
+	
+	return 0
+	
+end function
+
+''''''''
+function EfdSpedImport.adicionarDocEscriturado(doc as TDocECF ptr) as long
+	
+	if ISREGULAR(doc->situacao) then
+	
+		'' só existe de saída para ECF
+		if doc->operacao = SAIDA then
+			'' (periodo, cnpjDest, ufDest, serie, numero, modelo, chave, dataEmit, valorOp)
+			db_LRSInsertStmt->reset()
+			db_LRSInsertStmt->bind(1, valint(regMestre->mestre.dataIni))
+			db_LRSInsertStmt->bind(2, doc->cpfCnpjAdquirente)
+			db_LRSInsertStmt->bind(3, 35)
+			db_LRSInsertStmt->bind(4, 0)
+			db_LRSInsertStmt->bind(5, doc->numero)
+			db_LRSInsertStmt->bind(6, doc->modelo)
+			db_LRSInsertStmt->bind(7, doc->chave)
+			db_LRSInsertStmt->bind(8, doc->dataEmi)
+			db_LRSInsertStmt->bind(9, doc->valorTotal)
+		
+			if not db->execNonQuery(db_LRSInsertStmt) then
+				onError("Erro ao inserir registro na EFD_LRS: " & *db->getErrorMsg())
+				return 0
+			end if
+			
+			return db->lastId()
+		end if
+	
+	else
+		'' !!!TODO!!! inserir em outra tabela para fazermos análises posteriores
+	end if
+
+	return 0
+end function
+
+''''''''
+function EfdSpedImport.adicionarDocEscriturado(doc as TDocSAT ptr) as long
+	
+	if ISREGULAR(doc->situacao) then
+	
+		'' só existe de saída para SAT
+		if doc->operacao = SAIDA then
+			'' (periodo, cnpjDest, ufDest, serie, numero, modelo, chave, dataEmit, valorOp)
+			db_LRSInsertStmt->reset()
+			db_LRSInsertStmt->bind(1, valint(regMestre->mestre.dataIni))
+			db_LRSInsertStmt->bind(2, 0) '' não é possível usar doc->cpfCnpjAdquirente, porque relatório do BO vem sem essa info
+			db_LRSInsertStmt->bind(3, 35)
+			db_LRSInsertStmt->bind(4, 0)
+			db_LRSInsertStmt->bind(5, doc->numero)
+			db_LRSInsertStmt->bind(6, doc->modelo)
+			db_LRSInsertStmt->bind(7, doc->chave)
+			db_LRSInsertStmt->bind(8, doc->dataEmi)
+			db_LRSInsertStmt->bind(9, doc->valorTotal)
+		
+			if not db->execNonQuery(db_LRSInsertStmt) then
+				onError("Erro ao inserir registro na EFD_LRS: " & *db->getErrorMsg())
+				return 0
+			end if
+			
+			return db->lastId()
+		end if
+	
+	else
+		'' !!!TODO!!! inserir em outra tabela para fazermos análises posteriores
+	end if
+	
+	return 0
+end function
+
+''''''''
+function EfdSpedImport.adicionarItemNFEscriturado(item as TDocNFItem ptr) as long
+	
+	var doc = item->documentoPai
+	if ISREGULAR(doc->situacao) then
+		var part = cast( TParticipante ptr, participanteDict->lookup(doc->idParticipante) )
+		
+		var uf = iif(part->municip >= 1100000 and part->municip <= 5399999, part->municip \ 100000, 99)
+
+		'' (periodo, cnpjEmit, ufEmit, serie, numero, modelo, numItem, cst, cst_origem, cst_tribut, cfop, qtd, valorProd, valorDesc, bc, aliq, icms, bcIcmsST, aliqIcmsST, icmsST, itemId)
+		db_itensNfLRInsertStmt->reset()
+		db_itensNfLRInsertStmt->bind(1, valint(regMestre->mestre.dataIni))
+		db_itensNfLRInsertStmt->bind(2, iif(len(part->cpf) > 0, part->cpf, part->cnpj))
+		db_itensNfLRInsertStmt->bind(3, uf)
+		db_itensNfLRInsertStmt->bind(4, doc->serie)
+		db_itensNfLRInsertStmt->bind(5, doc->numero)
+		db_itensNfLRInsertStmt->bind(6, doc->modelo)
+		db_itensNfLRInsertStmt->bind(7, item->numItem)
+		db_itensNfLRInsertStmt->bind(8, item->cstIcms)
+		db_itensNfLRInsertStmt->bind(9, item->cstIcms \ 100)
+		db_itensNfLRInsertStmt->bind(10, item->cstIcms mod 100)
+		db_itensNfLRInsertStmt->bind(11, item->cfop)
+		db_itensNfLRInsertStmt->bind(12, item->qtd)
+		db_itensNfLRInsertStmt->bind(13, item->valor)
+		db_itensNfLRInsertStmt->bind(14, item->desconto)
+		db_itensNfLRInsertStmt->bind(15, item->bcICMS)
+		db_itensNfLRInsertStmt->bind(16, item->aliqICMS)
+		db_itensNfLRInsertStmt->bind(17, item->icms)
+		db_itensNfLRInsertStmt->bind(18, item->bcICMSST)
+		db_itensNfLRInsertStmt->bind(19, item->aliqICMSST)
+		db_itensNfLRInsertStmt->bind(20, item->icmsST)
+		if opcoes->manterDb then
+			db_itensNfLRInsertStmt->bind(21, item->itemId)
+		else
+			db_itensNfLRInsertStmt->bind(21, null)
+		end if
+		
+		if not db->execNonQuery(db_itensNfLRInsertStmt) then
+			onError("Erro ao inserir registro na EFD_Itens: " & *db->getErrorMsg())
+			return 0
+		end if
+		
+		return db->lastId()
+	end if
+	
+	return 0
+	
+end function
+
+''''''''
+function EfdSpedImport.adicionarRessarcStEscriturado(doc as TDocNFItemRessarcSt ptr) as long
+
+	var docPai = doc->documentoPai
+	var docAvo = doc->documentoPai->documentoPai
+	
+	var part = cast( TParticipante ptr, participanteDict->lookup(docAvo->idParticipante) )
+	var uf = iif(part->municip >= 1100000 and part->municip <= 5399999, part->municip \ 100000, 99)
+	
+	var partUlt = cast( TParticipante ptr, participanteDict->lookup(doc->idParticipanteUlt) )
+	var ufUlt = iif(partUlt->municip >= 1100000 and partUlt->municip <= 5399999, partUlt->municip \ 100000, 99)
+	
+	'' (periodo, cnpjEmit, ufEmit, serie, numero, modelo, nroItem, cnpjUlt, ufUlt, serieUlt, numeroUlt, modeloUlt, chaveUlt, dataUlt, valorUlt, bcSTUlt, qtdUlt, nroItemUlt)
+	db_ressarcStItensNfLRSInsertStmt->reset()
+	db_ressarcStItensNfLRSInsertStmt->bind(1, valint(regMestre->mestre.dataIni))
+	db_ressarcStItensNfLRSInsertStmt->bind(2, iif(len(part->cpf) > 0, part->cpf, part->cnpj))
+	db_ressarcStItensNfLRSInsertStmt->bind(3, uf)
+	db_ressarcStItensNfLRSInsertStmt->bind(4, docAvo->serie)
+	db_ressarcStItensNfLRSInsertStmt->bind(5, docAvo->numero)
+	db_ressarcStItensNfLRSInsertStmt->bind(6, docAvo->modelo)
+	db_ressarcStItensNfLRSInsertStmt->bind(7, docPai->numItem)
+	db_ressarcStItensNfLRSInsertStmt->bind(8, partUlt->cnpj)
+	db_ressarcStItensNfLRSInsertStmt->bind(9, ufUlt)
+	db_ressarcStItensNfLRSInsertStmt->bind(10, doc->serieUlt)
+	db_ressarcStItensNfLRSInsertStmt->bind(11, doc->numeroUlt)
+	db_ressarcStItensNfLRSInsertStmt->bind(12, doc->modeloUlt)
+	if len(doc->chaveNFeUlt) > 0 then
+		db_ressarcStItensNfLRSInsertStmt->bind(13, doc->chaveNFeUlt)
+	else
+		db_ressarcStItensNfLRSInsertStmt->bindNull(13)
+	end if
+	db_ressarcStItensNfLRSInsertStmt->bind(14, doc->dataUlt)
+	db_ressarcStItensNfLRSInsertStmt->bind(15, doc->valorUlt)
+	db_ressarcStItensNfLRSInsertStmt->bind(16, doc->valorBcST)
+	db_ressarcStItensNfLRSInsertStmt->bind(17, doc->qtdUlt)
+	if doc->numItemNFeUlt > 0 then
+		db_ressarcStItensNfLRSInsertStmt->bind(18, doc->numItemNFeUlt)
+	else
+		db_ressarcStItensNfLRSInsertStmt->bindNull(18)
+	end if
+
+	if not db->execNonQuery(db_ressarcStItensNfLRSInsertStmt) then
+		onError("Erro ao inserir registro na EFD_Ressarc_Itens: " & *db->getErrorMsg())
+		return 0
+	end if
+	
+	return db->lastId()
+	
+end function
+
+''''''''
+function EfdSpedImport.adicionarItemEscriturado(item as TItemId ptr) as long
+
+	'' (id, descricao, ncm, cest, aliqInt)
+	db_itensIdInsertStmt->reset()
+	db_itensIdInsertStmt->bind(1, item->id)
+	db_itensIdInsertStmt->bind(2, item->descricao)
+	db_itensIdInsertStmt->bind(3, item->ncm)
+	db_itensIdInsertStmt->bind(4, item->CEST)
+	db_itensIdInsertStmt->bind(5, item->aliqICMSInt)
+	
+	if not db->execNonQuery(db_itensIdInsertStmt) then
+		onError("Erro ao inserir registro na EFD_ItensId: " & *db->getErrorMsg())
+		return 0
+	end if
+	
+	return db->lastId()
+
+end function
+
+''''''''
+function EfdSpedImport.adicionarAnalEscriturado(anal as TDocItemAnal ptr) as long
+
+	var doc = @anal->documentoPai->nf
+	var part = cast( TParticipante ptr, participanteDict->lookup(doc->idParticipante) )
+	
+	var uf = iif(part->municip >= 1100000 and part->municip <= 5399999, part->municip \ 100000, 99)
+
+	'' (operacao, periodo, cnpj, uf, serie, numero, modelo, numReg, cst, cst_origem, cst_tribut, cfop, aliq, valorOp, bc, icms, bcIcmsST, icmsST, redBC, ipi)
+	db_analInsertStmt->reset()
+	db_analInsertStmt->bind(1, doc->operacao)
+	db_analInsertStmt->bind(2, valint(regMestre->mestre.dataIni))
+	db_analInsertStmt->bind(3, iif(len(part->cpf) > 0, part->cpf, part->cnpj))
+	db_analInsertStmt->bind(4, uf)
+	db_analInsertStmt->bind(5, doc->serie)
+	db_analInsertStmt->bind(6, doc->numero)
+	db_analInsertStmt->bind(7, doc->modelo)
+	db_analInsertStmt->bind(8, anal->num)
+	db_analInsertStmt->bind(9, anal->cst)
+	db_analInsertStmt->bind(10, anal->cst \ 100)
+	db_analInsertStmt->bind(11, anal->cst mod 100)
+	db_analInsertStmt->bind(12, anal->cfop)
+	db_analInsertStmt->bind(13, anal->aliq)
+	db_analInsertStmt->bind(14, anal->valorOp)
+	db_analInsertStmt->bind(15, anal->bc)
+	db_analInsertStmt->bind(16, anal->ICMS)
+	db_analInsertStmt->bind(17, anal->bcST)
+	db_analInsertStmt->bind(18, anal->ICMSST)
+	db_analInsertStmt->bind(19, anal->redBC)
+	db_analInsertStmt->bind(20, anal->IPI)
+	
+	if not db->execNonQuery(db_analInsertStmt) then
+		onError("Erro ao inserir registro na EDF_Anal: " & *db->getErrorMsg())
+		return 0
+	end if
+	
+	return db->lastId()
+
+end function
+
+''''''''
+function EfdSpedImport.addRegistroAoDB(reg as TRegistro ptr) as long
+
+	if opcoes->pularResumos andalso opcoes->pularAnalises andalso not opcoes->manterDb then
+		return 0
+	end if
+
+	select case as const reg->tipo
+	case DOC_NF
+		return adicionarDocEscriturado(@reg->nf)
+	case DOC_NF_ITEM
+		return adicionarItemNFEscriturado(@reg->itemNF)
+	case DOC_NF_ANAL
+		return adicionarAnalEscriturado(@reg->itemAnal)
+	case DOC_CT
+		return adicionarDocEscriturado(@reg->ct)
+	case DOC_ECF
+		return adicionarDocEscriturado(@reg->ecf)
+	case DOC_SAT
+		return adicionarDocEscriturado(@reg->sat)
+	case DOC_NF_ITEM_RESSARC_ST
+		return adicionarRessarcStEscriturado(@reg->itemRessarcSt)
+	case ITEM_ID
+		if opcoes->manterDb then
+			return adicionarItemEscriturado(@reg->itemId)
+		end if
+	case MESTRE
+		return adicionarMestre(@reg->mestre)
+	end select
+	
+	return 0
 	
 end function

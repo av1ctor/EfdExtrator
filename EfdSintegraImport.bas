@@ -1,6 +1,16 @@
-#include once "efd.bi"
-#include once "bfile.bi"
+#include once "EfdSintegraImport.bi"
 #include once "trycatch.bi"
+
+''''''''
+constructor EfdSintegraImport(opcoes as OpcoesExtracao ptr)
+	base(opcoes)
+	sintegraDict = new TDict(2^10)
+end constructor
+
+''''''''
+destructor EfdSintegraImport()
+	delete sintegraDict
+end destructor
 
 ''''''''
 private function situacaoSintegra2SituacaoEfd(sit as byte) as TipoSituacao
@@ -176,7 +186,7 @@ end function
 #define GENSINTEGRAKEY(r) ((r)->cnpj + (r)->serie + str((r)->numero) + str((r)->cfop))
   
 ''''''''
-function Efd.lerRegistroSintegra(bf as bfile, reg as TRegistro ptr) as Boolean
+function EfdSintegraImport.lerRegistroSintegra(bf as bfile, reg as TRegistro ptr) as Boolean
 
 	var tipo = bf.int2
 
@@ -274,12 +284,22 @@ function Efd.lerRegistroSintegra(bf as bfile, reg as TRegistro ptr) as Boolean
 end function
 
 ''''''''
-function Efd.carregarSintegra(bf as bfile) as Boolean
+function EfdSintegraImport.carregar(nomeArquivo as string) as boolean
+	
+	dim bf as bfile
+   
+	if not bf.abrir( nomeArquivo ) then
+		return false
+	end if
+
+	tipoArquivo = TIPO_ARQUIVO_SINTEGRA
+	regListHead = null
+	nroRegs = 0
 	
 	var fsize = bf.tamanho
 	
 	dim as TRegistro ptr tail = null
-	var nroLinha = 0
+	nroLinha = 0
 
 	try
 		do while bf.temProximo()		 
@@ -314,6 +334,10 @@ function Efd.carregarSintegra(bf as bfile) as Boolean
 		onError(!"\r\nErro ao carregar o registro da linha (" & nroLinha & !") do arquivo\r\n")
 	endtry
 	   
+	onProgress(null, 1)
+
 	function = true
+  
+	bf.fechar()
 
 end function
