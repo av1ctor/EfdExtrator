@@ -77,25 +77,30 @@ private function mergeLists(pSrc1 as TRegistro ptr, pSrc2 as TRegistro ptr) as T
 	do while true
 		select case as const pSrc1->tipo
 		case DOC_NF, DOC_NFSCT, DOC_NF_ELETRIC
-			isReg = ISREGULAR(pSrc1->nf.situacao)
-			dReg = @pSrc1->nf.dataEntSaida
-			nro = pSrc1->nf.numero
+			var nf = cast(TDocNF ptr, pSrc1)
+			isReg = ISREGULAR(nf->situacao)
+			dReg = @nf->dataEntSaida
+			nro = nf->numero
 		case DOC_CT
-			isReg = ISREGULAR(pSrc1->ct.situacao)
-			dReg = @pSrc1->ct.dataEntSaida
-			nro = pSrc1->ct.numero
+			var ct = cast(TDocCT ptr, pSrc1)
+			isReg = ISREGULAR(ct->situacao)
+			dReg = @ct->dataEntSaida
+			nro = ct->numero
 		case DOC_NF_ITEM
-			isReg = ISREGULAR(pSrc1->itemNF.documentoPai->situacao)
-			dReg = @pSrc1->itemNF.documentoPai->dataEntSaida
-			nro = pSrc1->itemNF.documentoPai->numero
+			var doc = cast(TDocNFItem ptr, pSrc1)->documentoPai
+			isReg = ISREGULAR(doc->situacao)
+			dReg = @doc->dataEntSaida
+			nro = doc->numero
 		case ECF_REDUCAO_Z
+			var redz = cast(TECFReducaoZ ptr, pSrc1)
 			isReg = true
-			dReg = @pSrc1->ecfRedZ.dataMov
-			nro = pSrc1->ecfRedZ.numIni
+			dReg = @redz->dataMov
+			nro = redz->numIni
 		case DOC_SAT
+			var sat = cast(TDocSAT ptr, pSrc1)
 			isReg = true
-			dReg = @pSrc1->sat.dataEntSaida
-			nro = pSrc1->sat.numero
+			dReg = @sat->dataEntSaida
+			nro = sat->numero
 		case else
 			isReg = false
 			dReg = null
@@ -106,25 +111,30 @@ private function mergeLists(pSrc1 as TRegistro ptr, pSrc2 as TRegistro ptr) as T
 
 		select case as const pSrc2->tipo
 		case DOC_NF, DOC_NFSCT, DOC_NF_ELETRIC
-			isReg = ISREGULAR(pSrc2->nf.situacao)
-			dReg = @pSrc2->nf.dataEntSaida
-			nro = pSrc2->nf.numero
+			var nf = cast(TDocNF ptr, pSrc2)
+			isReg = ISREGULAR(nf->situacao)
+			dReg = @nf->dataEntSaida
+			nro = nf->numero
 		case DOC_CT
-			isReg = ISREGULAR(pSrc2->ct.situacao)
-			dReg = @pSrc2->ct.dataEntSaida
-			nro = pSrc2->ct.numero
+			var ct = cast(TDocCT ptr, pSrc2)
+			isReg = ISREGULAR(ct->situacao)
+			dReg = @ct->dataEntSaida
+			nro = ct->numero
 		case DOC_NF_ITEM
-			isReg = ISREGULAR(pSrc2->itemNF.documentoPai->situacao)
-			dReg = @pSrc2->itemNF.documentoPai->dataEntSaida
-			nro = pSrc2->itemNF.documentoPai->numero
+			var doc = cast(TDocNFItem ptr, pSrc2)->documentoPai
+			isReg = ISREGULAR(doc->situacao)
+			dReg = @doc->dataEntSaida
+			nro = doc->numero
 		case ECF_REDUCAO_Z
+			var redz = cast(TECFReducaoZ ptr, pSrc2)
 			isReg = true
-			dReg = @pSrc2->ecfRedZ.dataMov
-			nro = pSrc2->ecfRedZ.numIni
+			dReg = @redz->dataMov
+			nro = redz->numIni
 		case DOC_SAT
+			var sat = cast(TDocSAT ptr, pSrc2)
 			isReg = true
-			dReg = @pSrc2->sat.dataEntSaida
-			nro = pSrc2->sat.numero
+			dReg = @sat->dataEntSaida
+			nro = sat->numero
 		case else
 			isReg = false
 			dReg = null
@@ -135,7 +145,7 @@ private function mergeLists(pSrc1 as TRegistro ptr, pSrc2 as TRegistro ptr) as T
 
 		if date2 < date1 then
 			*ppDst = pSrc2
-			ppDst = @pSrc2->next_
+			ppDst = @pSrc2->prox
 			pSrc2 = *ppDst
 			if pSrc2 = NULL then
 				*ppDst = pSrc1
@@ -143,7 +153,7 @@ private function mergeLists(pSrc1 as TRegistro ptr, pSrc2 as TRegistro ptr) as T
 			end if
 		else
 			*ppDst = pSrc1
-			ppDst = @pSrc1->next_
+			ppDst = @pSrc1->prox
 			pSrc1 = *ppDst
 			if pSrc1 = NULL then
 				*ppDst = pSrc2
@@ -167,8 +177,8 @@ private function ordenarRegistrosPorData(head as TRegistro ptr) as TRegistro ptr
     
 	var n = head
 	do while n <> NULL
-        var nn = n->next_
-        n->next_ = NULL
+        var nn = n->prox
+        n->prox = NULL
 		var i = 0
         do while (i < NUMLISTS) and (aList(i) <> NULL)
             n = mergeLists(aList(i), n)
@@ -335,26 +345,28 @@ function EfdSpedImport.lerTipo(bf as bfile, tipo as zstring ptr) as TipoRegistro
 end function
 
 ''''''''
-function EfdSpedImport.lerRegMestre(bf as bfile, reg as TRegistro ptr) as Boolean
+function EfdSpedImport.lerRegMestre(bf as bfile) as TMestre ptr
    
+	var reg = new TMestre
+	
 	bf.char1		'pular |
 
-	reg->mestre.versaoLayout= bf.varint
-	reg->mestre.original 	= (bf.int1 = 0)
+	reg->versaoLayout= bf.varint
+	reg->original 	= (bf.int1 = 0)
 	bf.char1		'pular |
-	reg->mestre.dataIni		= ddMmYyyy2YyyyMmDd(bf.varchar)
-	reg->mestre.dataFim		= ddMmYyyy2YyyyMmDd(bf.varchar)
-	reg->mestre.nome	   	= bf.varchar
-	reg->mestre.cnpj	   	= bf.varchar
-	reg->mestre.cpf	   		= bf.varint
-	reg->mestre.uf			= bf.varchar
-	reg->mestre.ie			= bf.varchar
-	reg->mestre.municip		= bf.varint
-	reg->mestre.im  		= bf.varchar
-	reg->mestre.suframa  	= bf.varchar
-	reg->mestre.perfil  	= bf.char1
+	reg->dataIni	= ddMmYyyy2YyyyMmDd(bf.varchar)
+	reg->dataFim	= ddMmYyyy2YyyyMmDd(bf.varchar)
+	reg->nome	   	= bf.varchar
+	reg->cnpj	   	= bf.varchar
+	reg->cpf	   	= bf.varint
+	reg->uf			= bf.varchar
+	reg->ie			= bf.varchar
+	reg->municip	= bf.varint
+	reg->im  		= bf.varchar
+	reg->suframa  	= bf.varchar
+	reg->perfil  	= bf.char1
 	bf.char1		'pular |
-	reg->mestre.atividade	= bf.int1
+	reg->atividade	= bf.int1
 	bf.char1		'pular |
 
 	'pular \r\n
@@ -367,27 +379,29 @@ function EfdSpedImport.lerRegMestre(bf as bfile, reg as TRegistro ptr) as Boolea
 		bf.char1
 	end if
 	
-	function = true
+	return reg
 
 end function
 
 ''''''''
-function EfdSpedImport.lerRegParticipante(bf as bfile, reg as TRegistro ptr) as Boolean
+function EfdSpedImport.lerRegParticipante(bf as bfile) as TParticipante ptr
    
+	var reg = new TParticipante
+	
 	bf.char1		'pular |
 
-	reg->part.id		= bf.varchar
-	reg->part.nome		= bf.varchar
-	reg->part.pais	   	= bf.varint
-	reg->part.cnpj	   	= bf.varchar
-	reg->part.cpf	   	= bf.varchar
-	reg->part.ie		= bf.varchar
-	reg->part.municip	= bf.varint
-	reg->part.suframa  	= bf.varchar
-	reg->part.ender	   	= bf.varchar
-	reg->part.num		= bf.varchar
-	reg->part.compl	   	= bf.varchar
-	reg->part.bairro	= bf.varchar
+	reg->id		= bf.varchar
+	reg->nome	= bf.varchar
+	reg->pais	= bf.varint
+	reg->cnpj	= bf.varchar
+	reg->cpf	= bf.varchar
+	reg->ie		= bf.varchar
+	reg->municip= bf.varint
+	reg->suframa= bf.varchar
+	reg->ender	= bf.varchar
+	reg->num	= bf.varchar
+	reg->compl	= bf.varchar
+	reg->bairro	= bf.varchar
    
 	'pular \r\n
 	if bf.peek1 = 13 then
@@ -399,53 +413,54 @@ function EfdSpedImport.lerRegParticipante(bf as bfile, reg as TRegistro ptr) as 
 		bf.char1
 	end if
 
-	function = true
+	return reg
 
 end function
 
 ''''''''
-function EfdSpedImport.lerRegDocNF(bf as bfile, reg as TRegistro ptr) as Boolean
+function EfdSpedImport.lerRegDocNF(bf as bfile) as TDocNF ptr
 
+	var reg = new TDocNF
 	bf.char1		'pular |
 
-	reg->nf.operacao		= bf.int1
+	reg->operacao		= bf.int1
 	bf.char1		'pular |
-	reg->nf.emitente		= bf.int1
+	reg->emitente		= bf.int1
 	bf.char1		'pular |
-	reg->nf.idParticipante	= bf.varchar
-	reg->nf.modelo			= bf.int2
+	reg->idParticipante	= bf.varchar
+	reg->modelo			= bf.int2
 	bf.char1		'pular |
-	reg->nf.situacao		= bf.int2
+	reg->situacao		= bf.int2
 	bf.char1		'pular |
-	reg->nf.serie			= bf.varchar
-	reg->nf.numero			= bf.varint
-	reg->nf.chave			= bf.varchar
-	reg->nf.dataEmi			= ddMmYyyy2YyyyMmDd(bf.varchar)
-	reg->nf.dataEntSaida	= ddMmYyyy2YyyyMmDd(bf.varchar)
-	reg->nf.valorTotal		= bf.vardbl
-	reg->nf.pagamento		= bf.varint
-	reg->nf.valorDesconto	= bf.vardbl
-	reg->nf.valorAbatimento	= bf.vardbl
-	reg->nf.valorMerc		= bf.vardbl
-	reg->nf.frete			= bf.varint
-	reg->nf.valorFrete		= bf.vardbl
-	reg->nf.valorSeguro		= bf.vardbl
-	reg->nf.valorAcessorias	= bf.vardbl
-	reg->nf.bcICMS			= bf.vardbl
-	reg->nf.ICMS			= bf.vardbl
-	reg->nf.bcICMSST		= bf.vardbl
-	reg->nf.ICMSST			= bf.vardbl
-	reg->nf.IPI				= bf.vardbl
-	reg->nf.PIS				= bf.vardbl
-	reg->nf.COFINS			= bf.vardbl
-	reg->nf.PISST			= bf.vardbl
-	reg->nf.COFINSST		= bf.vardbl
-	reg->nf.nroItens		= 0
+	reg->serie			= bf.varchar
+	reg->numero			= bf.varint
+	reg->chave			= bf.varchar
+	reg->dataEmi		= ddMmYyyy2YyyyMmDd(bf.varchar)
+	reg->dataEntSaida	= ddMmYyyy2YyyyMmDd(bf.varchar)
+	reg->valorTotal		= bf.vardbl
+	reg->pagamento		= bf.varint
+	reg->valorDesconto	= bf.vardbl
+	reg->valorAbatimento= bf.vardbl
+	reg->valorMerc		= bf.vardbl
+	reg->frete			= bf.varint
+	reg->valorFrete		= bf.vardbl
+	reg->valorSeguro	= bf.vardbl
+	reg->valorAcessorias= bf.vardbl
+	reg->bcICMS			= bf.vardbl
+	reg->ICMS			= bf.vardbl
+	reg->bcICMSST		= bf.vardbl
+	reg->ICMSST			= bf.vardbl
+	reg->IPI			= bf.vardbl
+	reg->PIS			= bf.vardbl
+	reg->COFINS			= bf.vardbl
+	reg->PISST			= bf.vardbl
+	reg->COFINSST		= bf.vardbl
+	reg->nroItens		= 0
 
-	reg->nf.itemAnalListHead = null
-	reg->nf.itemAnalListTail = null
-	reg->nf.infoComplListHead = null
-	reg->nf.infoComplListTail = null
+	reg->itemAnalListHead = null
+	reg->itemAnalListTail = null
+	reg->infoComplListHead = null
+	reg->infoComplListTail = null
 
 	'pular \r\n
 	if bf.peek1 = 13 then
@@ -457,18 +472,20 @@ function EfdSpedImport.lerRegDocNF(bf as bfile, reg as TRegistro ptr) as Boolean
 		bf.char1
 	end if
 
-	function = true
+	return reg
 
 end function
 
 ''''''''
-function EfdSpedImport.lerRegDocNFInfo(bf as bfile, reg as TRegistro ptr, pai as TDocNF ptr) as Boolean
+function EfdSpedImport.lerRegDocNFInfo(bf as bfile, pai as TDocNF ptr) as TDocInfoCompl ptr
 
+	var reg = new TDocInfoCompl
+	
 	bf.char1		'pular |
 
-	reg->docInfoCompl.idCompl			= bf.varchar
-	reg->docInfoCompl.extra				= bf.varchar
-	reg->docInfoCompl.next_				= null
+	reg->idCompl			= bf.varchar
+	reg->extra				= bf.varchar
+	reg->next_				= null
 	
 	'pular \r\n
 	if bf.peek1 = 13 then
@@ -480,17 +497,19 @@ function EfdSpedImport.lerRegDocNFInfo(bf as bfile, reg as TRegistro ptr, pai as
 		bf.char1
 	end if
 
-	function = true
+	return reg
 
 end function
 
 ''''''''
-function EfdSpedImport.lerRegDocObs(bf as bfile, reg as TRegistro ptr) as Boolean
+function EfdSpedImport.lerRegDocObs(bf as bfile) as TDocObs ptr
+
+	var reg = new TDocObs
 
 	bf.char1		'pular |
 
-	reg->docObs.idLanc			= bf.varchar
-	reg->docObs.extra			= bf.varchar
+	reg->idLanc			= bf.varchar
+	reg->extra			= bf.varchar
 	
 	'pular \r\n
 	if bf.peek1 = 13 then
@@ -502,22 +521,24 @@ function EfdSpedImport.lerRegDocObs(bf as bfile, reg as TRegistro ptr) as Boolea
 		bf.char1
 	end if
 
-	function = true
+	return reg
 
 end function
 
 ''''''''
-function EfdSpedImport.lerRegDocObsAjuste(bf as bfile, reg as TRegistro ptr) as Boolean
+function EfdSpedImport.lerRegDocObsAjuste(bf as bfile) as TDocObsAjuste ptr
 
+	var reg = new TDocObsAjuste
+	
 	bf.char1		'pular |
 
-	reg->docObsAjuste.idAjuste		= bf.varchar
-	reg->docObsAjuste.extra			= bf.varchar
-	reg->docObsAjuste.idItem		= bf.varchar
-	reg->docObsAjuste.bcICMS		= bf.vardbl
-	reg->docObsAjuste.aliqICMS		= bf.vardbl
-	reg->docObsAjuste.icms			= bf.vardbl
-	reg->docObsAjuste.outros		= bf.vardbl
+	reg->idAjuste	= bf.varchar
+	reg->extra		= bf.varchar
+	reg->idItem		= bf.varchar
+	reg->bcICMS		= bf.vardbl
+	reg->aliqICMS	= bf.vardbl
+	reg->icms		= bf.vardbl
+	reg->outros		= bf.vardbl
 	
 	'pular \r\n
 	if bf.peek1 = 13 then
@@ -529,61 +550,63 @@ function EfdSpedImport.lerRegDocObsAjuste(bf as bfile, reg as TRegistro ptr) as 
 		bf.char1
 	end if
 
-	function = true
+	return reg
 
 end function
 
 ''''''''
-function EfdSpedImport.lerRegDocNFItem(bf as bfile, reg as TRegistro ptr, documentoPai as TDocNF ptr) as Boolean
+function EfdSpedImport.lerRegDocNFItem(bf as bfile, documentoPai as TDocNF ptr) as TDocNFItem ptr
 
+	var reg = new TDocNFItem
+	
 	bf.char1		'pular |
 
-	reg->itemNF.documentoPai	= documentoPai
+	reg->documentoPai	= documentoPai
    
-	reg->itemNF.numItem			= bf.varint
-	reg->itemNF.itemId			= bf.varchar
-	reg->itemNF.descricao		= bf.varchar
-	reg->itemNF.qtd				= bf.vardbl
-	reg->itemNF.unidade			= bf.varchar
-	reg->itemNF.valor			= bf.vardbl
-	reg->itemNF.desconto		= bf.vardbl
-	reg->itemNF.indMovFisica	= bf.varint
-	reg->itemNF.cstICMS			= bf.varint
-	reg->itemNF.cfop			= bf.varint
-	reg->itemNF.codNatureza		= bf.varchar
-	reg->itemNF.bcICMS			= bf.vardbl
-	reg->itemNF.aliqICMS		= bf.vardbl
-	reg->itemNF.ICMS			= bf.vardbl
-	reg->itemNF.bcICMSST		= bf.vardbl
-	reg->itemNF.aliqICMSST		= bf.vardbl
-	reg->itemNF.ICMSST			= bf.vardbl
-	reg->itemNF.indApuracao		= bf.varint
-	reg->itemNF.cstIPI			= bf.varint
-	reg->itemNF.codEnqIPI		= bf.varchar
-	reg->itemNF.bcIPI			= bf.vardbl
-	reg->itemNF.aliqIPI			= bf.vardbl
-	reg->itemNF.IPI				= bf.vardbl
-	reg->itemNF.cstPIS			= bf.varint
-	reg->itemNF.bcPIS			= bf.vardbl
-	reg->itemNF.aliqPISPerc		= bf.vardbl
-	reg->itemNF.qtdBcPIS		= bf.vardbl
-	reg->itemNF.aliqPISMoed		= bf.vardbl
-	reg->itemNF.PIS				= bf.vardbl
-	reg->itemNF.cstCOFINS		= bf.varint
-	reg->itemNF.bcCOFINS		= bf.vardbl
-	reg->itemNF.aliqCOFINSPerc 	= bf.vardbl
-	reg->itemNF.qtdBcCOFINS		= bf.vardbl
-	reg->itemNF.aliqCOFINSMoed 	= bf.vardbl
-	reg->itemNF.COFINS			= bf.vardbl
+	reg->numItem		= bf.varint
+	reg->itemId			= bf.varchar
+	reg->descricao		= bf.varchar
+	reg->qtd			= bf.vardbl
+	reg->unidade		= bf.varchar
+	reg->valor			= bf.vardbl
+	reg->desconto		= bf.vardbl
+	reg->indMovFisica	= bf.varint
+	reg->cstICMS		= bf.varint
+	reg->cfop			= bf.varint
+	reg->codNatureza	= bf.varchar
+	reg->bcICMS			= bf.vardbl
+	reg->aliqICMS		= bf.vardbl
+	reg->ICMS			= bf.vardbl
+	reg->bcICMSST		= bf.vardbl
+	reg->aliqICMSST		= bf.vardbl
+	reg->ICMSST			= bf.vardbl
+	reg->indApuracao	= bf.varint
+	reg->cstIPI			= bf.varint
+	reg->codEnqIPI		= bf.varchar
+	reg->bcIPI			= bf.vardbl
+	reg->aliqIPI		= bf.vardbl
+	reg->IPI			= bf.vardbl
+	reg->cstPIS			= bf.varint
+	reg->bcPIS			= bf.vardbl
+	reg->aliqPISPerc	= bf.vardbl
+	reg->qtdBcPIS		= bf.vardbl
+	reg->aliqPISMoed	= bf.vardbl
+	reg->PIS			= bf.vardbl
+	reg->cstCOFINS		= bf.varint
+	reg->bcCOFINS		= bf.vardbl
+	reg->aliqCOFINSPerc = bf.vardbl
+	reg->qtdBcCOFINS	= bf.vardbl
+	reg->aliqCOFINSMoed = bf.vardbl
+	reg->COFINS			= bf.vardbl
 	bf.varchar					'' pular código da conta
-	if regMestre->mestre.versaoLayout >= 013 then
+	if regMestre->versaoLayout >= 013 then
 		bf.vardbl				'' pular VL_ABAT_NT
 	end if
 
 	documentoPai->nroItens 		+= 1
 	
-	reg->itemNF.itemRessarcStListHead = null
-	reg->itemNF.itemRessarcStListTail = null
+	reg->itemRessarcStListHead = null
+	reg->itemRessarcStListTail = null
 
 	'pular \r\n
 	if bf.peek1 = 13 then
@@ -595,29 +618,31 @@ function EfdSpedImport.lerRegDocNFItem(bf as bfile, reg as TRegistro ptr, docume
 		bf.char1
 	end if
 
-	function = true
+	return reg
 
 end function
 
 ''''''''
-function EfdSpedImport.lerRegDocNFItemAnal(bf as bfile, reg as TRegistro ptr, documentoPai as TRegistro ptr) as Boolean
+function EfdSpedImport.lerRegDocNFItemAnal(bf as bfile, documentoPai as TDocNF ptr) as TDocItemAnal ptr
+
+	var reg = new TDocItemAnal
 
 	bf.char1		'pular |
 
-	reg->itemAnal.documentoPai	= documentoPai
-	reg->itemAnal.num		= documentoPai->nf.itemAnalCnt
-	documentoPai->nf.itemAnalCnt += 1
+	reg->documentoPai= documentoPai
+	reg->num		= documentoPai->itemAnalCnt
+	documentoPai->itemAnalCnt += 1
 	
-	reg->itemAnal.cst		= bf.varint
-	reg->itemAnal.cfop		= bf.varint
-	reg->itemAnal.aliq		= bf.vardbl
-	reg->itemAnal.valorOp	= bf.vardbl
-	reg->itemAnal.bc		= bf.vardbl
-	reg->itemAnal.ICMS		= bf.vardbl
-	reg->itemAnal.bcST		= bf.vardbl
-	reg->itemAnal.ICMSST	= bf.vardbl
-	reg->itemAnal.redBC		= bf.vardbl
-	reg->itemAnal.IPI		= bf.vardbl
+	reg->cst		= bf.varint
+	reg->cfop		= bf.varint
+	reg->aliq		= bf.vardbl
+	reg->valorOp	= bf.vardbl
+	reg->bc			= bf.vardbl
+	reg->ICMS		= bf.vardbl
+	reg->bcST		= bf.vardbl
+	reg->ICMSST		= bf.vardbl
+	reg->redBC		= bf.vardbl
+	reg->IPI		= bf.vardbl
 	bf.varchar					'' pular código de observação
 
 	'pular \r\n
@@ -630,48 +655,50 @@ function EfdSpedImport.lerRegDocNFItemAnal(bf as bfile, reg as TRegistro ptr, do
 		bf.char1
 	end if
 	
-	function = true
+	return reg
 
 end function
 
 ''''''''
-function EfdSpedImport.lerRegDocNFItemRessarcSt(bf as bfile, reg as TRegistro ptr, documentoPai as TDocNFItem ptr) as Boolean
+function EfdSpedImport.lerRegDocNFItemRessarcSt(bf as bfile, documentoPai as TDocNFItem ptr) as TDocNFItemRessarcSt ptr
+
+	var reg = new TDocNFItemRessarcSt
 
 	bf.char1		'pular |
 
-	reg->itemRessarcSt.documentoPai	= documentoPai
+	reg->documentoPai	= documentoPai
 	
-	reg->itemRessarcSt.modeloUlt 			= bf.int2
+	reg->modeloUlt 			= bf.int2
 	bf.char1		'pular |
-	reg->itemRessarcSt.numeroUlt 			= bf.varint
-	reg->itemRessarcSt.serieUlt  			= bf.varchar
-	reg->itemRessarcSt.dataUlt				= ddMmYyyy2YyyyMmDd(bf.varchar)
-	reg->itemRessarcSt.idParticipanteUlt	= bf.varchar
-	reg->itemRessarcSt.qtdUlt				= bf.vardbl
-	reg->itemRessarcSt.valorUlt				= bf.vardbl
-	reg->itemRessarcSt.valorBcST			= bf.vardbl
+	reg->numeroUlt 			= bf.varint
+	reg->serieUlt  			= bf.varchar
+	reg->dataUlt			= ddMmYyyy2YyyyMmDd(bf.varchar)
+	reg->idParticipanteUlt	= bf.varchar
+	reg->qtdUlt				= bf.vardbl
+	reg->valorUlt			= bf.vardbl
+	reg->valorBcST			= bf.vardbl
 	
 	if bf.peek1 <> 13 then
-		reg->itemRessarcSt.chaveNFeUlt		= bf.varchar
-		reg->itemRessarcSt.numItemNFeUlt	= bf.varint
-		reg->itemRessarcSt.bcIcmsUlt		= bf.vardbl
-		reg->itemRessarcSt.aliqIcmsUlt		= bf.vardbl
-		reg->itemRessarcSt.limiteBcIcmsUlt	= bf.vardbl
-		reg->itemRessarcSt.icmsUlt			= bf.vardbl
-		reg->itemRessarcSt.aliqIcmsStUlt	= bf.vardbl
-		reg->itemRessarcSt.res				= bf.vardbl
-		reg->itemRessarcSt.responsavelRet	= bf.int1
+		reg->chaveNFeUlt	= bf.varchar
+		reg->numItemNFeUlt	= bf.varint
+		reg->bcIcmsUlt		= bf.vardbl
+		reg->aliqIcmsUlt	= bf.vardbl
+		reg->limiteBcIcmsUlt= bf.vardbl
+		reg->icmsUlt		= bf.vardbl
+		reg->aliqIcmsStUlt	= bf.vardbl
+		reg->res			= bf.vardbl
+		reg->responsavelRet	= bf.int1
 		bf.char1		'pular |
-		reg->itemRessarcSt.motivo			= bf.int1
+		reg->motivo			= bf.int1
 		bf.char1		'pular |
-		reg->itemRessarcSt.chaveNFeRet		= bf.varchar
-		reg->itemRessarcSt.idParticipanteRet= bf.varchar
-		reg->itemRessarcSt.serieRet			= bf.varchar
-		reg->itemRessarcSt.numeroRet		= bf.varint
-		reg->itemRessarcSt.numItemNFeRet 	= bf.varint
-		reg->itemRessarcSt.tipDocArrecadacao= bf.int1
+		reg->chaveNFeRet	= bf.varchar
+		reg->idParticipanteRet= bf.varchar
+		reg->serieRet		= bf.varchar
+		reg->numeroRet		= bf.varint
+		reg->numItemNFeRet 	= bf.varint
+		reg->tipDocArrecadacao= bf.int1
 		bf.char1		'pular |
-		reg->itemRessarcSt.numDocArrecadacao= bf.varchar
+		reg->numDocArrecadacao= bf.varchar
 	end if
    
 	'pular \r\n
@@ -684,18 +711,18 @@ function EfdSpedImport.lerRegDocNFItemRessarcSt(bf as bfile, reg as TRegistro pt
 		bf.char1
 	end if
 	
-	function = true
+	return reg
 
 end function
 
 ''''''''
-function EfdSpedImport.lerRegDocNFDifal(bf as bfile, reg as TRegistro ptr, documentoPai as TDocNF ptr) as Boolean
+function EfdSpedImport.lerRegDocNFDifal(bf as bfile, reg as TDocNF ptr) as TDocNF ptr
 
 	bf.char1		'pular |
 
-	documentoPai->difal.fcp			= bf.vardbl
-	documentoPai->difal.icmsDest	= bf.vardbl
-	documentoPai->difal.icmsOrigem	= bf.vardbl
+	reg->difal.fcp		= bf.vardbl
+	reg->difal.icmsDest	= bf.vardbl
+	reg->difal.icmsOrigem= bf.vardbl
 
 	'pular \r\n
 	if bf.peek1 = 13 then
@@ -707,51 +734,53 @@ function EfdSpedImport.lerRegDocNFDifal(bf as bfile, reg as TRegistro ptr, docum
 		bf.char1
 	end if
 
-	function = true
+	return reg
 
 end function
 
 ''''''''
-function EfdSpedImport.lerRegDocCT(bf as bfile, reg as TRegistro ptr) as Boolean
+function EfdSpedImport.lerRegDocCT(bf as bfile) as TDocCT ptr
 
+	var reg = new TDocCT
+	
 	bf.char1		'pular |
 
-	reg->ct.operacao		= bf.int1
+	reg->operacao		= bf.int1
 	bf.char1		'pular |
-	reg->ct.emitente		= bf.int1
+	reg->emitente		= bf.int1
 	bf.char1		'pular |
-	reg->ct.idParticipante	= bf.varchar
-	reg->ct.modelo			= bf.int2
+	reg->idParticipante	= bf.varchar
+	reg->modelo			= bf.int2
 	bf.char1		'pular |
-	reg->ct.situacao		= bf.int2
+	reg->situacao		= bf.int2
 	bf.char1		'pular |
-	reg->ct.serie			= bf.varchar
+	reg->serie			= bf.varchar
 	bf.varchar		'pular sub-série
-	reg->ct.numero			= bf.varint
-	reg->ct.chave			= bf.varchar
-	reg->ct.dataEmi			= ddMmYyyy2YyyyMmDd(bf.varchar)
-	reg->ct.dataEntSaida	= ddMmYyyy2YyyyMmDd(bf.varchar)
-	reg->ct.tipoCTe			= bf.varint
-	reg->ct.chaveRef		= bf.varchar
-	reg->ct.valorTotal		= bf.vardbl
-	reg->ct.valorDesconto	= bf.vardbl
-	reg->ct.frete			= bf.varint
-	reg->ct.valorServico	= bf.vardbl
-	reg->ct.bcICMS			= bf.vardbl
-	reg->ct.ICMS			= bf.vardbl
-	reg->ct.valorNaoTributado = bf.vardbl
-	reg->ct.codInfComplementar= bf.varchar
+	reg->numero			= bf.varint
+	reg->chave			= bf.varchar
+	reg->dataEmi		= ddMmYyyy2YyyyMmDd(bf.varchar)
+	reg->dataEntSaida	= ddMmYyyy2YyyyMmDd(bf.varchar)
+	reg->tipoCTe		= bf.varint
+	reg->chaveRef		= bf.varchar
+	reg->valorTotal		= bf.vardbl
+	reg->valorDesconto	= bf.vardbl
+	reg->frete			= bf.varint
+	reg->valorServico	= bf.vardbl
+	reg->bcICMS			= bf.vardbl
+	reg->ICMS			= bf.vardbl
+	reg->valorNaoTributado = bf.vardbl
+	reg->codInfComplementar= bf.varchar
 	bf.varchar		'pular código Conta Analitica
 	
 	'' códigos dos municípios de origem e de destino não aparecem em layouts antigos
 	if bf.peek1 <> 13 and bf.peek1 <> 10 then 
-		reg->ct.municipioOrigem	= bf.varint
-		reg->ct.municipioDestino= bf.varint
+		reg->municipioOrigem= bf.varint
+		reg->municipioDestino= bf.varint
 	end if
 	
-	reg->ct.itemAnalListHead = null
-	reg->ct.itemAnalListTail = null
-	reg->ct.itemAnalCnt = 0
+	reg->itemAnalListHead = null
+	reg->itemAnalListTail = null
+	reg->itemAnalCnt = 0
 
 	'pular \r\n
 	if bf.peek1 = 13 then
@@ -763,24 +792,26 @@ function EfdSpedImport.lerRegDocCT(bf as bfile, reg as TRegistro ptr) as Boolean
 		bf.char1
 	end if
 
-	function = true
+	return reg
 
 end function
 
 ''''''''
-function EfdSpedImport.lerRegDocCTItemAnal(bf as bfile, reg as TRegistro ptr, docPai as TRegistro ptr) as Boolean
+function EfdSpedImport.lerRegDocCTItemAnal(bf as bfile, docPai as TDocCT ptr) as TDocItemAnal ptr
 
+	var reg = new TDocItemAnal
+	
 	bf.char1		'pular |
 
-	reg->itemAnal.documentoPai	= docPai
+	reg->documentoPai= docPai
 
-	reg->itemAnal.cst			= bf.varint
-	reg->itemAnal.cfop			= bf.varint
-	reg->itemAnal.aliq			= bf.vardbl
-	reg->itemAnal.valorOp		= bf.vardbl
-	reg->itemAnal.bc			= bf.vardbl
-	reg->itemAnal.ICMS			= bf.vardbl
-	reg->itemAnal.redBc			= bf.vardbl
+	reg->cst		= bf.varint
+	reg->cfop		= bf.varint
+	reg->aliq		= bf.vardbl
+	reg->valorOp	= bf.vardbl
+	reg->bc			= bf.vardbl
+	reg->ICMS		= bf.vardbl
+	reg->redBc		= bf.vardbl
 	bf.varchar					'' pular cod obs
 	
 	'pular \r\n
@@ -793,18 +824,18 @@ function EfdSpedImport.lerRegDocCTItemAnal(bf as bfile, reg as TRegistro ptr, do
 		bf.char1
 	end if
 
-	function = true
+	return reg
 
 end function
 
 ''''''''
-function EfdSpedImport.lerRegDocCTDifal(bf as bfile, reg as TRegistro ptr, docPai as TDocCT ptr) as Boolean
+function EfdSpedImport.lerRegDocCTDifal(bf as bfile, reg as TDocCT ptr) as TDocCT ptr
 
 	bf.char1		'pular |
 
-	docPai->difal.fcp		= bf.vardbl
-	docPai->difal.icmsDest	= bf.vardbl
-	docPai->difal.icmsOrigem= bf.vardbl
+	reg->difal.fcp		= bf.vardbl
+	reg->difal.icmsDest	= bf.vardbl
+	reg->difal.icmsOrigem= bf.vardbl
 
 	'pular \r\n
 	if bf.peek1 = 13 then
@@ -816,20 +847,59 @@ function EfdSpedImport.lerRegDocCTDifal(bf as bfile, reg as TRegistro ptr, docPa
 		bf.char1
 	end if
 
-	function = true
+	return reg
 
 end function
 
 ''''''''
-function EfdSpedImport.lerRegEquipECF(bf as bfile, reg as TRegistro ptr) as Boolean
+function EfdSpedImport.lerRegEquipECF(bf as bfile) as TEquipECF ptr
 
+	var reg = new TEquipECF
+	
 	bf.char1		'pular |
 
+	var modelo 		= bf.varchar
+	reg->modelo		= iif(modelo = "2D", &h2D, valint(modelo))
+	reg->modeloEquip= bf.varchar
+	reg->numSerie 	= bf.varchar
+	reg->numCaixa	= bf.varint
+
+	'pular \r\n
+	if bf.peek1 = 13 then
+		bf.char1
+	end if
+	if bf.peek1 <> 10 then
+		onError("Erro: esperado \n, encontrado " & bf.peek1)
+	else
+		bf.char1
+	end if
+
+	return reg
+
+end function
+
+''''''''
+function EfdSpedImport.lerRegDocECF(bf as bfile, equipECF as TEquipECF ptr) as TDocECF ptr
+
+	var reg = new TDocECF
+	
+	bf.char1		'pular |
+
+	reg->equipECF		= equipECF
+	reg->operacao		= SAIDA
 	var modelo = bf.varchar
-	reg->equipECF.modelo	= iif(modelo = "2D", &h2D, valint(modelo))
-	reg->equipECF.modeloEquip = bf.varchar
-	reg->equipECF.numSerie 	= bf.varchar
-	reg->equipECF.numCaixa	= bf.varint
+	reg->modelo			= iif(modelo = "2D", &h2D, valint(modelo))
+	reg->situacao		= bf.int2
+	bf.char1		'pular |
+	reg->numero			= bf.varint
+	reg->dataEmi		= ddMmYyyy2YyyyMmDd(bf.varchar)
+	reg->dataEntSaida	= reg->dataEmi
+	reg->valorTotal		= bf.vardbl
+	reg->PIS			= bf.vardbl
+	reg->COFINS			= bf.vardbl
+	reg->cpfCnpjAdquirente = bf.varchar
+	reg->nomeAdquirente = bf.varchar
+	reg->nroItens		= 0
 
 	'pular \r\n
 	if bf.peek1 = 13 then
@@ -841,30 +911,29 @@ function EfdSpedImport.lerRegEquipECF(bf as bfile, reg as TRegistro ptr) as Bool
 		bf.char1
 	end if
 
-	function = true
+	return reg
 
 end function
 
 ''''''''
-function EfdSpedImport.lerRegDocECF(bf as bfile, reg as TRegistro ptr, equipECF as TEquipECF ptr) as Boolean
+function EfdSpedImport.lerRegECFReducaoZ(bf as bfile, equipECF as TEquipECF ptr) as TECFReducaoZ ptr
 
+	var reg = new TECFReducaoZ
+	
 	bf.char1		'pular |
 
-	reg->ecf.equipECF		= equipECF
-	reg->ecf.operacao		= SAIDA
-	var modelo = bf.varchar
-	reg->ecf.modelo			= iif(modelo = "2D", &h2D, valint(modelo))
-	reg->ecf.situacao		= bf.int2
-	bf.char1		'pular |
-	reg->ecf.numero			= bf.varint
-	reg->ecf.dataEmi		= ddMmYyyy2YyyyMmDd(bf.varchar)
-	reg->ecf.dataEntSaida	= reg->ecf.dataEmi
-	reg->ecf.valorTotal		= bf.vardbl
-	reg->ecf.PIS			= bf.vardbl
-	reg->ecf.COFINS			= bf.vardbl
-	reg->ecf.cpfCnpjAdquirente = bf.varchar
-	reg->ecf.nomeAdquirente = bf.varchar
-	reg->ecf.nroItens		= 0
+	reg->equipECF	= equipECF
+	reg->dataMov	= ddMmYyyy2YyyyMmDd(bf.varchar)
+	reg->cro		= bf.varint
+	reg->crz		= bf.varint
+	reg->numOrdem	= bf.varint
+	reg->valorFinal	= bf.vardbl
+	reg->valorBruto	= bf.vardbl
+
+	reg->numIni		= 2^20
+	reg->numFim		= -1
+	reg->itemAnalListHead = null
+	reg->itemAnalListTail = null
 
 	'pular \r\n
 	if bf.peek1 = 13 then
@@ -876,62 +945,32 @@ function EfdSpedImport.lerRegDocECF(bf as bfile, reg as TRegistro ptr, equipECF 
 		bf.char1
 	end if
 
-	function = true
+	return reg
 
 end function
 
 ''''''''
-function EfdSpedImport.lerRegECFReducaoZ(bf as bfile, reg as TRegistro ptr, equipECF as TEquipECF ptr) as Boolean
+function EfdSpedImport.lerRegDocECFItem(bf as bfile, documentoPai as TDocECF ptr) as TDocECFItem ptr
 
+	var reg = new TDocECFItem
+	
 	bf.char1		'pular |
 
-	reg->ecfRedZ.equipECF	= equipECF
-	reg->ecfRedZ.dataMov	= ddMmYyyy2YyyyMmDd(bf.varchar)
-	reg->ecfRedZ.cro		= bf.varint
-	reg->ecfRedZ.crz		= bf.varint
-	reg->ecfRedZ.numOrdem	= bf.varint
-	reg->ecfRedZ.valorFinal	= bf.vardbl
-	reg->ecfRedZ.valorBruto	= bf.vardbl
-
-	reg->ecfRedZ.numIni		= 2^20
-	reg->ecfRedZ.numFim		= -1
-	reg->ecfRedZ.itemAnalListHead = null
-	reg->ecfRedZ.itemAnalListTail = null
-
-	'pular \r\n
-	if bf.peek1 = 13 then
-		bf.char1
-	end if
-	if bf.peek1 <> 10 then
-		onError("Erro: esperado \n, encontrado " & bf.peek1)
-	else
-		bf.char1
-	end if
-
-	function = true
-
-end function
-
-''''''''
-function EfdSpedImport.lerRegDocECFItem(bf as bfile, reg as TRegistro ptr, documentoPai as TDocECF ptr) as Boolean
-
-	bf.char1		'pular |
-
-	reg->itemECF.documentoPai	= documentoPai
+	reg->documentoPai	= documentoPai
    
 	documentoPai->nroItens 		+= 1
 
-	reg->itemECF.numItem		= documentoPai->nroItens
-	reg->itemECF.itemId			= bf.varchar
-	reg->itemECF.qtd			= bf.vardbl
-	reg->itemECF.qtdCancelada	= bf.vardbl
-	reg->itemECF.unidade		= bf.varchar
-	reg->itemECF.valor			= bf.vardbl
-	reg->itemECF.cstICMS		= bf.varint
-	reg->itemECF.cfop			= bf.varint
-	reg->itemECF.aliqICMS		= bf.vardbl
-	reg->itemECF.PIS			= bf.vardbl
-	reg->itemECF.COFINS			= bf.vardbl
+	reg->numItem		= documentoPai->nroItens
+	reg->itemId			= bf.varchar
+	reg->qtd			= bf.vardbl
+	reg->qtdCancelada	= bf.vardbl
+	reg->unidade		= bf.varchar
+	reg->valor			= bf.vardbl
+	reg->cstICMS		= bf.varint
+	reg->cfop			= bf.varint
+	reg->aliqICMS		= bf.vardbl
+	reg->PIS			= bf.vardbl
+	reg->COFINS			= bf.vardbl
 
 	'pular \r\n
 	if bf.peek1 = 13 then
@@ -943,23 +982,25 @@ function EfdSpedImport.lerRegDocECFItem(bf as bfile, reg as TRegistro ptr, docum
 		bf.char1
 	end if
 
-	function = true
+	return reg
 
 end function
 
 ''''''''
-function EfdSpedImport.lerRegDocECFItemAnal(bf as bfile, reg as TRegistro ptr, documentoPai as TRegistro ptr) as Boolean
+function EfdSpedImport.lerRegDocECFItemAnal(bf as bfile, documentoPai as TRegistro ptr) as TDocItemAnal ptr
+
+	var reg = new TDocItemAnal
 
 	bf.char1		'pular |
 
-	reg->itemAnal.documentoPai	= documentoPai
+	reg->documentoPai= documentoPai
    
-	reg->itemAnal.cst		= bf.varint
-	reg->itemAnal.cfop		= bf.varint
-	reg->itemAnal.aliq		= bf.vardbl
-	reg->itemAnal.valorOp	= bf.vardbl
-	reg->itemAnal.bc		= bf.vardbl
-	reg->itemAnal.ICMS		= bf.vardbl
+	reg->cst		= bf.varint
+	reg->cfop		= bf.varint
+	reg->aliq		= bf.vardbl
+	reg->valorOp	= bf.vardbl
+	reg->bc			= bf.vardbl
+	reg->ICMS		= bf.vardbl
 	bf.varchar					'' pular código de observação
 
 	'pular \r\n
@@ -972,34 +1013,36 @@ function EfdSpedImport.lerRegDocECFItemAnal(bf as bfile, reg as TRegistro ptr, d
 		bf.char1
 	end if
 	
-	function = true
+	return reg
 
 end function
 
 ''''''''
-function EfdSpedImport.lerRegDocSAT(bf as bfile, reg as TRegistro ptr) as Boolean
+function EfdSpedImport.lerRegDocSAT(bf as bfile) as TDocSAT ptr
 
+	var reg = new TDocSAT
+	
 	bf.char1		'pular |
 
-	reg->sat.operacao		= SAIDA
-	reg->sat.modelo			= valint(bf.varchar)
-	reg->sat.situacao		= bf.int2
+	reg->operacao		= SAIDA
+	reg->modelo			= valint(bf.varchar)
+	reg->situacao		= bf.int2
 	bf.char1		'pular |
-	reg->sat.numero			= bf.varint
-	reg->sat.dataEmi		= ddMmYyyy2YyyyMmDd(bf.varchar)
-	reg->sat.valorTotal		= bf.vardbl
-	reg->sat.PIS			= bf.vardbl
-	reg->sat.COFINS			= bf.vardbl
-	reg->sat.cpfCnpjAdquirente = bf.varchar
-	reg->sat.serieEquip		= bf.varchar
-	reg->sat.chave 			= bf.varchar
-	reg->sat.descontos		= bf.vardbl
-	reg->sat.valorMerc 		= bf.vardbl
-	reg->sat.despesasAcess	= bf.vardbl
-	reg->sat.icms			= bf.vardbl
-	reg->sat.pisST			= bf.vardbl
-	reg->sat.cofinsST		= bf.vardbl
-	reg->sat.nroItens		= 0
+	reg->numero			= bf.varint
+	reg->dataEmi		= ddMmYyyy2YyyyMmDd(bf.varchar)
+	reg->valorTotal		= bf.vardbl
+	reg->PIS			= bf.vardbl
+	reg->COFINS			= bf.vardbl
+	reg->cpfCnpjAdquirente = bf.varchar
+	reg->serieEquip		= bf.varchar
+	reg->chave 			= bf.varchar
+	reg->descontos		= bf.vardbl
+	reg->valorMerc 		= bf.vardbl
+	reg->despesasAcess	= bf.vardbl
+	reg->icms			= bf.vardbl
+	reg->pisST			= bf.vardbl
+	reg->cofinsST		= bf.vardbl
+	reg->nroItens		= 0
 
 	'pular \r\n
 	if bf.peek1 = 13 then
@@ -1011,23 +1054,25 @@ function EfdSpedImport.lerRegDocSAT(bf as bfile, reg as TRegistro ptr) as Boolea
 		bf.char1
 	end if
 
-	function = true
+	return reg
 
 end function
 
 ''''''''
-function EfdSpedImport.lerRegDocSATItemAnal(bf as bfile, reg as TRegistro ptr, documentoPai as TRegistro ptr) as Boolean
+function EfdSpedImport.lerRegDocSATItemAnal(bf as bfile, documentoPai as TRegistro ptr) as TDocItemAnal ptr
 
+	var reg = new TDocItemAnal
+	
 	bf.char1		'pular |
 
-	reg->itemAnal.documentoPai	= documentoPai
+	reg->documentoPai	= documentoPai
    
-	reg->itemAnal.cst		= bf.varint
-	reg->itemAnal.cfop		= bf.varint
-	reg->itemAnal.aliq		= bf.vardbl
-	reg->itemAnal.valorOp	= bf.vardbl
-	reg->itemAnal.bc		= bf.vardbl
-	reg->itemAnal.ICMS		= bf.vardbl
+	reg->cst		= bf.varint
+	reg->cfop		= bf.varint
+	reg->aliq		= bf.vardbl
+	reg->valorOp	= bf.vardbl
+	reg->bc		= bf.vardbl
+	reg->ICMS		= bf.vardbl
 	bf.varchar					'' pular código de observação
 
 	'pular \r\n
@@ -1040,48 +1085,50 @@ function EfdSpedImport.lerRegDocSATItemAnal(bf as bfile, reg as TRegistro ptr, d
 		bf.char1
 	end if
 	
-	function = true
+	return reg
 
 end function
 
 
 ''''''''
-function EfdSpedImport.lerRegDocNFSCT(bf as bfile, reg as TRegistro ptr) as Boolean
+function EfdSpedImport.lerRegDocNFSCT(bf as bfile) as TDocNF ptr
 
+	var reg = new TDocNF
+	
 	bf.char1		'pular |
 
-	reg->nf.operacao		= bf.int1
+	reg->operacao		= bf.int1
 	bf.char1		'pular |
-	reg->nf.emitente		= bf.int1
+	reg->emitente		= bf.int1
 	bf.char1		'pular |
-	reg->nf.idParticipante	= bf.varchar
-	reg->nf.modelo			= bf.int2
+	reg->idParticipante	= bf.varchar
+	reg->modelo			= bf.int2
 	bf.char1		'pular |
-	reg->nf.situacao		= bf.int2
+	reg->situacao		= bf.int2
 	bf.char1		'pular |
-	reg->nf.serie			= bf.varchar
-	reg->nf.subserie		= bf.varchar
-	reg->nf.numero			= bf.varint
-	reg->nf.dataEmi			= ddMmYyyy2YyyyMmDd(bf.varchar)
-	reg->nf.dataEntSaida	= ddMmYyyy2YyyyMmDd(bf.varchar)
-	reg->nf.valorTotal		= bf.vardbl
-	reg->nf.valorDesconto	= bf.vardbl
+	reg->serie			= bf.varchar
+	reg->subserie		= bf.varchar
+	reg->numero			= bf.varint
+	reg->dataEmi		= ddMmYyyy2YyyyMmDd(bf.varchar)
+	reg->dataEntSaida	= ddMmYyyy2YyyyMmDd(bf.varchar)
+	reg->valorTotal		= bf.vardbl
+	reg->valorDesconto	= bf.vardbl
 	bf.vardbl		'pular valorServico
 	bf.vardbl 		'pular valorServicoNT
-	bf.vardbl 		'pular reg->nf.valorTerceiro
-	bf.vardbl 		'pular reg->nf.valorDesp
-	reg->nf.bcICMS			= bf.vardbl
-	reg->nf.ICMS			= bf.vardbl
+	bf.vardbl 		'pular reg->valorTerceiro
+	bf.vardbl 		'pular reg->valorDesp
+	reg->bcICMS			= bf.vardbl
+	reg->ICMS			= bf.vardbl
 	bf.varchar		'pular cod_inf
-	reg->nf.PIS				= bf.vardbl
-	reg->nf.COFINS			= bf.vardbl
+	reg->PIS			= bf.vardbl
+	reg->COFINS			= bf.vardbl
 	bf.varchar		'pular cod_cta
 	bf.varint		'pular tp_assinante
-	reg->nf.nroItens		= 0
+	reg->nroItens		= 0
 
-	reg->nf.itemAnalListHead = null
-	reg->nf.itemAnalListTail = null
-	reg->nf.itemAnalCnt = 0
+	reg->itemAnalListHead = null
+	reg->itemAnalListTail = null
+	reg->itemAnalCnt = 0
 
 	'pular \r\n
 	if bf.peek1 = 13 then
@@ -1093,26 +1140,28 @@ function EfdSpedImport.lerRegDocNFSCT(bf as bfile, reg as TRegistro ptr) as Bool
 		bf.char1
 	end if
 
-	function = true
+	return reg
 
 end function
 
 ''''''''
-function EfdSpedImport.lerRegDocNFSCTItemAnal(bf as bfile, reg as TRegistro ptr, documentoPai as TRegistro ptr) as Boolean
+function EfdSpedImport.lerRegDocNFSCTItemAnal(bf as bfile, documentoPai as TRegistro ptr) as TDocItemAnal ptr
 
+	var reg = new TDocItemAnal
+	
 	bf.char1		'pular |
 
-	reg->itemAnal.documentoPai	= documentoPai
+	reg->documentoPai= documentoPai
    
-	reg->itemAnal.cst		= bf.varint
-	reg->itemAnal.cfop		= bf.varint
-	reg->itemAnal.aliq		= bf.vardbl
-	reg->itemAnal.valorOp	= bf.vardbl
-	reg->itemAnal.bc		= bf.vardbl
-	reg->itemAnal.ICMS		= bf.vardbl
+	reg->cst		= bf.varint
+	reg->cfop		= bf.varint
+	reg->aliq		= bf.vardbl
+	reg->valorOp	= bf.vardbl
+	reg->bc			= bf.vardbl
+	reg->ICMS		= bf.vardbl
 	bf.vardbl		'pular VL_BC_ICMS_UF
 	bf.vardbl		'pular VL_ICMS_UF
-	reg->itemAnal.redBC		= bf.vardbl
+	reg->redBC		= bf.vardbl
 	bf.varchar		'pular COD_OBS
 
 	'pular \r\n
@@ -1125,58 +1174,60 @@ function EfdSpedImport.lerRegDocNFSCTItemAnal(bf as bfile, reg as TRegistro ptr,
 		bf.char1
 	end if
 	
-	function = true
+	return reg
 
 end function
 
 ''''''''
-function EfdSpedImport.lerRegDocNFElet(bf as bfile, reg as TRegistro ptr) as Boolean
+function EfdSpedImport.lerRegDocNFElet(bf as bfile) as TDocNF ptr
 
+	var reg = new TDocNF
+	
 	bf.char1		'pular |
 
-	reg->nf.operacao		= bf.int1
+	reg->operacao		= bf.int1
 	bf.char1		'pular |
-	reg->nf.emitente		= bf.int1
+	reg->emitente		= bf.int1
 	bf.char1		'pular |
-	reg->nf.idParticipante	= bf.varchar
-	reg->nf.modelo			= bf.int2
+	reg->idParticipante	= bf.varchar
+	reg->modelo			= bf.int2
 	bf.char1		'pular |
-	reg->nf.situacao		= bf.int2
+	reg->situacao		= bf.int2
 	bf.char1		'pular |
-	reg->nf.serie			= bf.varchar
-	reg->nf.subserie		= bf.varchar
+	reg->serie			= bf.varchar
+	reg->subserie		= bf.varchar
 	bf.varchar		'pular cod_cons
-	reg->nf.numero			= bf.varint
-	reg->nf.dataEmi			= ddMmYyyy2YyyyMmDd(bf.varchar)
-	reg->nf.dataEntSaida	= ddMmYyyy2YyyyMmDd(bf.varchar)
-	reg->nf.valorTotal		= bf.vardbl
-	reg->nf.valorDesconto	= bf.vardbl
+	reg->numero			= bf.varint
+	reg->dataEmi		= ddMmYyyy2YyyyMmDd(bf.varchar)
+	reg->dataEntSaida	= ddMmYyyy2YyyyMmDd(bf.varchar)
+	reg->valorTotal		= bf.vardbl
+	reg->valorDesconto	= bf.vardbl
 	bf.varchar		'pular vl_forn
 	bf.varchar 		'pular vl_serv_nt
 	bf.varchar		'pular vl_terc
 	bf.varchar		'pular vl_da
-	reg->nf.bcICMS			= bf.vardbl
-	reg->nf.ICMS			= bf.vardbl
-	reg->nf.bcICMSST		= bf.vardbl
-	reg->nf.ICMSST			= bf.vardbl
+	reg->bcICMS			= bf.vardbl
+	reg->ICMS			= bf.vardbl
+	reg->bcICMSST		= bf.vardbl
+	reg->ICMSST			= bf.vardbl
 	bf.varchar		'pular cod_inf
-	reg->nf.PIS				= bf.vardbl
-	reg->nf.COFINS			= bf.vardbl
+	reg->PIS			= bf.vardbl
+	reg->COFINS			= bf.vardbl
 	bf.varchar		'pular tp_ligacao
 	bf.varchar		'pular cod_grupo_tensao
-	if regMestre->mestre.versaoLayout >= 014 then
-		reg->nf.chave		= bf.varchar		
+	if regMestre->versaoLayout >= 014 then
+		reg->chave		= bf.varchar		
 		bf.varchar		'pular fin_doce
 		bf.varchar		'pular chv_doce_ref
 		bf.varchar		'pular ind_dest
 		bf.varchar		'pular cod_mun_dest
 		bf.varchar		'pular cod_cta
 	end if
-	reg->nf.nroItens		= 0
+	reg->nroItens		= 0
 
-	reg->nf.itemAnalListHead = null
-	reg->nf.itemAnalListTail = null
-	reg->nf.itemAnalCnt = 0
+	reg->itemAnalListHead = null
+	reg->itemAnalListTail = null
+	reg->itemAnalCnt = 0
 
 	'pular \r\n
 	if bf.peek1 = 13 then
@@ -1188,26 +1239,28 @@ function EfdSpedImport.lerRegDocNFElet(bf as bfile, reg as TRegistro ptr) as Boo
 		bf.char1
 	end if
 
-	function = true
+	return reg
 
 end function
 
 ''''''''
-function EfdSpedImport.lerRegDocNFEletItemAnal(bf as bfile, reg as TRegistro ptr, documentoPai as TRegistro ptr) as Boolean
+function EfdSpedImport.lerRegDocNFEletItemAnal(bf as bfile, documentoPai as TRegistro ptr) as TDocItemAnal ptr
 
+	var reg = new TDocItemAnal
+	
 	bf.char1		'pular |
 
-	reg->itemAnal.documentoPai	= documentoPai
+	reg->documentoPai	= documentoPai
    
-	reg->itemAnal.cst		= bf.varint
-	reg->itemAnal.cfop		= bf.varint
-	reg->itemAnal.aliq		= bf.vardbl
-	reg->itemAnal.valorOp	= bf.vardbl
-	reg->itemAnal.bc		= bf.vardbl
-	reg->itemAnal.ICMS		= bf.vardbl
-	reg->itemAnal.bcST		= bf.vardbl
-	reg->itemAnal.ICMSST	= bf.vardbl
-	reg->itemAnal.redBC		= bf.vardbl
+	reg->cst		= bf.varint
+	reg->cfop		= bf.varint
+	reg->aliq		= bf.vardbl
+	reg->valorOp	= bf.vardbl
+	reg->bc			= bf.vardbl
+	reg->ICMS		= bf.vardbl
+	reg->bcST		= bf.vardbl
+	reg->ICMSST	= bf.vardbl
+	reg->redBC		= bf.vardbl
 	bf.varchar		'pular COD_OBS
 	
 	'pular \r\n
@@ -1220,29 +1273,31 @@ function EfdSpedImport.lerRegDocNFEletItemAnal(bf as bfile, reg as TRegistro ptr
 		bf.char1
 	end if
 	
-	function = true
+	return reg
 
 end function
 
 ''''''''
-function EfdSpedImport.lerRegItemId(bf as bfile, reg as TRegistro ptr) as Boolean
+function EfdSpedImport.lerRegItemId(bf as bfile) as TItemId ptr
 
+	var reg = new TItemId
+	
 	bf.char1		'pular |
 
-	reg->itemId.id			  	= bf.varchar
-	reg->itemId.descricao	  	= bf.varchar
-	reg->itemId.codBarra		= bf.varchar
-	reg->itemId.codAnterior	  	= bf.varchar
-	reg->itemId.unidInventario 	= bf.varchar
-	reg->itemId.tipoItem		= bf.varint
-	reg->itemId.ncm			  	= bf.varint
-	reg->itemId.exIPI		  	= bf.varchar
-	reg->itemId.codGenero	  	= bf.varint
-	reg->itemId.codServico	  	= bf.varchar
-	reg->itemId.aliqICMSInt	  	= bf.vardbl
+	reg->id			  	= bf.varchar
+	reg->descricao	  	= bf.varchar
+	reg->codBarra		= bf.varchar
+	reg->codAnterior	= bf.varchar
+	reg->unidInventario = bf.varchar
+	reg->tipoItem		= bf.varint
+	reg->ncm			= bf.varint
+	reg->exIPI		  	= bf.varchar
+	reg->codGenero	  	= bf.varint
+	reg->codServico	  	= bf.varchar
+	reg->aliqICMSInt	= bf.vardbl
 	'CEST só é obrigatório a partir de 2017
 	if bf.peek1 <> 13 and bf.peek1 <> 10 then 
-	  reg->itemId.CEST		  	= bf.varint
+	  reg->CEST		  	= bf.varint
 	end if
 
 	'pular \r\n
@@ -1255,21 +1310,23 @@ function EfdSpedImport.lerRegItemId(bf as bfile, reg as TRegistro ptr) as Boolea
 		bf.char1
 	end if
 
-	function = true
+	return reg
 
 end function
 
 ''''''''
-function EfdSpedImport.lerRegBemCiap(bf as bfile, reg as TRegistro ptr) as Boolean
+function EfdSpedImport.lerRegBemCiap(bf as bfile) as TBemCiap ptr
 
+	var reg = new TBemCiap
+	
 	bf.char1		'pular |
 
-	reg->bemCiap.id			  	= bf.varchar
-	reg->bemCiap.tipoMerc		= bf.varint
-	reg->bemCiap.descricao	  	= bf.varchar
-	reg->bemCiap.principal		= bf.varchar
-	reg->bemCiap.codAnal	  	= bf.varchar
-	reg->bemCiap.parcelas		= bf.varint
+	reg->id			  	= bf.varchar
+	reg->tipoMerc		= bf.varint
+	reg->descricao	  	= bf.varchar
+	reg->principal		= bf.varchar
+	reg->codAnal	  	= bf.varchar
+	reg->parcelas		= bf.varint
 
 	'pular \r\n
 	if bf.peek1 = 13 then
@@ -1281,12 +1338,12 @@ function EfdSpedImport.lerRegBemCiap(bf as bfile, reg as TRegistro ptr) as Boole
 		bf.char1
 	end if
 
-	function = true
+	return reg
 
 end function
 
 ''''''''
-function EfdSpedImport.lerRegBemCiapInfo(bf as bfile, reg as TBemCiap ptr) as Boolean
+function EfdSpedImport.lerRegBemCiapInfo(bf as bfile, reg as TBemCiap ptr) as TBemCiap ptr
 
 	bf.char1		'pular |
 
@@ -1304,17 +1361,19 @@ function EfdSpedImport.lerRegBemCiapInfo(bf as bfile, reg as TBemCiap ptr) as Bo
 		bf.char1
 	end if
 
-	function = true
+	return reg
 
 end function
 
 ''''''''
-function EfdSpedImport.lerRegObsLancamento(bf as bfile, reg as TRegistro ptr) as Boolean
+function EfdSpedImport.lerRegObsLancamento(bf as bfile) as TObsLancamento ptr
 
+	var reg = new TObsLancamento
+	
 	bf.char1		'pular |
 
-	reg->obsLanc.id				= bf.varchar
-	reg->obsLanc.descricao	  	= bf.varchar
+	reg->id				= bf.varchar
+	reg->descricao	  	= bf.varchar
 
 	'pular \r\n
 	if bf.peek1 = 13 then
@@ -1326,21 +1385,23 @@ function EfdSpedImport.lerRegObsLancamento(bf as bfile, reg as TRegistro ptr) as
 		bf.char1
 	end if
 
-	function = true
+	return reg
 
 end function
 
 ''''''''
-function EfdSpedImport.lerRegContaContab(bf as bfile, reg as TRegistro ptr) as Boolean
+function EfdSpedImport.lerRegContaContab(bf as bfile) as TContaContab ptr
 
+	var reg = new TContaContab
+	
 	bf.char1		'pular |
 
-	reg->contaContab.dataInc		= ddMmYyyy2YyyyMmDd(bf.varchar)
-	reg->contaContab.codNat			= bf.varchar
-	reg->contaContab.ind			= bf.varchar
-	reg->contaContab.nivel			= bf.varint
-	reg->contaContab.id			 	= bf.varchar
-	reg->contaContab.descricao	  	= bf.varchar
+	reg->dataInc		= ddMmYyyy2YyyyMmDd(bf.varchar)
+	reg->codNat			= bf.varchar
+	reg->ind			= bf.varchar
+	reg->nivel			= bf.varint
+	reg->id			 	= bf.varchar
+	reg->descricao	  	= bf.varchar
 
 	'pular \r\n
 	if bf.peek1 = 13 then
@@ -1352,18 +1413,20 @@ function EfdSpedImport.lerRegContaContab(bf as bfile, reg as TRegistro ptr) as B
 		bf.char1
 	end if
 
-	function = true
+	return reg
 
 end function
 
 ''''''''
-function EfdSpedImport.lerRegCentroCusto(bf as bfile, reg as TRegistro ptr) as Boolean
+function EfdSpedImport.lerRegCentroCusto(bf as bfile) as TCentroCusto ptr
 
+	var reg = new TCentroCusto
+	
 	bf.char1		'pular |
 
-	reg->centroCusto.dataInc		= ddMmYyyy2YyyyMmDd(bf.varchar)
-	reg->centroCusto.id			 	= bf.varchar
-	reg->centroCusto.descricao	  	= bf.varchar
+	reg->dataInc		= ddMmYyyy2YyyyMmDd(bf.varchar)
+	reg->id			 	= bf.varchar
+	reg->descricao	  	= bf.varchar
 
 	'pular \r\n
 	if bf.peek1 = 13 then
@@ -1375,17 +1438,19 @@ function EfdSpedImport.lerRegCentroCusto(bf as bfile, reg as TRegistro ptr) as B
 		bf.char1
 	end if
 
-	function = true
+	return reg
 
 end function
 
 ''''''''
-function EfdSpedImport.lerRegInfoCompl(bf as bfile, reg as TRegistro ptr) as Boolean
+function EfdSpedImport.lerRegInfoCompl(bf as bfile) as TInfoCompl ptr
 
+	var reg = new TInfoCompl
+	
 	bf.char1		'pular |
 
-	reg->infoCompl.id				= bf.varchar
-	reg->infoCompl.descricao	  	= bf.varchar
+	reg->id				= bf.varchar
+	reg->descricao	  	= bf.varchar
 
 	'pular \r\n
 	if bf.peek1 = 13 then
@@ -1397,17 +1462,19 @@ function EfdSpedImport.lerRegInfoCompl(bf as bfile, reg as TRegistro ptr) as Boo
 		bf.char1
 	end if
 
-	function = true
+	return reg
 
 end function
 
 ''''''''
-function EfdSpedImport.lerRegApuIcmsPeriodo(bf as bfile, reg as TRegistro ptr) as Boolean
+function EfdSpedImport.lerRegApuIcmsPeriodo(bf as bfile) as TApuracaoIcmsPropPeriodo ptr
 
+   var reg = new TApuracaoIcmsPropPeriodo
+   
    bf.char1		'pular |
 
-   reg->apuIcms.dataIni		  = ddMmYyyy2YyyyMmDd(bf.varchar)
-   reg->apuIcms.dataFim		  = ddMmYyyy2YyyyMmDd(bf.varchar)
+   reg->dataIni		  = ddMmYyyy2YyyyMmDd(bf.varchar)
+   reg->dataFim		  = ddMmYyyy2YyyyMmDd(bf.varchar)
 
    'pular \r\n
 	if bf.peek1 = 13 then
@@ -1419,32 +1486,32 @@ function EfdSpedImport.lerRegApuIcmsPeriodo(bf as bfile, reg as TRegistro ptr) a
 		bf.char1
 	end if
 
-   function = true
+   return reg
 
 end function
 
 ''''''''
-function EfdSpedImport.lerRegApuIcmsProprio(bf as bfile, reg as TRegistro ptr) as Boolean
+function EfdSpedImport.lerRegApuIcmsProprio(bf as bfile, reg as TApuracaoIcmsPropPeriodo ptr) as TApuracaoIcmsPropPeriodo ptr
 
 	bf.char1		'pular |
 
-	reg->apuIcms.totalDebitos			= bf.vardbl
-	reg->apuIcms.ajustesDebitos			= bf.vardbl
-	reg->apuIcms.totalAjusteDeb			= bf.vardbl
-	reg->apuIcms.estornosCredito		= bf.vardbl
-	reg->apuIcms.totalCreditos			= bf.vardbl
-	reg->apuIcms.ajustesCreditos		= bf.vardbl
-	reg->apuIcms.totalAjusteCred		= bf.vardbl
-	reg->apuIcms.estornoDebitos			= bf.vardbl
-	reg->apuIcms.saldoCredAnterior		= bf.vardbl
-	reg->apuIcms.saldoDevedorApurado	= bf.vardbl
-	reg->apuIcms.totalDeducoes			= bf.vardbl
-	reg->apuIcms.icmsRecolher			= bf.vardbl
-	reg->apuIcms.saldoCredTransportar	= bf.vardbl
-	reg->apuIcms.debExtraApuracao		= bf.vardbl
+	reg->totalDebitos			= bf.vardbl
+	reg->ajustesDebitos			= bf.vardbl
+	reg->totalAjusteDeb			= bf.vardbl
+	reg->estornosCredito		= bf.vardbl
+	reg->totalCreditos			= bf.vardbl
+	reg->ajustesCreditos		= bf.vardbl
+	reg->totalAjusteCred		= bf.vardbl
+	reg->estornoDebitos			= bf.vardbl
+	reg->saldoCredAnterior		= bf.vardbl
+	reg->saldoDevedorApurado	= bf.vardbl
+	reg->totalDeducoes			= bf.vardbl
+	reg->icmsRecolher			= bf.vardbl
+	reg->saldoCredTransportar	= bf.vardbl
+	reg->debExtraApuracao		= bf.vardbl
 
-	reg->apuIcms.ajustesListHead 		= null
-	reg->apuIcms.ajustesListTail 		= null
+	reg->ajustesListHead 		= null
+	reg->ajustesListTail 		= null
 	
 	'pular \r\n
 	if bf.peek1 = 13 then
@@ -1456,78 +1523,20 @@ function EfdSpedImport.lerRegApuIcmsProprio(bf as bfile, reg as TRegistro ptr) a
 		bf.char1
 	end if
 
-	function = true
+	return reg
 
 end function
 
 ''''''''
-function EfdSpedImport.lerRegApuIcmsAjuste(bf as bfile, reg as TRegistro ptr, pai as TApuracaoIcmsPeriodo ptr) as Boolean
+function EfdSpedImport.lerRegApuIcmsAjuste(bf as bfile, pai as TApuracaoIcmsPeriodo ptr) as TApuracaoIcmsAjuste ptr
 
+	var reg = new TApuracaoIcmsAjuste
+	
 	bf.char1		'pular |
 	
-	reg->apuIcmsAjust.codigo 	= bf.varchar
-	reg->apuIcmsAjust.descricao = bf.varchar
-	reg->apuIcmsAjust.valor 	= bf.vardbl
-	
-	'pular \r\n
-	if bf.peek1 = 13 then
-		bf.char1
-	end if
-	if bf.peek1 <> 10 then
-		onError("Erro: esperado \n, encontrado " & bf.peek1)
-	else
-		bf.char1
-	end if
-
-	function = true
-
-end function
-
-''''''''
-function EfdSpedImport.lerRegApuIcmsSTPeriodo(bf as bfile, reg as TRegistro ptr) as Boolean
-
-	bf.char1		'pular |
-
-	reg->apuIcmsST.UF		 	 = bf.varchar
-	reg->apuIcmsST.dataIni		 = ddMmYyyy2YyyyMmDd(bf.varchar)
-	reg->apuIcmsST.dataFim		 = ddMmYyyy2YyyyMmDd(bf.varchar)
-
-	'pular \r\n
-	if bf.peek1 = 13 then
-		bf.char1
-	end if
-	if bf.peek1 <> 10 then
-		onError("Erro: esperado \n, encontrado " & bf.peek1)
-	else
-		bf.char1
-	end if
-
-	function = true
-
-end function
-
-''''''''
-function EfdSpedImport.lerRegApuIcmsST(bf as bfile, reg as TRegistro ptr) as Boolean
-
-	bf.char1		'pular |
-
-	reg->apuIcmsST.mov						= bf.varint
-	reg->apuIcmsST.saldoCredAnterior		= bf.vardbl
-	reg->apuIcmsST.devolMercadorias			= bf.vardbl
-	reg->apuIcmsST.totalRessarciment		= bf.vardbl
-	reg->apuIcmsST.totalOutrosCred			= bf.vardbl
-	reg->apuIcmsST.ajustesCreditos			= bf.vardbl
-	reg->apuIcmsST.totalRetencao			= bf.vardbl
-	reg->apuIcmsST.totalOutrosDeb			= bf.vardbl
-	reg->apuIcmsST.ajustesDebitos			= bf.vardbl
-	reg->apuIcmsST.saldoAntesDed			= bf.vardbl
-	reg->apuIcmsST.totalDeducoes			= bf.vardbl
-	reg->apuIcmsST.icmsRecolher				= bf.vardbl
-	reg->apuIcmsST.saldoCredTransportar		= bf.vardbl
-	reg->apuIcmsST.debExtraApuracao			= bf.vardbl
-
-	reg->apuIcmsST.ajustesListHead 			= null
-	reg->apuIcmsST.ajustesListTail 			= null
+	reg->codigo 	= bf.varchar
+	reg->descricao = bf.varchar
+	reg->valor 	= bf.vardbl
 	
 	'pular \r\n
 	if bf.peek1 = 13 then
@@ -1539,18 +1548,20 @@ function EfdSpedImport.lerRegApuIcmsST(bf as bfile, reg as TRegistro ptr) as Boo
 		bf.char1
 	end if
 
-	function = true
+	return reg
 
 end function
 
 ''''''''
-function EfdSpedImport.lerRegInventarioTotais(bf as bfile, reg as TRegistro ptr) as Boolean
+function EfdSpedImport.lerRegApuIcmsSTPeriodo(bf as bfile) as TApuracaoIcmsSTPeriodo ptr
 
+	var reg = new TApuracaoIcmsSTPeriodo
+	
 	bf.char1		'pular |
 
-	reg->invTotais.dataInventario 	 = ddMmYyyy2YyyyMmDd(bf.varchar)
-	reg->invTotais.valorTotalEstoque = bf.vardbl
-	reg->invTotais.motivoInventario	 = bf.varint
+	reg->UF		 	= bf.varchar
+	reg->dataIni	= ddMmYyyy2YyyyMmDd(bf.varchar)
+	reg->dataFim	= ddMmYyyy2YyyyMmDd(bf.varchar)
 
 	'pular \r\n
 	if bf.peek1 = 13 then
@@ -1562,26 +1573,57 @@ function EfdSpedImport.lerRegInventarioTotais(bf as bfile, reg as TRegistro ptr)
 		bf.char1
 	end if
 
-	function = true
+	return reg
 
 end function
 
 ''''''''
-function EfdSpedImport.lerRegInventarioItem(bf as bfile, reg as TRegistro ptr, inventarioPai as TInventarioTotais ptr) as Boolean
+function EfdSpedImport.lerRegApuIcmsST(bf as bfile, reg as TApuracaoIcmsSTPeriodo ptr) as TApuracaoIcmsSTPeriodo ptr
 
 	bf.char1		'pular |
 
-	reg->invItem.dataInventario 	= inventarioPai->dataInventario
-	reg->invItem.itemId 	 		= bf.varchar
-	reg->invItem.unidade 			= bf.varchar
-	reg->invItem.qtd	 			= bf.vardbl
-	reg->invItem.valorUnitario		= bf.vardbl
-	reg->invItem.valorItem			= bf.vardbl
-	reg->invItem.indPropriedade		= bf.varint
-	reg->invItem.idParticipante		= bf.varchar
-	reg->invItem.txtComplementar	= bf.varchar
-	reg->invItem.codConta			= bf.varchar
-	reg->invItem.valorItemIR		= bf.vardbl
+	reg->mov					= bf.varint
+	reg->saldoCredAnterior		= bf.vardbl
+	reg->devolMercadorias		= bf.vardbl
+	reg->totalRessarciment		= bf.vardbl
+	reg->totalOutrosCred		= bf.vardbl
+	reg->ajustesCreditos		= bf.vardbl
+	reg->totalRetencao			= bf.vardbl
+	reg->totalOutrosDeb			= bf.vardbl
+	reg->ajustesDebitos			= bf.vardbl
+	reg->saldoAntesDed			= bf.vardbl
+	reg->totalDeducoes			= bf.vardbl
+	reg->icmsRecolher			= bf.vardbl
+	reg->saldoCredTransportar	= bf.vardbl
+	reg->debExtraApuracao		= bf.vardbl
+
+	reg->ajustesListHead 		= null
+	reg->ajustesListTail 		= null
+	
+	'pular \r\n
+	if bf.peek1 = 13 then
+		bf.char1
+	end if
+	if bf.peek1 <> 10 then
+		onError("Erro: esperado \n, encontrado " & bf.peek1)
+	else
+		bf.char1
+	end if
+
+	return reg
+
+end function
+
+''''''''
+function EfdSpedImport.lerRegInventarioTotais(bf as bfile) as TInventarioTotais ptr
+
+	var reg = new TInventarioTotais
+	
+	bf.char1		'pular |
+
+	reg->dataInventario 	= ddMmYyyy2YyyyMmDd(bf.varchar)
+	reg->valorTotalEstoque 	= bf.vardbl
+	reg->motivoInventario	= bf.varint
 
 	'pular \r\n
 	if bf.peek1 = 13 then
@@ -1593,24 +1635,28 @@ function EfdSpedImport.lerRegInventarioItem(bf as bfile, reg as TRegistro ptr, i
 		bf.char1
 	end if
 
-	function = true
+	return reg
 
 end function
 
 ''''''''
-function EfdSpedImport.lerRegCiapTotal(bf as bfile, reg as TRegistro ptr) as Boolean
+function EfdSpedImport.lerRegInventarioItem(bf as bfile, inventarioPai as TInventarioTotais ptr) as TInventarioItem ptr
 
+	var reg = new TInventarioItem
+	
 	bf.char1		'pular |
 
-	reg->ciapTotal.dataIni 	 		= ddMmYyyy2YyyyMmDd(bf.varchar)
-	reg->ciapTotal.dataFim 	 		= ddMmYyyy2YyyyMmDd(bf.varchar)
-	reg->ciapTotal.saldoInicialICMS = bf.vardbl
-	reg->ciapTotal.parcelasSoma 	= bf.vardbl
-	reg->ciapTotal.valorTributExpSoma = bf.vardbl
-	reg->ciapTotal.valorTotalSaidas = bf.vardbl
-	reg->ciapTotal.indicePercSaidas = bf.vardbl
-	reg->ciapTotal.valorIcmsAprop 	= bf.vardbl
-	reg->ciapTotal.valorOutrosCred 	= bf.vardbl
+	reg->dataInventario 	= inventarioPai->dataInventario
+	reg->itemId 	 		= bf.varchar
+	reg->unidade 			= bf.varchar
+	reg->qtd	 			= bf.vardbl
+	reg->valorUnitario		= bf.vardbl
+	reg->valorItem			= bf.vardbl
+	reg->indPropriedade		= bf.varint
+	reg->idParticipante		= bf.varchar
+	reg->txtComplementar	= bf.varchar
+	reg->codConta			= bf.varchar
+	reg->valorItemIR		= bf.vardbl
 
 	'pular \r\n
 	if bf.peek1 = 13 then
@@ -1622,26 +1668,26 @@ function EfdSpedImport.lerRegCiapTotal(bf as bfile, reg as TRegistro ptr) as Boo
 		bf.char1
 	end if
 
-	function = true
+	return reg
 
 end function
 
 ''''''''
-function EfdSpedImport.lerRegCiapItem(bf as bfile, reg as TRegistro ptr, pai as TCiapTotal ptr) as Boolean
+function EfdSpedImport.lerRegCiapTotal(bf as bfile) as TCiapTotal ptr
 
+	var reg = new TCiapTotal
+	
 	bf.char1		'pular |
 
-	reg->ciapItem.pai				= pai
-	reg->ciapItem.bemId 	 		= bf.varchar
-	reg->ciapItem.dataMov 			= ddMmYyyy2YyyyMmDd(bf.varchar)
-	reg->ciapItem.tipoMov 			= bf.varchar
-	reg->ciapItem.valorIcms	 		= bf.vardbl
-	reg->ciapItem.valorIcmsSt		= bf.vardbl
-	reg->ciapItem.valorIcmsFrete	= bf.vardbl
-	reg->ciapItem.valorIcmsDifal	= bf.vardbl
-	reg->ciapItem.parcela			= bf.varint
-	reg->ciapItem.valorParcela		= bf.vardbl
-	reg->ciapItem.docCnt			= 0
+	reg->dataIni 	 		= ddMmYyyy2YyyyMmDd(bf.varchar)
+	reg->dataFim 	 		= ddMmYyyy2YyyyMmDd(bf.varchar)
+	reg->saldoInicialICMS 	= bf.vardbl
+	reg->parcelasSoma 		= bf.vardbl
+	reg->valorTributExpSoma = bf.vardbl
+	reg->valorTotalSaidas 	= bf.vardbl
+	reg->indicePercSaidas 	= bf.vardbl
+	reg->valorIcmsAprop 	= bf.vardbl
+	reg->valorOutrosCred	= bf.vardbl
 
 	'pular \r\n
 	if bf.peek1 = 13 then
@@ -1653,23 +1699,58 @@ function EfdSpedImport.lerRegCiapItem(bf as bfile, reg as TRegistro ptr, pai as 
 		bf.char1
 	end if
 
-	function = true
+	return reg
 
 end function
 
 ''''''''
-function EfdSpedImport.lerRegCiapItemDoc(bf as bfile, reg as TRegistro ptr, pai as TCiapItem ptr) as Boolean
+function EfdSpedImport.lerRegCiapItem(bf as bfile, pai as TCiapTotal ptr) as TCiapItem ptr
 
+	var reg = new TCiapItem
+	
 	bf.char1		'pular |
 
-	reg->ciapItemDoc.pai			= pai
-	reg->ciapItemDoc.indEmi 		= bf.varint
-	reg->ciapItemDoc.idParticipante = bf.varchar
-	reg->ciapItemDoc.modelo			= bf.varint
-	reg->ciapItemDoc.serie			= bf.varchar
-	reg->ciapItemDoc.numero			= bf.varint
-	reg->ciapItemDoc.chaveNFe		= bf.varchar
-	reg->ciapItemDoc.dataEmi		= ddMmYyyy2YyyyMmDd(bf.varchar)
+	reg->pai			= pai
+	reg->bemId 	 		= bf.varchar
+	reg->dataMov 		= ddMmYyyy2YyyyMmDd(bf.varchar)
+	reg->tipoMov 		= bf.varchar
+	reg->valorIcms	 	= bf.vardbl
+	reg->valorIcmsSt	= bf.vardbl
+	reg->valorIcmsFrete	= bf.vardbl
+	reg->valorIcmsDifal	= bf.vardbl
+	reg->parcela		= bf.varint
+	reg->valorParcela	= bf.vardbl
+	reg->docCnt			= 0
+
+	'pular \r\n
+	if bf.peek1 = 13 then
+		bf.char1
+	end if
+	if bf.peek1 <> 10 then
+		onError("Erro: esperado \n, encontrado " & bf.peek1)
+	else
+		bf.char1
+	end if
+
+	return reg
+
+end function
+
+''''''''
+function EfdSpedImport.lerRegCiapItemDoc(bf as bfile, pai as TCiapItem ptr) as TCiapItemDoc ptr
+
+	var reg = new TCiapItemDoc
+	
+	bf.char1		'pular |
+
+	reg->pai			= pai
+	reg->indEmi 		= bf.varint
+	reg->idParticipante = bf.varchar
+	reg->modelo			= bf.varint
+	reg->serie			= bf.varchar
+	reg->numero			= bf.varint
+	reg->chaveNFe		= bf.varchar
+	reg->dataEmi		= ddMmYyyy2YyyyMmDd(bf.varchar)
 	if bf.peek1 <> 13 andalso bf.peek1 <> 10 then 
 		bf.varchar '' pular NUM_DA
 	end if
@@ -1685,18 +1766,20 @@ function EfdSpedImport.lerRegCiapItemDoc(bf as bfile, reg as TRegistro ptr, pai 
 		bf.char1
 	end if
 
-	function = true
+	return reg
 
 end function
 
 ''''''''
-function EfdSpedImport.lerRegCiapItemDocItem(bf as bfile, reg as TRegistro ptr, pai as TCiapItemDoc ptr) as Boolean
+function EfdSpedImport.lerRegCiapItemDocItem(bf as bfile, pai as TCiapItemDoc ptr) as TCiapItemDocItem ptr
 
+	var reg = new TCiapItemDocItem
+	
 	bf.char1		'pular |
 
-	reg->ciapItemDocItem.pai			= pai
-	reg->ciapItemDocItem.num			= bf.varint
-	reg->ciapItemDocItem.itemId 		= bf.varchar
+	reg->pai			= pai
+	reg->num			= bf.varint
+	reg->itemId 		= bf.varchar
 	if bf.peek1 <> 13 andalso bf.peek1 <> 10 then 
 		bf.vardbl 		'' pular QTDE
 		bf.varchar 		'' pular UNID
@@ -1716,17 +1799,19 @@ function EfdSpedImport.lerRegCiapItemDocItem(bf as bfile, reg as TRegistro ptr, 
 		bf.char1
 	end if
 
-	function = true
+	return reg
 
 end function
 
 ''''''''
-function EfdSpedImport.lerRegEstoquePeriodo(bf as bfile, reg as TRegistro ptr) as Boolean
+function EfdSpedImport.lerRegEstoquePeriodo(bf as bfile) as TEstoquePeriodo ptr
 
+	var reg = new TEstoquePeriodo
+	
 	bf.char1		'pular |
 
-	reg->estPeriod.dataIni 	 		= ddMmYyyy2YyyyMmDd(bf.varchar)
-	reg->estPeriod.dataFim 	 		= ddMmYyyy2YyyyMmDd(bf.varchar)
+	reg->dataIni 	 		= ddMmYyyy2YyyyMmDd(bf.varchar)
+	reg->dataFim 	 		= ddMmYyyy2YyyyMmDd(bf.varchar)
 
 	'pular \r\n
 	if bf.peek1 = 13 then
@@ -1738,21 +1823,23 @@ function EfdSpedImport.lerRegEstoquePeriodo(bf as bfile, reg as TRegistro ptr) a
 		bf.char1
 	end if
 
-	function = true
+	return reg
 
 end function
 
 ''''''''
-function EfdSpedImport.lerRegEstoqueItem(bf as bfile, reg as TRegistro ptr, pai as TEstoquePeriodo ptr) as Boolean
+function EfdSpedImport.lerRegEstoqueItem(bf as bfile, pai as TEstoquePeriodo ptr) as TEstoqueItem ptr
 
+	var reg = new TEstoqueItem
+	
 	bf.char1		'pular |
 
-	reg->estItem.pai				= pai
+	reg->pai				= pai
 	bf.varchar		'pular DT_EST (é a mesma do DT_FIN do K100)
-	reg->estItem.itemId 	 		= bf.varchar
-	reg->estItem.qtd 				= bf.vardbl
-	reg->estItem.tipoEst			= bf.varint
-	reg->estItem.idParticipante		= bf.varchar
+	reg->itemId 	 		= bf.varchar
+	reg->qtd 				= bf.vardbl
+	reg->tipoEst			= bf.varint
+	reg->idParticipante		= bf.varchar
 
 	'pular \r\n
 	if bf.peek1 = 13 then
@@ -1764,22 +1851,24 @@ function EfdSpedImport.lerRegEstoqueItem(bf as bfile, reg as TRegistro ptr, pai 
 		bf.char1
 	end if
 
-	function = true
+	return reg
 
 end function
 
 ''''''''
-function EfdSpedImport.lerRegEstoqueOrdemProd(bf as bfile, reg as TRegistro ptr, pai as TEstoquePeriodo ptr) as Boolean
+function EfdSpedImport.lerRegEstoqueOrdemProd(bf as bfile, pai as TEstoquePeriodo ptr) as TEstoqueOrdemProd ptr
 
+	var reg = new TEstoqueOrdemProd
+	
 	bf.char1		'pular |
 
-	reg->estOrdem.pai			= pai
-	reg->estOrdem.dataIni 	 	= ddMmYyyy2YyyyMmDd(bf.varchar)
+	reg->pai			= pai
+	reg->dataIni 	 	= ddMmYyyy2YyyyMmDd(bf.varchar)
 	var dtFim = bf.varchar
-	reg->estOrdem.dataFim 	 	= iif(len(dtFim) > 0, ddMmYyyy2YyyyMmDd(dtFim), "99991231")
-	reg->estOrdem.idOrdem		= bf.varchar
-	reg->estOrdem.itemId 	 	= bf.varchar
-	reg->estOrdem.qtd 			= bf.vardbl
+	reg->dataFim 	 	= iif(len(dtFim) > 0, ddMmYyyy2YyyyMmDd(dtFim), "99991231")
+	reg->idOrdem		= bf.varchar
+	reg->itemId 	 	= bf.varchar
+	reg->qtd 			= bf.vardbl
 
 	'pular \r\n
 	if bf.peek1 = 13 then
@@ -1791,7 +1880,7 @@ function EfdSpedImport.lerRegEstoqueOrdemProd(bf as bfile, reg as TRegistro ptr,
 		bf.char1
 	end if
 
-	function = true
+	return reg
 
 end function
 
@@ -1813,28 +1902,30 @@ private sub EfdSpedImport.lerAssinatura(bf as bfile)
 end sub
 
 ''''''''
-function EfdSpedImport.lerRegistro(bf as bfile, reg as TRegistro ptr) as Boolean
-	static as zstring * 4+1 tipo
+function EfdSpedImport.lerRegistro(bf as bfile) as TRegistro ptr
+	static as zstring * 4+1 tipostr
 	
-	reg->tipo = lerTipo(bf, @tipo)
-	reg->linha = nroLinha
+	var tipo = lerTipo(bf, @tipostr)
+	var reg = cast(TRegistro ptr, null)
 
-	select case as const reg->tipo
+	select case as const tipo
 	case DOC_NF
-		if not lerRegDocNF(bf, reg) then
-			return false
+		reg = lerRegDocNF(bf)
+		if reg = null then
+			return null
 		end if
 		
 		ultimoReg = reg
 
 	case DOC_NF_INFO
 		if( ultimoReg <> null ) then
-			if not lerRegDocNFInfo(bf, reg, @ultimoReg->nf) then
-				return false
+			var node = lerRegDocNFInfo(bf, cast(TDocNF ptr, ultimoReg))
+			if node = null then
+				return null
 			end if
+			reg = node
 			
-			var node = @reg->docInfoCompl
-			var parent = @ultimoReg->nf
+			var parent = cast(TDocNF ptr, ultimoReg)
 			
 			if parent->infoComplListHead = null then
 				parent->infoComplListHead = node
@@ -1846,29 +1937,31 @@ function EfdSpedImport.lerRegistro(bf as bfile, reg as TRegistro ptr) as Boolean
 			node->next_ = null
 		else
 			pularLinha(bf)
-			reg->tipo = DESCONHECIDO
+			return null
 		end if
 		
 	case DOC_NF_ITEM
 		if( ultimoReg <> null ) then
-			if not lerRegDocNFItem(bf, reg, @ultimoReg->nf) then
-				return false
+			reg = lerRegDocNFItem(bf, cast(TDocNF ptr, ultimoReg))
+			if reg = null then
+				return null
 			end if
 			
-			ultimoDocNFItem = @reg->itemNF
+			ultimoDocNFItem = cast(TDocNFItem ptr, reg)
 		else
 			pularLinha(bf)
-			reg->tipo = DESCONHECIDO
+			return null
 		end if
 
 	case DOC_NF_ANAL
 		if( ultimoReg <> null ) then
-			if not lerRegDocNFItemAnal(bf, reg, ultimoReg) then
-				return false
+			var node = lerRegDocNFItemAnal(bf, cast(TDocNF ptr, ultimoReg))
+			if node = null  then
+				return null
 			end if
+			reg = node
 			
-			var node = @reg->itemAnal
-			var parent = @ultimoReg->nf
+			var parent = cast(TDocNF ptr, ultimoReg)
 			
 			if parent->itemAnalListHead = null then
 				parent->itemAnalListHead = node
@@ -1880,18 +1973,20 @@ function EfdSpedImport.lerRegistro(bf as bfile, reg as TRegistro ptr) as Boolean
 			node->next_ = null
 		else
 			pularLinha(bf)
-			reg->tipo = DESCONHECIDO
+			return null
 		end if
 
 	case DOC_NF_OBS
 		if( ultimoReg <> null ) then
-			if not lerRegDocObs(bf, reg) then
-				return false
+			var node = lerRegDocObs(bf)
+			if node = null then
+				return null
 			end if
+			reg = node
 			
-			ultimoDocObs = @reg->docObs
-			var node = ultimoDocObs
-			var parent = @ultimoReg->nf
+			ultimoDocObs = node
+			
+			var parent = cast(TDocNF ptr, ultimoReg)
 			
 			if parent->obsListHead = null then
 				parent->obsListHead = node
@@ -1903,16 +1998,17 @@ function EfdSpedImport.lerRegistro(bf as bfile, reg as TRegistro ptr) as Boolean
 			node->next_ = null
 		else
 			pularLinha(bf)
-			reg->tipo = DESCONHECIDO
+			return null
 		end if
 
 	case DOC_NF_OBS_AJUSTE
 		if( ultimoDocObs <> null ) then
-			if not lerRegDocObsAjuste(bf, reg) then
-				return false
+			var node = lerRegDocObsAjuste(bf)
+			if node = null  then
+				return null
 			end if
+			reg = node
 			
-			var node = @reg->docObsAjuste
 			var parent = ultimoDocObs
 			
 			if parent->ajusteListHead = null then
@@ -1925,28 +2021,26 @@ function EfdSpedImport.lerRegistro(bf as bfile, reg as TRegistro ptr) as Boolean
 			node->next_ = null
 		else
 			pularLinha(bf)
-			reg->tipo = DESCONHECIDO
+			return null
 		end if
 		
 	case DOC_NF_DIFAL
 		if( ultimoReg <> null ) then
-			if not lerRegDocNFDifal(bf, reg, @ultimoReg->nf) then
-				return false
-			end if
-			
-			reg->tipo = DESCONHECIDO			'' deletar registro, já que vamos reusar o registro pai
+			lerRegDocNFDifal(bf, cast(TDocNF ptr, ultimoReg))
+			return null
 		else
 			pularLinha(bf)
-			reg->tipo = DESCONHECIDO
+			return null
 		end if
 		
 	case DOC_NF_ITEM_RESSARC_ST
 		if( ultimoDocNFItem <> null ) then
-			if not lerRegDocNFItemRessarcSt(bf, reg, ultimoDocNFItem) then
-				return false
+			var node = lerRegDocNFItemRessarcSt(bf, ultimoDocNFItem)
+			if node = null then
+				return null
 			end if
+			reg = node
 			
-			var node = @reg->itemRessarcSt
 			var parent = ultimoDocNFItem
 			
 			if parent->itemRessarcStListHead = null then
@@ -1959,24 +2053,26 @@ function EfdSpedImport.lerRegistro(bf as bfile, reg as TRegistro ptr) as Boolean
 			node->next_ = null
 		else
 			pularLinha(bf)
-			reg->tipo = DESCONHECIDO
+			return null
 		end if
 
 	case DOC_CT
-		if not lerRegDocCT(bf, reg) then
-			return false
+		reg = lerRegDocCT(bf)
+		if reg = null then
+			return null
 		end if
 
 		ultimoReg = reg
 
 	case DOC_CT_ANAL
 		if( ultimoReg <> null ) then
-			if not lerRegDocCTItemAnal(bf, reg, ultimoReg) then
-				return false
+			var node = lerRegDocCTItemAnal(bf, cast(TDocCT ptr, ultimoReg))
+			if node = null then
+				return null
 			end if
+			reg = node
 
-			var node = @reg->itemAnal
-			var parent = @ultimoReg->ct
+			var parent = cast(TDocCT ptr, ultimoReg)
 			
 			if parent->itemAnalListHead = null then
 				parent->itemAnalListHead = node
@@ -1988,72 +2084,74 @@ function EfdSpedImport.lerRegistro(bf as bfile, reg as TRegistro ptr) as Boolean
 			node->next_ = null
 		else
 			pularLinha(bf)
-			reg->tipo = DESCONHECIDO
+			return null
 		end if
 		
 	case DOC_CT_DIFAL
 		if( ultimoReg <> null ) then
-			if not lerRegDocCTDifal(bf, reg, @reg->ct) then
-				return false
-			end if
-			
-			reg->tipo = DESCONHECIDO			'' deletar registro, já que vamos reusar o registro pai
+			lerRegDocCTDifal(bf, cast(TDocCT ptr, ultimoReg))
+			return null
 		else
 			pularLinha(bf)
-			reg->tipo = DESCONHECIDO
+			return null
 		end if
 
 	case DOC_ECF
 		if( ultimoEquipECF <> null ) then
-			if not lerRegDocECF(bf, reg, ultimoEquipECF) then
-				return false
+			var node = lerRegDocECF(bf, ultimoEquipECF)
+			if node = null then
+				return null
 			end if
+			reg = node
 
 			ultimoReg = reg
 			
-			if ultimoECFRedZ->ecfRedZ.numIni > reg->ecf.numero then
-				ultimoECFRedZ->ecfRedZ.numIni = reg->ecf.numero
+			if ultimoECFRedZ->numIni > node->numero then
+				ultimoECFRedZ->numIni = node->numero
 			end if
 
-			if ultimoECFRedZ->ecfRedZ.numFim < reg->ecf.numero then
-				ultimoECFRedZ->ecfRedZ.numFim = reg->ecf.numero
+			if ultimoECFRedZ->numFim < node->numero then
+				ultimoECFRedZ->numFim = node->numero
 			end if
 		else
 			pularLinha(bf)
-			reg->tipo = DESCONHECIDO
+			return null
 		end if
 		
 	case ECF_REDUCAO_Z
 		if( ultimoEquipECF <> null ) then
-			if not lerRegECFReducaoZ(bf, reg, ultimoEquipECF) then
-				return false
+			reg = lerRegECFReducaoZ(bf, ultimoEquipECF)
+			if reg = null then
+				return null
 			end if
 
-			ultimoECFRedZ = reg
+			ultimoECFRedZ = cast(TECFReducaoZ ptr, reg)
 		else
 			pularLinha(bf)
 			ultimoECFRedZ = null
-			reg->tipo = DESCONHECIDO
+			return null
 		end if
 		
 	case DOC_ECF_ITEM
 		if( ultimoReg <> null ) then
-			if not lerRegDocECFItem(bf, reg, @ultimoReg->ecf) then
-				return false
+			reg = lerRegDocECFItem(bf, cast(TDocECF ptr, ultimoReg))
+			if reg = null then
+				return null
 			end if
 		else
 			pularLinha(bf)
-			reg->tipo = DESCONHECIDO
+			return null
 		end if
 
 	case DOC_ECF_ANAL
 		if( ultimoECFRedZ <> null ) then
-			if not lerRegDocECFItemAnal(bf, reg, ultimoECFRedZ) then
-				return false
+			var node = lerRegDocECFItemAnal(bf, ultimoECFRedZ)
+			if node = null then
+				return null
 			end if
+			reg = node
 			
-			var node = @reg->itemAnal
-			var parent = @ultimoECFRedZ->ecfRedZ
+			var parent = ultimoECFRedZ
 			
 			if parent->itemAnalListHead = null then
 				parent->itemAnalListHead = node
@@ -2065,31 +2163,34 @@ function EfdSpedImport.lerRegistro(bf as bfile, reg as TRegistro ptr) as Boolean
 			node->next_ = null
 		else
 			pularLinha(bf)
-			reg->tipo = DESCONHECIDO
+			return null
 		end if
 
 	case EQUIP_ECF
-		if not lerRegEquipECF(bf, reg) then
-			return false
+		reg = lerRegEquipECF(bf)
+		if reg = null  then
+			return null
 		end if
 		
-		ultimoEquipECF = @reg->equipECF
+		ultimoEquipECF = cast(TEquipECF ptr, reg)
 
 	case DOC_SAT
-		if not lerRegDocSAT(bf, reg) then
-			return false
+		reg = lerRegDocSAT(bf)
+		if reg = null then
+			return null
 		end if
 
 		ultimoReg = reg
 
 	case DOC_SAT_ANAL
 		if( ultimoReg <> null ) then
-			if not lerRegDocSATItemAnal(bf, reg, ultimoReg) then
-				return false
+			var node = lerRegDocSATItemAnal(bf, cast(TDocSAT ptr, ultimoReg))
+			if reg = null then
+				return null
 			end if
+			reg = node
 			
-			var node = @reg->itemAnal
-			var parent = @ultimoReg->sat
+			var parent = cast(TDocSAT ptr, ultimoReg)
 
 			if parent->itemAnalListHead = null then
 				parent->itemAnalListHead = node
@@ -2101,24 +2202,26 @@ function EfdSpedImport.lerRegistro(bf as bfile, reg as TRegistro ptr) as Boolean
 			node->next_ = null
 		else
 			pularLinha(bf)
-			reg->tipo = DESCONHECIDO
+			return null
 		end if
 
 	case DOC_NFSCT
-		if not lerRegDocNFSCT(bf, reg) then
-			return false
+		reg = lerRegDocNFSCT(bf)
+		if reg = null then
+			return null
 		end if
 
 		ultimoReg = reg
 
 	case DOC_NFSCT_ANAL
 		if( ultimoReg <> null ) then
-			if not lerRegDocNFSCTItemAnal(bf, reg, ultimoReg) then
-				return false
+			var node = lerRegDocNFSCTItemAnal(bf, cast(TDocNF ptr, ultimoReg))
+			if node = null then
+				return null
 			end if
+			reg = node
 			
-			var node = @reg->itemAnal
-			var parent = @ultimoReg->nf
+			var parent = cast(TDocNF ptr, ultimoReg)
 
 			if parent->itemAnalListHead = null then
 				parent->itemAnalListHead = node
@@ -2130,24 +2233,26 @@ function EfdSpedImport.lerRegistro(bf as bfile, reg as TRegistro ptr) as Boolean
 			node->next_ = null
 		else
 			pularLinha(bf)
-			reg->tipo = DESCONHECIDO
+			return null
 		end if
 	
 	case DOC_NF_ELETRIC
-		if not lerRegDocNFElet(bf, reg) then
-			return false
+		reg = lerRegDocNFElet(bf)
+		if reg = null then
+			return null
 		end if
 
 		ultimoReg = reg
 
 	case DOC_NF_ELETRIC_ANAL
 		if( ultimoReg <> null ) then
-			if not lerRegDocNFEletItemAnal(bf, reg, ultimoReg) then
-				return false
+			var node = lerRegDocNFEletItemAnal(bf, cast(TDocNF ptr, ultimoReg))
+			if node = null then
+				return null
 			end if
+			reg = node
 
-			var node = @reg->itemAnal
-			var parent = @ultimoReg->nf
+			var parent = cast(TDocNF ptr, ultimoReg)
 
 			if parent->itemAnalListHead = null then
 				parent->itemAnalListHead = node
@@ -2159,81 +2264,83 @@ function EfdSpedImport.lerRegistro(bf as bfile, reg as TRegistro ptr) as Boolean
 			node->next_ = null
 		else
 			pularLinha(bf)
-			reg->tipo = DESCONHECIDO
+			return null
 		end if
 	
 	case ITEM_ID
-		if not lerRegItemId(bf, reg) then
-			return false
+		var node = lerRegItemId(bf)
+		if node = null  then
+			return null
 		end if
+		reg = node
 
 		'adicionar ao dicionário
-		if itemIdDict->lookup(reg->itemId.id) = null then
-			itemIdDict->add(reg->itemId.id, @reg->itemId)
+		if itemIdDict->lookup(node->id) = null then
+			itemIdDict->add(node->id, node)
 		end if
 
 	case BEM_CIAP
-		if not lerRegBemCiap(bf, reg) then
-			return false
+		var node = lerRegBemCiap(bf)
+		if node = null then
+			return null
 		end if
+		reg = node
 		
-		ultimoBemCiap = @reg->bemCiap
+		ultimoBemCiap = node
 
 		'adicionar ao dicionário
-		if bemCiapDict->lookup(reg->bemCiap.id) = null then
-			bemCiapDict->add(reg->bemCiap.id, @reg->bemCiap)
+		if bemCiapDict->lookup(node->id) = null then
+			bemCiapDict->add(node->id, node)
 		end if
 
 	case BEM_CIAP_INFO
-		if not lerRegBemCiapInfo(bf, ultimoBemCiap) then
-			return false
-		end if
-		
-		'' deletar registro, já que vamos reusar o registro anterior
-		reg->tipo = DESCONHECIDO
+		lerRegBemCiapInfo(bf, ultimoBemCiap)
+		return null
 
 	case INFO_COMPL
-		if not lerRegInfoCompl(bf, reg) then
-			return false
+		var node = lerRegInfoCompl(bf)
+		if node = null then
+			return null
 		end if
+		reg = node
 
 		'adicionar ao dicionário
-		if infoComplDict->lookup(reg->infoCompl.id) = null then
-			infoComplDict->add(reg->infoCompl.id, @reg->infoCompl)
+		if infoComplDict->lookup(node->id) = null then
+			infoComplDict->add(node->id, node)
 		end if
 
 	case PARTICIPANTE
-		if not lerRegParticipante(bf, reg) then
-			return false
+		var node = lerRegParticipante(bf)
+		if node = null then
+			return null
 		end if
+		reg = node
 
 		'adicionar ao dicionário
-		if participanteDict->lookup(reg->part.id) = null then
-			participanteDict->add(reg->part.id, @reg->part)
+		if participanteDict->lookup(node->id) = null then
+			participanteDict->add(node->id, node)
 		end if
 
 	case APURACAO_ICMS_PERIODO
-		if not lerRegApuIcmsPeriodo(bf, reg) then
-			return false
+		reg = lerRegApuIcmsPeriodo(bf)
+		if reg = null then
+			return null
 		end if
 
 		ultimoReg = reg
 		
 	case APURACAO_ICMS_PROPRIO
-		if not lerRegApuIcmsProprio(bf, ultimoReg) then
-			return false
-		end if
-		
-		reg->tipo = DESCONHECIDO			'' deletar registro, já que vamos reusar o registro pai
+		lerRegApuIcmsProprio(bf, cast(TApuracaoIcmsPropPeriodo ptr, ultimoReg))
+		return null
 
 	case APURACAO_ICMS_AJUSTE
-		'' nota: como apuIcms e apuIcmsST estendem a mesma classe, pode-se acessar os campos comuns de qualquer classe filha
-		if not lerRegApuIcmsAjuste(bf, reg, @ultimoReg->apuIcms) then
-			return false
+		var node = lerRegApuIcmsAjuste(bf, cast(TApuracaoIcmsPropPeriodo ptr, ultimoReg))
+		if node = null then
+			return null
 		end if
+		reg = node
 		
-		var node = @reg->apuIcmsAjust
-		var parent = @ultimoReg->apuIcms
+		var parent = cast(TApuracaoIcmsPropPeriodo ptr, ultimoReg)
 
 		if parent->ajustesListHead = null then
 			parent->ajustesListHead = node
@@ -2245,62 +2352,66 @@ function EfdSpedImport.lerRegistro(bf as bfile, reg as TRegistro ptr) as Boolean
 		node->next_ = null
 
 	case APURACAO_ICMS_ST_PERIODO
-		if not lerRegApuIcmsSTPeriodo(bf, reg) then
-			return false
+		reg = lerRegApuIcmsSTPeriodo(bf)
+		if reg = null then
+			return null
 		end if
 
 		ultimoReg = reg
 		
 	case APURACAO_ICMS_ST
-		if not lerRegApuIcmsST(bf, ultimoReg) then
-			return false
-		end if
-		
-		reg->tipo = DESCONHECIDO			'' deletar registro, já que vamos reusar o registro pai
+		lerRegApuIcmsST(bf, cast(TApuracaoIcmsSTPeriodo ptr, ultimoReg))
+		return null
 
 	case INVENTARIO_TOTAIS
-		if not lerRegInventarioTotais(bf, reg) then
-			return false
+		reg = lerRegInventarioTotais(bf)
+		if reg = null then
+			return null
 		end if
 		
-		ultimoInventario = @reg->invTotais
+		ultimoInventario = cast(TInventarioTotais ptr, reg)
 	
 	case INVENTARIO_ITEM
-		if not lerRegInventarioItem(bf, reg, ultimoInventario) then
-			return false
+		reg = lerRegInventarioItem(bf, ultimoInventario)
+		if reg = null then
+			return null
 		end if
 	
 	case CIAP_TOTAL
-		if not lerRegCiapTotal(bf, reg) then
-			return false
+		reg = lerRegCiapTotal(bf)
+		if reg = null then
+			return null
 		end if
 		
-		ultimoCiap = @reg->ciapTotal
+		ultimoCiap = cast(TCiapTotal ptr, reg)
 	
 	case CIAP_ITEM
-		if not lerRegCiapItem(bf, reg, ultimoCiap) then
-			return false
+		var node = lerRegCiapItem(bf, ultimoCiap)
+		if node = null then
+			return null
 		end if
+		reg = node
 	
-		ultimoCiapItem = @reg->ciapItem
+		ultimoCiapItem = node
 		var parent = ultimoCiap
 		
 		if parent->itemListHead = null then
-			parent->itemListHead = ultimoCiapItem
+			parent->itemListHead = node
 		else
-			parent->itemListTail->next_ = ultimoCiapItem
+			parent->itemListTail->next_ = node
 		end if
 
-		parent->itemListTail = ultimoCiapItem
-		ultimoCiapItem->next_ = null
+		parent->itemListTail = node
+		node->next_ = null
 
 	case CIAP_ITEM_DOC
-		if not lerRegCiapItemDoc(bf, reg, ultimoCiapItem) then
-			return false
+		var node = lerRegCiapItemDoc(bf, ultimoCiapItem)
+		if node = null then
+			return null
 		end if
+		reg = node
 		
-		ultimoCiapItemDoc = @reg->ciapItemDoc
-		var node = ultimoCiapItemDoc
+		ultimoCiapItemDoc = node
 		var parent = ultimoCiapItem
 
 		if parent->docListHead = null then
@@ -2313,11 +2424,12 @@ function EfdSpedImport.lerRegistro(bf as bfile, reg as TRegistro ptr) as Boolean
 		node->next_ = null
 
 	case CIAP_ITEM_DOC_ITEM
-		if not lerRegCiapItemDocItem(bf, reg, ultimoCiapItemDoc) then
-			return false
+		var node = lerRegCiapItemDocItem(bf, ultimoCiapItemDoc)
+		if node = null then
+			return null
 		end if
+		reg = node
 		
-		var node = @reg->ciapItemDocItem
 		var parent = ultimoCiapItemDoc
 
 		if parent->itemListHead = null then
@@ -2330,63 +2442,73 @@ function EfdSpedImport.lerRegistro(bf as bfile, reg as TRegistro ptr) as Boolean
 		node->next_ = null
 
 	case ESTOQUE_PERIODO
-		if not lerRegEstoquePeriodo(bf, reg) then
-			return false
+		reg = lerRegEstoquePeriodo(bf)
+		if reg = null then
+			return null
 		end if
 		
-		ultimoEstoque = @reg->estPeriod
+		ultimoEstoque = cast(TEstoquePeriodo ptr, reg)
 	
 	case ESTOQUE_ITEM
-		if not lerRegEstoqueItem(bf, reg, ultimoEstoque) then
-			return false
+		reg = lerRegEstoqueItem(bf, ultimoEstoque)
+		if reg = null then
+			return null
 		end if
 		
 	case ESTOQUE_ORDEM_PROD
-		if not lerRegEstoqueOrdemProd(bf, reg, ultimoEstoque) then
-			return false
+		reg = lerRegEstoqueOrdemProd(bf, ultimoEstoque)
+		if reg = null then
+			return null
 		end if
 	
 	case MESTRE
-		if not lerRegMestre(bf, reg) then
-			return false
+		reg = lerRegMestre(bf)
+		if reg = null then
+			return null
 		end if
 		
-		regMestre = reg
+		regMestre = cast(TMestre ptr, reg)
 
 	case OBS_LANCAMENTO
-		if not lerRegObsLancamento(bf, reg) then
-			return false
+		var node = lerRegObsLancamento(bf)
+		if node = null then
+			return null
 		end if
+		reg = node
 
 		'adicionar ao dicionário
-		if obsLancamentoDict->lookup(reg->obsLanc.id) = null then
-			obsLancamentoDict->add(reg->obsLanc.id, @reg->obsLanc)
+		if obsLancamentoDict->lookup(node->id) = null then
+			obsLancamentoDict->add(node->id, node)
 		end if
 
 	case CONTA_CONTAB
-		if not lerRegContaContab(bf, reg) then
-			return false
+		var node = lerRegContaContab(bf)
+		if node = null then
+			return null
 		end if
+		reg = node
 
 		'adicionar ao dicionário
-		if contaContabDict->lookup(reg->contaContab.id) = null then
-			contaContabDict->add(reg->contaContab.id, @reg->contaContab)
+		if contaContabDict->lookup(node->id) = null then
+			contaContabDict->add(node->id, node)
 		end if
 
 	case CENTRO_CUSTO
-		if not lerRegCentroCusto(bf, reg) then
-			return false
+		var node = lerRegCentroCusto(bf)
+		if node = null then
+			return null
 		end if
+		reg = node
 
 		'adicionar ao dicionário
-		if centroCustoDict->lookup(reg->centroCusto.id) = null then
-			centroCustoDict->add(reg->centroCusto.id, @reg->centroCusto)
+		if centroCustoDict->lookup(node->id) = null then
+			centroCustoDict->add(node->id, node)
 		end if
 
 	case FIM_DO_ARQUIVO
 		pularLinha(bf)
-		
 		lerAssinatura(bf)
+		reg = new TRegistro
 	
 	case LUA_CUSTOM
 		
@@ -2396,20 +2518,22 @@ function EfdSpedImport.lerRegistro(bf as bfile, reg as TRegistro ptr) as Boolean
 			lua_getglobal(lua, luaFunc)
 			lua_pushlightuserdata(lua, @bf)
 			lua_newtable(lua)
-			reg->lua.table = luaL_ref(lua, LUA_REGISTRYINDEX)
-			lua_rawgeti(lua, LUA_REGISTRYINDEX, reg->lua.table)
+			var node = new TLuaReg
+			node->table = luaL_ref(lua, LUA_REGISTRYINDEX)
+			lua_rawgeti(lua, LUA_REGISTRYINDEX, node->table)
 			lua_call(lua, 2, 1)
-
-			reg->tipo = LUA_CUSTOM
-			reg->lua.tipo = tipo
-			
+			reg = node
 		end if
 	
 	case else
 		pularLinha(bf)
+		return null
 	end select
 
-	function = true
+	reg->tipo = tipo
+	reg->linha = nroLinha
+
+	return reg
 
 end function
 
@@ -2433,13 +2557,12 @@ function EfdSpedImport.carregar(nomeArquivo as string) as boolean
 		dim as TRegistro ptr tail = null
 
 		do while bf.temProximo()		 
-			var reg = new TRegistro
-
 			if not onProgress(null, (bf.posicao / fsize) * 0.66) then
 				exit do
 			end if
 			
-			if lerRegistro( bf, reg ) then 
+			var reg = lerRegistro( bf )
+			if reg <> null then 
 				if reg->tipo <> DESCONHECIDO then
 					select case as const reg->tipo
 					'' fim de arquivo?
@@ -2466,7 +2589,7 @@ function EfdSpedImport.carregar(nomeArquivo as string) as boolean
 						regListHead = reg
 						tail = reg
 					else
-						tail->next_ = reg
+						tail->prox = reg
 						tail = reg
 					end if
 
@@ -2476,8 +2599,6 @@ function EfdSpedImport.carregar(nomeArquivo as string) as boolean
 				end if
 			 
 				nroLinha += 1
-			else
-				exit do
 			end if
 		loop
 	
@@ -2489,7 +2610,7 @@ function EfdSpedImport.carregar(nomeArquivo as string) as boolean
 	
 	onProgress(null, 1)
 
-	function = true
+	return true
   
 	bf.fechar()
    
@@ -2605,7 +2726,7 @@ function EfdSpedImport.adicionarDocEscriturado(doc as TDocDF ptr) as long
 		if doc->operacao = ENTRADA then
 			'' (periodo, cnpjEmit, ufEmit, serie, numero, modelo, chave, dataEmit, valorOp, IE)
 			db_LREInsertStmt->reset()
-			db_LREInsertStmt->bind(1, valint(regMestre->mestre.dataIni))
+			db_LREInsertStmt->bind(1, valint(regMestre->dataIni))
 			if len(part->cpf) > 0 then 
 				db_LREInsertStmt->bind(2, part->cpf)
 			else
@@ -2634,7 +2755,7 @@ function EfdSpedImport.adicionarDocEscriturado(doc as TDocDF ptr) as long
 		else
 			'' (periodo, cnpjDest, ufDest, serie, numero, modelo, chave, dataEmit, valorOp, IE)
 			db_LRSInsertStmt->reset()
-			db_LRSInsertStmt->bind(1, valint(regMestre->mestre.dataIni))
+			db_LRSInsertStmt->bind(1, valint(regMestre->dataIni))
 			if len(part->cpf) > 0 then 
 				db_LRSInsertStmt->bind(2, part->cpf)
 			else
@@ -2678,7 +2799,7 @@ function EfdSpedImport.adicionarDocEscriturado(doc as TDocECF ptr) as long
 		if doc->operacao = SAIDA then
 			'' (periodo, cnpjDest, ufDest, serie, numero, modelo, chave, dataEmit, valorOp)
 			db_LRSInsertStmt->reset()
-			db_LRSInsertStmt->bind(1, valint(regMestre->mestre.dataIni))
+			db_LRSInsertStmt->bind(1, valint(regMestre->dataIni))
 			db_LRSInsertStmt->bind(2, doc->cpfCnpjAdquirente)
 			db_LRSInsertStmt->bind(3, 35)
 			db_LRSInsertStmt->bind(4, 0)
@@ -2712,7 +2833,7 @@ function EfdSpedImport.adicionarDocEscriturado(doc as TDocSAT ptr) as long
 		if doc->operacao = SAIDA then
 			'' (periodo, cnpjDest, ufDest, serie, numero, modelo, chave, dataEmit, valorOp)
 			db_LRSInsertStmt->reset()
-			db_LRSInsertStmt->bind(1, valint(regMestre->mestre.dataIni))
+			db_LRSInsertStmt->bind(1, valint(regMestre->dataIni))
 			db_LRSInsertStmt->bind(2, 0) '' não é possível usar doc->cpfCnpjAdquirente, porque relatório do BO vem sem essa info
 			db_LRSInsertStmt->bind(3, 35)
 			db_LRSInsertStmt->bind(4, 0)
@@ -2748,7 +2869,7 @@ function EfdSpedImport.adicionarItemNFEscriturado(item as TDocNFItem ptr) as lon
 
 		'' (periodo, cnpjEmit, ufEmit, serie, numero, modelo, numItem, cst, cst_origem, cst_tribut, cfop, qtd, valorProd, valorDesc, bc, aliq, icms, bcIcmsST, aliqIcmsST, icmsST, itemId)
 		db_itensNfLRInsertStmt->reset()
-		db_itensNfLRInsertStmt->bind(1, valint(regMestre->mestre.dataIni))
+		db_itensNfLRInsertStmt->bind(1, valint(regMestre->dataIni))
 		db_itensNfLRInsertStmt->bind(2, iif(len(part->cpf) > 0, part->cpf, part->cnpj))
 		db_itensNfLRInsertStmt->bind(3, uf)
 		db_itensNfLRInsertStmt->bind(4, doc->serie)
@@ -2800,7 +2921,7 @@ function EfdSpedImport.adicionarRessarcStEscriturado(doc as TDocNFItemRessarcSt 
 	
 	'' (periodo, cnpjEmit, ufEmit, serie, numero, modelo, nroItem, cnpjUlt, ufUlt, serieUlt, numeroUlt, modeloUlt, chaveUlt, dataUlt, valorUlt, bcSTUlt, qtdUlt, nroItemUlt)
 	db_ressarcStItensNfLRSInsertStmt->reset()
-	db_ressarcStItensNfLRSInsertStmt->bind(1, valint(regMestre->mestre.dataIni))
+	db_ressarcStItensNfLRSInsertStmt->bind(1, valint(regMestre->dataIni))
 	db_ressarcStItensNfLRSInsertStmt->bind(2, iif(len(part->cpf) > 0, part->cpf, part->cnpj))
 	db_ressarcStItensNfLRSInsertStmt->bind(3, uf)
 	db_ressarcStItensNfLRSInsertStmt->bind(4, docAvo->serie)
@@ -2859,7 +2980,7 @@ end function
 ''''''''
 function EfdSpedImport.adicionarAnalEscriturado(anal as TDocItemAnal ptr) as long
 
-	var doc = @anal->documentoPai->nf
+	var doc = cast(TDocNF ptr, anal->documentoPai)
 	var part = cast( TParticipante ptr, participanteDict->lookup(doc->idParticipante) )
 	
 	var uf = iif(part->municip >= 1100000 and part->municip <= 5399999, part->municip \ 100000, 99)
@@ -2867,7 +2988,7 @@ function EfdSpedImport.adicionarAnalEscriturado(anal as TDocItemAnal ptr) as lon
 	'' (operacao, periodo, cnpj, uf, serie, numero, modelo, numReg, cst, cst_origem, cst_tribut, cfop, aliq, valorOp, bc, icms, bcIcmsST, icmsST, redBC, ipi)
 	db_analInsertStmt->reset()
 	db_analInsertStmt->bind(1, doc->operacao)
-	db_analInsertStmt->bind(2, valint(regMestre->mestre.dataIni))
+	db_analInsertStmt->bind(2, valint(regMestre->dataIni))
 	db_analInsertStmt->bind(3, iif(len(part->cpf) > 0, part->cpf, part->cnpj))
 	db_analInsertStmt->bind(4, uf)
 	db_analInsertStmt->bind(5, doc->serie)
@@ -2905,25 +3026,25 @@ function EfdSpedImport.addRegistroAoDB(reg as TRegistro ptr) as long
 
 	select case as const reg->tipo
 	case DOC_NF
-		return adicionarDocEscriturado(@reg->nf)
+		return adicionarDocEscriturado(cast(TDocDF ptr, reg))
 	case DOC_NF_ITEM
-		return adicionarItemNFEscriturado(@reg->itemNF)
+		return adicionarItemNFEscriturado(cast(TDocNFItem ptr, reg))
 	case DOC_NF_ANAL
-		return adicionarAnalEscriturado(@reg->itemAnal)
+		return adicionarAnalEscriturado(cast(TDocItemAnal ptr, reg))
 	case DOC_CT
-		return adicionarDocEscriturado(@reg->ct)
+		return adicionarDocEscriturado(cast(TDocDF ptr, reg))
 	case DOC_ECF
-		return adicionarDocEscriturado(@reg->ecf)
+		return adicionarDocEscriturado(cast(TDocECF ptr, reg))
 	case DOC_SAT
-		return adicionarDocEscriturado(@reg->sat)
+		return adicionarDocEscriturado(cast(TDocSAT ptr, reg))
 	case DOC_NF_ITEM_RESSARC_ST
-		return adicionarRessarcStEscriturado(@reg->itemRessarcSt)
+		return adicionarRessarcStEscriturado(cast(TDocNFItemRessarcSt ptr, reg))
 	case ITEM_ID
 		if opcoes->manterDb then
-			return adicionarItemEscriturado(@reg->itemId)
+			return adicionarItemEscriturado(cast(TItemId ptr, reg))
 		end if
 	case MESTRE
-		return adicionarMestre(@reg->mestre)
+		return adicionarMestre(cast(TMestre ptr, reg))
 	end select
 	
 	return 0

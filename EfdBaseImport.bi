@@ -13,7 +13,7 @@ public:
 	declare function withDBs(db as TDb ptr) as EfdBaseImport ptr
 	declare abstract function carregar(nomeArquivo as string) as boolean
 	declare function getFirstReg() as TRegistro ptr
-	declare function getMestreReg() as TRegistro ptr
+	declare function getMestreReg() as TMestre ptr
 	declare function getNroRegs() as integer
 	declare function getParticipanteDict() as TDict ptr
 	declare function getItemIdDict as TDict ptr
@@ -36,7 +36,7 @@ protected:
 	
 	tipoArquivo				as TTipoArquivo
 	regListHead         	as TRegistro ptr = null
-	regMestre				as TRegistro ptr
+	regMestre				as TMestre ptr
 	nroRegs             	as integer = 0
 	nroLinha				as integer
 	

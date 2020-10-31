@@ -36,9 +36,9 @@ end function
 ''''''''
 destructor EfdBaseImport()
 	do while regListHead <> null
-		var next_ = regListHead->next_
+		var prox = regListHead->prox
 		delete regListHead
-		regListHead = next_
+		regListHead = prox
 	loop
 
 	delete infoComplDict
@@ -57,7 +57,7 @@ function EfdBaseImport.getFirstReg() as TRegistro ptr
 end function
 
 ''''''''
-function EfdBaseImport.getMestreReg() as TRegistro ptr
+function EfdBaseImport.getMestreReg() as TMestre ptr
 	return regMestre
 end function
 
