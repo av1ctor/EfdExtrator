@@ -1,4 +1,9 @@
-#include once "Efd.bi"
+
+enum TipoResumo
+	TR_CFOP
+	TR_CST
+	TR_CST_CFOP
+end enum
 
 type EfdResumidor
 public:

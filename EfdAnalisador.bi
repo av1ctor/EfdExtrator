@@ -1,4 +1,15 @@
-#include once "Efd.bi"
+
+enum TipoInconsistencia
+	TI_ESCRIT_FALTA
+	TI_ESCRIT_FANTASMA
+	TI_ALIQ
+	TI_DUP
+	TI_DIF
+	TI_RESSARC_ST
+	TI_CRED
+	TI_SEL
+	TI_DEB
+end enum
 
 type EfdAnalisador
 public:

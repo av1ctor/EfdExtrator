@@ -1,3 +1,4 @@
+#include once "Efd.bi"
 #include once "EfdBaseImport.bi"
 
 type EfdSintegraImport extends EfdBaseImport
