@@ -2,6 +2,8 @@
 #include once "Efd.bi"
 #include once "EfdSpedImport.bi"
 #include once "EfdSintegraImport.bi"
+#include once "EfdBoCsvLoader.bi"
+#include once "EfdBoXlsxLoader.bi"
 #include once "EfdAnalisador.bi"
 #include once "EfdResumidor.bi"
 #include once "EfdPdfExport.bi"
@@ -39,15 +41,6 @@ constructor Efd(onProgress as OnProgressCB, onError as OnErrorCB)
 	this.onError = onError
 	
 	''
-	chaveDFeDict = new TDict(2^20)
-	nfeDestSafiFornecido = false
-	nfeEmitSafiFornecido = false
-	itemNFeSafiFornecido = false
-	cteSafiFornecido = false
-	dfeListHead = null
-	dfeListTail = null
-	
-	''
 	baseTemplatesDir = ExePath() + "\templates\"
 	
 	municipDict = new TDict(2^10, true, true, true)
@@ -61,9 +54,6 @@ end constructor
 destructor Efd()
 
 	''
-	descarregarDFe()
-
-	''
 	configDb->close()
 	delete configDb
 	
@@ -71,28 +61,6 @@ destructor Efd()
 	delete municipDict
 	
 end destructor
-
-sub Efd.descarregarDFe
-	if chaveDFeDict <> null then
-		delete chaveDFeDict
-		chaveDFeDict = null
-	end if
-	
-	do while dfeListHead <> null
-		var next_ = dfeListHead->next_
-		select case dfeListHead->modelo
-		case NFE, SAT
-			var head = dfeListHead->nfe.itemListHead
-			do while head <> null
-				var next_ = head->next_
-				delete head
-				head = next_
-			loop
-		end select
-		delete dfeListHead
-		dfeListHead = next_
-	loop
-end sub
 
 ''''''''
 private sub lua_carregarCustoms(d as TDict ptr, L as lua_State ptr) 
@@ -168,11 +136,13 @@ sub Efd.iniciar(nomeArquivo as String, opcoes as OpcoesExtracao)
 	configurarDB()
 	
 	''
+	loaderCtx = new EfdBoLoaderContext()
+	
+	''
 	exp = (new EfdTabelaExport(nomeArquivo, @opcoes)) _
 		->withCallbacks(onProgress, onError) _
 		->withLua(lua, customLuaCbDict) _
 		->withFiltros(@filtrarPorCnpj, @filtrarPorChave)
-	
 end sub
 
 ''''''''
@@ -183,6 +153,9 @@ sub Efd.finalizar()
 		exp->finalizar()
 		delete exp
 	end if
+	
+	''
+	delete loaderCtx
    
 	''
 	fecharDb()
@@ -196,6 +169,32 @@ sub Efd.finalizar()
 	lua_close( lua )
 	
 end sub
+
+sub Efd.descarregarDFe()
+	loaderCtx->descarregar()
+end sub
+
+function Efd.carregarCsv(nomeArquivo as string) as boolean
+	var loader = (new EfdBoCsvLoader(loaderCtx, @opcoes)) _
+		->withCallbacks(onProgress, onError) _
+		->withDBs(db) _
+		->withStmts(db_dfeEntradaInsertStmt, db_dfeSaidaInsertStmt, db_itensDfeSaidaInsertStmt)
+	
+	function = loader->carregar(nomeArquivo)
+	
+	delete loader
+end function
+
+function Efd.carregarXlsx(nomeArquivo as string) as boolean
+	var loader = (new EfdBoXlsxLoader(loaderCtx, @opcoes)) _
+		->withCallbacks(onProgress, onError) _
+		->withDBs(db) _
+		->withStmts(db_dfeEntradaInsertStmt, db_dfeSaidaInsertStmt, db_itensDfeSaidaInsertStmt)
+	
+	function = loader->carregar(nomeArquivo)
+	
+	delete loader
+end function
 
 function Efd.carregarTxt(nomeArquivo as string) as EfdBaseImport_ ptr
 	
@@ -231,8 +230,8 @@ end function
 function Efd.processar(imp as EfdBaseImport_ ptr, nomeArquivo as string) as Boolean
    
 	if opcoes.formatoDeSaida <> FT_NULL then
-		exp ->withState(itemNFeSafiFornecido) _
-			->withDicionarios(imp->getParticipanteDict(), imp->getItemIdDict(), chaveDFeDict, _
+		exp ->withState(loaderCtx->itemNFeSafiFornecido) _
+			->withDicionarios(imp->getParticipanteDict(), imp->getItemIdDict(), loaderCtx->getChaveDFeDict(), _
 				imp->getInfoComplDict(), imp->getObsLancamentoDict(), imp->getBemCiapDict()) _
 			->gerar(imp->getFirstReg(), imp->getMestreReg(), imp->getNroRegs())
 	else
@@ -248,8 +247,8 @@ function Efd.processar(imp as EfdBaseImport_ ptr, nomeArquivo as string) as Bool
 				->withCallbacks(onProgress, onError) _
 				->withLua(lua, customLuaCbDict) _
 				->withFiltros(@filtrarPorCnpj, @filtrarPorChave) _
-				->withDicionarios(imp->getParticipanteDict(), imp->getItemIdDict(), chaveDFeDict, imp->getInfoComplDict(), _
-					imp->getObsLancamentoDict(), imp->getBemCiapDict, imp->getContaContabDict(), imp->getCentroCustoDict(), _
+				->withDicionarios(imp->getParticipanteDict(), imp->getItemIdDict(), loaderCtx->getChaveDFeDict(), imp->getInfoComplDict(), _
+					imp->getObsLancamentoDict(), imp->getBemCiapDict(), imp->getContaContabDict(), imp->getCentroCustoDict(), _
 					municipDict)
 				
 			rel->gerar(imp->getFirstReg(), imp->getMestreReg(), imp->getNroRegs())
@@ -267,10 +266,10 @@ end function
 
 ''''''''
 function Efd.getDfeMask() as long
-	return iif(nfeDestSafiFornecido, MASK_BO_NFe_DEST_FORNECIDO, 0) or _
-		iif(nfeEmitSafiFornecido, MASK_BO_NFe_EMIT_FORNECIDO, 0) or _
-		iif(itemNFeSafiFornecido, MASK_BO_ITEM_NFE_FORNECIDO, 0) or _
-		iif(cteSafiFornecido, MASK_BO_CTe_FORNECIDO, 0)
+	return iif(loaderCtx->nfeDestSafiFornecido, MASK_BO_NFe_DEST_FORNECIDO, 0) or _
+		iif(loaderCtx->nfeEmitSafiFornecido, MASK_BO_NFe_EMIT_FORNECIDO, 0) or _
+		iif(loaderCtx->itemNFeSafiFornecido, MASK_BO_ITEM_NFE_FORNECIDO, 0) or _
+		iif(loaderCtx->cteSafiFornecido, MASK_BO_CTe_FORNECIDO, 0)
 end function
 
 ''''''''
@@ -293,6 +292,126 @@ sub Efd.resumir()
 	
 	res->executar(getDfeMask())
 	delete res
+end sub
+
+''''''''
+private function lua_criarTabela(lua as lua_State ptr, db as TDb ptr, tabela as const zstring ptr, onError as OnErrorCB) as TDbStmt ptr
+
+	try
+		lua_getglobal(lua, "criarTabela_" + *tabela)
+		lua_pushlightuserdata(lua, db)
+		lua_call(lua, 1, 1)
+		var res = db->prepare(lua_tostring(lua, -1))
+		if res = null then
+			onError("Erro ao executar script lua de criação de tabela: " + "criarTabela_" + *tabela + ": " + *db->getErrorMsg())
+		end if
+		function = res
+		lua_pop(lua, 1)
+	catch
+		onError("Erro ao executar script lua de criação de tabela: " + "criarTabela_" + *tabela + ". Verifique erros de sintaxe")
+	endtry
+
+end function
+
+''''''''
+sub Efd.configurarDB()
+
+	db = new TDb
+	if not opcoes.dbEmDisco then
+		db->open()
+	else
+		kill nomeArquivoSaida + ".db"
+		db->open(nomeArquivoSaida + ".db")
+		db->execNonQuery("PRAGMA JOURNAL_MODE=OFF")
+		db->execNonQuery("PRAGMA SYNCHRONOUS=0")
+		db->execNonQuery("PRAGMA LOCKING_MODE=EXCLUSIVE")
+	end if
+
+	var dbPath = ExePath + "\db\"
+	
+	try
+		'' chamar configurarDB()
+		lua_getglobal(lua, "configurarDB")
+		lua_pushlightuserdata(lua, db)
+		lua_pushstring(lua, dbPath)
+		lua_call(lua, 2, 0)
+
+		'' criar tabelas
+		db_dfeEntradaInsertStmt = lua_criarTabela(lua, db, "DFe_Entradas", onError)
+
+		db_dfeSaidaInsertStmt = lua_criarTabela(lua, db, "DFe_Saidas", onError)
+		
+		db_itensDfeSaidaInsertStmt = lua_criarTabela(lua, db, "DFe_Saidas_Itens", onError)
+		
+		db_LREInsertStmt = lua_criarTabela(lua, db, "EFD_LRE", onError)
+
+		db_itensNfLRInsertStmt = lua_criarTabela(lua, db, "EFD_Itens", onError)
+
+		db_LRSInsertStmt = lua_criarTabela(lua, db, "EFD_LRS", onError)
+		
+		db_analInsertStmt = lua_criarTabela(lua, db, "EFD_Anal", onError)
+
+		db_ressarcStItensNfLRSInsertStmt = lua_criarTabela(lua, db, "EFD_Ressarc_Itens", onError)
+		
+		db_itensIdInsertStmt = lua_criarTabela(lua, db, "EFD_ItensId", onError)
+		
+		db_mestreInsertStmt = lua_criarTabela(lua, db, "EFD_Mestre", onError)
+		
+		if db_dfeEntradaInsertStmt = null or _
+			db_dfeSaidaInsertStmt = null or _
+			 db_itensDfeSaidaInsertStmt = null or _
+			  db_LREInsertStmt = null or _
+			   db_itensNfLRInsertStmt = null or _
+			    db_LRSInsertStmt = null or _
+				 db_ressarcStItensNfLRSInsertStmt = null or _
+					db_itensIdInsertStmt = null or _
+						db_analInsertStmt = null then
+			
+		end if
+	catch
+		onError("Erro ao executar script lua de criação de DB. Verifique erros de sintaxe")
+	endtry
+
+end sub   
+
+''''''''
+sub Efd.fecharDb()
+	if db <> null then
+		if db_dfeEntradaInsertStmt <> null then
+			delete db_dfeEntradaInsertStmt
+		end if
+		if db_dfeSaidaInsertStmt <> null then
+			delete db_dfeSaidaInsertStmt
+		end if
+		if db_itensDfeSaidaInsertStmt <> null then
+			delete db_itensDfeSaidaInsertStmt
+		end if
+		if db_LREInsertStmt <> null then
+			delete db_LREInsertStmt
+		end if
+		if db_itensNfLRInsertStmt <> null then
+			delete db_itensNfLRInsertStmt
+		end if
+		if db_LRSInsertStmt <> null then
+			delete db_LRSInsertStmt
+		end if
+		if db_analInsertStmt <> null then
+			delete db_analInsertStmt
+		end if
+		if db_ressarcStItensNfLRSInsertStmt <> null then
+			delete db_ressarcStItensNfLRSInsertStmt
+		end if
+		if db_itensIdInsertStmt <> null then
+			delete db_itensIdInsertStmt
+		end if
+		if db_mestreInsertStmt <> null then
+			delete db_mestreInsertStmt
+		end if
+		
+		db->close()
+		delete db
+		db = null
+	end if
 end sub
 
 ''''''''

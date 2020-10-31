@@ -1,4 +1,5 @@
-#include once "efd.bi"
+#include once "Efd.bi"
+#include once "EfdBoXlsxLoader.bi"
 #include once "trycatch.bi"
 
 private function dbl2Cnpj(valor as double) as string
@@ -12,7 +13,12 @@ end function
 #define limparIE(valor) strreplace(valor, ".", "")
 
 ''''''''
-function Efd.carregarXlsxNFeDest(rd as ExcelReader ptr) as TDFe ptr
+constructor EfdBoXlsxLoader(ctx as EfdBoLoaderContext ptr, opcoes as OpcoesExtracao ptr)
+	base(ctx, opcoes)
+end constructor
+
+''''''''
+function EfdBoXlsxLoader.carregarXlsxNFeDest(rd as ExcelReader ptr) as TDFe_NFe ptr
 	
 	'' Chave Acesso NFe,	Número,	Série,	Modelo,	Data Emissão,	Razão Social Emitente
 	'' CNPJ Emitente,	Número CPF Emitente,	Inscrição Estadual Emitente,	CRT,	DRT Emitente
@@ -28,11 +34,11 @@ function Efd.carregarXlsxNFeDest(rd as ExcelReader ptr) as TDFe ptr
 		return null
 	end if
 		
-	if chaveDFeDict->lookup(chave) <> null then
+	if ctx->chaveDFeDict->lookup(chave) <> null then
 		return null
 	end if
 
-	var dfe = new TDFe
+	var dfe = new TDFe_NFe
 	
 	dfe->loader				= LOADER_NFE_DEST
 	dfe->operacao			= ENTRADA
@@ -44,13 +50,13 @@ function Efd.carregarXlsxNFeDest(rd as ExcelReader ptr) as TDFe ptr
 	dfe->nomeEmit			= rd->read(true)
 	dfe->cnpjEmit			= dbl2Cnpj(rd->readDbl)
 	rd->skip '' cpf emit
-	dfe->nfe.ieEmit			= trim(limparIE(rd->read))
+	dfe->ieEmit				= trim(limparIE(rd->read))
 	rd->skip '' crt emit
 	rd->skip '' drt emit
 	dfe->ufEmit				= UF_SIGLA2COD(rd->read)
 	dfe->nomeDest			= rd->read(true)
 	dfe->cnpjDest			= dbl2Cnpj(rd->readDbl)
-	dfe->nfe.ieDest			= trim(limparIE(rd->read))
+	dfe->ieDest				= trim(limparIE(rd->read))
 	rd->skip '' drt dest
 	dfe->ufDest				= UF_SIGLA2COD(rd->read)
 	rd->skip '' tipo doc
@@ -68,10 +74,10 @@ function Efd.carregarXlsxNFeDest(rd as ExcelReader ptr) as TDFe ptr
 	rd->skip '' ie transportador
 	rd->skip '' placa transportador
 	rd->skip '' uf transportador
-	dfe->nfe.bcICMSTotal	= rd->readDbl
-	dfe->nfe.ICMSTotal		= rd->readDbl
-	dfe->nfe.bcICMSSTTotal	= rd->readDbl
-	dfe->nfe.ICMSSTTotal	= rd->readDbl
+	dfe->bcICMSTotal		= rd->readDbl
+	dfe->ICMSTotal			= rd->readDbl
+	dfe->bcICMSSTTotal		= rd->readDbl
+	dfe->ICMSSTTotal		= rd->readDbl
 	dfe->valorOperacao		= rd->readDbl
 	
 	function = dfe
@@ -79,7 +85,7 @@ function Efd.carregarXlsxNFeDest(rd as ExcelReader ptr) as TDFe ptr
 end function
 
 ''''''''
-function Efd.carregarXlsxNFeDestItens(rd as ExcelReader ptr) as TDFe ptr
+function EfdBoXlsxLoader.carregarXlsxNFeDestItens(rd as ExcelReader ptr) as TDFe_NFe ptr
 	
 	'' Chave de Acesso NFe, Número Documento Fiscal, Série Documento Fiscal, Modelo Documento Fiscal, Tipo Documento Fiscal, Situação Documento Fiscal, 
 	'' Data Emissão, Razão Social Emitente, CNPJ Emitente, CPF Emitente, Inscrição Estadual Emitente, DRT Emitente,	UF Emitente, Razão Social Destinatário,
@@ -96,9 +102,9 @@ function Efd.carregarXlsxNFeDestItens(rd as ExcelReader ptr) as TDFe ptr
 		return null
 	end if
 	
-	var dfe = cast(TDFe ptr, chaveDFeDict->lookup(chave))	
+	var dfe = cast(TDFe_NFe ptr, ctx->chaveDFeDict->lookup(chave))	
 	if dfe = null then
-		dfe = new TDFe
+		dfe = new TDFe_NFe
 	else
 		if dfe->loader <> LOADER_NFE_DEST_ITENS then
 			return null
@@ -117,7 +123,7 @@ function Efd.carregarXlsxNFeDestItens(rd as ExcelReader ptr) as TDFe ptr
 	dfe->nomeEmit			= rd->read(true)
 	dfe->cnpjEmit			= dbl2Cnpj(rd->readDbl)
 	rd->skip '' cpf emit
-	dfe->nfe.ieEmit			= trim(limparIE(rd->read))
+	dfe->ieEmit				= trim(limparIE(rd->read))
 	rd->skip '' drt emit
 	dfe->ufEmit				= UF_SIGLA2COD(rd->read)
 	dfe->nomeDest			= rd->read(true)
@@ -145,26 +151,26 @@ function Efd.carregarXlsxNFeDestItens(rd as ExcelReader ptr) as TDFe ptr
 	rd->skip '' qtd
 	rd->skip '' unidade
 	dfe->valorOperacao		+= rd->readDbl
-	dfe->nfe.bcICMSTotal	+= rd->readDbl
-	dfe->nfe.ICMSTotal		+= rd->readDbl
-	dfe->nfe.bcICMSSTTotal	+= rd->readDbl
-	dfe->nfe.ICMSSTTotal	+= rd->readDbl
+	dfe->bcICMSTotal		+= rd->readDbl
+	dfe->ICMSTotal			+= rd->readDbl
+	dfe->bcICMSSTTotal		+= rd->readDbl
+	dfe->ICMSSTTotal		+= rd->readDbl
 
 	function = dfe
 
 end function
 
 ''''''''
-function Efd.carregarXlsxNFeEmit(rd as ExcelReader ptr) as TDFe ptr
+function EfdBoXlsxLoader.carregarXlsxNFeEmit(rd as ExcelReader ptr) as TDFe_NFe ptr
 	
 	var chave = rd->read
 	if len(chave) <> 44 then
 		return null
 	end if
 	
-	var dfe = cast(TDFe ptr, chaveDFeDict->lookup(chave))	
+	var dfe = cast(TDFe_NFe ptr, ctx->chaveDFeDict->lookup(chave))	
 	if dfe = null then
-		dfe = new TDFe
+		dfe = new TDFe_NFe
 	end if
 	
 	'' Chave Acesso NFe,	Número,	Série,	Modelo,	Data Emissão,	Razão Social Emitente
@@ -185,13 +191,13 @@ function Efd.carregarXlsxNFeEmit(rd as ExcelReader ptr) as TDFe ptr
 	dfe->dataEmi			= rd->readDate
 	dfe->nomeEmit			= rd->read(true)
 	dfe->cnpjEmit			= dbl2Cnpj(rd->readDbl)
-	dfe->nfe.ieEmit			= trim(limparIE(rd->read))
+	dfe->ieEmit				= trim(limparIE(rd->read))
 	rd->skip '' crt emit
 	rd->skip '' drt emit
 	dfe->ufEmit				= UF_SIGLA2COD(rd->read)
 	dfe->nomeDest			= rd->read(true)
 	dfe->cnpjDest			= limparCNPJ(rd->read)
-	dfe->nfe.ieDest			= trim(limparIE(rd->read))
+	dfe->ieDest				= trim(limparIE(rd->read))
 	rd->skip '' cnae dest
 	rd->skip '' cnae dest cadesp
 	rd->skip '' drt dest
@@ -212,10 +218,10 @@ function Efd.carregarXlsxNFeEmit(rd as ExcelReader ptr) as TDFe ptr
 	rd->skip '' ie transportador
 	rd->skip '' placa transportador
 	rd->skip '' uf transportador
-	dfe->nfe.bcICMSTotal	= rd->readDbl
-	dfe->nfe.ICMSTotal		= rd->readDbl
-	dfe->nfe.bcICMSSTTotal	= rd->readDbl
-	dfe->nfe.ICMSSTTotal	= rd->readDbl
+	dfe->bcICMSTotal		= rd->readDbl
+	dfe->ICMSTotal			= rd->readDbl
+	dfe->bcICMSSTTotal		= rd->readDbl
+	dfe->ICMSSTTotal		= rd->readDbl
 	dfe->valorOperacao		= rd->readDbl
 	
 	'' devolução? inverter emit <-> dest
@@ -229,7 +235,7 @@ function Efd.carregarXlsxNFeEmit(rd as ExcelReader ptr) as TDFe ptr
 end function
 
 ''''''''
-function Efd.carregarXlsxNFeEmitItens(rd as ExcelReader ptr, chave as string, extra as TDFe ptr) as TDFe_NFeItem ptr
+function EfdBoXlsxLoader.carregarXlsxNFeEmitItens(rd as ExcelReader ptr, chave as string, extra as TDFe ptr) as TDFe_NFeItem ptr
 	
 	'' Chave de Acesso NFe,	Número Documento Fiscal,	 Série Documento Fiscal,	Modelo Documento Fiscal, Tipo Documento Fiscal,	
 	'' Situação Documento Fiscal,	Data Emissão,	Razão Social Emitente,	CNPJ Emitente,	Inscrição Estadual Emitente,	
@@ -301,7 +307,7 @@ function Efd.carregarXlsxNFeEmitItens(rd as ExcelReader ptr, chave as string, ex
 end function
 
 ''''''''
-function Efd.carregarXlsxCTe(rd as ExcelReader ptr, op as TipoOperacao) as TDFe ptr
+function EfdBoXlsxLoader.carregarXlsxCTe(rd as ExcelReader ptr, op as TipoOperacao) as TDFe_CTe ptr
 	
 	'' ---em branco---,	Chave Acesso CT-e (char),	Série,	Num CTe,	Data Emissão	
 	'' CNPJ Emitente,	Num. Inscr. Est. Emitente,	Razão Social Emitente,	UF Emitente,	CNPJ Tomador,	
@@ -320,43 +326,43 @@ function Efd.carregarXlsxCTe(rd as ExcelReader ptr, op as TipoOperacao) as TDFe 
 		return null
 	end if
 	
-	var dfe = new TDFe
+	var dfe = new TDFe_CTe
 
-	dfe->operacao			= op
-	dfe->chave				= chave
-	dfe->serie				= rd->readInt
-	dfe->numero				= rd->readInt
-	dfe->dataEmi			= rd->readDate
-	dfe->cnpjEmit			= dbl2Cnpj(rd->readDbl)
+	dfe->operacao		= op
+	dfe->chave			= chave
+	dfe->serie			= rd->readInt
+	dfe->numero			= rd->readInt
+	dfe->dataEmi		= rd->readDate
+	dfe->cnpjEmit		= dbl2Cnpj(rd->readDbl)
 	rd->skip '' ie emit
-	dfe->nomeEmit			= rd->read(true)
-	dfe->ufEmit				= UF_SIGLA2COD(rd->read)
-	dfe->cte.cnpjToma		= dbl2Cnpj(rd->readDbl)
+	dfe->nomeEmit		= rd->read(true)
+	dfe->ufEmit			= UF_SIGLA2COD(rd->read)
+	dfe->cnpjToma		= dbl2Cnpj(rd->readDbl)
 	rd->skip '' ie toma
-	dfe->cte.nomeToma		= rd->read(true)
+	dfe->nomeToma		= rd->read(true)
 	rd->skip '' ind toma
-	dfe->cte.ufToma			= rd->read
-	dfe->cte.cnpjRem		= dbl2Cnpj(rd->readDbl)
-	dfe->cte.nomeRem		= rd->read(true)
-	dfe->cte.ufRem			= rd->read
-	dfe->cnpjDest			= dbl2Cnpj(rd->readDbl)
-	dfe->nomeDest			= rd->read(true)
-	dfe->ufDest				= UF_SIGLA2COD(rd->read)
-	dfe->cte.cnpjExp		= dbl2Cnpj(rd->readDbl)
-	dfe->cte.ufExp			= rd->read
-	dfe->cte.cnpjReceb		= dbl2Cnpj(rd->readDbl)
-	dfe->cte.ufReceb		= rd->read
-	dfe->cte.tipo			= valint(left(rd->read,1))
+	dfe->ufToma			= rd->read
+	dfe->cnpjRem		= dbl2Cnpj(rd->readDbl)
+	dfe->nomeRem		= rd->read(true)
+	dfe->ufRem			= rd->read
+	dfe->cnpjDest		= dbl2Cnpj(rd->readDbl)
+	dfe->nomeDest		= rd->read(true)
+	dfe->ufDest			= UF_SIGLA2COD(rd->read)
+	dfe->cnpjExp		= dbl2Cnpj(rd->readDbl)
+	dfe->ufExp			= rd->read
+	dfe->cnpjReceb		= dbl2Cnpj(rd->readDbl)
+	dfe->ufReceb		= rd->read
+	dfe->tipo			= valint(left(rd->read,1))
 	rd->skip '' indSN
-	dfe->cte.cfop			= rd->readInt
+	dfe->cfop			= rd->readInt
 	rd->skip '' Descr. Nat. Operação
 	rd->skip '' Descr. Modal
 	rd->skip '' Descr. Servico
 	rd->skip '' Descr. Cst
-	dfe->cte.nomeMunicIni	= rd->read
-	dfe->cte.ufIni			= rd->read
-	dfe->cte.nomeMunicFim	= rd->read
-	dfe->cte.ufFim			= rd->read
+	dfe->nomeMunicIni	= rd->read
+	dfe->ufIni			= rd->read
+	dfe->nomeMunicFim	= rd->read
+	dfe->ufFim			= rd->read
 	rd->skip '' Aliqüota Icms
 	rd->skip '' Perc. Redução Bc
 	rd->skip '' Valor Bc St Retido
@@ -366,16 +372,16 @@ function Efd.carregarXlsxCTe(rd as ExcelReader ptr, op as TipoOperacao) as TDFe 
 	dfe->valorOperacao		= rd->readDbl
 	rd->skip '' Valor Icms
 	rd->skip '' Valor Bc ICMS
-	dfe->cte.valorReceber	= dfe->valorOperacao
-	dfe->cte.qtdCCe			= rd->readInt
-	dfe->modelo				= 57
+	dfe->valorReceber	= dfe->valorOperacao
+	dfe->qtdCCe			= rd->readInt
+	dfe->modelo			= 57
 	
 	function = dfe
 	
 end function
 
 ''''''''
-function Efd.carregarXlsxSATItens(rd as ExcelReader ptr, chave as string) as TDFe_NFeItem ptr
+function EfdBoXlsxLoader.carregarXlsxSATItens(rd as ExcelReader ptr, chave as string) as TDFe_NFeItem ptr
 	
 	'' ---em branco---, Num Inscr. Estadual Emitente,	Data Emissão,	Identificação CF-e,	Número Cupom CF-e,	Indicador Cupom Cancelado	
 	'' Número Série,	Valor ICMS,	Número Item,	Código Produto,	Código EAN,	
@@ -444,7 +450,7 @@ function Efd.carregarXlsxSATItens(rd as ExcelReader ptr, chave as string) as TDF
 end function
 
 ''''''''
-function Efd.carregarXlsxSAT(rd as ExcelReader ptr) as TDFe ptr
+function EfdBoXlsxLoader.carregarXlsxSAT(rd as ExcelReader ptr) as TDFe_NFe ptr
 	
 	'' ---em branco---, Num Inscr. Estadual Emitente,	Número de Série do SAT,	Data Emissão,	Hora Emissão,	
 	'' Indicador Cupom Cancelado,	Identificação CF-e,	Data Recepção Cupom,	Número Cupom CF-e,	Indicador Possui Destinatário,	
@@ -472,35 +478,35 @@ function Efd.carregarXlsxSAT(rd as ExcelReader ptr) as TDFe ptr
 	
 	chave = right(chave, 44)
 	
-	var dfe = cast(TDFe ptr, chaveDFeDict->lookup(chave))	
+	var dfe = cast(TDFe_NFe ptr, ctx->chaveDFeDict->lookup(chave))	
 	if dfe = null then
-		dfe = new TDFe
+		dfe = new TDFe_NFe
 	end if
 	
 	dfe->chave				= chave
 	dfe->dataEmi			= dEmi
-	dfe->nfe.ieEmit			= str(cdbl(ie))
+	dfe->ieEmit				= str(cdbl(ie))
 	rd->skip '' Data Recepção Cupom
 	dfe->numero				= rd->readInt
 	dfe->serie				= 0
 	dfe->modelo				= SAT
 	rd->skip '' Indicador Possui Destinatário
 	dfe->valorOperacao		= rd->readDbl
-	dfe->nfe.ICMSTotal		= rd->readDbl
-	dfe->nfe.bcICMSTotal	= dfe->valorOperacao
+	dfe->ICMSTotal			= rd->readDbl
+	dfe->bcICMSTotal		= dfe->valorOperacao
 	dfe->ufEmit				= 35
 	dfe->cnpjDest			= "00000000000000"
 	dfe->ufDest				= 35
 	dfe->operacao			= SAIDA
-	dfe->nfe.bcICMSSTTotal	= 0
-	dfe->nfe.ICMSSTTotal	= 0
+	dfe->bcICMSSTTotal		= 0
+	dfe->ICMSSTTotal		= 0
 	
 	function = dfe
 	
 end function
 
 ''''''''
-function Efd.carregarXlsx(nomeArquivo as String) as Boolean
+function EfdBoXlsxLoader.carregar(nomeArquivo as String) as Boolean
 
 	if left(nomeArquivo, 1) = "~" then
 		return true
@@ -518,52 +524,52 @@ function Efd.carregarXlsx(nomeArquivo as String) as Boolean
 	
 	if instr( nomeArquivo, "NFe_Destinatario_OSF" ) > 0 then
 		tipoArquivo = BO_NFe_Dest
-		nfeDestSafiFornecido = true
+		ctx->nfeDestSafiFornecido = true
 		nomePlanilhas(0) = "Planilha NF-e por DestinatÃ¡rio"
 
 	elseif instr( nomeArquivo, "NFe_Emitente_Itens_OSF" ) > 0 then
 		tipoArquivo = BO_NFe_Emit_Itens
-		itemNFeSafiFornecido = true
+		ctx->itemNFeSafiFornecido = true
 		nomePlanilhas(0) = "Planilha"
 	
 	elseif instr( nomeArquivo, "NFe_Emitente_OSF" ) > 0 then
 		tipoArquivo = BO_NFe_Emit
-		nfeEmitSafiFornecido = true
+		ctx->nfeEmitSafiFornecido = true
 		nomePlanilhas(0) = "Planilha NF-e por Emitente"
 	
 	elseif instr( nomeArquivo, "CTe_CNPJ_Emitente_Tomador_Remetente_Destinatario_OSF" ) > 0 then
 		tipoArquivo = BO_CTe
 		nomePlanilhas(0) = "CT-e por Emitente"
 		nomePlanilhas(1) = "CT-e por Tomador"
-		cteSafiFornecido = true
+		ctx->cteSafiFornecido = true
 	
 	elseif instr( nomeArquivo, "SAT_-_CuponsEmitidosPorContribuinteCNPJ_OSF" ) > 0 then
 		tipoArquivo = BO_SAT
-		nfeEmitSafiFornecido = true
+		ctx->nfeEmitSafiFornecido = true
 		nomePlanilhas(0) = "Cupons emitidos em dado periodo"
 	
 	elseif instr( nomeArquivo, "SAT_-_ItensDeCuponsCNPJ_OSF" ) > 0 then
 		tipoArquivo = BO_SAT_Itens
-		itemNFeSafiFornecido = true
+		ctx->itemNFeSafiFornecido = true
 		nomePlanilhas(0) = "Itens de Cupons"
 	
 	elseif instr( nomeArquivo, "NFC-e_itens_OSF" ) > 0 then
 		tipoArquivo = BO_NFCe_Itens
-		itemNFeSafiFornecido = true
+		ctx->itemNFeSafiFornecido = true
 		nomePlanilhas(0) = "Itens"
 		onError(!"\n\tErro: relatório não suportado ainda")
 		return false
 		
 	elseif instr( nomeArquivo, "REDF_consulta_Cupons_Fiscais_ECF" ) > 0 then
 		tipoArquivo = SAFI_ECF
-		nfeEmitSafiFornecido = true
+		ctx->nfeEmitSafiFornecido = true
 		nomePlanilhas(0) = "REDF - Cupons Fiscais"
 		onError(!"\n\tErro: relatório não suportado ainda")
 		return false
 	
 	elseif instr( nomeArquivo, "REDF_-_Consulta_Cupons_Fiscais_ECF_e_itens_do_CF" ) > 0 then
 		tipoArquivo = BO_ECF_Itens
-		itemNFeSafiFornecido = true
+		ctx->itemNFeSafiFornecido = true
 		nomePlanilhas(0) = "REDF - Itens dos Cupons Fiscais"
 		onError(!"\n\tErro: relatório não suportado ainda")
 		return false
@@ -619,10 +625,10 @@ function Efd.carregarXlsx(nomeArquivo as String) as Boolean
 						if nfeItem <> null then
 							adicionarItemDFe(chave, nfeItem)
 
-							var dfe = cast(TDFe ptr, chaveDFeDict->lookup(chave))
+							var dfe = cast(TDFe_Nfe ptr, ctx->chaveDFeDict->lookup(chave))
 							'' nf-e não encontrada? pode acontecer se processarmos o csv de itens antes do csv de nf-e
 							if dfe = null then
-								dfe = new TDFe
+								dfe = new TDFe_NFe
 								'' só adicionar ao dicionário e à lista de DFe
 								dfe->chave = chave
 								dfe->modelo = NFE
@@ -636,13 +642,13 @@ function Efd.carregarXlsx(nomeArquivo as String) as Boolean
 								adicionarDFe(dfe, false)
 							end if
 							
-							if dfe->nfe.itemListHead = null then
-								dfe->nfe.itemListHead = nfeItem
+							if dfe->itemListHead = null then
+								dfe->itemListHead = nfeItem
 							else
-								dfe->nfe.itemListTail->next_ = nfeItem
+								dfe->itemListTail->next_ = nfeItem
 							end if
 							
-							dfe->nfe.itemListTail = nfeItem
+							dfe->itemListTail = nfeItem
 						end if
 					
 					case BO_CTe
@@ -663,23 +669,23 @@ function Efd.carregarXlsx(nomeArquivo as String) as Boolean
 						if satItem <> null then
 							adicionarItemDFe(chave, satItem)
 
-							var dfe = cast(TDFe ptr, chaveDFeDict->lookup(chave))
+							var dfe = cast(TDFe_NFe ptr, ctx->chaveDFeDict->lookup(chave))
 							'' sat não encontrado? pode acontecer se processarmos o csv de itens antes do csv de nf-e
 							if dfe = null then
-								dfe = new TDFe
+								dfe = new TDFe_NFe
 								'' só adicionar ao dicionário e à lista de DFe
 								dfe->chave = chave
 								dfe->modelo = SAT
 								adicionarDFe(dfe, false)
 							end if
 							
-							if dfe->nfe.itemListHead = null then
-								dfe->nfe.itemListHead = satItem
+							if dfe->itemListHead = null then
+								dfe->itemListHead = satItem
 							else
-								dfe->nfe.itemListTail->next_ = satItem
+								dfe->itemListTail->next_ = satItem
 							end if
 							
-							dfe->nfe.itemListTail = satItem
+							dfe->itemListTail = satItem
 						end if
 						
 					case BO_NFCe_Itens
@@ -699,13 +705,13 @@ function Efd.carregarXlsx(nomeArquivo as String) as Boolean
 			loop
 			
 			'' se for informado só o itens NF-e, gravar a tabela NF-e com os dados disponíveis
-			if opcoes.manterDb andalso itemNFeSafiFornecido andalso not nfeEmitSafiFornecido then
-				var dfe = dfeListHead
+			if opcoes->manterDb andalso ctx->itemNFeSafiFornecido andalso not ctx->nfeEmitSafiFornecido then
+				var dfe = ctx->dfeListHead
 				do while dfe <> null
 					if dfe->modelo = NFe then
-						adicionarDFe(dfe)
+						adicionarDFe(cast(TDFe_NFe ptr, dfe))
 					end if
-					dfe = dfe->next_
+					dfe = dfe->prox
 				loop
 			end if
 			

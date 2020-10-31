@@ -672,9 +672,9 @@ sub EfdTabelaExport.gerar(regListHead as TRegistro ptr, regMestre as TMestre ptr
 						dim as TDFe_NFeItem ptr item = null
 						if itemNFeSafiFornecido and opcoes->acrescentarDados then
 							if len(nf->chave) > 0 then
-								var dfe = cast( TDFe ptr, chaveDFeDict->lookup(nf->chave) )
+								var dfe = cast(TDFe_NFe ptr, chaveDFeDict->lookup(nf->chave))
 								if dfe <> null then
-									item = dfe->nfe.itemListHead
+									item = dfe->itemListHead
 								end if
 							end if
 						end if
@@ -1074,9 +1074,9 @@ sub EfdTabelaExport.gerar(regListHead as TRegistro ptr, regMestre as TMestre ptr
 							if emitirLinha then
 								dim as TDFe_NFeItem ptr item = null
 								if itemNFeSafiFornecido and opcoes->acrescentarDados then
-									var dfe = cast( TDFe ptr, chaveDFeDict->lookup(doc->chave) )
+									var dfe = cast(TDFe_NFe ptr, chaveDFeDict->lookup(doc->chave))
 									if dfe <> null then
-										item = dfe->nfe.itemListHead
+										item = dfe->itemListHead
 									end if
 								end if
 								
