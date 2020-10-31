@@ -34,122 +34,7 @@ end type
 #include once "EfdBaseImport.bi"
 type EfdBaseImport_ as EfdBaseImport
 
-enum BO_TipoArquivo
-	BO_NFe_Dest
-	BO_NFe_Emit
-	BO_NFe_Emit_Itens
-	BO_CTe
-	BO_SAT
-	BO_SAT_Itens
-	BO_NFCe_Itens
-	SAFI_ECF
-	BO_ECF_Itens
-end enum
-
-enum BO_Dfe_Fornecido
-	MASK_BO_NFe_DEST_FORNECIDO = &b00000001
-	MASK_BO_NFe_EMIT_FORNECIDO = &b00000010
-	MASK_BO_ITEM_NFE_FORNECIDO = &b00000100
-	MASK_BO_CTe_FORNECIDO 	 = &b00001000
-end enum
-
-type TDFe_ as TDFe
-
-type TDFe_NFeItem									'' Nota: só existe para NF-e emitidas, já que para as recebidas os itens constam na EFD
-	serie			as integer
-	numero			as integer
-	modelo			as TipoModelo
-	nroItem			as integer
-	cfop			as short
-	ncm				as longint
-	cst				as integer
-	codProduto		as zstring * 60+1
-	descricao		as zstring * 256+1
-	qtd				as double
-	unidade			as zstring * 6+1
-	valorProduto	as double
-	desconto		as double
-	despesasAcess	as double
-	bcICMS			as double
-	aliqICMS		as double
-	ICMS			as double
-	bcICMSST		as double
-	aliqIcmsST		as double
-	icmsST			as double
-	IPI				as double
-	next_			as TDFe_NFeItem ptr
-end type
-
-type TDFe_NFe
-	ieEmit			as zstring * 14+1
-	ieDest			as zstring * 14+1
-	bcICMSTotal		as double
-	ICMSTotal		as double
-	bcICMSSTTotal	as double
-	ICMSSTTotal		as double
-	
-	itemListHead	as TDFe_NFeItem ptr
-	itemListTail	as TDFe_NFeItem ptr
-end type
-
-type TDFe_CTe
-	cnpjToma		as zstring * 14+1
-	nomeToma		as zstring * 100+1
-	ufToma			as zstring * 2+1
-	cnpjRem			as zstring * 14+1
-	nomeRem			as zstring * 100+1
-	ufRem			as zstring * 2+1
-	cnpjExp			as zstring * 14+1
-	ufExp			as zstring * 2+1
-	cnpjReceb		as zstring * 14+1
-	ufReceb			as zstring * 2+1
-	tipo			as byte
-	valorReceber	as double
-	qtdCCe			as double
-	cfop			as integer
-	nomeMunicIni	as zstring * 64+1
-	ufIni			as zstring * 2+1
-	nomeMunicFim	as zstring * 64+1
-	ufFim			as zstring * 2+1
-	next_			as TDFe_CTe ptr					'' usado para dar patch 
-	parent			as TDFe_ ptr
-end type
-
-enum TDFE_LOADER
-	LOADER_UNKNOWN
-	LOADER_NFE_DEST
-	LOADER_NFE_DEST_ITENS
-	LOADER_NFE_EMIT
-	LOADER_NFE_EMIT_ITENS
-	LOADER_CTE
-	LOADER_NFCE
-	LOADER_SAT
-	LOADER_ECF
-end enum
-
-type TDFe
-	modelo			as TipoModelo
-	operacao		as TipoOperacao					'' entrada ou saída
-	chave			as zstring * 44+1
-	dataEmi			as zstring * 8+1
-	serie			as integer
-	numero			as integer
-	cnpjEmit		as zstring * 14+1
-	nomeEmit		as zstring * 100+1
-	ufEmit			as byte
-	cnpjDest		as zstring * 14+1
-	nomeDest		as zstring * 100+1
-	ufDest			as byte
-	valorOperacao	as double
-	loader			as TDFE_LOADER
-	
-	union
-		nfe			as TDFe_NFe
-		cte			as TDFe_CTe
-	end union
-	
-	next_			as TDFe ptr
-end type
+#include once "EfdBoBaseLoader.bi"
 
 enum TipoLivro
 	TL_ENTRADAS
@@ -196,6 +81,7 @@ public:
 	declare sub descarregarDFe()
 
 	exp						as EfdTabelaExport_ ptr
+	loaderCtx				as EfdBoLoaderContext ptr
 	onProgress 				as OnProgressCB
 	onError 				as OnErrorCB
    
@@ -204,24 +90,6 @@ private:
 	declare sub fecharDb()
 	declare sub configurarScripting()
 	
-	declare function carregarCsvNFeDestSAFI(bf as bfile, emModoOutrasUFs as boolean) as TDFe ptr
-	declare function carregarCsvNFeEmitSAFI(bf as bfile) as TDFe ptr
-	declare function carregarCsvNFeEmitItensSAFI(bf as bfile, chave as string) as TDFe_NFeItem ptr
-	declare function carregarCsvCTeSAFI(bf as bfile, emModoOutrasUFs as boolean) as TDFe ptr
-	declare function carregarCsvNFeEmitItens(bf as bfile, chave as string, extra as TDFe ptr) as TDFe_NFeItem ptr
-	
-	declare function carregarXlsxNFeDest(reader as ExcelReader ptr) as TDFe ptr
-	declare function carregarXlsxNFeDestItens(reader as ExcelReader ptr) as TDFe ptr
-	declare function carregarXlsxNFeEmit(rd as ExcelReader ptr) as TDFe ptr
-	declare function carregarXlsxNFeEmitItens(rd as ExcelReader ptr, chave as string, extra as TDFe ptr) as TDFe_NFeItem ptr
-	declare function carregarXlsxCTe(rd as ExcelReader ptr, op as TipoOperacao) as TDFe ptr
-	declare function carregarXlsxSAT(rd as ExcelReader ptr) as TDFe ptr
-	declare function carregarXlsxSATItens(rd as ExcelReader ptr, chave as string) as TDFe_NFeItem ptr
-	
-	declare function adicionarDFe(dfe as TDFe ptr, fazerInsert as boolean = true) as long
-	declare function adicionarItemDFe(chave as const zstring ptr, item as TDFe_NFeItem ptr) as long
-	declare function adicionarEfdDfe(chave as zstring ptr, operacao as TipoOperacao, dataEmi as zstring ptr, valorOperacao as double) as long
-	
 	declare sub exportAPI(L as lua_State ptr)
 	declare static function luacb_efd_participante_get cdecl(L as lua_State ptr) as long
 	
@@ -229,24 +97,12 @@ private:
 
 	'' dicionários
 	municipDict				as TDict ptr
-	chaveDFeDict			as TDict ptr
 	
 	''
 	nomeArquivoSaida		as string
 	opcoes					as OpcoesExtracao
 	baseTemplatesDir		as string
 
-	'' registros das NF-e's e CT-e's retirados dos relatórios do Infoview (mantidos do início ao fim da extração)
-	dfeListHead				as TDFe ptr = null
-	dfeListTail				as TDFe ptr = null
-	nroDfe					as integer = 0
-	cteListHead				as TDFe_CTe ptr = null	'' usado para fazer patch no tipo de operação
-	cteListTail				as TDFe_CTe ptr = null
-	nfeDestSafiFornecido 	as boolean
-	nfeEmitSafiFornecido 	as boolean
-	itemNFeSafiFornecido 	as boolean
-	cteSafiFornecido		as boolean
-	
 	'' base de dados de configuração
 	configDb				as TDb ptr
 	

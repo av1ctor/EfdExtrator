@@ -1,6 +1,6 @@
 '' Extrator de EFD
 '' Copyleft 2017-2020 André Vicentini (avtvicentini)
-'' fbc.exe EfdExtrator.bas EfdGUI.bas Efd.bas EfdBaseImport.bas EfdSpedImport.bas EfdSintegraImport.bas Efd-loader-csv-safi.bas Efd-loader-csv.bas Efd-loader-xlsx.bas EfdTabelaExport.bas EfdPdfExport.bas EfdAnalisador.bas EfdResumidor.bas Efd-db.bas Efd-misc.bas strings.bas bfile.bas ExcelReader.bas ExcelWriter.bas list.bas Dict.bas Pdfer.bas DB.bas VarBox.bas trycatch.bas gui.rc -d WITH_PARSER -o 3
+'' fbc.exe EfdExtrator.bas EfdGUI.bas Efd.bas EfdBaseImport.bas EfdSpedImport.bas EfdSintegraImport.bas EfdBoLoaderContext.bas EfdBoBaseLoader.bas EfdBoCsvLoader.bas EfdBoXlsxLoader.bas EfdTabelaExport.bas EfdPdfExport.bas EfdAnalisador.bas EfdResumidor.bas Efd-misc.bas strings.bas bfile.bas ExcelReader.bas ExcelWriter.bas list.bas Dict.bas Pdfer.bas DB.bas VarBox.bas trycatch.bas gui.rc -d WITH_PARSER -o 3
 
 #include once "Efd.bi"
 #include once "EfdGUI.bi"

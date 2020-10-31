@@ -1,4 +1,5 @@
-#include once "efd.bi"
+#include once "Efd.bi"
+#include once "EfdBoCsvLoader.bi"
 #include once "bfile.bi"
 #include once "trycatch.bi"
 
@@ -6,7 +7,204 @@ const BO_CSV_SEP = asc(!"\t")
 const BO_CSV_DIG = asc(".")
 
 ''''''''
-function Efd.carregarCsvNFeEmitItens(bf as bfile, chave as string, extra as TDFe ptr) as TDFe_NFeItem ptr
+constructor EfdBoCsvLoader(ctx as EfdBoLoaderContext ptr, opcoes as OpcoesExtracao ptr)
+	base(ctx, opcoes)
+end constructor
+
+''''''''
+function EfdBoCsvLoader.carregarCsvNFeDestSAFI(bf as bfile, emModoOutrasUFs as boolean) as TDFe_NFe ptr
+	
+	var dfe = new TDFe_Nfe
+	
+	dfe->operacao			= ENTRADA
+	
+	if not emModoOutrasUFs then
+		dfe->chave				= bf.charCsv
+		dfe->dataEmi			= csvDate2YYYYMMDD(bf.charCsv)
+		dfe->cnpjEmit			= bf.charCsv
+		dfe->nomeEmit			= bf.charCsv
+		dfe->ieEmit				= trim(bf.charCsv)
+		dfe->cnpjDest			= bf.charCsv
+		dfe->ufDest				= UF_SIGLA2COD(bf.charCsv)
+		dfe->nomeDest			= bf.charCsv
+		dfe->bcICMSTotal		= bf.dblCsv
+		dfe->ICMSTotal			= bf.dblCsv
+		dfe->bcICMSSTTotal		= bf.dblCsv
+		dfe->ICMSSTTotal		= bf.dblCsv
+		dfe->valorOperacao		= bf.dblCsv
+		dfe->ufEmit				= UF_SIGLA2COD(bf.charCsv)
+		dfe->numero				= bf.intCsv
+		dfe->serie				= bf.intCsv
+		dfe->modelo				= bf.intCsv
+	else
+		dfe->chave				= bf.charCsv
+		dfe->cnpjDest			= bf.charCsv
+		dfe->nomeDest			= bf.charCsv
+		dfe->dataEmi			= csvDate2YYYYMMDD(bf.charCsv)
+		dfe->ufDest				= 35
+		dfe->cnpjEmit			= bf.charCsv
+		dfe->nomeEmit			= bf.charCsv
+		dfe->ufEmit				= UF_SIGLA2COD(bf.charCsv)
+		dfe->bcICMSTotal		= bf.dblCsv
+		dfe->ICMSTotal			= bf.dblCsv
+		dfe->bcICMSSTTotal		= bf.dblCsv
+		dfe->ICMSSTTotal		= bf.dblCsv
+		dfe->valorOperacao		= bf.dblCsv
+		dfe->modelo				= bf.intCsv
+		dfe->serie				= bf.intCsv
+		dfe->numero				= bf.intCsv
+	end if
+
+	'' pular \r\n
+	bf.char1
+	bf.char1
+	
+	function = dfe
+	
+end function
+
+''''''''
+function EfdBoCsvLoader.carregarCsvNFeEmitSAFI(bf as bfile) as TDFe_NFe ptr
+	
+	var chave = bf.charCsv
+	var dfe = cast(TDFe_NFe ptr, ctx->chaveDFeDict->lookup(chave))	
+	if dfe = null then
+		dfe = new TDFe_NFe
+	end if
+	
+	dfe->chave				= chave
+	dfe->dataEmi			= csvDate2YYYYMMDD(bf.charCsv)
+	dfe->cnpjEmit			= bf.charCsv
+	dfe->nomeEmit			= bf.charCsv
+	dfe->ieEmit				= trim(bf.charCsv)
+	dfe->ufEmit				= 35
+	dfe->cnpjDest			= bf.charCsv
+	dfe->ufDest				= UF_SIGLA2COD(bf.charCsv)
+	dfe->nomeDest			= bf.charCsv
+	dfe->bcICMSTotal		= bf.dblCsv
+	dfe->ICMSTotal			= bf.dblCsv
+	dfe->bcICMSSTTotal		= bf.dblCsv
+	dfe->ICMSSTTotal		= bf.dblCsv
+	dfe->valorOperacao		= bf.dblCsv
+	var op = bf.charCsv
+	dfe->operacao			= iif(op[0] = asc("S"), SAIDA, ENTRADA)
+	dfe->numero				= bf.intCsv
+	dfe->serie				= bf.intCsv
+	dfe->modelo				= bf.intCsv
+	
+	'' devolução? inverter emit <-> dest
+	if dfe->operacao = ENTRADA then
+		swap dfe->cnpjEmit, dfe->cnpjDest
+		swap dfe->ufEmit, dfe->ufDest
+	end if
+	
+	'' pular \r\n
+	bf.char1
+	bf.char1
+	
+	function = dfe
+	
+end function
+
+''''''''
+function EfdBoCsvLoader.carregarCsvNFeEmitItensSAFI(bf as bfile, chave as string) as TDFe_NFeItem ptr
+	
+	var item = new TDFe_NFeItem
+	
+	bf.charCsv				'' pular versão
+	bf.charCsv				'' pular cnpj emitente
+	bf.charCsv				'' pular ie emitente
+	bf.charCsv				'' pular cnpj dest
+	item->modelo 			= bf.intCsv
+	item->serie				= bf.intCsv
+	item->numero			= bf.intCsv
+	bf.charCsv				'' pular data emi
+	item->cfop				= bf.intCsv
+	item->nroItem			= bf.intCsv
+	item->codProduto		= bf.charCsv
+	item->descricao			= bf.charCsv
+	item->qtd				= bf.dblCsv
+	item->unidade			= bf.charCsv
+	item->valorProduto		= bf.dblCsv
+	item->desconto			= bf.dblCsv
+	item->despesasAcess		= bf.dblCsv
+	item->bcICMS			= bf.dblCsv
+	item->aliqICMS			= bf.dblCsv
+	item->ICMS				= bf.dblCsv
+	item->bcICMSST			= bf.dblCsv
+	item->IPI				= bf.dblCsv
+	item->next_ = null
+	
+	chave = bf.charCsv
+	
+	'' pular \r\n
+	bf.char1
+	bf.char1
+	
+	function = item
+end function
+
+''''''''
+function EfdBoCsvLoader.carregarCsvCTeSAFI(bf as bfile, emModoOutrasUFs as boolean) as TDFe_CTe ptr
+	var dfe = new TDFe_CTe
+	
+	'' NOTA: só será possível saber se é operação de entrada ou saída quando pegarmos 
+	''       o CNPJ base do contribuinte, que só vem no final do arquivo.......
+	dfe->operacao		= DESCONHECIDA			
+	
+	bf.charCsv			'' pular chave quebrada
+	dfe->serie			= bf.intCsv
+	dfe->numero			= bf.intCsv
+	dfe->cnpjEmit		= bf.charCsv
+	dfe->dataEmi		= csvDate2YYYYMMDD(bf.charCsv)
+	dfe->nomeEmit		= bf.charCsv
+	dfe->ufEmit			= UF_SIGLA2COD(bf.charCsv)
+	dfe->cnpjToma		= bf.charCsv
+	dfe->nomeToma		= bf.charCsv
+	dfe->ufToma			= bf.charCsv
+	dfe->cnpjRem		= bf.charCsv
+	dfe->nomeRem		= bf.charCsv
+	dfe->ufRem			= bf.charCsv
+	dfe->cnpjDest		= bf.charCsv
+	dfe->nomeDest		= bf.charCsv
+	dfe->ufDest			= UF_SIGLA2COD(bf.charCsv)
+	dfe->cnpjExp		= bf.charCsv
+	dfe->ufExp			= bf.charCsv
+	dfe->cnpjReceb		= bf.charCsv
+	dfe->ufReceb		= bf.charCsv
+	dfe->tipo			= valint(left(bf.charCsv,1))
+	dfe->chave			= bf.charCsv
+	dfe->valorOperacao	= bf.dblCsv
+	dfe->valorReceber	= bf.dblCsv
+	dfe->qtdCCe			= bf.dblCsv
+	dfe->cfop			= bf.intCsv
+	dfe->nomeMunicIni	= bf.charCsv
+	dfe->ufIni			= bf.charCsv
+	dfe->nomeMunicFim	= bf.charCsv
+	dfe->ufFim			= bf.charCsv
+	dfe->modelo			= 57
+	
+	'' pular \r\n
+	bf.char1
+	bf.char1
+	
+	'' back patching
+	if ctx->cteListHead = null then
+		ctx->cteListHead = dfe
+	else
+		ctx->cteListTail->next_ = dfe
+	end if
+	
+	ctx->cteListTail = dfe
+	dfe->next_ = null
+	dfe->parent = dfe
+	
+	function = dfe
+	
+end function
+
+''''''''
+function EfdBoCsvLoader.carregarCsvNFeEmitItens(bf as bfile, chave as string, extra as TDFe ptr) as TDFe_NFeItem ptr
 	
 	var item = new TDFe_NFeItem
 	
@@ -84,7 +282,7 @@ function Efd.carregarCsvNFeEmitItens(bf as bfile, chave as string, extra as TDFe
 end function
 
 ''''''''
-function Efd.carregarCsv(nomeArquivo as String) as Boolean
+function EfdBoCsvLoader.carregar(nomeArquivo as String) as Boolean
 
 	dim bf as bfile
    
@@ -96,26 +294,26 @@ function Efd.carregarCsv(nomeArquivo as String) as Boolean
 	dim as boolean isSafi = true
 	if instr( nomeArquivo, "SAFI_NFe_Destinatario" ) > 0 then
 		tipoArquivo = BO_NFe_Dest
-		nfeDestSafiFornecido = true
+		ctx->nfeDestSafiFornecido = true
 	
 	elseif instr( nomeArquivo, "SAFI_NFe_Emitente_Itens" ) > 0 then
 		tipoArquivo = BO_NFe_Emit_Itens
-		itemNFeSafiFornecido = true
+		ctx->itemNFeSafiFornecido = true
 	
 	elseif instr( nomeArquivo, "SAFI_NFe_Emitente" ) > 0 then
 		tipoArquivo = BO_NFe_Emit
-		nfeEmitSafiFornecido = true
+		ctx->nfeEmitSafiFornecido = true
 	
 	elseif instr( nomeArquivo, "SAFI_CTe_CNPJ" ) > 0 then
 		tipoArquivo = BO_CTe
-		cteListHead = null
-		cteListTail = null
-		cteSafiFornecido = true
+		ctx->cteListHead = null
+		ctx->cteListTail = null
+		ctx->cteSafiFornecido = true
 		
 	elseif instr( nomeArquivo, "NFE_Emitente_Itens_SP_OSF" ) > 0 then
 		tipoArquivo = BO_NFe_Emit_Itens
 		isSafi = false
-		itemNFeSafiFornecido = true
+		ctx->itemNFeSafiFornecido = true
 	
 	else
 		onError("Erro: impossível resolver tipo de arquivo pelo nome")
@@ -153,7 +351,7 @@ function Efd.carregarCsv(nomeArquivo as String) as Boolean
 						'' patch em todos os tipos de operação (saída ou entrada)
 						if tipoArquivo = BO_CTe then
 							var cnpjBase = bf.charCsv
-							var cte = cteListHead
+							var cte = ctx->cteListHead
 							do while cte <> null 
 								if left(cte->parent->cnpjEmit,8) = cnpjBase then
 									cte->parent->operacao = SAIDA
@@ -192,11 +390,11 @@ function Efd.carregarCsv(nomeArquivo as String) as Boolean
 				if nfeItem <> null then
 					adicionarItemDFe(chave, nfeItem)
 
-					var dfe = cast(TDFe ptr, chaveDFeDict->lookup(chave))
+					var dfe = cast(TDFe_NFe ptr, ctx->chaveDFeDict->lookup(chave))
 					'' nf-e não encontrada? pode acontecer se processarmos o csv de itens antes do csv de nf-e
 					if dfe = null then
 						'' só adicionar ao dicionário e à lista de DFe
-						dfe = new TDFe
+						dfe = new TDFe_NFe
 						dfe->chave = chave
 						dfe->modelo = NFE
 						if not isSafi then
@@ -211,13 +409,13 @@ function Efd.carregarCsv(nomeArquivo as String) as Boolean
 						adicionarDFe(dfe, false)
 					end if
 					
-					if dfe->nfe.itemListHead = null then
-						dfe->nfe.itemListHead = nfeItem
+					if dfe->itemListHead = null then
+						dfe->itemListHead = nfeItem
 					else
-						dfe->nfe.itemListTail->next_ = nfeItem
+						dfe->itemListTail->next_ = nfeItem
 					end if
 					
-					dfe->nfe.itemListTail = nfeItem
+					dfe->itemListTail = nfeItem
 				end if
 			
 			case BO_CTe
@@ -231,11 +429,13 @@ function Efd.carregarCsv(nomeArquivo as String) as Boolean
 		
 		if not isSafi then
 			'' se for informado só o itens NF-e, gravar a tabela NF-e com os dados disponíveis
-			if opcoes.manterDb andalso itemNFeSafiFornecido andalso not nfeEmitSafiFornecido then
-				var dfe = dfeListHead
+			if opcoes->manterDb andalso ctx->itemNFeSafiFornecido andalso not ctx->nfeEmitSafiFornecido then
+				var dfe = ctx->dfeListHead
 				do while dfe <> null
-					adicionarDFe(dfe)
-					dfe = dfe->next_
+					if dfe->modelo = NFe then
+						adicionarDFe(cast(TDFe_NFe ptr, dfe))
+					end if
+					dfe = dfe->prox
 				loop
 			end if
 			onProgress(null, 1)
