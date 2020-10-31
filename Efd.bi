@@ -98,7 +98,13 @@ enum TipoAtividade
 	ATIV_OUTROS					  = 1
 end enum
 
-type TMestre
+type TRegistro
+	tipo           			as TipoRegistro
+	linha					as integer
+	prox          			as TRegistro ptr
+end type
+
+type TMestre extends TRegistro
 	versaoLayout		as integer
 	original			as boolean
 	dataIni				as zstring * 8+1
@@ -115,7 +121,7 @@ type TMestre
 	atividade			as TipoAtividade
 end type
 
-type TParticipante
+type TParticipante extends TRegistro
 	id			      	as zstring * 60+1
 	nome           		as zstring * 100+1
 	pais		 	   	as integer
@@ -218,9 +224,7 @@ enum TipoItemId
 	TI_Outras 					= 99
 end enum
 
-type TRegistro_ as TRegistro ptr
-
-type TItemId
+type TItemId extends TRegistro
 	id             as zstring * 60+1
 	descricao      as zstring * 256+1
 	codBarra       as zstring * 32+1
@@ -238,17 +242,17 @@ type TItemId
 	bcICMSST	   as double				'' //
 end type
 
-type TInfoCompl
+type TInfoCompl extends TRegistro
 	id             	as zstring * 6+1
 	descricao      	as zstring * 256+1
 end type
 
-type TObsLancamento
+type TObsLancamento extends TRegistro
 	id             	as zstring * 6+1
 	descricao      	as zstring * 256+1
 end type
 
-type TBemCiap
+type TBemCiap extends TRegistro
 	id             	as zstring * 60+1
 	tipoMerc		as integer
 	descricao      	as zstring * 256+1
@@ -260,7 +264,7 @@ type TBemCiap
 	vidaUtil		as integer
 end type
 
-type TContaContab
+type TContaContab extends TRegistro
 	id             	as zstring * 60+1
 	descricao      	as zstring * 256+1
 	dataInc			as zstring * 8+1
@@ -269,7 +273,7 @@ type TContaContab
 	nivel			as integer
 end type
 
-type TCentroCusto
+type TCentroCusto extends TRegistro
 	id             	as zstring * 60+1
 	descricao      	as zstring * 256+1
 	dataInc			as zstring * 8+1
@@ -297,7 +301,7 @@ end enum
 
 type TDocNFItem_ as TDocNFItem ptr
 
-type TDocNFItemRessarcSt
+type TDocNFItemRessarcSt extends TRegistro
 	documentoPai   			as TDocNFItem_
 	modeloUlt				as TipoModelo
 	numeroUlt				as longint
@@ -329,7 +333,7 @@ end type
 
 type TDocNF_ as TDocNF ptr
 
-type TDocNFItem                       ' nota: só é obrigatório para entradas!!!
+type TDocNFItem extends TRegistro
 	documentoPai   			as TDocNF_
 	numItem        			as Integer
 	itemId         			as zstring * 60+1
@@ -370,10 +374,10 @@ type TDocNFItem                       ' nota: só é obrigatório para entradas!!!
 	itemRessarcStListTail 	as TDocNFItemRessarcSt ptr
 end type
 
-type TDocECF_ as TDocECF ptr
+type TDocECF_ as TDocECF
 
-type TDocECFItem
-	documentoPai   as TDocECF_
+type TDocECFItem extends TRegistro
+	documentoPai   as TDocECF_ ptr
 	numItem        as Integer
 	itemId         as zstring * 60+1
 	qtd            as double
@@ -393,8 +397,8 @@ type TDocDifAliq
 	icmsOrigem		as double
 end type
 
-type TDocItemAnal
-	documentoPai   			as TRegistro_
+type TDocItemAnal extends TRegistro
+	documentoPai   			as TRegistro ptr
 	num						as integer
 	cst						as integer
 	cfop					as integer
@@ -409,13 +413,13 @@ type TDocItemAnal
 	next_					as TDocItemAnal ptr
 end type
 
-type TDocInfoCompl
+type TDocInfoCompl extends TRegistro
 	idCompl					as zstring * 6+1
 	extra					as zstring * 255+1
 	next_					as TDocInfoCompl ptr
 end type
 
-type TDocObsAjuste
+type TDocObsAjuste extends TRegistro
 	idAjuste				as zstring * 10+1
 	extra					as zstring * 255+1
 	idItem					as zstring * 60+1
@@ -426,7 +430,7 @@ type TDocObsAjuste
 	next_					as TDocObsAjuste ptr
 end type
 
-type TDocObs
+type TDocObs extends TRegistro
 	idLanc					as zstring * 6+1
 	extra					as zstring * 255+1
 	ajusteListHead 			as TDocObsAjuste ptr
@@ -434,7 +438,7 @@ type TDocObs
 	next_					as TDocObs ptr
 end type
 
-type TDocDF
+type TDocDF extends TRegistro
 	operacao				as TipoOperacao
 	situacao				as TipoSituacao
 	emitente				as TipoEmitente
@@ -514,7 +518,7 @@ type TDocSAT extends TDocDF
 	nroItens			as integer
 end type
 
-type TDocumentoSintegraBase
+type TDocumentoSintegraBase extends TRegistro
 	cnpj           	as zstring * 14+1
 	serie          	as zstring * 3+1
 	numero         	as integer
@@ -560,14 +564,14 @@ end type
 
 const MAX_AJUSTES = 20
 
-type TApuracaoIcmsAjuste
+type TApuracaoIcmsAjuste extends TRegistro
 	codigo					as zstring * 8+1
 	descricao				as zstring * 255+1
 	valor					as double
 	next_					as TApuracaoIcmsAjuste ptr
 end type
 
-type TApuracaoIcmsPeriodo
+type TApuracaoIcmsPeriodo extends TRegistro
 	dataIni					as zstring * 8+1
 	dataFim					as zstring * 8+1
 	saldoCredAnterior		as double
@@ -602,14 +606,14 @@ type TApuracaoIcmsSTPeriodo extends TApuracaoIcmsPeriodo
 	saldoAntesDed			as double
 end type
 
-type TEquipECF
+type TEquipECF extends TRegistro
 	modelo					as TipoModelo
 	modeloEquip				as zstring * 20+1
 	numSerie				as zstring * 21+1
 	numCaixa				as integer
 end type
 
-type TECFReducaoZ
+type TECFReducaoZ extends TDocDF
 	equipECF				as TEquipECF ptr
 	dataMov					as zstring * 8+1
 	cro						as longint
@@ -619,17 +623,15 @@ type TECFReducaoZ
 	valorBruto				as double
 	numIni					as integer
 	numFim					as integer
-	itemAnalListHead 		as TDocItemAnal ptr
-	itemAnalListTail 		as TDocItemAnal ptr
 end type
 
-type TInventarioTotais
+type TInventarioTotais extends TRegistro
 	dataInventario			as zstring * 8+1
 	valorTotalEstoque		as double
 	motivoInventario		as integer
 end type
 
-type TInventarioItem
+type TInventarioItem extends TRegistro
 	dataInventario			as zstring * 8+1
 	itemId         			as zstring * 60+1
 	unidade					as zstring * 6+1
@@ -645,7 +647,7 @@ end type
 
 type TCiapItem_ as TCiapItem
 
-type TCiapTotal
+type TCiapTotal extends TRegistro
 	dataIni					as zstring * 8+1
 	dataFim					as zstring * 8+1
 	saldoInicialICMS		as double
@@ -661,7 +663,7 @@ end type
 
 type TCiapItemDoc_ as TCiapItemDoc
 
-type TCiapItem
+type TCiapItem extends TRegistro
 	pai						as TCiapTotal ptr
 	bemId         			as zstring * 60+1
 	dataMov					as zstring * 8+1
@@ -680,7 +682,7 @@ end type
 
 type TCiapItemDocItem_ as TCiapItemDocItem
 
-type TCiapItemDoc
+type TCiapItemDoc extends TRegistro
 	pai         			as TCiapItem ptr
 	indEmi					as integer
 	idParticipante			as zstring * 60+1
@@ -694,7 +696,7 @@ type TCiapItemDoc
 	itemListTail 			as TCiapItemDocItem_ ptr
 end type
 
-type TCiapItemDocItem
+type TCiapItemDocItem extends TRegistro
 	pai         			as TCiapItemDoc ptr
 	num						as integer
 	itemId         			as zstring * 60+1
@@ -707,12 +709,12 @@ enum TipoItemEstoque
 	TERCEIRO_PROPRIO
 end enum
 
-type TEstoquePeriodo
+type TEstoquePeriodo extends TRegistro
 	dataIni					as zstring * 8+1
 	dataFim					as zstring * 8+1
 end type
 
-type TEstoqueItem
+type TEstoqueItem extends TRegistro
 	pai         			as TEstoquePeriodo ptr
 	itemId					as zstring * 60+1
 	qtd						as double
@@ -720,7 +722,7 @@ type TEstoqueItem
 	idParticipante			as zstring * 60+1
 end type
 
-type TEstoqueOrdemProd
+type TEstoqueOrdemProd extends TRegistro
 	pai         			as TEstoquePeriodo ptr
 	dataIni					as zstring * 8+1
 	dataFim					as zstring * 8+1
@@ -729,58 +731,9 @@ type TEstoqueOrdemProd
 	qtd						as double
 end type
 
-type TLuaReg
+type TLuaReg extends TRegistro
 	tipo					as zstring * 4+1
 	table					as integer
-end type
-
-type TArquivoInfo
-	nome					as zstring * 256+1
-end type
-
-type TRegistro
-	tipo           			as TipoRegistro
-	arquivo					as TArquivoInfo ptr
-	linha					as integer
-	union
-		mestre      		as TMestre
-		part        		as TParticipante
-		nf         			as TDocNF
-		itemNF     			as TDocNFItem
-		ct         			as TDocCT
-		ecf         		as TDocECF
-		itemECF     		as TDocECFItem
-		sat         		as TDocSAT
-		docInfoCompl		as TDocInfoCompl
-		docObs				as TDocObs
-		docObsAjuste		as TDocObsAjuste
-		docSint	  			as TDocumentoSintegra
-		docItemSint	  		as TDocumentoItemSintegra
-		itemId      		as TItemId
-		bemCiap				as TBemCiap
-		contaContab			as TContaContab
-		centroCusto			as TCentroCusto
-		infoCompl			as TInfoCompl
-		obsLanc				as TObsLancamento
-		apuIcms	  			as TApuracaoIcmsPropPeriodo
-		apuIcmsST  			as TApuracaoIcmsSTPeriodo
-		apuIcmsAjust  		as TApuracaoIcmsAjuste
-		itemAnal			as TDocItemAnal
-		itemRessarcSt		as TDocNFItemRessarcSt
-		equipECF			as TEquipECF
-		ecfRedZ				as TECFReducaoZ
-		invTotais			as TInventarioTotais
-		invItem				as TInventarioItem
-		ciapTotal			as TCiapTotal
-		ciapItem			as TCiapItem
-		ciapItemDoc			as TCiapItemDoc
-		ciapItemDocItem		as TCiapItemDocItem
-		estPeriod			as TEstoquePeriodo
-		estItem				as TEstoqueItem
-		estOrdem			as TEstoqueOrdemProd
-		lua					as TLuaReg
-	end union
-	next_          			as TRegistro ptr
 end type
 
 enum BO_TipoArquivo
@@ -904,89 +857,6 @@ type InfoAssinatura
 	assinante		as string
 	cpf				as string
 	hashDoArquivo	as string
-end type
-
-enum TipoRelatorio
-	REL_LRE				= 1
-	REL_LRS				= 2
-	REL_RAICMS			= 3
-	REL_RAICMSST		= 4
-	REL_CIAP			= 5
-end enum
-
-type RelSomatorioAnal
-	chave			as zstring * 10+1
-	situacao		as TipoSituacao
-	cst				as integer
-	cfop			as integer
-	aliq			as double
-	valorOp 		as double
-	bc 				as double
-	icms 			as double
-	bcST 			as double
-	icmsST 			as double
-	ipi 			as double
-end type
-
-type RelSomatorioAjuste
-	chave			as zstring * 12+1
-	situacao		as TipoSituacao
-	idAjuste		as zstring * 10+1
-	valor 			as double
-end type
-
-enum RelLinhaTipo
-	REL_LIN_DF_ENTRADA
-	REL_LIN_DF_SAIDA
-	REL_LIN_DF_ITEM_ANAL
-	REL_LIN_DF_OBS
-	REL_LIN_DF_OBS_AJUSTE
-	REL_LIN_DF_REDZ
-	REL_LIN_DF_SAT
-end enum
-
-type RelLinhaDF
-	doc 			as TDocDF ptr
-	part 			as TParticipante ptr
-end type
-
-type RelLinhaAnal
-	sit 			as TipoSituacao
-	item 			as TDocItemAnal ptr
-end type
-
-type RelLinhaObsAjuste
-	sit 			as TipoSituacao
-	isFirst			as boolean
-	ajuste			as TDocObsAjuste ptr
-end type
-
-type RelLinhaObs
-	sit 			as TipoSituacao
-	isFirst			as boolean
-	obs 			as TDocObs ptr
-end type
-
-type RelLinhaRedZ
-	doc 			as TECFReducaoZ ptr
-end type
-
-type RelLinhaSat
-	doc 			as TDocSAT ptr
-end type
-
-type RelLinha
-	tipo			as RelLinhaTipo
-	highlight		as boolean
-	large			as boolean
-	union
-		df			as RelLinhaDF
-		anal		as RelLinhaAnal
-		obs			as RelLinhaObs
-		ajuste		as RelLinhaObsAjuste
-		redZ		as RelLinhaRedZ
-		sat			as RelLinhaSat
-	end union
 end type
 
 type OnProgressCB as function(estagio as const zstring ptr, porCompleto as double) as boolean

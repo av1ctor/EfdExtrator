@@ -149,180 +149,8 @@ function EfdPdfExport.withDicionarios( _
 	return @this
 end function
 
-#macro list_add_ANAL(__doc, __sit, isPre)
-	scope
-		var anal = __doc.itemAnalListHead
-		do while anal <> null
-			if relYPos + ANAL_HEIGHT > PAGE_BOTTOM then
-				gerarPaginaRelatorio(false, isPre)
-			end if
-			if not isPre then
-				var lin = cast(RelLinha ptr, relLinhasList->add())
-				lin->tipo = REL_LIN_DF_ITEM_ANAL
-				lin->anal.item = anal
-				lin->anal.sit = __sit
-			end if
-			relYPos += ANAL_HEIGHT
-			relNroLinhas += 1
-			relatorioSomarAnal(__sit, anal, isPre)
-			anal = anal->next_
-		loop
-	end scope
-#endmacro
-
-#define calcObsAjusteHeight(isFirst) (iif(isFirst, STROKE_WIDTH*2 + iif(ultimoRelatorio = REL_LRS, LRS_OBS_AJUSTE_HEADER_HEIGHT, LRE_OBS_AJUSTE_HEADER_HEIGHT), 0) + LRS_OBS_AJUSTE_HEIGHT)
-
-#macro list_add_OBS_AJUSTE(__obs, __sit, isPre)
-	scope 
-		var cnt = 0
-		var ajuste = __obs->ajusteListHead
-		do while ajuste <> null
-			var height_ = calcObsAjusteHeight(cnt = 0)
-			if relYPos + height_ > PAGE_BOTTOM then
-				gerarPaginaRelatorio(false, isPre)
-				height_ = calcObsAjusteHeight(true)
-				cnt = 0
-			end if
-			if not isPre then
-				var lin = cast(RelLinha ptr, relLinhasList->add())
-				lin->tipo = REL_LIN_DF_OBS_AJUSTE
-				lin->ajuste.ajuste = ajuste
-				lin->ajuste.sit = __sit
-				lin->ajuste.isFirst = (cnt = 0)
-			end if
-			relYPos += height_
-			relNroLinhas += 1
-			cnt += 1
-			relatorioSomarAjuste(__sit, ajuste)
-			ajuste = ajuste->next_
-		loop
-	end scope
-#endmacro
-
-#macro list_add_OBS(__doc, __sit, isPre)
-	scope 
-		var cnt = 0
-		var obs = __doc.obsListHead
-		do while obs <> null
-			var height_ = calcObsHeight(__sit, obs, cnt = 0)
-			if relYPos + height_ > PAGE_BOTTOM then
-				gerarPaginaRelatorio(false, isPre)
-				height_ = calcObsHeight(__sit, obs, true)
-				cnt = 0
-			end if
-			if not isPre then
-				var lin = cast(RelLinha ptr, relLinhasList->add())
-				lin->tipo = REL_LIN_DF_OBS
-				lin->obs.obs = obs
-				lin->obs.sit = __sit
-				lin->obs.isFirst = (cnt = 0)
-			end if
-			relYPos += height_
-			relNroLinhas += 1
-			list_add_OBS_AJUSTE(obs, __sit, isPre)
-			cnt += 1
-			obs = obs->next_
-		loop
-	end scope
-#endmacro
-
-#define calcHeight(lg) iif(relNroLinhas > 0, ROW_SPACE_BEFORE, 0) + iif(lg, ROW_HEIGHT_LG, ROW_HEIGHT)
-
-#macro list_add_DF_ENTRADA(__doc, __part, isPre)
-	scope
-		var len_ = iif(part <> null, ttfLen(part->nome), 0)
-		var lg = len_ > cint(LRE_MAX_NAME_LEN + 0.5)
-		var height_ = calcHeight(lg)
-		if relYPos + height_ > PAGE_BOTTOM then
-			gerarPaginaRelatorio(false, isPre)
-			height_ = calcHeight(lg)
-		end if
-		if not isPre then
-			var lin = cast(RelLinha ptr, relLinhasList->add())
-			lin->tipo = REL_LIN_DF_ENTRADA
-			lin->highlight = false
-			lin->large = lg
-			lin->df.doc = @__doc
-			lin->df.part = __part
-		end if
-		relYPos += height_
-		relNroLinhas += 1
-		nroRegistrosRel += 1
-		list_add_ANAL(__doc, __doc.situacao, isPre)
-		list_add_OBS(__doc, __doc.situacao, isPre)
-	end scope
-#endmacro
-
-#macro list_add_DF_SAIDA(__doc, __part, isPre)
-	scope
-		var len_ = iif(part <> null, ttfLen(part->nome), 0)
-		var lg = len_ > cint(LRS_MAX_NAME_LEN + 0.5)
-		var height_ = calcHeight(lg)
-		if relYPos + height_ > PAGE_BOTTOM then
-			gerarPaginaRelatorio(false, isPre)
-			height_ = calcHeight(lg)
-		end if
-		if not isPre then
-			var lin = cast(RelLinha ptr, relLinhasList->add())
-			lin->tipo = REL_LIN_DF_SAIDA
-			lin->highlight = false
-			lin->large = lg
-			lin->df.doc = @__doc
-			lin->df.part = __part
-		end if
-		relYPos += height_
-		relNroLinhas += 1
-		nroRegistrosRel += 1
-		list_add_ANAL(__doc, __doc.situacao, isPre)
-		list_add_OBS(__doc, __doc.situacao, isPre)
-	end scope
-#endmacro
-
-#macro list_add_REDZ(__doc, isPre)
-	scope
-		var height_ = calcHeight(false)
-		if relYPos + height_ > PAGE_BOTTOM then
-			gerarPaginaRelatorio(false, isPre)
-			height_ = calcHeight(false)
-		end if
-		if not isPre then
-			var lin = cast(RelLinha ptr, relLinhasList->add())
-			lin->tipo = REL_LIN_DF_REDZ
-			lin->highlight = false
-			lin->large = false
-			lin->redz.doc = @__doc
-		end if
-		relYPos += height_
-		relNroLinhas += 1
-		nroRegistrosRel += 1
-		list_add_ANAL(__doc, REGULAR, isPre)
-	end scope
-#endmacro
-
-#macro list_add_SAT(__doc, isPre)
-	scope
-		var height_ = calcHeight(false)
-		if relYPos + height_ > PAGE_BOTTOM then
-			gerarPaginaRelatorio(false, isPre)
-			height_ = calcHeight(false)
-		end if
-		if not isPre then
-			var lin = cast(RelLinha ptr, relLinhasList->add())
-			lin->tipo = REL_LIN_DF_SAT
-			lin->highlight = false
-			lin->large = false
-			lin->sat.doc = @__doc
-		end if
-		relYPos += height_
-		relNroLinhas += 1
-		nroRegistrosRel += 1
-		list_add_ANAL(__doc, REGULAR, isPre)
-		list_add_OBS(__doc, REGULAR, isPre)
-	end scope
-#endmacro
-
 ''''''''
-sub EfdPdfExport.gerar(regListHead as TRegistro ptr, regMestre as TRegistro ptr, nroRegs as integer)
+sub EfdPdfExport.gerar(regListHead as TRegistro ptr, regMestre as TMestre ptr, nroRegs as integer)
 	
 	if opcoes->somenteRessarcimentoST then
 		onError(!"\tNão será possivel gerar relatórios porque só foram extraídos os registros com ressarcimento ST")
@@ -348,16 +176,18 @@ sub EfdPdfExport.gerar(regListHead as TRegistro ptr, regMestre as TRegistro ptr,
 				select case as const reg->tipo
 				'NF-e?
 				case DOC_NF, DOC_NFSCT, DOC_NF_ELETRIC
-					if reg->nf.operacao = ENTRADA then
-						var part = cast( TParticipante ptr, participanteDict->lookup(reg->nf.idParticipante) )
-						list_add_DF_ENTRADA(reg->nf, part, true)
+					var nf = cast(TDocNF ptr, reg)
+					if nf->operacao = ENTRADA then
+						var part = cast( TParticipante ptr, participanteDict->lookup(nf->idParticipante) )
+						list_add_DF_ENTRADA(nf, part, true)
 					end if
 				
 				'CT-e?
 				case DOC_CT
-					if reg->ct.operacao = ENTRADA then
-						var part = cast( TParticipante ptr, participanteDict->lookup(reg->ct.idParticipante) )
-						list_add_DF_ENTRADA(reg->ct, part, true)
+					var ct = cast(TDocCT ptr, reg)
+					if ct->operacao = ENTRADA then
+						var part = cast( TParticipante ptr, participanteDict->lookup(ct->idParticipante) )
+						list_add_DF_ENTRADA(ct, part, true)
 					end if
 				end select
 				
@@ -366,7 +196,7 @@ sub EfdPdfExport.gerar(regListHead as TRegistro ptr, regMestre as TRegistro ptr,
 					exit do
 				end if
 				
-				reg = reg->next_
+				reg = reg->prox
 			loop
 		catch
 			onError(!"\r\nErro ao tratar o registro de tipo (" & reg->tipo & !") carregado na linha (" & reg->linha & !")\r\n")
@@ -386,25 +216,28 @@ sub EfdPdfExport.gerar(regListHead as TRegistro ptr, regMestre as TRegistro ptr,
 				select case as const reg->tipo
 				'NF-e?
 				case DOC_NF, DOC_NFSCT, DOC_NF_ELETRIC
-					if reg->nf.operacao = ENTRADA then
-						var part = cast( TParticipante ptr, participanteDict->lookup(reg->nf.idParticipante) )
-						list_add_DF_ENTRADA(reg->nf, part, false)
+					var nf = cast(TDocNF ptr, reg)
+					if nf->operacao = ENTRADA then
+						var part = cast( TParticipante ptr, participanteDict->lookup(nf->idParticipante) )
+						list_add_DF_ENTRADA(nf, part, false)
 					end if
 				
 				'CT-e?
 				case DOC_CT
-					if reg->ct.operacao = ENTRADA then
-						var part = cast( TParticipante ptr, participanteDict->lookup(reg->ct.idParticipante) )
-						list_add_DF_ENTRADA(reg->ct, part, false)
+					var ct = cast(TDocCT ptr, reg)
+					if ct->operacao = ENTRADA then
+						var part = cast( TParticipante ptr, participanteDict->lookup(ct->idParticipante) )
+						list_add_DF_ENTRADA(ct, part, false)
 					end if
 
 				case LUA_CUSTOM
-					var luaFunc = cast(customLuaCb ptr, customLuaCbDict->lookup(reg->lua.tipo))->rel_entradas
+					var l = cast(TLuaReg ptr, reg)
+					var luaFunc = cast(customLuaCb ptr, customLuaCbDict->lookup(l->tipo))->rel_entradas
 					
 					if luaFunc <> null then
 						'lua_getglobal(lua, luaFunc)
 						'lua_pushlightuserdata(lua, dfwd)
-						'lua_rawgeti(lua, LUA_REGISTRYINDEX, reg->lua.table)
+						'lua_rawgeti(lua, LUA_REGISTRYINDEX, l->table)
 						'lua_call(lua, 2, 0)
 					end if
 				end select
@@ -413,7 +246,7 @@ sub EfdPdfExport.gerar(regListHead as TRegistro ptr, regMestre as TRegistro ptr,
 					exit do
 				end if
 				
-				reg = reg->next_
+				reg = reg->prox
 			loop
 		catch
 			onError(!"\r\nErro ao tratar o registro de tipo (" & reg->tipo & !") carregado na linha (" & reg->linha & !")\r\n")
@@ -438,25 +271,29 @@ sub EfdPdfExport.gerar(regListHead as TRegistro ptr, regMestre as TRegistro ptr,
 				select case as const reg->tipo
 				'NF-e?
 				case DOC_NF, DOC_NFSCT, DOC_NF_ELETRIC
-					if reg->nf.operacao = SAIDA then
-						var part = cast( TParticipante ptr, participanteDict->lookup(reg->nf.idParticipante) )
-						list_add_DF_SAIDA(reg->nf, part, true)
+					var nf = cast(TDocNF ptr, reg)
+					if nf->operacao = SAIDA then
+						var part = cast( TParticipante ptr, participanteDict->lookup(nf->idParticipante) )
+						list_add_DF_SAIDA(nf, part, true)
 					end if
 
 				'CT-e?
 				case DOC_CT
-					if reg->ct.operacao = SAIDA then
-						var part = cast( TParticipante ptr, participanteDict->lookup(reg->ct.idParticipante) )
-						list_add_DF_SAIDA(reg->ct, part, true)
+					var ct = cast(TDocCT ptr, reg)
+					if ct->operacao = SAIDA then
+						var part = cast( TParticipante ptr, participanteDict->lookup(ct->idParticipante) )
+						list_add_DF_SAIDA(ct, part, true)
 					end if
 					
 				'ECF Redução Z?
 				case ECF_REDUCAO_Z
-					list_add_REDZ(reg->ecfRedZ, true)
+					var redz = cast(TECFReducaoZ ptr, reg)
+					list_add_REDZ(redz, true)
 				
 				'SAT?
 				case DOC_SAT
-					list_add_SAT(reg->sat, true)
+					var sat = cast(TDocSAT ptr, reg)
+					list_add_SAT(sat, true)
 				end select
 
 				regCnt += 1
@@ -464,7 +301,7 @@ sub EfdPdfExport.gerar(regListHead as TRegistro ptr, regMestre as TRegistro ptr,
 					exit do
 				end if
 				
-				reg = reg->next_
+				reg = reg->prox
 			loop
 		catch
 			onError(!"\r\nErro ao tratar o registro de tipo (" & reg->tipo & !") carregado na linha (" & reg->linha & !")\r\n")
@@ -483,33 +320,38 @@ sub EfdPdfExport.gerar(regListHead as TRegistro ptr, regMestre as TRegistro ptr,
 				select case as const reg->tipo
 				'NF-e?
 				case DOC_NF, DOC_NFSCT, DOC_NF_ELETRIC
-					if reg->nf.operacao = SAIDA then
-						var part = cast( TParticipante ptr, participanteDict->lookup(reg->nf.idParticipante) )
-						list_add_DF_SAIDA(reg->nf, part, false)
+					var nf = cast(TDocNF ptr, reg)
+					if nf->operacao = SAIDA then
+						var part = cast( TParticipante ptr, participanteDict->lookup(nf->idParticipante) )
+						list_add_DF_SAIDA(nf, part, false)
 					end if
 
 				'CT-e?
 				case DOC_CT
-					if reg->ct.operacao = SAIDA then
-						var part = cast( TParticipante ptr, participanteDict->lookup(reg->ct.idParticipante) )
-						list_add_DF_SAIDA(reg->ct, part, false)
+					var ct = cast(TDocCT ptr, reg)
+					if ct->operacao = SAIDA then
+						var part = cast( TParticipante ptr, participanteDict->lookup(ct->idParticipante) )
+						list_add_DF_SAIDA(ct, part, false)
 					end if
 					
 				'ECF Redução Z?
 				case ECF_REDUCAO_Z
-					list_add_REDZ(reg->ecfRedZ, false)
+					var redz = cast(TECFReducaoZ ptr, reg)
+					list_add_REDZ(redz, false)
 				
 				'SAT?
 				case DOC_SAT
-					list_add_SAT(reg->sat, false)
+					var sat = cast(TDocSAT ptr, reg)
+					list_add_SAT(sat, false)
 				
 				case LUA_CUSTOM
-					var luaFunc = cast(customLuaCb ptr, customLuaCbDict->lookup(reg->lua.tipo))->rel_saidas
+					var l = cast(TLuaReg ptr, reg)
+					var luaFunc = cast(customLuaCb ptr, customLuaCbDict->lookup(l->tipo))->rel_saidas
 					
 					if luaFunc <> null then
 						'lua_getglobal(lua, luaFunc)
 						'lua_pushlightuserdata(lua, dfwd)
-						'lua_rawgeti(lua, LUA_REGISTRYINDEX, reg->lua.table)
+						'lua_rawgeti(lua, LUA_REGISTRYINDEX, l->table)
 						'lua_call(lua, 2, 0)
 					end if
 				end select
@@ -518,7 +360,7 @@ sub EfdPdfExport.gerar(regListHead as TRegistro ptr, regMestre as TRegistro ptr,
 					exit do
 				end if
 				
-				reg = reg->next_
+				reg = reg->prox
 			loop
 		catch
 			onError(!"\r\nErro ao tratar o registro de tipo (" & reg->tipo & !") carregado na linha (" & reg->linha & !")\r\n")
@@ -538,39 +380,43 @@ sub EfdPdfExport.gerar(regListHead as TRegistro ptr, regMestre as TRegistro ptr,
 			case APURACAO_ICMS_PERIODO
 				if not opcoes->pularLraicms then
 					onProgress(!"\tGerando relatório do LRAICMS", 0)
-					gerarRelatorioApuracaoICMS(reg, true)
-					gerarRelatorioApuracaoICMS(reg, false)
+					var apu = cast(TApuracaoIcmsPropPeriodo ptr, reg)
+					gerarRelatorioApuracaoICMS(apu, true)
+					gerarRelatorioApuracaoICMS(apu, false)
 					onProgress(null, 1)
 				end if
 
 			case APURACAO_ICMS_ST_PERIODO
 				if not opcoes->pularLraicms then
 					onProgress(!"\tGerando relatório do LRAICMS-ST", 0)
-					gerarRelatorioApuracaoICMSST(reg, true)
-					gerarRelatorioApuracaoICMSST(reg, false)
+					var apu = cast(TApuracaoIcmsSTPeriodo ptr, reg)
+					gerarRelatorioApuracaoICMSST(apu, true)
+					gerarRelatorioApuracaoICMSST(apu, false)
 					onProgress(null, 1)
 				end if
 				
 			case CIAP_TOTAL
 				if not opcoes->pularCiap then
 					onProgress(!"\tGerando relatório do CIAP", 0)
-					gerarRelatorioCiap(reg, true)
-					gerarRelatorioCiap(reg, false)
+					var ciap = cast(TCiapTotal ptr, reg)
+					gerarRelatorioCiap(ciap, true)
+					gerarRelatorioCiap(ciap, false)
 					onProgress(null, 1)
 				end if
 				
 			case LUA_CUSTOM
-				var luaFunc = cast(customLuaCb ptr, customLuaCbDict->lookup(reg->lua.tipo))->rel_outros
+				var l = cast(TLuaReg ptr, reg)
+				var luaFunc = cast(customLuaCb ptr, customLuaCbDict->lookup(l->tipo))->rel_outros
 				
 				if luaFunc <> null then
 					'lua_getglobal(lua, luaFunc)
 					'lua_pushlightuserdata(lua, dfwd)
-					'lua_rawgeti(lua, LUA_REGISTRYINDEX, reg->lua.table)
+					'lua_rawgeti(lua, LUA_REGISTRYINDEX, l->table)
 					'lua_call(lua, 2, 0)
 				end if
 			end select
 
-			reg = reg->next_
+			reg = reg->prox
 		loop
 
 	catch
@@ -617,18 +463,18 @@ sub EfdPdfExport.iniciarRelatorio(relatorio as TipoRelatorio, nomeRelatorio as s
 		var header = page->getNode("header")
 		header->setAttrib("hidden", false)
 		
-		setNodeText(page, "NOME", regMestre->mestre.nome, true)
-		setNodeText(page, "CNPJ", STR2CNPJ(regMestre->mestre.cnpj))
-		setNodeText(page, "IE", regMestre->mestre.ie)
+		setNodeText(page, "NOME", regMestre->nome, true)
+		setNodeText(page, "CNPJ", STR2CNPJ(regMestre->cnpj))
+		setNodeText(page, "IE", regMestre->ie)
 		
 		select case relatorio
 		case REL_LRE, REL_LRS, REL_CIAP
-			setNodeText(page, "UF", MUNICIPIO2SIGLA(regMestre->mestre.municip))
-			setNodeText(page, "MUNICIPIO", codMunicipio2Nome(regMestre->mestre.municip, municipDict, configDb))
+			setNodeText(page, "UF", MUNICIPIO2SIGLA(regMestre->municip))
+			setNodeText(page, "MUNICIPIO", codMunicipio2Nome(regMestre->municip, municipDict, configDb))
 			if relatorio <> REL_CIAP then
-				setNodeText(page, "APU", YyyyMmDd2DatetimeBR(regMestre->mestre.dataIni) + " a " + YyyyMmDd2DatetimeBR(regMestre->mestre.dataFim))
+				setNodeText(page, "APU", YyyyMmDd2DatetimeBR(regMestre->dataIni) + " a " + YyyyMmDd2DatetimeBR(regMestre->dataFim))
 			else
-				setNodeText(page, "ESCRIT", YyyyMmDd2DatetimeBR(regMestre->mestre.dataIni) + " a " + YyyyMmDd2DatetimeBR(regMestre->mestre.dataFim))
+				setNodeText(page, "ESCRIT", YyyyMmDd2DatetimeBR(regMestre->dataIni) + " a " + YyyyMmDd2DatetimeBR(regMestre->dataFim))
 			end if
 		end select
 		
@@ -685,6 +531,164 @@ sub EfdPdfExport.emitirPaginaRelatorio(emitir as boolean, isPre as boolean)
 			end if
 		end if
 	end if
+end sub
+
+sub EfdPdfExport.list_add_ANAL(doc as TDocDF ptr, sit as TipoSituacao, isPre as boolean)
+	var anal = doc->itemAnalListHead
+	do while anal <> null
+		if relYPos + ANAL_HEIGHT > PAGE_BOTTOM then
+			gerarPaginaRelatorio(false, isPre)
+		end if
+		if not isPre then
+			var lin = cast(RelLinha ptr, relLinhasList->add())
+			lin->tipo = REL_LIN_DF_ITEM_ANAL
+			lin->anal.item = anal
+			lin->anal.sit = sit
+		end if
+		relYPos += ANAL_HEIGHT
+		relNroLinhas += 1
+		relatorioSomarAnal(sit, anal, isPre)
+		anal = anal->next_
+	loop
+end sub
+
+#define calcObsAjusteHeight(isFirst) (iif(isFirst, STROKE_WIDTH*2 + iif(ultimoRelatorio = REL_LRS, LRS_OBS_AJUSTE_HEADER_HEIGHT, LRE_OBS_AJUSTE_HEADER_HEIGHT), 0) + LRS_OBS_AJUSTE_HEIGHT)
+
+sub EfdPdfExport.list_add_OBS_AJUSTE(obs as TDocObs ptr, sit as TipoSituacao, isPre as boolean)
+	var cnt = 0
+	var ajuste = obs->ajusteListHead
+	do while ajuste <> null
+		var height_ = calcObsAjusteHeight(cnt = 0)
+		if relYPos + height_ > PAGE_BOTTOM then
+			gerarPaginaRelatorio(false, isPre)
+			height_ = calcObsAjusteHeight(true)
+			cnt = 0
+		end if
+		if not isPre then
+			var lin = cast(RelLinha ptr, relLinhasList->add())
+			lin->tipo = REL_LIN_DF_OBS_AJUSTE
+			lin->ajuste.ajuste = ajuste
+			lin->ajuste.sit = sit
+			lin->ajuste.isFirst = (cnt = 0)
+		end if
+		relYPos += height_
+		relNroLinhas += 1
+		cnt += 1
+		relatorioSomarAjuste(sit, ajuste)
+		ajuste = ajuste->next_
+	loop
+end sub
+
+sub EfdPdfExport.list_add_OBS(doc as TDocDF ptr, sit as TipoSituacao, isPre as boolean)
+	var cnt = 0
+	var obs = doc->obsListHead
+	do while obs <> null
+		var height_ = calcObsHeight(sit, obs, cnt = 0)
+		if relYPos + height_ > PAGE_BOTTOM then
+			gerarPaginaRelatorio(false, isPre)
+			height_ = calcObsHeight(sit, obs, true)
+			cnt = 0
+		end if
+		if not isPre then
+			var lin = cast(RelLinha ptr, relLinhasList->add())
+			lin->tipo = REL_LIN_DF_OBS
+			lin->obs.obs = obs
+			lin->obs.sit = sit
+			lin->obs.isFirst = (cnt = 0)
+		end if
+		relYPos += height_
+		relNroLinhas += 1
+		list_add_OBS_AJUSTE(obs, sit, isPre)
+		cnt += 1
+		obs = obs->next_
+	loop
+end sub
+
+#define calcHeight(lg) iif(relNroLinhas > 0, ROW_SPACE_BEFORE, 0) + iif(lg, ROW_HEIGHT_LG, ROW_HEIGHT)
+
+sub EfdPdfExport.list_add_DF_ENTRADA(doc as TDocDF ptr, part as TParticipante ptr, isPre as boolean)
+	var len_ = iif(part <> null, ttfLen(part->nome), 0)
+	var lg = len_ > cint(LRE_MAX_NAME_LEN + 0.5)
+	var height_ = calcHeight(lg)
+	if relYPos + height_ > PAGE_BOTTOM then
+		gerarPaginaRelatorio(false, isPre)
+		height_ = calcHeight(lg)
+	end if
+	if not isPre then
+		var lin = cast(RelLinha ptr, relLinhasList->add())
+		lin->tipo = REL_LIN_DF_ENTRADA
+		lin->highlight = false
+		lin->large = lg
+		lin->df.doc = doc
+		lin->df.part = part
+	end if
+	relYPos += height_
+	relNroLinhas += 1
+	nroRegistrosRel += 1
+	list_add_ANAL(doc, doc->situacao, isPre)
+	list_add_OBS(doc, doc->situacao, isPre)
+end sub
+
+sub EfdPdfExport.list_add_DF_SAIDA(doc as TDocDF ptr, part as TParticipante ptr, isPre as boolean)
+	var len_ = iif(part <> null, ttfLen(part->nome), 0)
+	var lg = len_ > cint(LRS_MAX_NAME_LEN + 0.5)
+	var height_ = calcHeight(lg)
+	if relYPos + height_ > PAGE_BOTTOM then
+		gerarPaginaRelatorio(false, isPre)
+		height_ = calcHeight(lg)
+	end if
+	if not isPre then
+		var lin = cast(RelLinha ptr, relLinhasList->add())
+		lin->tipo = REL_LIN_DF_SAIDA
+		lin->highlight = false
+		lin->large = lg
+		lin->df.doc = doc
+		lin->df.part = part
+	end if
+	relYPos += height_
+	relNroLinhas += 1
+	nroRegistrosRel += 1
+	list_add_ANAL(doc, doc->situacao, isPre)
+	list_add_OBS(doc, doc->situacao, isPre)
+end sub
+
+sub EfdPdfExport.list_add_REDZ(doc as TECFReducaoZ ptr, isPre as boolean)
+	var height_ = calcHeight(false)
+	if relYPos + height_ > PAGE_BOTTOM then
+		gerarPaginaRelatorio(false, isPre)
+		height_ = calcHeight(false)
+	end if
+	if not isPre then
+		var lin = cast(RelLinha ptr, relLinhasList->add())
+		lin->tipo = REL_LIN_DF_REDZ
+		lin->highlight = false
+		lin->large = false
+		lin->redz.doc = doc
+	end if
+	relYPos += height_
+	relNroLinhas += 1
+	nroRegistrosRel += 1
+	list_add_ANAL(doc, REGULAR, isPre)
+end sub
+
+sub EfdPdfExport.list_add_SAT(doc as TDocSAT ptr, isPre as boolean)
+	var height_ = calcHeight(false)
+	if relYPos + height_ > PAGE_BOTTOM then
+		gerarPaginaRelatorio(false, isPre)
+		height_ = calcHeight(false)
+	end if
+	if not isPre then
+		var lin = cast(RelLinha ptr, relLinhasList->add())
+		lin->tipo = REL_LIN_DF_SAT
+		lin->highlight = false
+		lin->large = false
+		lin->sat.doc = doc
+	end if
+	relYPos += height_
+	relNroLinhas += 1
+	nroRegistrosRel += 1
+	list_add_ANAL(doc, REGULAR, isPre)
+	list_add_OBS(doc, REGULAR, isPre)
 end sub
 
 ''''''''
@@ -868,7 +872,7 @@ sub EfdPdfExport.setNodeText(page as PdfPageElement ptr, id as zstring ptr, valu
 end sub
 
 ''''''''
-sub EfdPdfExport.gerarRelatorioCiap(reg as TRegistro ptr, isPre as boolean)
+sub EfdPdfExport.gerarRelatorioCiap(reg as TCiapTotal ptr, isPre as boolean)
 
 	iniciarRelatorio(REL_CIAP, "ciap", "CIAP", isPre)
 	
@@ -879,19 +883,19 @@ sub EfdPdfExport.gerarRelatorioCiap(reg as TRegistro ptr, isPre as boolean)
 		var apur = node->clone(relPage, relPage)
 		apur->setAttrib("hidden", false)
 	
-		setChildText(apur, "APU", YyyyMmDd2DatetimeBR(reg->ciapTotal.dataIni) + " a " + YyyyMmDd2DatetimeBR(reg->ciapTotal.dataFim))
-		setChildText(apur, "SALDO", DBL2MONEYBR(reg->ciapTotal.saldoInicialICMS))
-		setChildText(apur, "SOMA_PARCELAS", DBL2MONEYBR(reg->ciapTotal.parcelasSoma))
-		setChildText(apur, "SOMA_SAIDAS_TRIB", DBL2MONEYBR(reg->ciapTotal.valorTributExpSoma))
-		setChildText(apur, "SOMA_SAIDAS", DBL2MONEYBR(reg->ciapTotal.valorTotalSaidas))
-		setChildText(apur, "INDICE", format(reg->ciapTotal.indicePercSaidas, "#,#,0.00000000"))
-		setChildText(apur, "CRED_ATIVO", DBL2MONEYBR(reg->ciapTotal.valorIcmsAprop))
-		setChildText(apur, "CRED_OUTROS", DBL2MONEYBR(reg->ciapTotal.valorOutrosCred))
+		setChildText(apur, "APU", YyyyMmDd2DatetimeBR(reg->dataIni) + " a " + YyyyMmDd2DatetimeBR(reg->dataFim))
+		setChildText(apur, "SALDO", DBL2MONEYBR(reg->saldoInicialICMS))
+		setChildText(apur, "SOMA_PARCELAS", DBL2MONEYBR(reg->parcelasSoma))
+		setChildText(apur, "SOMA_SAIDAS_TRIB", DBL2MONEYBR(reg->valorTributExpSoma))
+		setChildText(apur, "SOMA_SAIDAS", DBL2MONEYBR(reg->valorTotalSaidas))
+		setChildText(apur, "INDICE", format(reg->indicePercSaidas, "#,#,0.00000000"))
+		setChildText(apur, "CRED_ATIVO", DBL2MONEYBR(reg->valorIcmsAprop))
+		setChildText(apur, "CRED_OUTROS", DBL2MONEYBR(reg->valorOutrosCred))
 	end if
 	
 	relYPos += CIAP_APUR_HEIGHT + 6
 	
-	var item = reg->ciapTotal.itemListHead
+	var item = reg->itemListHead
 	do while item <> null
 		if relYPos + CIAP_BEM_HEIGHT > CIAP_PAGE_BOTTOM then
 			criarPaginaRelatorio(true, isPre)
@@ -1080,7 +1084,7 @@ private function ajusteApuracaoCmpCb(key as zstring ptr, node as any ptr) as boo
 end function
 
 ''''''''
-sub EfdPdfExport.gerarRelatorioApuracaoICMS(reg as TRegistro ptr, isPre as boolean)
+sub EfdPdfExport.gerarRelatorioApuracaoICMS(reg as TApuracaoIcmsPropPeriodo ptr, isPre as boolean)
 
 	iniciarRelatorio(REL_RAICMS, "apuracao_icms", "RAICMS", isPre)
 	if isPre then
@@ -1090,31 +1094,31 @@ sub EfdPdfExport.gerarRelatorioApuracaoICMS(reg as TRegistro ptr, isPre as boole
 	criarPaginaRelatorio(true, isPre)
 	
 	if not isPre then
-		setNodeText(relPage, "ESCRIT", YyyyMmDd2DatetimeBR(regMestre->mestre.dataIni) + " a " + YyyyMmDd2DatetimeBR(regMestre->mestre.dataFim))
+		setNodeText(relPage, "ESCRIT", YyyyMmDd2DatetimeBR(regMestre->dataIni) + " a " + YyyyMmDd2DatetimeBR(regMestre->dataFim))
 		
 		var node = relPage->getNode("form")
 		var clone = node->clone(relPage, relPage)
 		clone->setAttrib("hidden", false)
 	
-		setChildText(clone, "APU", YyyyMmDd2DatetimeBR(reg->apuIcms.dataIni) + " a " + YyyyMmDd2DatetimeBR(reg->apuIcms.dataFim))
-		setChildText(clone, "SAIDAS", DBL2MONEYBR(reg->apuIcms.totalDebitos))
-		setChildText(clone, "AJUSTE_DEB", DBL2MONEYBR(reg->apuIcms.ajustesDebitos))
-		setChildText(clone, "AJUSTE_DEB_IMP", DBL2MONEYBR(reg->apuIcms.totalAjusteDeb))
-		setChildText(clone, "ESTORNO_CRED", DBL2MONEYBR(reg->apuIcms.estornosCredito))
-		setChildText(clone, "CREDITO", DBL2MONEYBR(reg->apuIcms.totalCreditos))
-		setChildText(clone, "AJUSTE_CRED", DBL2MONEYBR(reg->apuIcms.ajustesCreditos))
-		setChildText(clone, "AJUSTE_CRED_IMP", DBL2MONEYBR(reg->apuIcms.totalAjusteCred))
-		setChildText(clone, "ESTORNO_DEB", DBL2MONEYBR(reg->apuIcms.estornoDebitos))
-		setChildText(clone, "CRED_ANTERIOR", DBL2MONEYBR(reg->apuIcms.saldoCredAnterior))
-		setChildText(clone, "SALDO_DEV", DBL2MONEYBR(reg->apuIcms.saldoDevedorApurado))
-		setChildText(clone, "DEDUCOES", DBL2MONEYBR(reg->apuIcms.totalDeducoes))
-		setChildText(clone, "A_RECOLHER", DBL2MONEYBR(reg->apuIcms.icmsRecolher))
-		setChildText(clone, "A_TRANSPORTAR", DBL2MONEYBR(reg->apuIcms.saldoCredTransportar))
-		setChildText(clone, "EXTRA_APU", DBL2MONEYBR(reg->apuIcms.debExtraApuracao))
+		setChildText(clone, "APU", YyyyMmDd2DatetimeBR(reg->dataIni) + " a " + YyyyMmDd2DatetimeBR(reg->dataFim))
+		setChildText(clone, "SAIDAS", DBL2MONEYBR(reg->totalDebitos))
+		setChildText(clone, "AJUSTE_DEB", DBL2MONEYBR(reg->ajustesDebitos))
+		setChildText(clone, "AJUSTE_DEB_IMP", DBL2MONEYBR(reg->totalAjusteDeb))
+		setChildText(clone, "ESTORNO_CRED", DBL2MONEYBR(reg->estornosCredito))
+		setChildText(clone, "CREDITO", DBL2MONEYBR(reg->totalCreditos))
+		setChildText(clone, "AJUSTE_CRED", DBL2MONEYBR(reg->ajustesCreditos))
+		setChildText(clone, "AJUSTE_CRED_IMP", DBL2MONEYBR(reg->totalAjusteCred))
+		setChildText(clone, "ESTORNO_DEB", DBL2MONEYBR(reg->estornoDebitos))
+		setChildText(clone, "CRED_ANTERIOR", DBL2MONEYBR(reg->saldoCredAnterior))
+		setChildText(clone, "SALDO_DEV", DBL2MONEYBR(reg->saldoDevedorApurado))
+		setChildText(clone, "DEDUCOES", DBL2MONEYBR(reg->totalDeducoes))
+		setChildText(clone, "A_RECOLHER", DBL2MONEYBR(reg->icmsRecolher))
+		setChildText(clone, "A_TRANSPORTAR", DBL2MONEYBR(reg->saldoCredTransportar))
+		setChildText(clone, "EXTRA_APU", DBL2MONEYBR(reg->debExtraApuracao))
 	end if
 	relYPos += LRAICMS_FORM_HEIGHT
 	
-	var ajuste = reg->apuIcms.ajustesListHead
+	var ajuste = reg->ajustesListHead
 	if ajuste <> null then
 	
 		var ordered = new TList(10, len(AjusteApuracao))
@@ -1262,9 +1266,9 @@ sub EfdPdfExport.gerarRelatorioApuracaoICMS(reg as TRegistro ptr, isPre as boole
 end sub
 
 ''''''''
-sub EfdPdfExport.gerarRelatorioApuracaoICMSST(reg as TRegistro ptr, isPre as boolean)
+sub EfdPdfExport.gerarRelatorioApuracaoICMSST(reg as TApuracaoIcmsSTPeriodo ptr, isPre as boolean)
 
-	iniciarRelatorio(REL_RAICMSST, "apuracao_icms_st", "RAICMSST_" + reg->apuIcmsST.UF, isPre)
+	iniciarRelatorio(REL_RAICMSST, "apuracao_icms_st", "RAICMSST_" + reg->UF, isPre)
 	if isPre then
 		relNroTotalPaginas = 0
 	end if
@@ -1272,24 +1276,24 @@ sub EfdPdfExport.gerarRelatorioApuracaoICMSST(reg as TRegistro ptr, isPre as boo
 	criarPaginaRelatorio(true, isPre)
 	
 	if not isPre then
-		setNodeText(relPage, "ESCRIT", YyyyMmDd2DatetimeBR(regMestre->mestre.dataIni) + " a " + YyyyMmDd2DatetimeBR(regMestre->mestre.dataFim))
-		setNodeText(relPage, "APU", YyyyMmDd2DatetimeBR(reg->apuIcmsST.dataIni) + " a " + YyyyMmDd2DatetimeBR(reg->apuIcmsST.dataFim))
-		setNodeText(relPage, "UF", reg->apuIcmsST.UF)
-		setNodeText(relPage, "MOV", iif(reg->apuIcmsST.mov, "1 - COM", "0 - SEM"))
+		setNodeText(relPage, "ESCRIT", YyyyMmDd2DatetimeBR(regMestre->dataIni) + " a " + YyyyMmDd2DatetimeBR(regMestre->dataFim))
+		setNodeText(relPage, "APU", YyyyMmDd2DatetimeBR(reg->dataIni) + " a " + YyyyMmDd2DatetimeBR(reg->dataFim))
+		setNodeText(relPage, "UF", reg->UF)
+		setNodeText(relPage, "MOV", iif(reg->mov, "1 - COM", "0 - SEM"))
 		
-		setNodeText(relPage, "SALDO_CRED", DBL2MONEYBR(reg->apuIcmsST.saldoCredAnterior))
-		setNodeText(relPage, "DEVOLUCOES", DBL2MONEYBR(reg->apuIcmsST.devolMercadorias))
-		setNodeText(relPage, "RESSARCIMENTOS", DBL2MONEYBR(reg->apuIcmsST.totalRessarciment))
-		setNodeText(relPage, "OUTROS_CRED", DBL2MONEYBR(reg->apuIcmsST.totalOutrosCred))
-		setNodeText(relPage, "AJUSTE_CRED", DBL2MONEYBR(reg->apuIcmsST.ajustesCreditos))
-		setNodeText(relPage, "ICMS_ST", DBL2MONEYBR(reg->apuIcmsST.totalRetencao))
-		setNodeText(relPage, "OUTROS_DEB", DBL2MONEYBR(reg->apuIcmsST.totalOutrosDeb))
-		setNodeText(relPage, "AJUSTE_DEB", DBL2MONEYBR(reg->apuIcmsST.ajustesDebitos))
-		setNodeText(relPage, "SALDO_DEV", DBL2MONEYBR(reg->apuIcmsST.saldoAntesDed))
-		setNodeText(relPage, "DEDUCOES", DBL2MONEYBR(reg->apuIcmsST.totalDeducoes))
-		setNodeText(relPage, "A_RECOLHER", DBL2MONEYBR(reg->apuIcmsST.icmsRecolher))
-		setNodeText(relPage, "A_TRANSPORTAR", DBL2MONEYBR(reg->apuIcmsST.saldoCredTransportar))
-		setNodeText(relPage, "EXTRA_APU", DBL2MONEYBR(reg->apuIcmsST.debExtraApuracao))
+		setNodeText(relPage, "SALDO_CRED", DBL2MONEYBR(reg->saldoCredAnterior))
+		setNodeText(relPage, "DEVOLUCOES", DBL2MONEYBR(reg->devolMercadorias))
+		setNodeText(relPage, "RESSARCIMENTOS", DBL2MONEYBR(reg->totalRessarciment))
+		setNodeText(relPage, "OUTROS_CRED", DBL2MONEYBR(reg->totalOutrosCred))
+		setNodeText(relPage, "AJUSTE_CRED", DBL2MONEYBR(reg->ajustesCreditos))
+		setNodeText(relPage, "ICMS_ST", DBL2MONEYBR(reg->totalRetencao))
+		setNodeText(relPage, "OUTROS_DEB", DBL2MONEYBR(reg->totalOutrosDeb))
+		setNodeText(relPage, "AJUSTE_DEB", DBL2MONEYBR(reg->ajustesDebitos))
+		setNodeText(relPage, "SALDO_DEV", DBL2MONEYBR(reg->saldoAntesDed))
+		setNodeText(relPage, "DEDUCOES", DBL2MONEYBR(reg->totalDeducoes))
+		setNodeText(relPage, "A_RECOLHER", DBL2MONEYBR(reg->icmsRecolher))
+		setNodeText(relPage, "A_TRANSPORTAR", DBL2MONEYBR(reg->saldoCredTransportar))
+		setNodeText(relPage, "EXTRA_APU", DBL2MONEYBR(reg->debExtraApuracao))
 	end if
 
 	finalizarRelatorio(isPre)
@@ -1881,7 +1885,7 @@ sub EfdPdfExport.finalizarRelatorio(isPre as boolean)
 	
 	'' salvar PDF
 	if not isPre then
-		relOutFile->saveTo(DdMmYyyy2Yyyy_Mm(regMestre->mestre.dataIni) + "_" + ultimoRelatorioSufixo + ".pdf")
+		relOutFile->saveTo(DdMmYyyy2Yyyy_Mm(regMestre->dataIni) + "_" + ultimoRelatorioSufixo + ".pdf")
 		delete relOutFile
 	end if
 	

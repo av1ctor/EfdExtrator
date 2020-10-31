@@ -9,5 +9,5 @@ public:
 private:
 	sintegraDict 		as TDict ptr
 	
-	declare function lerRegistroSintegra(bf as bfile, reg as TRegistro ptr) as Boolean
+	declare function lerRegistroSintegra(bf as bfile) as TRegistro ptr
 end type

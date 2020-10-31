@@ -180,6 +180,7 @@ sub Efd.finalizar()
 	''
 	if exp <> null then
 		exp->finalizar()
+		delete exp
 	end if
    
 	''

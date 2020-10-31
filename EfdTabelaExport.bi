@@ -11,7 +11,7 @@ public:
 	declare function withFiltros(filtrarPorCnpj as OnFilterByStrCB, filtrarPorChave as OnFilterByStrCB) as EfdTabelaExport ptr
 	declare destructor()
 	declare function getPlanilha(nome as const zstring ptr) as ExcelWorksheet ptr
-	declare sub gerar(regListHead as TRegistro ptr, regMestre as TRegistro ptr, nroRegs as integer)
+	declare sub gerar(regListHead as TRegistro ptr, regMestre as TMestre ptr, nroRegs as integer)
 	declare sub finalizar()
 
 private:

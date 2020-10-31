@@ -576,7 +576,7 @@ function EfdTabelaExport.getObsLanc(obs as TDocObs ptr) as string
 end function
 
 ''''''''
-sub EfdTabelaExport.gerar(regListHead as TRegistro ptr, regMestre as TRegistro ptr, nroRegs as integer)
+sub EfdTabelaExport.gerar(regListHead as TRegistro ptr, regMestre as TMestre ptr, nroRegs as integer)
 	
 	if entradas = null then
 		criarPlanilhas()
@@ -593,7 +593,8 @@ sub EfdTabelaExport.gerar(regListHead as TRegistro ptr, regMestre as TRegistro p
 			select case as const reg->tipo
 			'item de NF-e?
 			case DOC_NF_ITEM
-				var doc = reg->itemNF.documentoPai
+				var item = cast(TDocNFItem ptr, reg)
+				var doc = item->documentoPai
 				var part = cast( TParticipante ptr, participanteDict->lookup(doc->idParticipante) )
 
 				var emitirLinha = iif(doc->operacao = SAIDA, not opcoes->pularLrs, not opcoes->pularLre)
@@ -608,7 +609,7 @@ sub EfdTabelaExport.gerar(regListHead as TRegistro ptr, regMestre as TRegistro p
 				end if
 				
 				if opcoes->somenteRessarcimentoST andalso emitirLinha then
-					emitirLinha = reg->itemNF.itemRessarcStListHead <> null
+					emitirLinha = item->itemRessarcStListHead <> null
 				end if
 				
 				if emitirLinha then
@@ -638,20 +639,20 @@ sub EfdTabelaExport.gerar(regListHead as TRegistro ptr, regMestre as TRegistro p
 					row->addCell(YyyyMmDd2Datetime(doc->dataEntSaida))
 					row->addCell(doc->chave)
 					row->addCell(codSituacao2Str(doc->situacao))
-					row->addCell(reg->itemNF.bcICMS)
-					row->addCell(reg->itemNF.aliqICMS)
-					row->addCell(reg->itemNF.ICMS)
-					row->addCell(reg->itemNF.bcICMSST)
-					row->addCell(reg->itemNF.aliqICMSST)
-					row->addCell(reg->itemNF.ICMSST)
-					row->addCell(reg->itemNF.IPI)
-					row->addCell(reg->itemNF.valor)
-					row->addCell(reg->itemNF.numItem)
-					row->addCell(reg->itemNF.qtd)
-					row->addCell(reg->itemNF.unidade)
-					row->addCell(reg->itemNF.cfop)
-					row->addCell(reg->itemNF.cstICMS)
-					var itemId = cast( TItemId ptr, itemIdDict->lookup(reg->itemNF.itemId) )
+					row->addCell(item->bcICMS)
+					row->addCell(item->aliqICMS)
+					row->addCell(item->ICMS)
+					row->addCell(item->bcICMSST)
+					row->addCell(item->aliqICMSST)
+					row->addCell(item->ICMSST)
+					row->addCell(item->IPI)
+					row->addCell(item->valor)
+					row->addCell(item->numItem)
+					row->addCell(item->qtd)
+					row->addCell(item->unidade)
+					row->addCell(item->cfop)
+					row->addCell(item->cstICMS)
+					var itemId = cast( TItemId ptr, itemIdDict->lookup(item->itemId) )
 					if itemId <> null then 
 						row->addCell(itemId->ncm)
 						row->addCell(itemId->id)
@@ -663,24 +664,25 @@ sub EfdTabelaExport.gerar(regListHead as TRegistro ptr, regMestre as TRegistro p
 
 			'NF-e?
 			case DOC_NF, DOC_NFSCT, DOC_NF_ELETRIC
-				if ISREGULAR(reg->nf.situacao) then
+				var nf = cast(TDocNF ptr, reg)
+				if ISREGULAR(nf->situacao) then
 					'' NOTA: não existe itemDoc para saídas (exceto quando há ressarcimento ST), só temos informações básicas do DF-e, 
 					'' 	     a não ser que sejam carregados os relatórios .csv do SAFI vindos do infoview
-					if reg->nf.operacao = SAIDA or (reg->nf.operacao = ENTRADA and reg->nf.nroItens = 0) or reg->tipo <> DOC_NF then
+					if nf->operacao = SAIDA or (nf->operacao = ENTRADA and nf->nroItens = 0) or reg->tipo <> DOC_NF then
 						dim as TDFe_NFeItem ptr item = null
 						if itemNFeSafiFornecido and opcoes->acrescentarDados then
-							if len(reg->nf.chave) > 0 then
-								var dfe = cast( TDFe ptr, chaveDFeDict->lookup(reg->nf.chave) )
+							if len(nf->chave) > 0 then
+								var dfe = cast( TDFe ptr, chaveDFeDict->lookup(nf->chave) )
 								if dfe <> null then
 									item = dfe->nfe.itemListHead
 								end if
 							end if
 						end if
 
-						var part = cast( TParticipante ptr, participanteDict->lookup(reg->nf.idParticipante) )
+						var part = cast( TParticipante ptr, participanteDict->lookup(nf->idParticipante) )
 
-						var emitirLinhas = (opcoes->somenteRessarcimentoST = false) and _
-							iif(reg->nf.operacao = SAIDA, not opcoes->pularLrs, not opcoes->pularLre)
+						var emitirLinhas = (opcoes->somenteRessarcimentoST = false) andalso _
+							iif(nf->operacao = SAIDA, not opcoes->pularLrs, not opcoes->pularLre)
 						if opcoes->filtrarCnpj andalso emitirLinhas then
 							if part <> null then
 								emitirLinhas = filtrarPorCnpj(part->cnpj, opcoes->listaCnpj())
@@ -688,16 +690,16 @@ sub EfdTabelaExport.gerar(regListHead as TRegistro ptr, regMestre as TRegistro p
 						end if
 
 						if opcoes->filtrarChaves andalso emitirLinhas then
-							emitirLinhas = filtrarPorChave(reg->nf.chave, opcoes->listaChaves())
+							emitirLinhas = filtrarPorChave(nf->chave, opcoes->listaChaves())
 						end if
 
-						var anal = iif(item = null, reg->nf.itemAnalListHead, null)
+						var anal = iif(item = null, nf->itemAnalListHead, null)
 						var analCnt = 1
 						
 						if emitirLinhas then
 							do
 								dim as ExcelRow ptr row
-								if reg->nf.operacao = SAIDA then
+								if nf->operacao = SAIDA then
 									row = saidas->AddRow()
 								else
 									row = entradas->AddRow()
@@ -714,16 +716,16 @@ sub EfdTabelaExport.gerar(regListHead as TRegistro ptr, regMestre as TRegistro p
 									row->addCell("")
 									row->addCell("")
 								end if
-								row->addCell(reg->nf.modelo)
-								row->addCell(reg->nf.serie)
-								row->addCell(reg->nf.numero)
-								row->addCell(YyyyMmDd2Datetime(reg->nf.dataEmi))
-								row->addCell(YyyyMmDd2Datetime(reg->nf.dataEntSaida))
-								row->addCell(reg->nf.chave)
-								row->addCell(codSituacao2Str(reg->nf.situacao))
+								row->addCell(nf->modelo)
+								row->addCell(nf->serie)
+								row->addCell(nf->numero)
+								row->addCell(YyyyMmDd2Datetime(nf->dataEmi))
+								row->addCell(YyyyMmDd2Datetime(nf->dataEntSaida))
+								row->addCell(nf->chave)
+								row->addCell(codSituacao2Str(nf->situacao))
 
-								if ((itemNFeSafiFornecido and opcoes->acrescentarDados) or _
-								   cbool((reg->nf.operacao = ENTRADA) and (reg->tipo = DOC_NF))) and _
+								if ((itemNFeSafiFornecido andalso opcoes->acrescentarDados) orelse _
+								   cbool((nf->operacao = ENTRADA) andalso (reg->tipo = DOC_NF))) andalso _
 								   cbool(item <> null) then
 									row->addCell(item->bcICMS)
 									row->addCell(item->aliqICMS)
@@ -744,14 +746,14 @@ sub EfdTabelaExport.gerar(regListHead as TRegistro ptr, regMestre as TRegistro p
 
 								else
 									if anal = null then
-										row->addCell(reg->nf.bcICMS)
+										row->addCell(nf->bcICMS)
 										row->addCell("")
-										row->addCell(reg->nf.ICMS)
-										row->addCell(reg->nf.bcICMSST)
-										row->addCell(reg->nf.ICMSST)
+										row->addCell(nf->ICMS)
+										row->addCell(nf->bcICMSST)
+										row->addCell(nf->ICMSST)
 										row->addCell("")
-										row->addCell(reg->nf.IPI)
-										row->addCell(reg->nf.valorTotal)
+										row->addCell(nf->IPI)
+										row->addCell(nf->valorTotal)
 										for cell as integer = 1 to 16-8
 											row->addCell("")
 										next
@@ -776,14 +778,14 @@ sub EfdTabelaExport.gerar(regListHead as TRegistro ptr, regMestre as TRegistro p
 									end if
 								end if
 
-								if reg->nf.operacao = SAIDA then
-									row->addCell(reg->nf.difal.fcp)
-									row->addCell(reg->nf.difal.icmsOrigem)
-									row->addCell(reg->nf.difal.icmsDest)
+								if nf->operacao = SAIDA then
+									row->addCell(nf->difal.fcp)
+									row->addCell(nf->difal.icmsOrigem)
+									row->addCell(nf->difal.icmsDest)
 								end if
 								
-								row->addCell(getInfoCompl(reg->nf.infoComplListHead))
-								row->addCell(getObsLanc(reg->nf.obsListHead))
+								row->addCell(getInfoCompl(nf->infoComplListHead))
+								row->addCell(getObsLanc(nf->obsListHead))
 							
 								if item = null then
 									if anal = null then
@@ -802,33 +804,33 @@ sub EfdTabelaExport.gerar(regListHead as TRegistro ptr, regMestre as TRegistro p
 			   
 				else
 					var emitirLinha = (opcoes->somenteRessarcimentoST = false) andalso _
-						iif(reg->nf.operacao = SAIDA, not opcoes->pularLrs, not opcoes->pularLre)
+						iif(nf->operacao = SAIDA, not opcoes->pularLrs, not opcoes->pularLre)
 					
 					if emitirLinha then
-						var row = iif(reg->nf.operacao = SAIDA, saidas, entradas)->AddRow()
+						var row = iif(nf->operacao = SAIDA, saidas, entradas)->AddRow()
 
 						row->addCell("")
 						row->addCell("")
 						row->addCell("")
 						row->addCell("")
-						row->addCell(reg->nf.modelo)
-						row->addCell(reg->nf.serie)
-						row->addCell(reg->nf.numero)
+						row->addCell(nf->modelo)
+						row->addCell(nf->serie)
+						row->addCell(nf->numero)
 						'' NOTA: cancelados e inutilizados não vêm com a data preenchida, então retiramos a data da chave ou do registro mestre
-						var dataEmi = iif( len(reg->nf.chave) = 44, "20" + mid(reg->nf.chave,3,2) + mid(reg->nf.chave,5,2) + "01", regMestre->mestre.dataIni )
+						var dataEmi = iif( len(nf->chave) = 44, "20" + mid(nf->chave,3,2) + mid(nf->chave,5,2) + "01", regMestre->dataIni )
 						row->addCell(YyyyMmDd2Datetime(dataEmi))
 						row->addCell("")
-						row->addCell(reg->nf.chave)
-						row->addCell(codSituacao2Str(reg->nf.situacao))
+						row->addCell(nf->chave)
+						row->addCell(codSituacao2Str(nf->situacao))
 					end if
 				end if
 				
 			'ressarcimento st?
 			case DOC_NF_ITEM_RESSARC_ST
-				var doc = @reg->itemRessarcSt
-				var part = cast( TParticipante ptr, participanteDict->lookup(doc->idParticipanteUlt) )
+				var item = cast(TDocNFItemRessarcSt ptr, reg)
+				var part = cast( TParticipante ptr, participanteDict->lookup(item->idParticipanteUlt) )
 
-				var emitirLinha = iif(reg->ct.operacao = SAIDA, not opcoes->pularLrs, not opcoes->pularLre)
+				var emitirLinha = not opcoes->pularLre
 				if opcoes->filtrarCnpj andalso emitirLinha then
 					if part <> null then
 						emitirLinha = filtrarPorCnpj(part->cnpj, opcoes->listaCnpj())
@@ -849,36 +851,37 @@ sub EfdTabelaExport.gerar(regListHead as TRegistro ptr, regMestre as TRegistro p
 						row->addCell("")
 						row->addCell("")
 					end if
-					row->addCell(doc->modeloUlt)
-					row->addCell(doc->serieUlt)
-					row->addCell(doc->numeroUlt)
-					row->addCell(YyyyMmDd2Datetime(doc->dataUlt))
-					row->addCell(doc->qtdUlt)
-					row->addCell(doc->valorUlt)
-					row->addCell(doc->valorBcST)
-					row->addCell(doc->chaveNFeUlt)
-					row->addCell(doc->numItemNFeUlt)
-					row->addCell(doc->bcIcmsUlt)
-					row->addCell(doc->aliqIcmsUlt)
-					row->addCell(doc->limiteBcIcmsUlt)
-					row->addCell(doc->icmsUlt)
-					row->addCell(doc->aliqIcmsStUlt)
-					row->addCell(doc->res)
-					row->addCell(doc->responsavelRet)
-					row->addCell(doc->motivo)
-					row->addCell(doc->tipDocArrecadacao)
-					row->addCell(doc->numDocArrecadacao)
-					row->addCell(doc->documentoPai->documentoPai->chave)
-					row->addCell(doc->documentoPai->numItem)
+					row->addCell(item->modeloUlt)
+					row->addCell(item->serieUlt)
+					row->addCell(item->numeroUlt)
+					row->addCell(YyyyMmDd2Datetime(item->dataUlt))
+					row->addCell(item->qtdUlt)
+					row->addCell(item->valorUlt)
+					row->addCell(item->valorBcST)
+					row->addCell(item->chaveNFeUlt)
+					row->addCell(item->numItemNFeUlt)
+					row->addCell(item->bcIcmsUlt)
+					row->addCell(item->aliqIcmsUlt)
+					row->addCell(item->limiteBcIcmsUlt)
+					row->addCell(item->icmsUlt)
+					row->addCell(item->aliqIcmsStUlt)
+					row->addCell(item->res)
+					row->addCell(item->responsavelRet)
+					row->addCell(item->motivo)
+					row->addCell(item->tipDocArrecadacao)
+					row->addCell(item->numDocArrecadacao)
+					row->addCell(item->documentoPai->documentoPai->chave)
+					row->addCell(item->documentoPai->numItem)
 				end if
 
 			'CT-e?
 			case DOC_CT
-				if ISREGULAR(reg->ct.situacao) then
-					var part = cast( TParticipante ptr, participanteDict->lookup(reg->ct.idParticipante) )
+				var ct = cast(TDocCT ptr, reg)
+				if ISREGULAR(ct->situacao) then
+					var part = cast( TParticipante ptr, participanteDict->lookup(ct->idParticipante) )
 
 					var emitirLinhas = (opcoes->somenteRessarcimentoST = false) and _
-						iif(reg->ct.operacao = SAIDA, not opcoes->pularLrs, not opcoes->pularLre)
+						iif(ct->operacao = SAIDA, not opcoes->pularLrs, not opcoes->pularLre)
 					
 					if opcoes->filtrarCnpj andalso emitirLinhas then
 						if part <> null then
@@ -887,19 +890,19 @@ sub EfdTabelaExport.gerar(regListHead as TRegistro ptr, regMestre as TRegistro p
 					end if
 
 					if opcoes->filtrarChaves andalso emitirLinhas then
-						emitirLinhas = filtrarPorChave(reg->ct.chave, opcoes->listaChaves())
+						emitirLinhas = filtrarPorChave(ct->chave, opcoes->listaChaves())
 					end if
 						
 					if emitirLinhas then
 						dim as TDocItemAnal ptr item = null
-						if reg->ct.operacao = ENTRADA then
-							item = reg->ct.itemAnalListHead
+						if ct->operacao = ENTRADA then
+							item = ct->itemAnalListHead
 						end if
 						
 						var itemCnt = 1
 						do
 							dim as ExcelRow ptr row 
-							if reg->ct.operacao = SAIDA then
+							if ct->operacao = SAIDA then
 								row = saidas->AddRow()
 							else
 								row = entradas->AddRow()
@@ -916,13 +919,13 @@ sub EfdTabelaExport.gerar(regListHead as TRegistro ptr, regMestre as TRegistro p
 								row->addCell("")
 								row->addCell("")
 							end if
-							row->addCell(reg->ct.modelo)
-							row->addCell(reg->ct.serie)
-							row->addCell(reg->ct.numero)
-							row->addCell(YyyyMmDd2Datetime(reg->ct.dataEmi))
-							row->addCell(YyyyMmDd2Datetime(reg->ct.dataEntSaida))
-							row->addCell(reg->ct.chave)
-							row->addCell(codSituacao2Str(reg->ct.situacao))
+							row->addCell(ct->modelo)
+							row->addCell(ct->serie)
+							row->addCell(ct->numero)
+							row->addCell(YyyyMmDd2Datetime(ct->dataEmi))
+							row->addCell(YyyyMmDd2Datetime(ct->dataEntSaida))
+							row->addCell(ct->chave)
+							row->addCell(codSituacao2Str(ct->situacao))
 							
 							if item <> null then
 								row->addCell(item->bc)
@@ -945,14 +948,14 @@ sub EfdTabelaExport.gerar(regListHead as TRegistro ptr, regMestre as TRegistro p
 								item = item->next_
 								itemCnt += 1
 							else
-								row->addCell(reg->ct.bcICMS)
+								row->addCell(ct->bcICMS)
 								row->addCell("")
-								row->addCell(reg->ct.ICMS)
-								row->addCell("")
-								row->addCell("")
+								row->addCell(ct->ICMS)
 								row->addCell("")
 								row->addCell("")
-								row->addCell(reg->ct.valorServico)
+								row->addCell("")
+								row->addCell("")
+								row->addCell(ct->valorServico)
 								row->addCell(1)
 								row->addCell("")
 								row->addCell("")
@@ -964,10 +967,10 @@ sub EfdTabelaExport.gerar(regListHead as TRegistro ptr, regMestre as TRegistro p
 								
 							end if
 
-							if reg->ct.operacao = SAIDA then
-								row->addCell(reg->ct.difal.fcp)
-								row->addCell(reg->ct.difal.icmsOrigem)
-								row->addCell(reg->ct.difal.icmsDest)
+							if ct->operacao = SAIDA then
+								row->addCell(ct->difal.fcp)
+								row->addCell(ct->difal.icmsOrigem)
+								row->addCell(ct->difal.icmsDest)
 							end if
 							
 						loop while item <> null
@@ -975,24 +978,24 @@ sub EfdTabelaExport.gerar(regListHead as TRegistro ptr, regMestre as TRegistro p
 				
 				else
 					var emitirLinhas = (opcoes->somenteRessarcimentoST = false) and _
-						iif(reg->ct.operacao = SAIDA, not opcoes->pularLrs, not opcoes->pularLre)
+						iif(ct->operacao = SAIDA, not opcoes->pularLrs, not opcoes->pularLre)
 
 					if emitirLinhas then
-						var row = iif(reg->ct.operacao = SAIDA, saidas, entradas)->AddRow()
+						var row = iif(ct->operacao = SAIDA, saidas, entradas)->AddRow()
 
 						row->addCell("")
 						row->addCell("")
 						row->addCell("")
 						row->addCell("")
-						row->addCell(reg->ct.modelo)
-						row->addCell(reg->ct.serie)
-						row->addCell(reg->ct.numero)
+						row->addCell(ct->modelo)
+						row->addCell(ct->serie)
+						row->addCell(ct->numero)
 						'' NOTA: cancelados e inutilizados não vêm com a data preenchida, então retiramos a data da chave ou do registro mestre
-						var dataEmi = iif( len(reg->ct.chave) = 44, "20" + mid(reg->ct.chave,3,2) + mid(reg->ct.chave,5,2) + "01", regMestre->mestre.dataIni )
+						var dataEmi = iif( len(ct->chave) = 44, "20" + mid(ct->chave,3,2) + mid(ct->chave,5,2) + "01", regMestre->dataIni )
 						row->addCell(YyyyMmDd2Datetime(dataEmi))
 						row->addCell("")
-						row->addCell(reg->ct.chave)
-						row->addCell(codSituacao2Str(reg->ct.situacao))
+						row->addCell(ct->chave)
+						row->addCell(codSituacao2Str(ct->situacao))
 					end if
 				
 				end if
@@ -1000,7 +1003,8 @@ sub EfdTabelaExport.gerar(regListHead as TRegistro ptr, regMestre as TRegistro p
 			'item de ECF?
 			case DOC_ECF_ITEM
 				if not opcoes->pularLrs then
-					var doc = reg->itemECF.documentoPai
+					var item = cast(TDocECFItem ptr, reg)
+					var doc = item->documentoPai
 					if ISREGULAR(doc->situacao) then
 						'só existe cupom para saída
 						if doc->operacao = SAIDA then
@@ -1028,19 +1032,19 @@ sub EfdTabelaExport.gerar(regListHead as TRegistro ptr, regMestre as TRegistro p
 								row->addCell(doc->chave)
 								row->addCell(codSituacao2Str(doc->situacao))
 								row->addCell("")
-								row->addCell(reg->itemECF.aliqICMS)
+								row->addCell(item->aliqICMS)
 								row->addCell("")
 								row->addCell("")
 								row->addCell("")
 								row->addCell("")
 								row->addCell("")
-								row->addCell(reg->itemECF.valor)
-								row->addCell(reg->itemECF.numItem)
-								row->addCell(reg->itemECF.qtd)
-								row->addCell(reg->itemECF.unidade)
-								row->addCell(reg->itemECF.cfop)
-								row->addCell(reg->itemECF.cstICMS)
-								var itemId = cast( TItemId ptr, itemIdDict->lookup(reg->itemECF.itemId) )
+								row->addCell(item->valor)
+								row->addCell(item->numItem)
+								row->addCell(item->qtd)
+								row->addCell(item->unidade)
+								row->addCell(item->cfop)
+								row->addCell(item->cstICMS)
+								var itemId = cast( TItemId ptr, itemIdDict->lookup(item->itemId) )
 								if itemId <> null then 
 									row->addCell(itemId->ncm)
 									row->addCell(itemId->id)
@@ -1054,7 +1058,7 @@ sub EfdTabelaExport.gerar(regListHead as TRegistro ptr, regMestre as TRegistro p
 			'SAT?
 			case DOC_SAT
 				if not opcoes->pularLrs then
-					var doc = @reg->sat
+					var doc = cast(TDocSAT ptr, reg)
 					if ISREGULAR(doc->situacao) then
 						'só existe cupom para saída
 						if doc->operacao = SAIDA then
@@ -1154,25 +1158,26 @@ sub EfdTabelaExport.gerar(regListHead as TRegistro ptr, regMestre as TRegistro p
 				if not opcoes->pularLraicms then
 					var row = apuracaoIcms->AddRow()
 
-					row->addCell(YyyyMmDd2Datetime(reg->apuIcms.dataIni))
-					row->addCell(YyyyMmDd2Datetime(reg->apuIcms.dataFim))
-					row->addCell(reg->apuIcms.totalDebitos)
-					row->addCell(reg->apuIcms.ajustesDebitos)
-					row->addCell(reg->apuIcms.totalAjusteDeb)
-					row->addCell(reg->apuIcms.estornosCredito)
-					row->addCell(reg->apuIcms.totalCreditos)
-					row->addCell(reg->apuIcms.ajustesCreditos)
-					row->addCell(reg->apuIcms.totalAjusteCred)
-					row->addCell(reg->apuIcms.estornoDebitos)
-					row->addCell(reg->apuIcms.saldoCredAnterior)
-					row->addCell(reg->apuIcms.saldoDevedorApurado)
-					row->addCell(reg->apuIcms.totalDeducoes)
-					row->addCell(reg->apuIcms.icmsRecolher)
-					row->addCell(reg->apuIcms.saldoCredTransportar)
-					row->addCell(reg->apuIcms.debExtraApuracao)
+					var apu = cast(TApuracaoIcmsPropPeriodo ptr, reg)
+					row->addCell(YyyyMmDd2Datetime(apu->dataIni))
+					row->addCell(YyyyMmDd2Datetime(apu->dataFim))
+					row->addCell(apu->totalDebitos)
+					row->addCell(apu->ajustesDebitos)
+					row->addCell(apu->totalAjusteDeb)
+					row->addCell(apu->estornosCredito)
+					row->addCell(apu->totalCreditos)
+					row->addCell(apu->ajustesCreditos)
+					row->addCell(apu->totalAjusteCred)
+					row->addCell(apu->estornoDebitos)
+					row->addCell(apu->saldoCredAnterior)
+					row->addCell(apu->saldoDevedorApurado)
+					row->addCell(apu->totalDeducoes)
+					row->addCell(apu->icmsRecolher)
+					row->addCell(apu->saldoCredTransportar)
+					row->addCell(apu->debExtraApuracao)
 					
 					var detalhe = ""
-					var ajuste = reg->apuIcms.ajustesListHead
+					var ajuste = apu->ajustesListHead
 					var cnt = 1
 					do while ajuste <> null andalso cnt <= MAX_AJUSTES
 						row->addCell("{'codigo':'" & ajuste->codigo & "', 'valor':'" & DBL2MONEYBR(ajuste->valor) & "', 'descricao':'" & ajuste->descricao) & "'}"
@@ -1186,31 +1191,33 @@ sub EfdTabelaExport.gerar(regListHead as TRegistro ptr, regMestre as TRegistro p
 				if not opcoes->pularLraicms then
 					var row = apuracaoIcmsST->AddRow()
 
-					row->addCell(YyyyMmDd2Datetime(reg->apuIcmsST.dataIni))
-					row->addCell(YyyyMmDd2Datetime(reg->apuIcmsST.dataFim))
-					row->addCell(reg->apuIcmsST.UF)
-					row->addCell(iif(reg->apuIcmsST.mov=0, "N", "S"))
-					row->addCell(reg->apuIcmsST.saldoCredAnterior)
-					row->addCell(reg->apuIcmsST.devolMercadorias)
-					row->addCell(reg->apuIcmsST.totalRessarciment)
-					row->addCell(reg->apuIcmsST.totalOutrosCred)
-					row->addCell(reg->apuIcmsST.ajustesCreditos)
-					row->addCell(reg->apuIcmsST.totalRetencao)
-					row->addCell(reg->apuIcmsST.totalOutrosDeb)
-					row->addCell(reg->apuIcmsST.ajustesDebitos)
-					row->addCell(reg->apuIcmsST.saldoAntesDed)
-					row->addCell(reg->apuIcmsST.totalDeducoes)
-					row->addCell(reg->apuIcmsST.icmsRecolher)
-					row->addCell(reg->apuIcmsST.saldoCredTransportar)
-					row->addCell(reg->apuIcmsST.debExtraApuracao)
+					var apu = cast(TApuracaoIcmsSTPeriodo ptr, reg)
+					row->addCell(YyyyMmDd2Datetime(apu->dataIni))
+					row->addCell(YyyyMmDd2Datetime(apu->dataFim))
+					row->addCell(apu->UF)
+					row->addCell(iif(apu->mov=0, "N", "S"))
+					row->addCell(apu->saldoCredAnterior)
+					row->addCell(apu->devolMercadorias)
+					row->addCell(apu->totalRessarciment)
+					row->addCell(apu->totalOutrosCred)
+					row->addCell(apu->ajustesCreditos)
+					row->addCell(apu->totalRetencao)
+					row->addCell(apu->totalOutrosDeb)
+					row->addCell(apu->ajustesDebitos)
+					row->addCell(apu->saldoAntesDed)
+					row->addCell(apu->totalDeducoes)
+					row->addCell(apu->icmsRecolher)
+					row->addCell(apu->saldoCredTransportar)
+					row->addCell(apu->debExtraApuracao)
 				end if
 
 			case INVENTARIO_ITEM
 				var row = inventario->AddRow()
 				
-				row->addCell(YyyyMmDd2Datetime(reg->invItem.dataInventario))
+				var item = cast(TInventarioItem ptr, reg)
+				row->addCell(YyyyMmDd2Datetime(item->dataInventario))
 
-				var itemId = cast( TItemId ptr, itemIdDict->lookup(reg->invItem.itemId) )
+				var itemId = cast( TItemId ptr, itemIdDict->lookup(item->itemId) )
 				if itemId <> null then 
 					row->addCell(itemId->id)
 					row->addCell(itemId->ncm)
@@ -1218,57 +1225,58 @@ sub EfdTabelaExport.gerar(regListHead as TRegistro ptr, regMestre as TRegistro p
 					row->addCell(tipoItem2Str(itemId->tipoItem))
 					row->addCell(itemId->descricao)
 				else
-					row->addCell(reg->invItem.itemId)
+					row->addCell(item->itemId)
 					row->addCell("")
 					row->addCell("")
 					row->addCell("")
 					row->addCell("")
 				end if
 				
-				row->addCell(reg->invItem.unidade)
-				row->addCell(reg->invItem.qtd)
-				row->addCell(reg->invItem.valorUnitario)
-				row->addCell(reg->invItem.valorItem)
-				row->addCell(reg->invItem.indPropriedade)
-				var part = cast( TParticipante ptr, participanteDict->lookup(reg->invItem.idParticipante) )
+				row->addCell(item->unidade)
+				row->addCell(item->qtd)
+				row->addCell(item->valorUnitario)
+				row->addCell(item->valorItem)
+				row->addCell(item->indPropriedade)
+				var part = cast( TParticipante ptr, participanteDict->lookup(item->idParticipante) )
 				if part <> null then
 					row->addCell(iif(len(part->cpf) > 0, part->cpf, part->cnpj))
 				else
 					row->addCell("")
 				end if
-				row->addCell(reg->invItem.txtComplementar)
-				row->addCell(reg->invItem.codConta)
-				row->addCell(reg->invItem.valorItemIR)
+				row->addCell(item->txtComplementar)
+				row->addCell(item->codConta)
+				row->addCell(item->valorItemIR)
 
 			case CIAP_ITEM
 				if not opcoes->pularCiap then
-					if reg->ciapItem.docCnt = 0 then
+					var item = cast(TCiapItem ptr, reg)
+					if item->docCnt = 0 then
 						var row = ciap->AddRow()
 						
-						var pai = reg->ciapItem.pai
+						var pai = item->pai
 						row->addCell(YyyyMmDd2Datetime(pai->dataIni))
 						row->addCell(YyyyMmDd2Datetime(pai->dataFim))
 						row->addCell(pai->valorTributExpSoma)
 						row->addCell(pai->valorTotalSaidas)
 						row->addCell(pai->indicePercSaidas)
 						
-						var bemCiap = cast( TBemCiap ptr, bemCiapDict->lookup(reg->ciapItem.bemId) )
+						var bemCiap = cast( TBemCiap ptr, bemCiapDict->lookup(item->bemId) )
 						if bemCiap <> null then 
 							row->addCell(bemCiap->id)
 							row->addCell(bemCiap->descricao)
 						else
-							row->addCell(reg->ciapItem.bemId)
+							row->addCell(item->bemId)
 							row->addCell("")
 						end if
 						
-						row->addCell(YyyyMmDd2Datetime(reg->ciapItem.dataMov))
-						row->addCell(reg->ciapItem.tipoMov)
-						row->addCell(reg->ciapItem.valorIcms)
-						row->addCell(reg->ciapItem.valorIcmsSt)
-						row->addCell(reg->ciapItem.valorIcmsFrete)
-						row->addCell(reg->ciapItem.valorIcmsDifal)
-						row->addCell(reg->ciapItem.parcela)
-						row->addCell(reg->ciapItem.valorParcela)
+						row->addCell(YyyyMmDd2Datetime(item->dataMov))
+						row->addCell(item->tipoMov)
+						row->addCell(item->valorIcms)
+						row->addCell(item->valorIcmsSt)
+						row->addCell(item->valorIcmsFrete)
+						row->addCell(item->valorIcmsDifal)
+						row->addCell(item->parcela)
+						row->addCell(item->valorParcela)
 					end if
 				end if
 
@@ -1277,7 +1285,8 @@ sub EfdTabelaExport.gerar(regListHead as TRegistro ptr, regMestre as TRegistro p
 				
 					var row = ciap->AddRow()
 					
-					var pai = reg->ciapItemDoc.pai
+					var doc = cast(TCiapItemDoc ptr, reg)
+					var pai = doc->pai
 					var avo = pai->pai
 					row->addCell(YyyyMmDd2Datetime(avo->dataIni))
 					row->addCell(YyyyMmDd2Datetime(avo->dataFim))
@@ -1303,13 +1312,13 @@ sub EfdTabelaExport.gerar(regListHead as TRegistro ptr, regMestre as TRegistro p
 					row->addCell(pai->parcela)
 					row->addCell(pai->valorParcela)
 					
-					row->addCell(reg->ciapItemDoc.modelo)
-					row->addCell(reg->ciapItemDoc.serie)
-					row->addCell(reg->ciapItemDoc.numero)
-					row->addCell(YyyyMmDd2Datetime(reg->ciapItemDoc.dataEmi))
-					row->addCell(reg->ciapItemDoc.chaveNfe)
+					row->addCell(doc->modelo)
+					row->addCell(doc->serie)
+					row->addCell(doc->numero)
+					row->addCell(YyyyMmDd2Datetime(doc->dataEmi))
+					row->addCell(doc->chaveNfe)
 					
-					var part = cast( TParticipante ptr, participanteDict->lookup(reg->ciapItemDoc.idParticipante) )
+					var part = cast( TParticipante ptr, participanteDict->lookup(doc->idParticipante) )
 					if part <> null then
 						row->addCell(iif(len(part->cpf) > 0, part->cpf, part->cnpj))
 						row->addCell(part->ie)
@@ -1326,11 +1335,12 @@ sub EfdTabelaExport.gerar(regListHead as TRegistro ptr, regMestre as TRegistro p
 			case ESTOQUE_ITEM
 				var row = estoque->AddRow()
 				
-				var pai = reg->estItem.pai
+				var item = cast(TEstoqueItem ptr, reg)
+				var pai = item->pai
 				row->addCell(YyyyMmDd2Datetime(pai->dataIni))
 				row->addCell(YyyyMmDd2Datetime(pai->dataFim))
 				
-				var itemId = cast( TItemId ptr, itemIdDict->lookup(reg->estItem.itemId) )
+				var itemId = cast( TItemId ptr, itemIdDict->lookup(item->itemId) )
 				if itemId <> null then 
 					row->addCell(itemId->id)
 					row->addCell(itemId->ncm)
@@ -1338,17 +1348,17 @@ sub EfdTabelaExport.gerar(regListHead as TRegistro ptr, regMestre as TRegistro p
 					row->addCell(tipoItem2Str(itemId->tipoItem))
 					row->addCell(itemId->descricao)
 				else
-					row->addCell(reg->estItem.itemId)
+					row->addCell(item->itemId)
 					row->addCell("")
 					row->addCell("")
 					row->addCell("")
 					row->addCell("")
 				end if
 				
-				row->addCell(reg->estItem.qtd)
-				row->addCell(reg->estItem.tipoEst)
+				row->addCell(item->qtd)
+				row->addCell(item->tipoEst)
 
-				var part = cast( TParticipante ptr, participanteDict->lookup(reg->estItem.idParticipante) )
+				var part = cast( TParticipante ptr, participanteDict->lookup(item->idParticipante) )
 				if part <> null then
 					row->addCell(iif(len(part->cpf) > 0, part->cpf, part->cnpj))
 					row->addCell(part->ie)
@@ -1364,10 +1374,11 @@ sub EfdTabelaExport.gerar(regListHead as TRegistro ptr, regMestre as TRegistro p
 			case ESTOQUE_ORDEM_PROD
 				var row = producao->AddRow()
 				
-				row->addCell(YyyyMmDd2Datetime(reg->estOrdem.dataIni))
-				row->addCell(YyyyMmDd2Datetime(reg->estOrdem.dataFim))
+				var ord = cast(TEstoqueOrdemProd ptr, reg)
+				row->addCell(YyyyMmDd2Datetime(ord->dataIni))
+				row->addCell(YyyyMmDd2Datetime(ord->dataFim))
 				
-				var itemId = cast( TItemId ptr, itemIdDict->lookup(reg->estOrdem.itemId) )
+				var itemId = cast( TItemId ptr, itemIdDict->lookup(ord->itemId) )
 				if itemId <> null then 
 					row->addCell(itemId->id)
 					row->addCell(itemId->ncm)
@@ -1375,20 +1386,21 @@ sub EfdTabelaExport.gerar(regListHead as TRegistro ptr, regMestre as TRegistro p
 					row->addCell(tipoItem2Str(itemId->tipoItem))
 					row->addCell(itemId->descricao)
 				else
-					row->addCell(reg->estOrdem.itemId)
+					row->addCell(ord->itemId)
 					row->addCell("")
 					row->addCell("")
 					row->addCell("")
 					row->addCell("")
 				end if
 				
-				row->addCell(reg->estOrdem.qtd)
-				row->addCell(reg->estOrdem.idOrdem)
+				row->addCell(ord->qtd)
+				row->addCell(ord->idOrdem)
 
 			'item de documento do sintegra?
 			case SINTEGRA_DOCUMENTO_ITEM
 				if not opcoes->pularLrs then
-					var doc = reg->docItemSint.doc
+					var item = cast(TDocumentoItemSintegra ptr, reg)
+					var doc = item->doc
 					
 					dim as ExcelRow ptr row 
 					if doc->operacao = SAIDA then
@@ -1397,7 +1409,7 @@ sub EfdTabelaExport.gerar(regListHead as TRegistro ptr, regMestre as TRegistro p
 						row = entradas->AddRow()
 					end if
 					
-					var itemId = cast( TItemId ptr, itemIdDict->lookup(reg->docItemSint.codMercadoria) )
+					var itemId = cast( TItemId ptr, itemIdDict->lookup(item->codMercadoria) )
 					  
 					row->addCell(doc->cnpj)
 					row->addCell(doc->ie)
@@ -1410,23 +1422,23 @@ sub EfdTabelaExport.gerar(regListHead as TRegistro ptr, regMestre as TRegistro p
 					row->addCell("")
 					row->addCell("")
 					row->addCell(codSituacao2Str(doc->situacao))
-					row->addCell(reg->docItemSint.bcICMS)
-					row->addCell(reg->docItemSint.aliqICMS)
-					row->addCell(reg->docItemSint.bcICMS * reg->docItemSint.aliqICMS / 100)
-					row->addCell(reg->docItemSint.bcICMSST)
+					row->addCell(item->bcICMS)
+					row->addCell(item->aliqICMS)
+					row->addCell(item->bcICMS * item->aliqICMS / 100)
+					row->addCell(item->bcICMSST)
 					row->addCell("")
-					row->addCell(reg->docSint.ICMSST)
-					row->addCell(reg->docItemSint.valorIPI)
-					row->addCell(reg->docItemSint.valor)
-					row->addCell(reg->docItemSint.nroItem)
-					row->addCell(reg->docItemSint.qtd)
+					row->addCell("")
+					row->addCell(item->valorIPI)
+					row->addCell(item->valor)
+					row->addCell(item->nroItem)
+					row->addCell(item->qtd)
 					if itemId <> null then 
 						row->addCell(rtrim(itemId->unidInventario))
 					else
 						row->addCell("")
 					end if
-					row->addCell(reg->docItemSint.cfop)
-					row->addCell(reg->docItemSint.cst)
+					row->addCell(item->cfop)
+					row->addCell(item->cst)
 					if itemId <> null then 
 						row->addCell(itemId->ncm)
 						row->addCell(rtrim(itemId->id))
@@ -1436,11 +1448,12 @@ sub EfdTabelaExport.gerar(regListHead as TRegistro ptr, regMestre as TRegistro p
 
 			case LUA_CUSTOM
 				
-				var luaFunc = cast(customLuaCb ptr, customLuaCbDict->lookup(reg->lua.tipo))->writer
+				var l = cast(TLuaReg ptr, reg)
+				var luaFunc = cast(customLuaCb ptr, customLuaCbDict->lookup(l->tipo))->writer
 				
 				if luaFunc <> null then
 					lua_getglobal(lua, luaFunc)
-					lua_rawgeti(lua, LUA_REGISTRYINDEX, reg->lua.table)
+					lua_rawgeti(lua, LUA_REGISTRYINDEX, l->table)
 					lua_call(lua, 1, 0)
 				end if
 			
@@ -1451,7 +1464,7 @@ sub EfdTabelaExport.gerar(regListHead as TRegistro ptr, regMestre as TRegistro p
 				exit do
 			end if
 			
-			reg = reg->next_
+			reg = reg->prox
 		loop
 	catch
 		onError(!"\r\nErro ao tratar o registro de tipo (" & reg->tipo & !") carregado na linha (" & reg->linha & !")\r\n")
