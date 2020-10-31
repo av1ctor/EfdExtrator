@@ -1,3 +1,4 @@
+#include once "Efd.bi"
 #include once "EfdSpedImport.bi"
 #include once "ssl_helper.bi"
 #include once "trycatch.bi"

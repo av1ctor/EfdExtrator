@@ -12,6 +12,7 @@
 #include once "Lua/lualib.bi"
 #include once "Lua/lauxlib.bi"
 #include once "trycatch.bi"
+#undef imp
 
 private function my_lua_Alloc cdecl _
 	( _

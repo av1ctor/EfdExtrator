@@ -1,3 +1,4 @@
+#include once "Efd.bi"
 #include once "EfdSintegraImport.bi"
 #include once "trycatch.bi"
 

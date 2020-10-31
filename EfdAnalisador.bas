@@ -1,4 +1,4 @@
-
+#include once "Efd.bi"
 #include once "EfdAnalisador.bi"
 #include once "ExcelWriter.bi"
 #include once "vbcompat.bi"
