@@ -158,11 +158,10 @@ private sub adicionarColunasComuns(sheet as TableTable ptr, ehEntrada as Boolean
 	
 	if not ehEntrada then
 		sheet->addColumn(CT_MONEY)
-		sheet->addColumn(CT_MONEY)
-		sheet->addColumn(CT_MONEY)
-
 		row->addCell("DifAl FCP")
+		sheet->addColumn(CT_MONEY)
 		row->addCell("DifAl ICMS Orig")
+		sheet->addColumn(CT_MONEY)
 		row->addCell("DifAl ICMS Dest")
 	end if
 	
@@ -1477,7 +1476,7 @@ end sub
 ''''''''
 sub EfdTabelaExport.finalizar()
 	onProgress("Gravando planilha: " + nomeArquivo, 0)
-	ew->Flush(onProgress)
+	ew->Flush(onProgress, onError)
 	ew->Close
 end sub
 

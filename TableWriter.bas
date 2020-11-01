@@ -16,6 +16,14 @@ constructor TableWriter()
 	colType2Str(CT_MONEY) 		= "Number"
 	colType2Str(CT_PERCENT)		= "Number"
 
+	colType2Sql(CT_STRING) 		= "text"
+	colType2Sql(CT_STRING_UTF8)	= "text"
+	colType2Sql(CT_NUMBER) 		= "real"
+	colType2Sql(CT_INTNUMBER)   = "integer"
+	colType2Sql(CT_DATE) 		= "date"
+	colType2Sql(CT_MONEY) 		= "decimal(10,2)"
+	colType2Sql(CT_PERCENT)		= "decimal(10,2)"
+
 	colWidth(CT_STRING) 		= LXW_DEF_COL_WIDTH + 8
 	colWidth(CT_STRING_UTF8)	= LXW_DEF_COL_WIDTH + 8
 	colWidth(CT_NUMBER) 		= LXW_DEF_COL_WIDTH + 0
@@ -39,8 +47,13 @@ destructor TableWriter()
 		fnum = 0
 	end if
 	
-	if xlsxWorkbook then
+	if xlsxWorkbook <> null then
 		workbook_close(xlsxWorkbook)
+	end if
+	
+	if db <> null then
+		db->close()
+		delete db
 	end if
 	
 end destructor
@@ -53,7 +66,7 @@ function TableWriter.addTable(name_ as string) as TableTable ptr
 end function
 
 ''
-function TableWriter.Create(fileName as string, ftype as FileType) as boolean
+function TableWriter.create(fileName as string, ftype as FileType) as boolean
 	
 	this.ftype = ftype
 	this.fileName = fileName
@@ -81,7 +94,7 @@ function TableWriter.Create(fileName as string, ftype as FileType) as boolean
 	case FT_XLSX
 		xlsxWorkbook = workbook_new(fileName + ".xlsx")
 		
-		for i as integer = 0 to __CT_LEN__-1
+		for i as integer = 0 to CT__LEN__-1
 			xlsxFormats(i) = workbook_add_format(xlsxWorkbook)
 		next
 		
@@ -91,6 +104,14 @@ function TableWriter.Create(fileName as string, ftype as FileType) as boolean
 		format_set_num_format(xlsxFormats(CT_NUMBER), "0.00")
 		format_set_num_format(xlsxFormats(CT_PERCENT), "0.00%")
 		function = true
+		
+	case FT_SQLITE
+		kill fileName + ".db"
+		db = new TDb
+		db->open(fileName + ".db")
+		db->execNonQuery("PRAGMA JOURNAL_MODE=OFF")
+		db->execNonQuery("PRAGMA SYNCHRONOUS=0")
+		db->execNonQuery("PRAGMA LOCKING_MODE=EXCLUSIVE")
 		
 	case else
 		fnum = 0
@@ -112,6 +133,16 @@ private function escapeContent(src as string) as string
 	function = src
 end function
 
+private function nameToSql(src as string) as string
+	for i as integer = 0 to len(src) - 1
+		select case as const src[i]
+		case asc(" "), asc(".")
+			src[i] = asc("_")
+		end select
+	next
+	function = src
+end function
+
 private function latin2UTF8(src as zstring ptr, cd as iconv_t) as string
 	var chars = len(*src)
 	var dst = cast(zstring ptr, callocate(chars*2+1))
@@ -126,7 +157,7 @@ private function latin2UTF8(src as zstring ptr, cd as iconv_t) as string
 end function
 
 ''
-function TableWriter.Flush(onProgress as OnProgressCB) as boolean
+function TableWriter.flush(onProgress as OnProgressCB, onError as OnErrorCB) as boolean
 
 	var p = 1
 
@@ -137,18 +168,18 @@ function TableWriter.Flush(onProgress as OnProgressCB) as boolean
 
 	var totalRows = 0
    
-	'' para cada planilha..
-	var sheet = tables->tableListHead
-	do while sheet <> null
+	'' para cada tabela..
+	var table = tables->tableListHead
+	do while table <> null
 		
-		if sheet->nRows > 1 then
-			totalRows += sheet->nRows
+		if table->nRows > 1 then
+			totalRows += table->nRows
 		
 			select case ftype
 			case FT_XML
-				'' para cada cell type..
-				if sheet->colListHead <> null then
-					var ct = sheet->colListHead
+				'' para cada coluna..
+				if table->colListHead <> null then
+					var ct = table->colListHead
 					var i = 1
 					do while ct <> null
 						print #fnum, !"<Style ss:ID=\"colStyle_" & p & "_" & i & !"\">"
@@ -172,7 +203,7 @@ function TableWriter.Flush(onProgress as OnProgressCB) as boolean
 			end select
 		end if
       
-		sheet = sheet->next_
+		table = table->next_
 		p += 1
 	loop
 
@@ -181,22 +212,24 @@ function TableWriter.Flush(onProgress as OnProgressCB) as boolean
 		print #fnum, !"</Styles>"
 	end select
       
-	' para cada planilha..
+	' para cada tabela..
 	p = 1
 	var curRow = 0
-	sheet = tables->tableListHead
-	do while sheet <> null
+	table = tables->tableListHead
+	do while table <> null
 		
-		if sheet->nRows > 1 then
+		if table->nRows > 1 then
 			dim as lxw_worksheet ptr xlsXWorksheet
+			dim as TDbStmt ptr stmt = null
+			dim as integer totCols = 0
 	
 			select case ftype
 			case FT_XML
-				print #fnum, !"<Worksheet ss:Name=\"" + sheet->name + !"\">"
+				print #fnum, !"<Worksheet ss:Name=\"" + table->name + !"\">"
 				print #fnum, !"<Table>"
 
-				if sheet->colListHead <> null then
-					var ct = sheet->colListHead
+				if table->colListHead <> null then
+					var ct = table->colListHead
 					var i = 1
 					 do while ct <> null
 						print #fnum, !"<Column ss:Index=\"" & i & !"\" ss:StyleID=\"colStyle_" & p & "_" & i & !"\" ss:AutoFitWidth=\"1\" />"
@@ -208,19 +241,19 @@ function TableWriter.Flush(onProgress as OnProgressCB) as boolean
 			case FT_CSV
 				fnum = FreeFile
 
-				var csvName = fileName + "_" + sheet->name + ".csv"
+				var csvName = fileName + "_" + table->name + ".csv"
 				var res = open(csvName for output as #fnum) = 0
 				if not res then
-					print wstr("Erro: não foi possível criar arquivo " + csvName)
+					onError(wstr("Erro: não foi possível criar arquivo " + csvName))
 					return false
 				end if
 
 			case FT_XLSX
-				xlsXWorksheet = workbook_add_worksheet(xlsxWorkbook, sheet->name)
+				xlsXWorksheet = workbook_add_worksheet(xlsxWorkbook, table->name)
 				
-				'' para cada cell type..
-				if sheet->colListHead <> null then
-					var ct = sheet->colListHead
+				'' para cada coluna..
+				if table->colListHead <> null then
+					var ct = table->colListHead
 					var colNum = 0
 					do while ct <> null
 						var wdt = iif(ct->width_ = 0, colWidth(ct->type_), ct->width_)
@@ -230,12 +263,64 @@ function TableWriter.Flush(onProgress as OnProgressCB) as boolean
 					loop
 				end if
 				
+			case FT_SQLITE
+				var tblName = "'" & table->name & "'"
+				
+				var createTable = "create table " & tblName & "("
+				var insertInto = "insert into " & tblName & "("
+				
+				var row = table->rowListHead
+				var cell = row->cellListHead
+				var ct = table->colListHead
+				var colNum = 0
+				do while cell <> null
+					do while cell->num > colNum
+						colNum += 1
+						if ct <> null then
+							ct = ct->next_
+						end if
+					loop
+						
+					var tp = iif(ct <> null, ct->type_, CT_STRING)
+					var colName = nameToSql(cell->content)
+					
+					createTable &= "'" & colName & "' " & colType2Sql(tp) & " null,"
+					insertInto &= "'" & colName & "',"
+					
+					colNum += 1
+					if ct <> null then
+						ct = ct->next_
+					end if
+					cell = cell->next_
+				loop
+
+				totCols = colNum
+				
+				if totCols > 0 then
+					createTable = left(createTable, len(createTable)-1) & ")"
+					if db->execNonQuery(createTable) = false then
+						onError("Ao criar tabela: " & createTable)
+						return false
+					end if
+				
+					insertInto = left(insertInto, len(insertInto)-1) & ") values ("
+					for i as integer = 1 to totCols-1
+						insertInto &= "?,"
+					next
+					insertInto &= "?)"
+					stmt = db->prepare(insertInto)
+					if stmt = null then
+						onError("Ao criar statement: " & insertInto)
+						return false
+					end if
+				end if
+				
 			end select
 
 			'' para cada linha..
-			if sheet->rowListHead <> null then
+			if table->rowListHead <> null then
 				var rowNum = 0
-				var row = sheet->rowListHead
+				var row = table->rowListHead
 				do while row <> null
 					curRow += 1
 					if onProgress <> null then
@@ -296,7 +381,7 @@ function TableWriter.Flush(onProgress as OnProgressCB) as boolean
 							print #fnum, !"<Row>"
 							'' para cada celula da linha..
 							var cell = row->cellListHead
-							var ct = sheet->colListHead
+							var ct = table->colListHead
 							var colNum = 0
 							do while cell <> null
 								do while cell->num > colNum
@@ -325,7 +410,7 @@ function TableWriter.Flush(onProgress as OnProgressCB) as boolean
 						case FT_CSV
 							'' para cada celula da linha..
 							var cell = row->cellListHead
-							var ct = sheet->colListHead
+							var ct = table->colListHead
 							var colNum = 0
 							do while cell <> null
 								do while cell->num > colNum
@@ -347,7 +432,7 @@ function TableWriter.Flush(onProgress as OnProgressCB) as boolean
 						case FT_XLSX
 							'' para cada celula da linha..
 							var cell = row->cellListHead
-							var ct = sheet->colListHead
+							var ct = table->colListHead
 							var colNum = 0
 							do while cell <> null
 								do while cell->num > colNum
@@ -367,12 +452,10 @@ function TableWriter.Flush(onProgress as OnProgressCB) as boolean
 										worksheet_write_string(xlsXWorksheet, rowNum, colNum, latin2UTF8(cell->content, cd), NULL)
 									case CT_STRING_UTF8
 										worksheet_write_string(xlsXWorksheet, rowNum, colNum, cell->content, NULL)
-									case CT_NUMBER, _
-										 CT_MONEY, _
-										 CT_PERCENT
-										 worksheet_write_number(xlsXWorksheet, rowNum, colNum, cdbl(cell->content), NULL)
+									case CT_NUMBER, CT_MONEY, CT_PERCENT
+										worksheet_write_number(xlsXWorksheet, rowNum, colNum, cdbl(cell->content), NULL)
 									case CT_INTNUMBER
-										 worksheet_write_number(xlsXWorksheet, rowNum, colNum, clngint(cell->content), NULL)
+										worksheet_write_number(xlsXWorksheet, rowNum, colNum, clngint(cell->content), NULL)
 									case CT_DATE
 										var value = cell->content
 										dim as lxw_datetime date = (valint(left(value, 4)), valint(mid(value, 6, 2)), valint(mid(value, 9, 2)))
@@ -388,6 +471,52 @@ function TableWriter.Flush(onProgress as OnProgressCB) as boolean
 								end if
 							loop
 						
+						case FT_SQLITE
+							if rowNum > 0 then
+								'' para cada celula da linha..
+								var cell = row->cellListHead
+								var ct = table->colListHead
+								var colNum = 0
+								var sqlCol = 1
+								dim bindContents(1 to totCols) as string
+								stmt->reset()
+								do while cell <> null
+									do while cell->num > colNum
+										stmt->bind(sqlCol, null)
+										colNum += 1
+										sqlCol += 1
+										if ct <> null then
+											ct = ct->next_
+										end if
+									loop
+								
+									select case as const iif(ct <> null, ct->type_, CT_STRING)
+									case CT_STRING
+										bindContents(sqlCol) = latin2UTF8(cell->content, cd)
+										stmt->bind(sqlCol, bindContents(sqlCol))
+									case CT_STRING_UTF8
+										stmt->bind(sqlCol, cell->content)
+									case CT_NUMBER, CT_MONEY, CT_PERCENT
+										stmt->bind(sqlCol, cdbl(cell->content))
+									case CT_INTNUMBER
+										stmt->bind(sqlCol, clngint(cell->content))
+									case CT_DATE
+										var value = cell->content
+										bindContents(sqlCol) = left(value, 4) & "-" & mid(value, 6, 2) & "-" & mid(value, 9, 2)
+										stmt->bind(sqlCol, bindContents(sqlCol))
+									end select
+										
+									colNum += 1
+									sqlCol += 1
+									
+									cell = cell->next_
+									if ct <> null then
+										ct = ct->next_
+									end if
+								loop
+								
+								db->execNonQuery(stmt)
+							end if
 						end select
 					end if
 					
@@ -402,10 +531,15 @@ function TableWriter.Flush(onProgress as OnProgressCB) as boolean
 				print #fnum, !"</Worksheet>"
 			case FT_CSV
 				..close #fnum
+			case FT_SQLITE
+				if stmt <> null then
+					delete stmt
+					stmt = null
+				end if
 			end select
 		end if
 		
-		sheet = sheet->next_
+		table = table->next_
 		p += 1
 	loop
 	
@@ -432,9 +566,10 @@ end sub
 ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
 ''
-constructor TableColumn(type_ as ColumnType, width_ as integer)
+constructor TableColumn(type_ as ColumnType, width_ as integer, size as integer)
 	this.type_ = type_
 	this.width_ = width_
+	this.size = size
 end constructor
 
 ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
@@ -465,9 +600,9 @@ destructor TableTable()
 end destructor
 
 ''
-function TableTable.addColumn(type_ as ColumnType, width_ as integer) as TableColumn ptr
+function TableTable.addColumn(type_ as ColumnType, width_ as integer, size as integer) as TableColumn ptr
 
-	var ct = new TableColumn(type_, width_)
+	var ct = new TableColumn(type_, width_, size)
 	
 	if colListHead = null then
 		colListHead = ct
@@ -482,7 +617,7 @@ function TableTable.addColumn(type_ as ColumnType, width_ as integer) as TableCo
 end function
 
 ''
-function TableTable.AddRow(asIs as boolean, num as integer) as TableRow ptr
+function TableTable.addRow(asIs as boolean, num as integer) as TableRow ptr
 
 	if num >= 0 then
 		curRow = num
@@ -533,17 +668,17 @@ end destructor
 ''
 function TableCollection.addTable(name_ as string) as TableTable ptr
 
-	var sheet = new TableTable(name_)
+	var table = new TableTable(name_)
 	
 	if tableListHead = null then
-		tableListHead = sheet
-		tableListTail = sheet
+		tableListHead = table
+		tableListTail = table
 	else
-		tableListTail->next_ = sheet
-		tableListTail = sheet
+		tableListTail->next_ = table
+		tableListTail = table
 	end if
 	
-	function = sheet
+	function = table
 
 end function
 
@@ -556,7 +691,7 @@ constructor TableRow(num as integer, asIs as boolean)
 end constructor
 
 ''
-function TableRow.AddCell(content as const zstring ptr, width_ as integer, num as integer) as TableCell ptr
+function TableRow.addCell(content as const zstring ptr, width_ as integer, num as integer) as TableCell ptr
 
 	var cell = new TableCell(content, num)
 	cell->width_ = width_
@@ -574,21 +709,21 @@ function TableRow.AddCell(content as const zstring ptr, width_ as integer, num a
 end function
 
 ''
-function TableRow.AddCell(content as integer, num as integer) as TableCell ptr
+function TableRow.addCell(content as integer, num as integer) as TableCell ptr
 
 	function = AddCell(str(content), num)
 
 end function
 
 ''
-function TableRow.AddCell(content as longint, num as integer) as TableCell ptr
+function TableRow.addCell(content as longint, num as integer) as TableCell ptr
 
 	function = AddCell(str(content), num)
 
 end function
 
 ''
-function TableRow.AddCell(content as double, num as integer) as TableCell ptr
+function TableRow.addCell(content as double, num as integer) as TableCell ptr
 
 	function = AddCell(str(content), num)
 

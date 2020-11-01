@@ -8,7 +8,8 @@
 #include once "trycatch.bi"
 
 ''''''''
-constructor EfdResumidor(tableExp as EfdTabelaExport ptr)
+constructor EfdResumidor(opcoes as OpcoesExtracao ptr, tableExp as EfdTabelaExport ptr)
+	this.opcoes = opcoes
 	this.tableExp = tableExp
 end constructor
 
@@ -32,10 +33,85 @@ function EfdResumidor.withLua(lua as lua_State ptr) as EfdResumidor ptr
 end function
 
 ''''''''
-private sub resumoAddHeaderCfopLRE(ws as TableTable ptr)
-	var row = ws->AddRow(false, 0)
-	row->addCell("Resumo por CFOP", 9)
+sub EfdResumidor.resumoAddHeaderCfopLRE(ws as TableTable ptr)
+	var num = 0
+	if opcoes->formatoDeSaida = FT_XLSX then
+		var row = ws->AddRow(false, num)
+		row->addCell("Resumo por CFOP", 9)
+		num += 1
+	end if
 	
+	if opcoes->formatoDeSaida = FT_XLSX then
+		ws->addColumn(CT_INTNUMBER)
+		ws->addColumn(CT_STRING_UTF8, 45)
+		ws->addColumn(CT_STRING_UTF8, 15)
+		ws->addColumn(CT_MONEY)
+		ws->addColumn(CT_MONEY)
+		ws->addColumn(CT_MONEY)
+		ws->addColumn(CT_PERCENT)
+		ws->addColumn(CT_PERCENT)
+		ws->addColumn(CT_MONEY)
+		
+		var row = ws->addRow(true, num)
+		row->addCell("CFOP")
+		row->addCell("Descricao")
+		row->addCell("Operacao")
+		row->addCell("Vl Oper")
+		row->addCell("BC ICMS")
+		row->addCell("Vl ICMS")
+		row->addCell("RedBC ICMS")
+		row->addCell("Aliq ICMS")
+		row->addCell("Vl IPI")
+	end if
+end sub
+
+''''''''
+sub EfdResumidor.resumoAddHeaderCstLRE(ws as TableTable ptr)
+	var num = 0
+	if opcoes->formatoDeSaida = FT_XLSX then
+		var row = ws->AddRow(false, num)
+		row->addCell("Resumo por CST", 9, 10)
+		num += 1
+	end if
+	
+	if opcoes->formatoDeSaida = FT_XLSX then
+		ws->addColumn(CT_STRING_UTF8, 4)
+		ws->addColumn(CT_INTNUMBER)
+		ws->addColumn(CT_STRING_UTF8, 45)
+		ws->addColumn(CT_STRING_UTF8, 30)
+		ws->addColumn(CT_MONEY)
+		ws->addColumn(CT_MONEY)
+		ws->addColumn(CT_MONEY)
+		ws->addColumn(CT_PERCENT)
+		ws->addColumn(CT_PERCENT)
+		ws->addColumn(CT_MONEY)
+		
+		var row = ws->addRow(true, num)
+		row->addCell("CST", 1, 10)
+		row->addCell("Origem")
+		row->addCell("Tributacao")
+		row->addCell("Vl Oper")
+		row->addCell("BC ICMS")
+		row->addCell("Vl ICMS")
+		row->addCell("RedBC ICMS")
+		row->addCell("Aliq ICMS")
+		row->addCell("Vl IPI")
+	end if
+end sub
+
+''''''''
+sub EfdResumidor.resumoAddHeaderCstCfopLRE(ws as TableTable ptr)
+	var num = 0
+	if opcoes->formatoDeSaida = FT_XLSX then
+		var row = ws->AddRow(false, num)
+		row->addCell("Resumo por CST e CFOP", 12, 20)
+		num += 1
+		ws->addColumn(CT_STRING_UTF8, 4)
+	end if
+	
+	ws->addColumn(CT_INTNUMBER)
+	ws->addColumn(CT_STRING_UTF8, 45)
+	ws->addColumn(CT_STRING_UTF8, 30)
 	ws->addColumn(CT_INTNUMBER)
 	ws->addColumn(CT_STRING_UTF8, 45)
 	ws->addColumn(CT_STRING_UTF8, 15)
@@ -46,7 +122,14 @@ private sub resumoAddHeaderCfopLRE(ws as TableTable ptr)
 	ws->addColumn(CT_PERCENT)
 	ws->addColumn(CT_MONEY)
 	
-	row = ws->addRow(true)
+	var row = ws->addRow(true, num)
+	if opcoes->formatoDeSaida = FT_XLSX then
+		row->addCell("CST", 1, 20)
+	else
+		row->addCell("CST")
+	end if
+	row->addCell("Origem")
+	row->addCell("Tributacao")
 	row->addCell("CFOP")
 	row->addCell("Descricao")
 	row->addCell("Operacao")
@@ -59,39 +142,94 @@ private sub resumoAddHeaderCfopLRE(ws as TableTable ptr)
 end sub
 
 ''''''''
-private sub resumoAddHeaderCstLRE(ws as TableTable ptr)
-	var row = ws->AddRow(false, 0)
-	row->addCell("Resumo por CST", 9, 10)
-	
-	ws->addColumn(CT_STRING_UTF8, 4)
-	ws->addColumn(CT_INTNUMBER)
-	ws->addColumn(CT_STRING_UTF8, 45)
-	ws->addColumn(CT_STRING_UTF8, 30)
-	ws->addColumn(CT_MONEY)
-	ws->addColumn(CT_MONEY)
-	ws->addColumn(CT_MONEY)
-	ws->addColumn(CT_PERCENT)
-	ws->addColumn(CT_PERCENT)
-	ws->addColumn(CT_MONEY)
-	
-	row = ws->addRow(true)
-	row->addCell("CST", 1, 10)
-	row->addCell("Origem")
-	row->addCell("Tributacao")
-	row->addCell("Vl Oper")
-	row->addCell("BC ICMS")
-	row->addCell("Vl ICMS")
-	row->addCell("RedBC ICMS")
-	row->addCell("Aliq ICMS")
-	row->addCell("Vl IPI")
+sub EfdResumidor.resumoAddHeaderCfopLRS(ws as TableTable ptr)
+	var num = 0
+	if opcoes->formatoDeSaida = FT_XLSX then
+		var row = ws->AddRow(false, num)
+		row->addCell("Resumo por CFOP", 12)
+		num += 1
+	end if
+
+	if opcoes->formatoDeSaida = FT_XLSX then
+		ws->addColumn(CT_INTNUMBER)
+		ws->addColumn(CT_STRING_UTF8, 45)
+		ws->addColumn(CT_STRING_UTF8, 15)
+		ws->addColumn(CT_MONEY)
+		ws->addColumn(CT_MONEY)
+		ws->addColumn(CT_MONEY)
+		ws->addColumn(CT_PERCENT)
+		ws->addColumn(CT_PERCENT)
+		ws->addColumn(CT_MONEY)
+		ws->addColumn(CT_MONEY)
+		ws->addColumn(CT_PERCENT)
+		ws->addColumn(CT_MONEY)
+		
+		var row = ws->addRow(true, num)
+		row->addCell("CFOP")
+		row->addCell("Descricao")
+		row->addCell("Operacao")
+		row->addCell("Vl Oper")
+		row->addCell("BC ICMS")
+		row->addCell("Vl ICMS")
+		row->addCell("RedBC ICMS")
+		row->addCell("Aliq ICMS")
+		row->addCell("BC ICMS ST")
+		row->addCell("Vl ICMS ST")
+		row->addCell("Aliq ICMS ST")
+		row->addCell("Vl IPI")
+	end if
 end sub
 
 ''''''''
-private sub resumoAddHeaderCstCfopLRE(ws as TableTable ptr)
-	var row = ws->AddRow(false, 0)
-	row->addCell("Resumo por CST e CFOP", 12, 20)
+sub EfdResumidor.resumoAddHeaderCstLRS(ws as TableTable ptr)
+	var num = 0
+	if opcoes->formatoDeSaida = FT_XLSX then
+		var row = ws->AddRow(false, num)
+		row->addCell("Resumo por CST", 12, 13)
+		num += 1
+	end if
 	
-	ws->addColumn(CT_STRING_UTF8, 4)
+	if opcoes->formatoDeSaida = FT_XLSX then
+		ws->addColumn(CT_STRING_UTF8, 4)
+		ws->addColumn(CT_INTNUMBER)
+		ws->addColumn(CT_STRING_UTF8, 45)
+		ws->addColumn(CT_STRING_UTF8, 30)
+		ws->addColumn(CT_MONEY)
+		ws->addColumn(CT_MONEY)
+		ws->addColumn(CT_MONEY)
+		ws->addColumn(CT_PERCENT)
+		ws->addColumn(CT_PERCENT)
+		ws->addColumn(CT_MONEY)
+		ws->addColumn(CT_MONEY)
+		ws->addColumn(CT_PERCENT)
+		ws->addColumn(CT_MONEY)
+		
+		var row = ws->addRow(true, num)
+		row->addCell("CST", 1, 13)
+		row->addCell("Origem")
+		row->addCell("Tributacao")
+		row->addCell("Vl Oper")
+		row->addCell("BC ICMS")
+		row->addCell("Vl ICMS")
+		row->addCell("RedBC ICMS")
+		row->addCell("Aliq ICMS")
+		row->addCell("BC ICMS ST")
+		row->addCell("Vl ICMS ST")
+		row->addCell("Aliq ICMS ST")
+		row->addCell("Vl IPI")
+	end if
+end sub
+
+''''''''
+sub EfdResumidor.resumoAddHeaderCstCfopLRS(ws as TableTable ptr)
+	var num = 0
+	if opcoes->formatoDeSaida = FT_XLSX then
+		var row = ws->AddRow(false, num)
+		row->addCell("Resumo por CST e CFOP", 15, 26)
+		num += 1
+		ws->addColumn(CT_STRING_UTF8, 4)
+	end if
+
 	ws->addColumn(CT_INTNUMBER)
 	ws->addColumn(CT_STRING_UTF8, 45)
 	ws->addColumn(CT_STRING_UTF8, 30)
@@ -104,41 +242,18 @@ private sub resumoAddHeaderCstCfopLRE(ws as TableTable ptr)
 	ws->addColumn(CT_PERCENT)
 	ws->addColumn(CT_PERCENT)
 	ws->addColumn(CT_MONEY)
+	ws->addColumn(CT_MONEY)
+	ws->addColumn(CT_PERCENT)
+	ws->addColumn(CT_MONEY)
 	
-	row = ws->addRow(true)
-	row->addCell("CST", 1, 20)
+	var row = ws->addRow(true, num)
+	if opcoes->formatoDeSaida = FT_XLSX then
+		row->addCell("CST", 1, 26)
+	else
+		row->addCell("CST")
+	end if
 	row->addCell("Origem")
 	row->addCell("Tributacao")
-	row->addCell("CFOP")
-	row->addCell("Descricao")
-	row->addCell("Operacao")
-	row->addCell("Vl Oper")
-	row->addCell("BC ICMS")
-	row->addCell("Vl ICMS")
-	row->addCell("RedBC ICMS")
-	row->addCell("Aliq ICMS")
-	row->addCell("Vl IPI")
-end sub
-
-''''''''
-private sub resumoAddHeaderCfopLRS(ws as TableTable ptr)
-	var row = ws->AddRow(false, 0)
-	row->addCell("Resumo por CFOP", 12)
-
-	ws->addColumn(CT_INTNUMBER)
-	ws->addColumn(CT_STRING_UTF8, 45)
-	ws->addColumn(CT_STRING_UTF8, 15)
-	ws->addColumn(CT_MONEY)
-	ws->addColumn(CT_MONEY)
-	ws->addColumn(CT_MONEY)
-	ws->addColumn(CT_PERCENT)
-	ws->addColumn(CT_PERCENT)
-	ws->addColumn(CT_MONEY)
-	ws->addColumn(CT_MONEY)
-	ws->addColumn(CT_PERCENT)
-	ws->addColumn(CT_MONEY)
-	
-	row = ws->addRow(true)
 	row->addCell("CFOP")
 	row->addCell("Descricao")
 	row->addCell("Operacao")
@@ -154,104 +269,38 @@ private sub resumoAddHeaderCfopLRS(ws as TableTable ptr)
 end sub
 
 ''''''''
-private sub resumoAddHeaderCstLRS(ws as TableTable ptr)
-	var row = ws->AddRow(false, 0)
-	row->addCell("Resumo por CST", 12, 13)
-
-	ws->addColumn(CT_STRING_UTF8, 4)
-	ws->addColumn(CT_INTNUMBER)
-	ws->addColumn(CT_STRING_UTF8, 45)
-	ws->addColumn(CT_STRING_UTF8, 30)
-	ws->addColumn(CT_MONEY)
-	ws->addColumn(CT_MONEY)
-	ws->addColumn(CT_MONEY)
-	ws->addColumn(CT_PERCENT)
-	ws->addColumn(CT_PERCENT)
-	ws->addColumn(CT_MONEY)
-	ws->addColumn(CT_MONEY)
-	ws->addColumn(CT_PERCENT)
-	ws->addColumn(CT_MONEY)
-	
-	row = ws->addRow(true)
-	row->addCell("CST", 1, 13)
-	row->addCell("Origem")
-	row->addCell("Tributacao")
-	row->addCell("Vl Oper")
-	row->addCell("BC ICMS")
-	row->addCell("Vl ICMS")
-	row->addCell("RedBC ICMS")
-	row->addCell("Aliq ICMS")
-	row->addCell("BC ICMS ST")
-	row->addCell("Vl ICMS ST")
-	row->addCell("Aliq ICMS ST")
-	row->addCell("Vl IPI")
-end sub
-
-''''''''
-private sub resumoAddHeaderCstCfopLRS(ws as TableTable ptr)
-	var row = ws->AddRow(false, 0)
-	row->addCell("Resumo por CST e CFOP", 15, 26)
-
-	ws->addColumn(CT_STRING_UTF8, 4)
-	ws->addColumn(CT_INTNUMBER)
-	ws->addColumn(CT_STRING_UTF8, 45)
-	ws->addColumn(CT_STRING_UTF8, 30)
-	ws->addColumn(CT_INTNUMBER)
-	ws->addColumn(CT_STRING_UTF8, 45)
-	ws->addColumn(CT_STRING_UTF8, 15)
-	ws->addColumn(CT_MONEY)
-	ws->addColumn(CT_MONEY)
-	ws->addColumn(CT_MONEY)
-	ws->addColumn(CT_PERCENT)
-	ws->addColumn(CT_PERCENT)
-	ws->addColumn(CT_MONEY)
-	ws->addColumn(CT_MONEY)
-	ws->addColumn(CT_PERCENT)
-	ws->addColumn(CT_MONEY)
-	
-	row = ws->addRow(true)
-	row->addCell("CST", 1, 26)
-	row->addCell("Origem")
-	row->addCell("Tributacao")
-	row->addCell("CFOP")
-	row->addCell("Descricao")
-	row->addCell("Operacao")
-	row->addCell("Vl Oper")
-	row->addCell("BC ICMS")
-	row->addCell("Vl ICMS")
-	row->addCell("RedBC ICMS")
-	row->addCell("Aliq ICMS")
-	row->addCell("BC ICMS ST")
-	row->addCell("Vl ICMS ST")
-	row->addCell("Aliq ICMS ST")
-	row->addCell("Vl IPI")
-end sub
-
-''''''''
-private sub resumoAddRowLRE(xrow as TableRow ptr, byref drow as TDataSetRow, tipo as TipoResumo)
+private sub resumoAddRowLRE(xrow as TableRow ptr, byref drow as TDataSetRow, opcoes as OpcoesExtracao ptr, tipo as TipoResumo)
 	select case tipo
 	case TR_CFOP
-		xrow->addCell(drow["cfop"])
-		xrow->addCell(drow["descricao"])
-		xrow->addCell(drow["operacao"])
-		xrow->addCell(drow["vlOper"])
-		xrow->addCell(drow["bcIcms"])
-		xrow->addCell(drow["vlIcms"])
-		xrow->addCell(drow["redBcIcms"])
-		xrow->addCell(drow["aliqIcms"])
-		xrow->addCell(drow["vlIpi"])
+		if opcoes->formatoDeSaida = FT_XLSX then
+			xrow->addCell(drow["cfop"])
+			xrow->addCell(drow["descricao"])
+			xrow->addCell(drow["operacao"])
+			xrow->addCell(drow["vlOper"])
+			xrow->addCell(drow["bcIcms"])
+			xrow->addCell(drow["vlIcms"])
+			xrow->addCell(drow["redBcIcms"])
+			xrow->addCell(drow["aliqIcms"])
+			xrow->addCell(drow["vlIpi"])
+		end if
 	case TR_CST
-		xrow->addCell(drow["cst"], 1, 10)
-		xrow->addCell(drow["origem"])
-		xrow->addCell(drow["tributacao"])
-		xrow->addCell(drow["vlOper"])
-		xrow->addCell(drow["bcIcms"])
-		xrow->addCell(drow["vlIcms"])
-		xrow->addCell(drow["redBcIcms"])
-		xrow->addCell(drow["aliqIcms"])
-		xrow->addCell(drow["vlIpi"])
+		if opcoes->formatoDeSaida = FT_XLSX then
+			xrow->addCell(drow["cst"], 1, 10)
+			xrow->addCell(drow["origem"])
+			xrow->addCell(drow["tributacao"])
+			xrow->addCell(drow["vlOper"])
+			xrow->addCell(drow["bcIcms"])
+			xrow->addCell(drow["vlIcms"])
+			xrow->addCell(drow["redBcIcms"])
+			xrow->addCell(drow["aliqIcms"])
+			xrow->addCell(drow["vlIpi"])
+		end if
 	case TR_CST_CFOP
-		xrow->addCell(drow["cst"], 1, 20)
+		if opcoes->formatoDeSaida = FT_XLSX then
+			xrow->addCell(drow["cst"], 1, 20)
+		else
+			xrow->addCell(drow["cst"])
+		end if
 		xrow->addCell(drow["origem"])
 		xrow->addCell(drow["tributacao"])
 		xrow->addCell(drow["cfop"])
@@ -267,36 +316,44 @@ private sub resumoAddRowLRE(xrow as TableRow ptr, byref drow as TDataSetRow, tip
 end sub
 
 ''''''''
-private sub resumoAddRowLRS(xrow as TableRow ptr, byref drow as TDataSetRow, tipo as TipoResumo)
+private sub resumoAddRowLRS(xrow as TableRow ptr, byref drow as TDataSetRow, opcoes as OpcoesExtracao ptr, tipo as TipoResumo)
 	select case tipo
 	case TR_CFOP
-		xrow->addCell(drow["cfop"])
-		xrow->addCell(drow["descricao"])
-		xrow->addCell(drow["operacao"])
-		xrow->addCell(drow["vlOper"])
-		xrow->addCell(drow["bcIcms"])
-		xrow->addCell(drow["vlIcms"])
-		xrow->addCell(drow["redBcIcms"])
-		xrow->addCell(drow["aliqIcms"])
-		xrow->addCell(drow["bcIcmsST"])
-		xrow->addCell(drow["vlIcmsST"])
-		xrow->addCell(drow["aliqIcmsST"])
-		xrow->addCell(drow["vlIpi"])
+		if opcoes->formatoDeSaida = FT_XLSX then
+			xrow->addCell(drow["cfop"])
+			xrow->addCell(drow["descricao"])
+			xrow->addCell(drow["operacao"])
+			xrow->addCell(drow["vlOper"])
+			xrow->addCell(drow["bcIcms"])
+			xrow->addCell(drow["vlIcms"])
+			xrow->addCell(drow["redBcIcms"])
+			xrow->addCell(drow["aliqIcms"])
+			xrow->addCell(drow["bcIcmsST"])
+			xrow->addCell(drow["vlIcmsST"])
+			xrow->addCell(drow["aliqIcmsST"])
+			xrow->addCell(drow["vlIpi"])
+		end if
 	case TR_CST
-		xrow->addCell(drow["cst"], 1, 13)
-		xrow->addCell(drow["origem"])
-		xrow->addCell(drow["tributacao"])
-		xrow->addCell(drow["vlOper"])
-		xrow->addCell(drow["bcIcms"])
-		xrow->addCell(drow["vlIcms"])
-		xrow->addCell(drow["redBcIcms"])
-		xrow->addCell(drow["aliqIcms"])
-		xrow->addCell(drow["bcIcmsST"])
-		xrow->addCell(drow["vlIcmsST"])
-		xrow->addCell(drow["aliqIcmsST"])
-		xrow->addCell(drow["vlIpi"])
+		if opcoes->formatoDeSaida = FT_XLSX then
+			xrow->addCell(drow["cst"], 1, 13)
+			xrow->addCell(drow["origem"])
+			xrow->addCell(drow["tributacao"])
+			xrow->addCell(drow["vlOper"])
+			xrow->addCell(drow["bcIcms"])
+			xrow->addCell(drow["vlIcms"])
+			xrow->addCell(drow["redBcIcms"])
+			xrow->addCell(drow["aliqIcms"])
+			xrow->addCell(drow["bcIcmsST"])
+			xrow->addCell(drow["vlIcmsST"])
+			xrow->addCell(drow["aliqIcmsST"])
+			xrow->addCell(drow["vlIpi"])
+		end if
 	case TR_CST_CFOP
-		xrow->addCell(drow["cst"], 1, 26)
+		if opcoes->formatoDeSaida = FT_XLSX then
+			xrow->addCell(drow["cst"], 1, 26)
+		else
+			xrow->addCell(drow["cst"])
+		end if
 		xrow->addCell(drow["origem"])
 		xrow->addCell(drow["tributacao"])
 		xrow->addCell(drow["cfop"])
@@ -318,16 +375,17 @@ end sub
 private function luacb_efd_plan_resumos_AddRow cdecl(byval L as lua_State ptr) as long
 	var args = lua_gettop(L)
 	
-	if args = 4 then
+	if args = 5 then
 		var ws = cast(TableTable ptr, lua_touserdata(L, 1))
 		var ds = cast(TDataSet ptr, lua_touserdata(L, 2))
-		var tipo = lua_tointeger(L, 3)
-		var livro = lua_tointeger(L, 4)
+		var opcoes = cast(OpcoesExtracao ptr, lua_touserdata(L, 3))
+		var tipo = lua_tointeger(L, 4)
+		var livro = lua_tointeger(L, 5)
 
 		if livro = TL_SAIDAS then
-			resumoAddRowLRS(ws->AddRow(), *ds->row, tipo)
+			resumoAddRowLRS(ws->AddRow(), *ds->row, opcoes, tipo)
 		else
-			resumoAddRowLRE(ws->AddRow(), *ds->row, tipo)
+			resumoAddRowLRE(ws->AddRow(), *ds->row, opcoes, tipo)
 		end if
 	end if
 	
@@ -380,7 +438,8 @@ sub EfdResumidor.criarResumosLRE()
 		lua_getglobal(lua, "LRE_criarResumoCFOP")
 		lua_pushlightuserdata(lua, db)
 		lua_pushlightuserdata(lua, resumosLRE)
-		lua_call(lua, 2, 0)
+		lua_pushlightuserdata(lua, opcoes)
+		lua_call(lua, 3, 0)
 	catch
 		onError("Erro no script lua!")
 	endtry
@@ -395,7 +454,8 @@ sub EfdResumidor.criarResumosLRE()
 		lua_getglobal(lua, "LRE_criarResumoCST")
 		lua_pushlightuserdata(lua, db)
 		lua_pushlightuserdata(lua, resumosLRE)
-		lua_call(lua, 2, 0)
+		lua_pushlightuserdata(lua, opcoes)
+		lua_call(lua, 3, 0)
 	catch
 		onError("Erro no script lua!")
 	endtry
@@ -410,7 +470,8 @@ sub EfdResumidor.criarResumosLRE()
 		lua_getglobal(lua, "LRE_criarResumoCstCfop")
 		lua_pushlightuserdata(lua, db)
 		lua_pushlightuserdata(lua, resumosLRE)
-		lua_call(lua, 2, 0)
+		lua_pushlightuserdata(lua, opcoes)
+		lua_call(lua, 3, 0)
 	catch
 		onError("Erro no script lua!")
 	endtry
@@ -432,7 +493,8 @@ sub EfdResumidor.criarResumosLRS()
 		lua_getglobal(lua, "LRS_criarResumoCFOP")
 		lua_pushlightuserdata(lua, db)
 		lua_pushlightuserdata(lua, resumosLRS)
-		lua_call(lua, 2, 0)
+		lua_pushlightuserdata(lua, opcoes)
+		lua_call(lua, 3, 0)
 	catch
 		onError("Erro no script lua!")
 	endtry
@@ -447,7 +509,8 @@ sub EfdResumidor.criarResumosLRS()
 		lua_getglobal(lua, "LRS_criarResumoCST")
 		lua_pushlightuserdata(lua, db)
 		lua_pushlightuserdata(lua, resumosLRS)
-		lua_call(lua, 2, 0)
+		lua_pushlightuserdata(lua, opcoes)
+		lua_call(lua, 3, 0)
 	catch
 		onError("Erro no script lua!")
 	endtry
@@ -462,7 +525,8 @@ sub EfdResumidor.criarResumosLRS()
 		lua_getglobal(lua, "LRS_criarResumoCstCfop")
 		lua_pushlightuserdata(lua, db)
 		lua_pushlightuserdata(lua, resumosLRS)
-		lua_call(lua, 2, 0)
+		lua_pushlightuserdata(lua, opcoes)
+		lua_call(lua, 3, 0)
 	catch
 		onError("Erro no script lua!")
 	endtry

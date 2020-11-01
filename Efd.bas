@@ -161,7 +161,7 @@ sub Efd.finalizar()
 	fecharDb()
 	if opcoes.dbEmDisco then
 		if not opcoes.manterDb then
-			kill nomeArquivoSaida + ".db"
+			kill dbName + ".db"
 		end if
 	end if
 	
@@ -285,7 +285,7 @@ end sub
 
 ''''''''
 sub Efd.resumir() 
-	var res = (new EfdResumidor(exp)) _
+	var res = (new EfdResumidor(@opcoes, exp)) _
 		->withDBs(db) _
 		->withCallbacks(onProgress, onError) _
 		->withLua(lua)
@@ -320,8 +320,13 @@ sub Efd.configurarDB()
 	if not opcoes.dbEmDisco then
 		db->open()
 	else
-		kill nomeArquivoSaida + ".db"
-		db->open(nomeArquivoSaida + ".db")
+		if opcoes.manterDb then
+			dbName = "__inter__"
+		else
+			dbName = "__inter__" & cint(rnd * 1000000)
+		end if
+		kill dbName + ".db"
+		db->open(dbName + ".db")
 		db->execNonQuery("PRAGMA JOURNAL_MODE=OFF")
 		db->execNonQuery("PRAGMA SYNCHRONOUS=0")
 		db->execNonQuery("PRAGMA LOCKING_MODE=EXCLUSIVE")

@@ -16,7 +16,7 @@ on error goto exceptionReport
 
 '''''''''''   
 sub mostrarCopyright()
-	print wstr("Extrator de EFD/Sintegra para Excel, versão 0.9.3 beta")
+	print wstr("Extrator de EFD/Sintegra para Excel/Csv/SQLite/Pdf, versão 0.9.3 beta")
 	print wstr("Copyleft 2017-2020 by André Vicentini (avtvicentini)")
 	print
 end sub
@@ -55,8 +55,8 @@ sub mostrarUso()
 	print wstr(!"  Deixam de gerar os respectivos livros quando -gerarRelatorios é utilizada.")
 	print wstr(!" -naoAnalisar e -naoResumir:")
 	print wstr(!"  Deixam de gerar as planilhas de inconsistências e resumos, respectivamente.")
-	print wstr(!" -formatoDeSaida xml|csv|xlsx|null:")
-	print wstr(!"  Altera o formato de saída do padrão xlsx para csv ou XML.")
+	print wstr(!" -formatoDeSaida xml|csv|xlsx|sqlite|access|null:")
+	print wstr(!"  Altera o formato de saída de xlsx para csv, XML, SQLite(.db) ou Access(.mdb).")
 	print wstr(!" -complementarDados:")
 	print wstr(!"  Inclui dados complementares na planilha (aba Saídas ou Entradas para docs")
 	print wstr(!"  de emissão própria) que será gerada e que não constam na EFD, caso os")
@@ -115,6 +115,8 @@ end sub
 '''''''''''
 sub main()
 	dim opcoes as OpcoesExtracao
+	
+	randomize , 1
 	
 	if len(command(1)) = 0 then
 		FreeConsole()
@@ -208,6 +210,10 @@ sub main()
 					opcoes.formatoDeSaida = FT_CSV
 				case "xlsx"
 					opcoes.formatoDeSaida = FT_XLSX
+				case "sqlite"
+					opcoes.formatoDeSaida = FT_SQLITE
+				case "access"
+					opcoes.formatoDeSaida = FT_ACCESS
 				case "null"
 					opcoes.formatoDeSaida = FT_NULL
 					opcoes.pularAnalises = true

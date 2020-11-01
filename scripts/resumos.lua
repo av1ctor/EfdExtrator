@@ -5,7 +5,7 @@ end
 
 ----------------------------------------------------------------------
 -- resumo por CFOP na LRE
-function LRE_cfop(db, ws)
+function LRE_cfop(db, ws, opcoes)
 
 	ds = db_exec( db, [[
 		select
@@ -29,22 +29,22 @@ function LRE_cfop(db, ws)
 	]])
 	
 	while ds_hasNext( ds ) do
-		efd_plan_resumos_AddRow( ws, ds, TR_CFOP, TL_ENTRADAS )
+		efd_plan_resumos_AddRow( ws, ds, opcoes, TR_CFOP, TL_ENTRADAS )
 		ds_next( ds )
 	end
 	
 	ds_del( ds )
 end
 
-function LRE_criarResumoCFOP(db, ws)
+function LRE_criarResumoCFOP(db, ws, opcoes)
 
-	xpcall(LRE_cfop, errorHandler, db, ws)
+	xpcall(LRE_cfop, errorHandler, db, ws, opcoes)
 	
 end
 
 ----------------------------------------------------------------------
 -- resumo por CST na LRE
-function LRE_cst(db, ws)
+function LRE_cst(db, ws, opcoes)
 
 	ds = db_exec( db, [[
 		select
@@ -68,21 +68,21 @@ function LRE_cst(db, ws)
 	]])
 	
 	while ds_hasNext( ds ) do
-		efd_plan_resumos_AddRow( ws, ds, TR_CST, TL_ENTRADAS )
+		efd_plan_resumos_AddRow( ws, ds, opcoes, TR_CST, TL_ENTRADAS )
 		ds_next( ds )
 	end
 	
 	ds_del( ds )
 end
 
-function LRE_criarResumoCST(db, ws)
+function LRE_criarResumoCST(db, ws, opcoes)
 
-	xpcall(LRE_cst, errorHandler, db, ws)
+	xpcall(LRE_cst, errorHandler, db, ws, opcoes)
 	
 end
 ----------------------------------------------------------------------
 -- resumo por CST e CFOP na LRE
-function LRE_cstCfop(db, ws)
+function LRE_cstCfop(db, ws, opcoes)
 
 	ds = db_exec( db, [[
 		select
@@ -109,22 +109,22 @@ function LRE_cstCfop(db, ws)
 	]])
 	
 	while ds_hasNext( ds ) do
-		efd_plan_resumos_AddRow( ws, ds, TR_CST_CFOP, TL_ENTRADAS )
+		efd_plan_resumos_AddRow( ws, ds, opcoes, TR_CST_CFOP, TL_ENTRADAS )
 		ds_next( ds )
 	end
 	
 	ds_del( ds )
 end
 
-function LRE_criarResumoCstCfop(db, ws)
+function LRE_criarResumoCstCfop(db, ws, opcoes)
 
-	xpcall(LRE_cstCfop, errorHandler, db, ws)
+	xpcall(LRE_cstCfop, errorHandler, db, ws, opcoes)
 	
 end
 
 ----------------------------------------------------------------------
 -- resumo por CFOP na LRS
-function LRS_cfop(db, ws)
+function LRS_cfop(db, ws, opcoes)
 
 	ds = db_exec( db, [[
 		select
@@ -148,21 +148,21 @@ function LRS_cfop(db, ws)
 	]])
 	
 	while ds_hasNext( ds ) do
-		efd_plan_resumos_AddRow( ws, ds, TR_CFOP, TL_SAIDAS )
+		efd_plan_resumos_AddRow( ws, ds, opcoes, TR_CFOP, TL_SAIDAS )
 		ds_next( ds )
 	end
 	
 	ds_del( ds )
 end
 
-function LRS_criarResumoCFOP(db, ws)
+function LRS_criarResumoCFOP(db, ws, opcoes)
 
-	xpcall(LRS_cfop, errorHandler, db, ws)
+	xpcall(LRS_cfop, errorHandler, db, ws, opcoes)
 end
 
 ----------------------------------------------------------------------
 -- resumo por CST na LRS
-function LRS_cst(db, ws)
+function LRS_cst(db, ws, opcoes)
 
 	ds = db_exec( db, [[
 		select
@@ -186,22 +186,22 @@ function LRS_cst(db, ws)
 	]])
 	
 	while ds_hasNext( ds ) do
-		efd_plan_resumos_AddRow( ws, ds, TR_CST, TL_SAIDAS )
+		efd_plan_resumos_AddRow( ws, ds, opcoes, TR_CST, TL_SAIDAS )
 		ds_next( ds )
 	end
 	
 	ds_del( ds )
 end
 
-function LRS_criarResumoCST(db, ws)
+function LRS_criarResumoCST(db, ws, opcoes)
 
-	xpcall(LRS_cst, errorHandler, db, ws)
+	xpcall(LRS_cst, errorHandler, db, ws, opcoes)
 	
 end
 
 ----------------------------------------------------------------------
 -- resumo por CST e CFOP na LRS
-function LRS_cstCfop(db, ws)
+function LRS_cstCfop(db, ws, opcoes)
 
 	ds = db_exec( db, [[
 		select
@@ -228,15 +228,15 @@ function LRS_cstCfop(db, ws)
 	]])
 	
 	while ds_hasNext( ds ) do
-		efd_plan_resumos_AddRow( ws, ds, TR_CST_CFOP, TL_SAIDAS )
+		efd_plan_resumos_AddRow( ws, ds, opcoes, TR_CST_CFOP, TL_SAIDAS )
 		ds_next( ds )
 	end
 	
 	ds_del( ds )
 end
 
-function LRS_criarResumoCstCfop(db, ws)
+function LRS_criarResumoCstCfop(db, ws, opcoes)
 
-	xpcall(LRS_cstCfop, errorHandler, db, ws)
+	xpcall(LRS_cstCfop, errorHandler, db, ws, opcoes)
 	
 end

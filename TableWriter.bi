@@ -3,6 +3,7 @@
 #include once "Lua/lauxlib.bi"
 #include once "libiconv.bi"
 #include once "xlsxwriter.bi"
+#include once "DB.bi"
 #define NULL 0
 
 enum ColumnType
@@ -13,32 +14,33 @@ enum ColumnType
 	CT_PERCENT
 	CT_DATE	
 	CT_MONEY
-	__CT_LEN__
+	CT__LEN__
 end enum
 
 type TableColumn
-	type_				   	as ColumnType = CT_STRING
-	width_					as integer
-	next_				   	as TableColumn ptr = null
+	type_ as ColumnType = CT_STRING
+	width_ as integer
+	size as integer
+	next_ as TableColumn ptr = null
 	
-	declare constructor(type_ as ColumnType, width_ as integer = 0)
+	declare constructor(type_ as ColumnType, width_ as integer = 0, size as integer = 0)
 end type
 
 type TableCell
-	num						as integer
-	content			   		as string
-	width_					as integer
-	next_				   	as TableCell ptr = null
+	num as integer
+	content as string
+	width_ as integer
+	next_ as TableCell ptr
 	
 	declare constructor(content as const zstring ptr, num as integer = -1)
 end type
 
 type TableRow
-	asIs					as boolean = false
-	num						as integer
-	cellListHead	   		as TableCell ptr = null
-	cellListTail	   		as TableCell ptr = null
-	next_				   	as TableRow ptr = null
+	asIs as boolean
+	num as integer
+	cellListHead as TableCell ptr
+	cellListTail as TableCell ptr
+	next_ as TableRow ptr
 	
 	declare constructor(num as integer, asIs as boolean = false)
 	declare destructor
@@ -49,32 +51,33 @@ type TableRow
 end type
 
 type TableTable
-	name					as string
-	colListHead				as TableColumn ptr = null
-	colListTail				as TableColumn ptr = null
-	rowListHead				as TableRow ptr = null
-	rowListTail				as TableRow ptr = null
-	rows(any)				as TableRow ptr
-	curRow					as integer
-	nRows					as integer
-	next_					as TableTable ptr = null
+	name as string
+	colListHead as TableColumn ptr
+	colListTail as TableColumn ptr
+	rowListHead as TableRow ptr
+	rowListTail as TableRow ptr
+	rows(any) as TableRow ptr
+	curRow as integer
+	nRows as integer
+	next_ as TableTable ptr
 	
 	declare constructor(name as string)
 	declare destructor
-	declare function addColumn(type_ as ColumnType, width_ as integer = 0) as TableColumn ptr
+	declare function addColumn(type_ as ColumnType, width_ as integer = 0, size as integer = 0) as TableColumn ptr
 	declare function addRow(asIs as boolean = false, num as integer = -1) as TableRow ptr
 	declare sub setRow(num as integer)
 end type
 
 type TableCollection
-	tableListHead		as TableTable ptr = null
-	tableListTail		as TableTable ptr = null
+	tableListHead as TableTable ptr
+	tableListTail as TableTable ptr
 	
 	declare destructor
 	declare function addTable(name as string) as TableTable ptr
 end type
 
 type OnProgressCB as function(stage as const zstring ptr, perComplete as double) as boolean
+type OnErrorCB as sub(msg as const zstring ptr)
 
 enum FileType
 	FT_XLSX
@@ -90,7 +93,7 @@ type TableWriter
 	declare destructor
 	declare function addTable(name as string) as TableTable ptr
 	declare function create(fileName as string, ftype as FileType = FT_XLSX) as boolean
-	declare function flush(onProgress as OnProgressCB) as boolean
+	declare function flush(onProgress as OnProgressCB, onError as OnErrorCB) as boolean
 	declare sub close
 	declare static sub exportAPI(L as lua_State ptr)
 	
@@ -99,10 +102,12 @@ private:
 	fileName as string
 	fnum as integer = 0
 	xlsxWorkbook as lxw_workbook ptr
-	xlsxFormats(0 to __CT_LEN__-1) as lxw_format ptr
+	xlsxFormats(0 to CT__LEN__-1) as lxw_format ptr
+	db as TDb ptr
 	cd as iconv_t
 	
 	tables as TableCollection ptr = null
-	colType2Str(0 to __CT_LEN__-1) as string
-	colWidth(0 to __CT_LEN__-1) as integer
+	colType2Str(0 to CT__LEN__-1) as string
+	colType2Sql(0 to CT__LEN__-1) as string
+	colWidth(0 to CT__LEN__-1) as integer
 end type
