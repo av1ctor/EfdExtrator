@@ -1,37 +1,37 @@
 
-#include once "ExcelWriter.bi"
+#include once "TableWriter.bi"
 #include "libiconv.bi"
 
 ''
-constructor ExcelWriter()
-	workbook = new ExcelWorkbook
+constructor TableWriter()
+	tables = new TableCollection
 	fnum = 0
 	xlsxWorkbook = null
 	
-	cellType2String(CT_STRING) 		= "String"
-	cellType2String(CT_STRING_UTF8)	= "String"
-	cellType2String(CT_NUMBER) 		= "Number"
-	cellType2String(CT_INTNUMBER)   = "Number"
-	cellType2String(CT_DATE) 		= "DateTime"
-	cellType2String(CT_MONEY) 		= "Number"
-	cellType2String(CT_PERCENT)		= "Number"
+	colType2Str(CT_STRING) 		= "String"
+	colType2Str(CT_STRING_UTF8)	= "String"
+	colType2Str(CT_NUMBER) 		= "Number"
+	colType2Str(CT_INTNUMBER)   = "Number"
+	colType2Str(CT_DATE) 		= "DateTime"
+	colType2Str(CT_MONEY) 		= "Number"
+	colType2Str(CT_PERCENT)		= "Number"
 
-	cellWidth(CT_STRING) 		= LXW_DEF_COL_WIDTH + 8
-	cellWidth(CT_STRING_UTF8)	= LXW_DEF_COL_WIDTH + 8
-	cellWidth(CT_NUMBER) 		= LXW_DEF_COL_WIDTH + 0
-	cellWidth(CT_INTNUMBER)   	= LXW_DEF_COL_WIDTH + 0
-	cellWidth(CT_DATE) 			= LXW_DEF_COL_WIDTH + 2
-	cellWidth(CT_MONEY) 		= LXW_DEF_COL_WIDTH + 6
-	cellWidth(CT_PERCENT)		= LXW_DEF_COL_WIDTH + 0
+	colWidth(CT_STRING) 		= LXW_DEF_COL_WIDTH + 8
+	colWidth(CT_STRING_UTF8)	= LXW_DEF_COL_WIDTH + 8
+	colWidth(CT_NUMBER) 		= LXW_DEF_COL_WIDTH + 0
+	colWidth(CT_INTNUMBER)   	= LXW_DEF_COL_WIDTH + 0
+	colWidth(CT_DATE) 			= LXW_DEF_COL_WIDTH + 2
+	colWidth(CT_MONEY) 			= LXW_DEF_COL_WIDTH + 6
+	colWidth(CT_PERCENT)		= LXW_DEF_COL_WIDTH + 0
 
 	cd = iconv_open("UTF-8", "ISO_8859-1")
 end constructor
 
 ''
-destructor ExcelWriter()
-	if workbook <> null then
-		delete workbook
-		workbook = null
+destructor TableWriter()
+	if tables <> null then
+		delete tables
+		tables = null
 	end if
 	
 	if fnum <> 0 then
@@ -46,14 +46,14 @@ destructor ExcelWriter()
 end destructor
 
 ''
-function ExcelWriter.AddWorksheet(name_ as string) as ExcelWorksheet ptr
+function TableWriter.addTable(name_ as string) as TableTable ptr
 
-	function = workbook->AddWorksheet(name_)
+	function = tables->addTable(name_)
 
 end function
 
 ''
-function ExcelWriter.Create(fileName as string, ftype as FileType) as boolean
+function TableWriter.Create(fileName as string, ftype as FileType) as boolean
 	
 	this.ftype = ftype
 	this.fileName = fileName
@@ -126,7 +126,7 @@ private function latin2UTF8(src as zstring ptr, cd as iconv_t) as string
 end function
 
 ''
-function ExcelWriter.Flush(onProgress as OnProgressCB) as boolean
+function TableWriter.Flush(onProgress as OnProgressCB) as boolean
 
 	var p = 1
 
@@ -138,7 +138,7 @@ function ExcelWriter.Flush(onProgress as OnProgressCB) as boolean
 	var totalRows = 0
    
 	'' para cada planilha..
-	var sheet = workbook->worksheetListHead
+	var sheet = tables->tableListHead
 	do while sheet <> null
 		
 		if sheet->nRows > 1 then
@@ -147,8 +147,8 @@ function ExcelWriter.Flush(onProgress as OnProgressCB) as boolean
 			select case ftype
 			case FT_XML
 				'' para cada cell type..
-				if sheet->cellTypeListHead <> null then
-					var ct = sheet->cellTypeListHead
+				if sheet->colListHead <> null then
+					var ct = sheet->colListHead
 					var i = 1
 					do while ct <> null
 						print #fnum, !"<Style ss:ID=\"colStyle_" & p & "_" & i & !"\">"
@@ -184,7 +184,7 @@ function ExcelWriter.Flush(onProgress as OnProgressCB) as boolean
 	' para cada planilha..
 	p = 1
 	var curRow = 0
-	sheet = workbook->worksheetListHead
+	sheet = tables->tableListHead
 	do while sheet <> null
 		
 		if sheet->nRows > 1 then
@@ -195,8 +195,8 @@ function ExcelWriter.Flush(onProgress as OnProgressCB) as boolean
 				print #fnum, !"<Worksheet ss:Name=\"" + sheet->name + !"\">"
 				print #fnum, !"<Table>"
 
-				if sheet->cellTypeListHead <> null then
-					var ct = sheet->cellTypeListHead
+				if sheet->colListHead <> null then
+					var ct = sheet->colListHead
 					var i = 1
 					 do while ct <> null
 						print #fnum, !"<Column ss:Index=\"" & i & !"\" ss:StyleID=\"colStyle_" & p & "_" & i & !"\" ss:AutoFitWidth=\"1\" />"
@@ -219,11 +219,11 @@ function ExcelWriter.Flush(onProgress as OnProgressCB) as boolean
 				xlsXWorksheet = workbook_add_worksheet(xlsxWorkbook, sheet->name)
 				
 				'' para cada cell type..
-				if sheet->cellTypeListHead <> null then
-					var ct = sheet->cellTypeListHead
+				if sheet->colListHead <> null then
+					var ct = sheet->colListHead
 					var colNum = 0
 					do while ct <> null
-						var wdt = iif(ct->width_ = 0, cellWidth(ct->type_), ct->width_)
+						var wdt = iif(ct->width_ = 0, colWidth(ct->type_), ct->width_)
 						worksheet_set_column(xlsXWorksheet, colNum, colNum, wdt, xlsxFormats(ct->type_))
 						colNum += 1
 						ct = ct->next_
@@ -296,7 +296,7 @@ function ExcelWriter.Flush(onProgress as OnProgressCB) as boolean
 							print #fnum, !"<Row>"
 							'' para cada celula da linha..
 							var cell = row->cellListHead
-							var ct = sheet->cellTypeListHead
+							var ct = sheet->colListHead
 							var colNum = 0
 							do while cell <> null
 								do while cell->num > colNum
@@ -312,7 +312,7 @@ function ExcelWriter.Flush(onProgress as OnProgressCB) as boolean
 								case CT_STRING, CT_STRING_UTF8
 									content = escapeContent(content)
 								end select
-								print #fnum, !"<Cell><Data ss:Type=\"" + cellType2String(iif(ct <> null, ct->type_, CT_STRING)) + !"\">" + content + "</Data></Cell>"
+								print #fnum, !"<Cell><Data ss:Type=\"" + colType2Str(iif(ct <> null, ct->type_, CT_STRING)) + !"\">" + content + "</Data></Cell>"
 								cell = cell->next_
 								colNum += 1
 								if ct <> null then
@@ -325,7 +325,7 @@ function ExcelWriter.Flush(onProgress as OnProgressCB) as boolean
 						case FT_CSV
 							'' para cada celula da linha..
 							var cell = row->cellListHead
-							var ct = sheet->cellTypeListHead
+							var ct = sheet->colListHead
 							var colNum = 0
 							do while cell <> null
 								do while cell->num > colNum
@@ -347,7 +347,7 @@ function ExcelWriter.Flush(onProgress as OnProgressCB) as boolean
 						case FT_XLSX
 							'' para cada celula da linha..
 							var cell = row->cellListHead
-							var ct = sheet->cellTypeListHead
+							var ct = sheet->colListHead
 							var colNum = 0
 							do while cell <> null
 								do while cell->num > colNum
@@ -414,7 +414,7 @@ function ExcelWriter.Flush(onProgress as OnProgressCB) as boolean
 end function
 
 ''
-sub ExcelWriter.close
+sub TableWriter.close
 	if fnum <> 0 then
 		'' footer
 		print #fnum, !"</Workbook>"
@@ -432,7 +432,7 @@ end sub
 ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
 ''
-constructor ExcelCellType(type_ as CellType, width_ as integer)
+constructor TableColumn(type_ as ColumnType, width_ as integer)
 	this.type_ = type_
 	this.width_ = width_
 end constructor
@@ -440,7 +440,7 @@ end constructor
 ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
 ''
-constructor ExcelWorksheet(name as string)
+constructor TableTable(name as string)
 	this.name = name
 	curRow = 0
 	nRows = 0
@@ -448,12 +448,12 @@ constructor ExcelWorksheet(name as string)
 end constructor
 
 ''
-destructor ExcelWorksheet()
+destructor TableTable()
 
-	do while cellTypeListHead <> null
-		var next_ = cellTypeListHead->next_
-		delete cellTypeListHead
-		cellTypeListHead = next_
+	do while colListHead <> null
+		var next_ = colListHead->next_
+		delete colListHead
+		colListHead = next_
 	loop
 
 	do while rowListHead <> null
@@ -465,16 +465,16 @@ destructor ExcelWorksheet()
 end destructor
 
 ''
-function ExcelWorksheet.AddCellType(type_ as CellType, width_ as integer) as ExcelCellType ptr
+function TableTable.addColumn(type_ as ColumnType, width_ as integer) as TableColumn ptr
 
-	var ct = new ExcelCellType(type_, width_)
+	var ct = new TableColumn(type_, width_)
 	
-	if cellTypeListHead = null then
-		cellTypeListHead = ct
-		cellTypeListTail = ct
+	if colListHead = null then
+		colListHead = ct
+		colListTail = ct
 	else
-		cellTypeListTail->next_ = ct
-		cellTypeListTail = ct
+		colListTail->next_ = ct
+		colListTail = ct
 	end if
 	
 	function = ct
@@ -482,7 +482,7 @@ function ExcelWorksheet.AddCellType(type_ as CellType, width_ as integer) as Exc
 end function
 
 ''
-function ExcelWorksheet.AddRow(asIs as boolean, num as integer) as ExcelRow ptr
+function TableTable.AddRow(asIs as boolean, num as integer) as TableRow ptr
 
 	if num >= 0 then
 		curRow = num
@@ -494,7 +494,7 @@ function ExcelWorksheet.AddRow(asIs as boolean, num as integer) as ExcelRow ptr
 	
 	var row = rows(curRow)
 	if row = null then
-		row = new ExcelRow(curRow, asIs)
+		row = new TableRow(curRow, asIs)
 		rows(curRow) = row
 		
 		if rowListHead = null then
@@ -515,32 +515,32 @@ function ExcelWorksheet.AddRow(asIs as boolean, num as integer) as ExcelRow ptr
 end function
 
 ''
-sub ExcelWorksheet.setRow(num as integer)
+sub TableTable.setRow(num as integer)
 	curRow = num
 end sub
 
 ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
 ''
-destructor ExcelWorkbook
-	do while worksheetListHead <> null
-		var next_ = worksheetListHead->next_
-		delete worksheetListHead
-		worksheetListHead = next_
+destructor TableCollection
+	do while tableListHead <> null
+		var next_ = tableListHead->next_
+		delete tableListHead
+		tableListHead = next_
 	loop
 end destructor
 
 ''
-function ExcelWorkbook.AddWorksheet(name_ as string) as ExcelWorksheet ptr
+function TableCollection.addTable(name_ as string) as TableTable ptr
 
-	var sheet = new ExcelWorksheet(name_)
+	var sheet = new TableTable(name_)
 	
-	if worksheetListHead = null then
-		worksheetListHead = sheet
-		worksheetListTail = sheet
+	if tableListHead = null then
+		tableListHead = sheet
+		tableListTail = sheet
 	else
-		worksheetListTail->next_ = sheet
-		worksheetListTail = sheet
+		tableListTail->next_ = sheet
+		tableListTail = sheet
 	end if
 	
 	function = sheet
@@ -550,15 +550,15 @@ end function
 ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
 ''
-constructor ExcelRow(num as integer, asIs as boolean)
+constructor TableRow(num as integer, asIs as boolean)
 	this.num = num
 	this.asIs = asIs
 end constructor
 
 ''
-function ExcelRow.AddCell(content as const zstring ptr, width_ as integer, num as integer) as ExcelCell ptr
+function TableRow.AddCell(content as const zstring ptr, width_ as integer, num as integer) as TableCell ptr
 
-	var cell = new ExcelCell(content, num)
+	var cell = new TableCell(content, num)
 	cell->width_ = width_
 	
 	if cellListHead = null then
@@ -574,28 +574,28 @@ function ExcelRow.AddCell(content as const zstring ptr, width_ as integer, num a
 end function
 
 ''
-function ExcelRow.AddCell(content as integer, num as integer) as ExcelCell ptr
+function TableRow.AddCell(content as integer, num as integer) as TableCell ptr
 
 	function = AddCell(str(content), num)
 
 end function
 
 ''
-function ExcelRow.AddCell(content as longint, num as integer) as ExcelCell ptr
+function TableRow.AddCell(content as longint, num as integer) as TableCell ptr
 
 	function = AddCell(str(content), num)
 
 end function
 
 ''
-function ExcelRow.AddCell(content as double, num as integer) as ExcelCell ptr
+function TableRow.AddCell(content as double, num as integer) as TableCell ptr
 
 	function = AddCell(str(content), num)
 
 end function
 
 ''
-destructor ExcelRow()
+destructor TableRow()
 
 	do while cellListHead <> null
 		var next_ = cellListHead->next_
@@ -609,7 +609,7 @@ end destructor
 ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
 ''
-constructor ExcelCell(content as const zstring ptr, num as integer)
+constructor TableCell(content as const zstring ptr, num as integer)
 	this.num = num
 	this.content = *content
 end constructor
@@ -621,7 +621,7 @@ end constructor
 private function luacb_ew_new cdecl(byval L as lua_State ptr) as long
 	var args = lua_gettop(L)
 	
-	var ew = new ExcelWriter()
+	var ew = new TableWriter()
 	lua_pushlightuserdata(L, ew)
 	
 	function = 1
@@ -633,7 +633,7 @@ private function luacb_ew_del cdecl(byval L as lua_State ptr) as long
 	var args = lua_gettop(L)
 	
 	if args = 1 then
-		var ew = cast(ExcelWriter ptr, lua_touserdata(L, 1))
+		var ew = cast(TableWriter ptr, lua_touserdata(L, 1))
 		delete ew
 	end if
 	
@@ -646,7 +646,7 @@ private function luacb_ew_create cdecl(byval L as lua_State ptr) as long
 	var args = lua_gettop(L)
 	
 	if args = 3 then
-		var ew = cast(ExcelWriter ptr, lua_touserdata(L, 1))
+		var ew = cast(TableWriter ptr, lua_touserdata(L, 1))
 		var fName = cast(zstring ptr, lua_tostring(L, 2))
 		var isCSV = lua_tointeger(L, 3)
 		
@@ -664,7 +664,7 @@ private function luacb_ew_close cdecl(byval L as lua_State ptr) as long
 	var args = lua_gettop(L)
 	
 	if args = 1 then
-		var ew = cast(ExcelWriter ptr, lua_touserdata(L, 1))
+		var ew = cast(TableWriter ptr, lua_touserdata(L, 1))
 		
 		ew->close()
 	end if
@@ -674,14 +674,14 @@ private function luacb_ew_close cdecl(byval L as lua_State ptr) as long
 end function
 
 ''''''''
-private function luacb_ew_addWorksheet cdecl(byval L as lua_State ptr) as long
+private function luacb_ew_addTable cdecl(byval L as lua_State ptr) as long
 	var args = lua_gettop(L)
 	
 	if args = 2 then
-		var ew = cast(ExcelWriter ptr, lua_touserdata(L, 1))
+		var ew = cast(TableWriter ptr, lua_touserdata(L, 1))
 		var wsName = cast(zstring ptr, lua_tostring(L, 2))
 		
-		lua_pushlightuserdata(L, ew->addWorksheet(*wsName))
+		lua_pushlightuserdata(L, ew->addTable(*wsName))
 	else
 		lua_pushnil(L)
 	end if
@@ -695,7 +695,7 @@ private function luacb_ws_addRow cdecl(byval L as lua_State ptr) as long
 	var args = lua_gettop(L)
 	
 	if args = 3 then
-		var ws = cast(ExcelWorksheet ptr, lua_touserdata(L, 1))
+		var ws = cast(TableTable ptr, lua_touserdata(L, 1))
 		var num = lua_tointeger(L, 2)
 		var asIs = lua_tointeger(L, 3)
 		
@@ -709,14 +709,14 @@ private function luacb_ws_addRow cdecl(byval L as lua_State ptr) as long
 end function
 
 ''''''''
-private function luacb_ws_addCellType cdecl(byval L as lua_State ptr) as long
+private function luacb_ws_addColumn cdecl(byval L as lua_State ptr) as long
 	var args = lua_gettop(L)
 	
 	if args = 2 then
-		var ws = cast(ExcelWorksheet ptr, lua_touserdata(L, 1))
+		var ws = cast(TableTable ptr, lua_touserdata(L, 1))
 		var type_ = lua_tointeger(L, 2)
 		
-		ws->addCellType(type_)
+		ws->addColumn(type_)
 	end if
 	
 	function = 0
@@ -728,9 +728,9 @@ private function luacb_er_addCell cdecl(byval L as lua_State ptr) as long
 	var args = lua_gettop(L)
 	
 	if args = 2 then
-		var er = cast(ExcelRow ptr, lua_touserdata(L, 1))
+		var er = cast(TableRow ptr, lua_touserdata(L, 1))
 		
-		dim as ExcelCell ptr ec = null
+		dim as TableCell ptr ec = null
 		if lua_isstring(L, 2) then
 			ec = er->addCell(lua_tostring(L, 2))
 		else
@@ -750,7 +750,7 @@ end function
 #define lua_defGlobal(L, varName, value) lua_pushnumber(L, cint(value)): lua_setglobal(L, varName)
 
 ''''''''
-static sub ExcelWriter.exportAPI(L as lua_State ptr)
+static sub TableWriter.exportAPI(L as lua_State ptr)
 	
 	lua_defGlobal(L, "CT_STRING", CT_STRING)
 	lua_defGlobal(L, "CT_STRING_UTF8", CT_STRING_UTF8)
@@ -764,10 +764,10 @@ static sub ExcelWriter.exportAPI(L as lua_State ptr)
 	lua_register(L, "ew_del", @luacb_ew_del)
 	lua_register(L, "ew_create", @luacb_ew_create)
 	lua_register(L, "ew_close", @luacb_ew_close)
-	lua_register(L, "ew_addWorksheet", @luacb_ew_addWorksheet)
+	lua_register(L, "ew_addTable", @luacb_ew_addTable)
 	
 	lua_register(L, "ws_addRow", @luacb_ws_addRow)
-	lua_register(L, "ws_addCellType", @luacb_ws_addCellType)
+	lua_register(L, "ws_addColumn", @luacb_ws_addColumn)
 	
 	lua_register(L, "er_addCell", @luacb_er_addCell)
 	

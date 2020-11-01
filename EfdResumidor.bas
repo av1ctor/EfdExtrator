@@ -1,6 +1,6 @@
 #include once "Efd.bi"
 #include once "EfdResumidor.bi"
-#include once "ExcelWriter.bi"
+#include once "TableWriter.bi"
 #include once "vbcompat.bi"
 #include once "DB.bi"
 #include once "Lua/lualib.bi"
@@ -32,9 +32,19 @@ function EfdResumidor.withLua(lua as lua_State ptr) as EfdResumidor ptr
 end function
 
 ''''''''
-private sub resumoAddHeaderCfopLRE(ws as ExcelWorksheet ptr)
+private sub resumoAddHeaderCfopLRE(ws as TableTable ptr)
 	var row = ws->AddRow(false, 0)
 	row->addCell("Resumo por CFOP", 9)
+	
+	ws->addColumn(CT_INTNUMBER)
+	ws->addColumn(CT_STRING_UTF8, 45)
+	ws->addColumn(CT_STRING_UTF8, 15)
+	ws->addColumn(CT_MONEY)
+	ws->addColumn(CT_MONEY)
+	ws->addColumn(CT_MONEY)
+	ws->addColumn(CT_PERCENT)
+	ws->addColumn(CT_PERCENT)
+	ws->addColumn(CT_MONEY)
 	
 	row = ws->addRow(true)
 	row->addCell("CFOP")
@@ -46,22 +56,23 @@ private sub resumoAddHeaderCfopLRE(ws as ExcelWorksheet ptr)
 	row->addCell("RedBC ICMS")
 	row->addCell("Aliq ICMS")
 	row->addCell("Vl IPI")
-	
-	ws->AddCellType(CT_INTNUMBER)
-	ws->AddCellType(CT_STRING_UTF8, 45)
-	ws->AddCellType(CT_STRING_UTF8, 15)
-	ws->AddCellType(CT_MONEY)
-	ws->AddCellType(CT_MONEY)
-	ws->AddCellType(CT_MONEY)
-	ws->AddCellType(CT_PERCENT)
-	ws->AddCellType(CT_PERCENT)
-	ws->AddCellType(CT_MONEY)
 end sub
 
 ''''''''
-private sub resumoAddHeaderCstLRE(ws as ExcelWorksheet ptr)
+private sub resumoAddHeaderCstLRE(ws as TableTable ptr)
 	var row = ws->AddRow(false, 0)
 	row->addCell("Resumo por CST", 9, 10)
+	
+	ws->addColumn(CT_STRING_UTF8, 4)
+	ws->addColumn(CT_INTNUMBER)
+	ws->addColumn(CT_STRING_UTF8, 45)
+	ws->addColumn(CT_STRING_UTF8, 30)
+	ws->addColumn(CT_MONEY)
+	ws->addColumn(CT_MONEY)
+	ws->addColumn(CT_MONEY)
+	ws->addColumn(CT_PERCENT)
+	ws->addColumn(CT_PERCENT)
+	ws->addColumn(CT_MONEY)
 	
 	row = ws->addRow(true)
 	row->addCell("CST", 1, 10)
@@ -73,23 +84,26 @@ private sub resumoAddHeaderCstLRE(ws as ExcelWorksheet ptr)
 	row->addCell("RedBC ICMS")
 	row->addCell("Aliq ICMS")
 	row->addCell("Vl IPI")
-	
-	ws->AddCellType(CT_STRING_UTF8, 4)
-	ws->AddCellType(CT_INTNUMBER)
-	ws->AddCellType(CT_STRING_UTF8, 45)
-	ws->AddCellType(CT_STRING_UTF8, 30)
-	ws->AddCellType(CT_MONEY)
-	ws->AddCellType(CT_MONEY)
-	ws->AddCellType(CT_MONEY)
-	ws->AddCellType(CT_PERCENT)
-	ws->AddCellType(CT_PERCENT)
-	ws->AddCellType(CT_MONEY)
 end sub
 
 ''''''''
-private sub resumoAddHeaderCstCfopLRE(ws as ExcelWorksheet ptr)
+private sub resumoAddHeaderCstCfopLRE(ws as TableTable ptr)
 	var row = ws->AddRow(false, 0)
 	row->addCell("Resumo por CST e CFOP", 12, 20)
+	
+	ws->addColumn(CT_STRING_UTF8, 4)
+	ws->addColumn(CT_INTNUMBER)
+	ws->addColumn(CT_STRING_UTF8, 45)
+	ws->addColumn(CT_STRING_UTF8, 30)
+	ws->addColumn(CT_INTNUMBER)
+	ws->addColumn(CT_STRING_UTF8, 45)
+	ws->addColumn(CT_STRING_UTF8, 15)
+	ws->addColumn(CT_MONEY)
+	ws->addColumn(CT_MONEY)
+	ws->addColumn(CT_MONEY)
+	ws->addColumn(CT_PERCENT)
+	ws->addColumn(CT_PERCENT)
+	ws->addColumn(CT_MONEY)
 	
 	row = ws->addRow(true)
 	row->addCell("CST", 1, 20)
@@ -104,27 +118,26 @@ private sub resumoAddHeaderCstCfopLRE(ws as ExcelWorksheet ptr)
 	row->addCell("RedBC ICMS")
 	row->addCell("Aliq ICMS")
 	row->addCell("Vl IPI")
-	
-	ws->AddCellType(CT_STRING_UTF8, 4)
-	ws->AddCellType(CT_INTNUMBER)
-	ws->AddCellType(CT_STRING_UTF8, 45)
-	ws->AddCellType(CT_STRING_UTF8, 30)
-	ws->AddCellType(CT_INTNUMBER)
-	ws->AddCellType(CT_STRING_UTF8, 45)
-	ws->AddCellType(CT_STRING_UTF8, 15)
-	ws->AddCellType(CT_MONEY)
-	ws->AddCellType(CT_MONEY)
-	ws->AddCellType(CT_MONEY)
-	ws->AddCellType(CT_PERCENT)
-	ws->AddCellType(CT_PERCENT)
-	ws->AddCellType(CT_MONEY)
 end sub
 
 ''''''''
-private sub resumoAddHeaderCfopLRS(ws as ExcelWorksheet ptr)
+private sub resumoAddHeaderCfopLRS(ws as TableTable ptr)
 	var row = ws->AddRow(false, 0)
 	row->addCell("Resumo por CFOP", 12)
 
+	ws->addColumn(CT_INTNUMBER)
+	ws->addColumn(CT_STRING_UTF8, 45)
+	ws->addColumn(CT_STRING_UTF8, 15)
+	ws->addColumn(CT_MONEY)
+	ws->addColumn(CT_MONEY)
+	ws->addColumn(CT_MONEY)
+	ws->addColumn(CT_PERCENT)
+	ws->addColumn(CT_PERCENT)
+	ws->addColumn(CT_MONEY)
+	ws->addColumn(CT_MONEY)
+	ws->addColumn(CT_PERCENT)
+	ws->addColumn(CT_MONEY)
+	
 	row = ws->addRow(true)
 	row->addCell("CFOP")
 	row->addCell("Descricao")
@@ -138,26 +151,27 @@ private sub resumoAddHeaderCfopLRS(ws as ExcelWorksheet ptr)
 	row->addCell("Vl ICMS ST")
 	row->addCell("Aliq ICMS ST")
 	row->addCell("Vl IPI")
-	
-	ws->AddCellType(CT_INTNUMBER)
-	ws->AddCellType(CT_STRING_UTF8, 45)
-	ws->AddCellType(CT_STRING_UTF8, 15)
-	ws->AddCellType(CT_MONEY)
-	ws->AddCellType(CT_MONEY)
-	ws->AddCellType(CT_MONEY)
-	ws->AddCellType(CT_PERCENT)
-	ws->AddCellType(CT_PERCENT)
-	ws->AddCellType(CT_MONEY)
-	ws->AddCellType(CT_MONEY)
-	ws->AddCellType(CT_PERCENT)
-	ws->AddCellType(CT_MONEY)
 end sub
 
 ''''''''
-private sub resumoAddHeaderCstLRS(ws as ExcelWorksheet ptr)
+private sub resumoAddHeaderCstLRS(ws as TableTable ptr)
 	var row = ws->AddRow(false, 0)
 	row->addCell("Resumo por CST", 12, 13)
 
+	ws->addColumn(CT_STRING_UTF8, 4)
+	ws->addColumn(CT_INTNUMBER)
+	ws->addColumn(CT_STRING_UTF8, 45)
+	ws->addColumn(CT_STRING_UTF8, 30)
+	ws->addColumn(CT_MONEY)
+	ws->addColumn(CT_MONEY)
+	ws->addColumn(CT_MONEY)
+	ws->addColumn(CT_PERCENT)
+	ws->addColumn(CT_PERCENT)
+	ws->addColumn(CT_MONEY)
+	ws->addColumn(CT_MONEY)
+	ws->addColumn(CT_PERCENT)
+	ws->addColumn(CT_MONEY)
+	
 	row = ws->addRow(true)
 	row->addCell("CST", 1, 13)
 	row->addCell("Origem")
@@ -171,27 +185,30 @@ private sub resumoAddHeaderCstLRS(ws as ExcelWorksheet ptr)
 	row->addCell("Vl ICMS ST")
 	row->addCell("Aliq ICMS ST")
 	row->addCell("Vl IPI")
-	
-	ws->AddCellType(CT_STRING_UTF8, 4)
-	ws->AddCellType(CT_INTNUMBER)
-	ws->AddCellType(CT_STRING_UTF8, 45)
-	ws->AddCellType(CT_STRING_UTF8, 30)
-	ws->AddCellType(CT_MONEY)
-	ws->AddCellType(CT_MONEY)
-	ws->AddCellType(CT_MONEY)
-	ws->AddCellType(CT_PERCENT)
-	ws->AddCellType(CT_PERCENT)
-	ws->AddCellType(CT_MONEY)
-	ws->AddCellType(CT_MONEY)
-	ws->AddCellType(CT_PERCENT)
-	ws->AddCellType(CT_MONEY)
 end sub
 
 ''''''''
-private sub resumoAddHeaderCstCfopLRS(ws as ExcelWorksheet ptr)
+private sub resumoAddHeaderCstCfopLRS(ws as TableTable ptr)
 	var row = ws->AddRow(false, 0)
 	row->addCell("Resumo por CST e CFOP", 15, 26)
 
+	ws->addColumn(CT_STRING_UTF8, 4)
+	ws->addColumn(CT_INTNUMBER)
+	ws->addColumn(CT_STRING_UTF8, 45)
+	ws->addColumn(CT_STRING_UTF8, 30)
+	ws->addColumn(CT_INTNUMBER)
+	ws->addColumn(CT_STRING_UTF8, 45)
+	ws->addColumn(CT_STRING_UTF8, 15)
+	ws->addColumn(CT_MONEY)
+	ws->addColumn(CT_MONEY)
+	ws->addColumn(CT_MONEY)
+	ws->addColumn(CT_PERCENT)
+	ws->addColumn(CT_PERCENT)
+	ws->addColumn(CT_MONEY)
+	ws->addColumn(CT_MONEY)
+	ws->addColumn(CT_PERCENT)
+	ws->addColumn(CT_MONEY)
+	
 	row = ws->addRow(true)
 	row->addCell("CST", 1, 26)
 	row->addCell("Origem")
@@ -208,27 +225,10 @@ private sub resumoAddHeaderCstCfopLRS(ws as ExcelWorksheet ptr)
 	row->addCell("Vl ICMS ST")
 	row->addCell("Aliq ICMS ST")
 	row->addCell("Vl IPI")
-	
-	ws->AddCellType(CT_STRING_UTF8, 4)
-	ws->AddCellType(CT_INTNUMBER)
-	ws->AddCellType(CT_STRING_UTF8, 45)
-	ws->AddCellType(CT_STRING_UTF8, 30)
-	ws->AddCellType(CT_INTNUMBER)
-	ws->AddCellType(CT_STRING_UTF8, 45)
-	ws->AddCellType(CT_STRING_UTF8, 15)
-	ws->AddCellType(CT_MONEY)
-	ws->AddCellType(CT_MONEY)
-	ws->AddCellType(CT_MONEY)
-	ws->AddCellType(CT_PERCENT)
-	ws->AddCellType(CT_PERCENT)
-	ws->AddCellType(CT_MONEY)
-	ws->AddCellType(CT_MONEY)
-	ws->AddCellType(CT_PERCENT)
-	ws->AddCellType(CT_MONEY)
 end sub
 
 ''''''''
-private sub resumoAddRowLRE(xrow as ExcelRow ptr, byref drow as TDataSetRow, tipo as TipoResumo)
+private sub resumoAddRowLRE(xrow as TableRow ptr, byref drow as TDataSetRow, tipo as TipoResumo)
 	select case tipo
 	case TR_CFOP
 		xrow->addCell(drow["cfop"])
@@ -267,7 +267,7 @@ private sub resumoAddRowLRE(xrow as ExcelRow ptr, byref drow as TDataSetRow, tip
 end sub
 
 ''''''''
-private sub resumoAddRowLRS(xrow as ExcelRow ptr, byref drow as TDataSetRow, tipo as TipoResumo)
+private sub resumoAddRowLRS(xrow as TableRow ptr, byref drow as TDataSetRow, tipo as TipoResumo)
 	select case tipo
 	case TR_CFOP
 		xrow->addCell(drow["cfop"])
@@ -319,7 +319,7 @@ private function luacb_efd_plan_resumos_AddRow cdecl(byval L as lua_State ptr) a
 	var args = lua_gettop(L)
 	
 	if args = 4 then
-		var ws = cast(ExcelWorksheet ptr, lua_touserdata(L, 1))
+		var ws = cast(TableTable ptr, lua_touserdata(L, 1))
 		var ds = cast(TDataSet ptr, lua_touserdata(L, 2))
 		var tipo = lua_tointeger(L, 3)
 		var livro = lua_tointeger(L, 4)
@@ -340,7 +340,7 @@ private function luacb_efd_plan_resumos_Reset cdecl(byval L as lua_State ptr) as
 	var args = lua_gettop(L)
 	
 	if args = 1 then
-		var ws = cast(ExcelWorksheet ptr, lua_touserdata(L, 1))
+		var ws = cast(TableTable ptr, lua_touserdata(L, 1))
 
 		ws->setRow(2)
 	end if
