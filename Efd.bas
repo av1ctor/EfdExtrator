@@ -9,7 +9,7 @@
 #include once "EfdPdfExport.bi"
 #include once "bfile.bi"
 #include once "Dict.bi"
-#include once "ExcelWriter.bi"
+#include once "TableWriter.bi"
 #include once "DB.bi"
 #include once "Lua/lualib.bi"
 #include once "Lua/lauxlib.bi"
@@ -108,7 +108,7 @@ sub EFd.configurarScripting()
 		luaL_openlibs(lua)
 		
 		TDb.exportAPI(lua)
-		ExcelWriter.exportAPI(lua)
+		TableWriter.exportAPI(lua)
 		bfile.exportAPI(lua)
 		exportAPI(lua)
 

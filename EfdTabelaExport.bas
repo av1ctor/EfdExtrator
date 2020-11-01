@@ -7,7 +7,7 @@ constructor EfdTabelaExport(nomeArquivo as String, opcoes as OpcoesExtracao ptr)
 	this.nomeArquivo = nomeArquivo
 	this.opcoes = opcoes
 	
-	ew = new ExcelWriter
+	ew = new TableWriter
 	ew->create(nomeArquivo, opcoes->formatoDeSaida)
 
 	entradas = null
@@ -70,7 +70,7 @@ function EfdTabelaExport.withDicionarios( _
 end function
 
 ''''''''
-function EfdTabelaExport.getPlanilha(nome as const zstring ptr) as ExcelWorksheet ptr
+function EfdTabelaExport.getPlanilha(nome as const zstring ptr) as TableTable ptr
 		select case lcase(*nome)
 		case "entradas"
 			return entradas
@@ -98,8 +98,35 @@ function EfdTabelaExport.getPlanilha(nome as const zstring ptr) as ExcelWorkshee
 end function
 
 ''''''''
-private sub adicionarColunasComuns(sheet as ExcelWorksheet ptr, ehEntrada as Boolean)
-
+private sub adicionarColunasComuns(sheet as TableTable ptr, ehEntrada as Boolean)
+	sheet->addColumn(CT_STRING)
+	sheet->addColumn(CT_STRING)
+	sheet->addColumn(CT_STRING, 4)
+	sheet->addColumn(CT_STRING, 30)
+	sheet->addColumn(CT_STRING, 4)
+	sheet->addColumn(CT_STRING, 6)
+	sheet->addColumn(CT_INTNUMBER)
+	sheet->addColumn(CT_DATE)
+	sheet->addColumn(CT_DATE)
+	sheet->addColumn(CT_STRING, 45)
+	sheet->addColumn(CT_STRING, 6)
+	sheet->addColumn(CT_MONEY)
+	sheet->addColumn(CT_NUMBER)
+	sheet->addColumn(CT_MONEY)
+	sheet->addColumn(CT_MONEY)
+	sheet->addColumn(CT_NUMBER)
+	sheet->addColumn(CT_MONEY)
+	sheet->addColumn(CT_MONEY)
+	sheet->addColumn(CT_MONEY)
+	sheet->addColumn(CT_INTNUMBER)
+	sheet->addColumn(CT_NUMBER)
+	sheet->addColumn(CT_STRING, 4)
+	sheet->addColumn(CT_INTNUMBER)
+	sheet->addColumn(CT_INTNUMBER)
+	sheet->addColumn(CT_INTNUMBER)
+	sheet->addColumn(CT_STRING)
+	sheet->addColumn(CT_STRING, 30)
+   
 	var row = sheet->addRow(true)
 	row->addCell("CNPJ " + iif(ehEntrada, "Emitente", "Destinatario"))
 	row->addCell("IE " + iif(ehEntrada, "Emitente", "Destinatario"))
@@ -129,52 +156,44 @@ private sub adicionarColunasComuns(sheet as ExcelWorksheet ptr, ehEntrada as Boo
 	row->addCell("Codigo Item")
 	row->addCell("Descricao Item")
 	
-	sheet->AddCellType(CT_STRING)
-	sheet->AddCellType(CT_STRING)
-	sheet->AddCellType(CT_STRING, 4)
-	sheet->AddCellType(CT_STRING, 30)
-	sheet->AddCellType(CT_STRING, 4)
-	sheet->AddCellType(CT_STRING, 6)
-	sheet->AddCellType(CT_INTNUMBER)
-	sheet->AddCellType(CT_DATE)
-	sheet->AddCellType(CT_DATE)
-	sheet->AddCellType(CT_STRING, 45)
-	sheet->AddCellType(CT_STRING, 6)
-	sheet->AddCellType(CT_MONEY)
-	sheet->AddCellType(CT_NUMBER)
-	sheet->AddCellType(CT_MONEY)
-	sheet->AddCellType(CT_MONEY)
-	sheet->AddCellType(CT_NUMBER)
-	sheet->AddCellType(CT_MONEY)
-	sheet->AddCellType(CT_MONEY)
-	sheet->AddCellType(CT_MONEY)
-	sheet->AddCellType(CT_INTNUMBER)
-	sheet->AddCellType(CT_NUMBER)
-	sheet->AddCellType(CT_STRING, 4)
-	sheet->AddCellType(CT_INTNUMBER)
-	sheet->AddCellType(CT_INTNUMBER)
-	sheet->AddCellType(CT_INTNUMBER)
-	sheet->AddCellType(CT_STRING)
-	sheet->AddCellType(CT_STRING, 30)
-   
 	if not ehEntrada then
+		sheet->addColumn(CT_MONEY)
+		sheet->addColumn(CT_MONEY)
+		sheet->addColumn(CT_MONEY)
+
 		row->addCell("DifAl FCP")
 		row->addCell("DifAl ICMS Orig")
 		row->addCell("DifAl ICMS Dest")
-		
-		sheet->AddCellType(CT_MONEY)
-		sheet->AddCellType(CT_MONEY)
-		sheet->AddCellType(CT_MONEY)
 	end if
 	
+	sheet->addColumn(CT_STRING, 40)
 	row->addCell("Info. complementares")
-	sheet->AddCellType(CT_STRING, 40)
 
+	sheet->addColumn(CT_STRING, 40)
 	row->addCell("Obs. lancamento")
-	sheet->AddCellType(CT_STRING, 40)
 end sub
 
-private sub criarColunasApuracaoIcms(sheet as ExcelWorksheet ptr)
+private sub criarColunasApuracaoIcms(sheet as TableTable ptr)
+	sheet->addColumn(CT_DATE)
+	sheet->addColumn(CT_DATE)
+	sheet->addColumn(CT_MONEY)
+	sheet->addColumn(CT_MONEY)
+	sheet->addColumn(CT_MONEY)
+	sheet->addColumn(CT_MONEY)
+	sheet->addColumn(CT_MONEY)
+	sheet->addColumn(CT_MONEY)
+	sheet->addColumn(CT_MONEY)
+	sheet->addColumn(CT_MONEY)
+	sheet->addColumn(CT_MONEY)
+	sheet->addColumn(CT_MONEY)
+	sheet->addColumn(CT_MONEY)
+	sheet->addColumn(CT_MONEY)
+	sheet->addColumn(CT_MONEY)
+	sheet->addColumn(CT_MONEY)
+	for i as integer = 1 to MAX_AJUSTES
+		sheet->addColumn(CT_STRING, 80)
+	next
+	
 	var row = sheet->addRow(true)
 	row->addCell("Inicio")
 	row->addCell("Fim")
@@ -196,28 +215,30 @@ private sub criarColunasApuracaoIcms(sheet as ExcelWorksheet ptr)
 		row->addCell("Detalhe Ajuste " & i)
 	next
 	
-	sheet->AddCellType(CT_DATE)
-	sheet->AddCellType(CT_DATE)
-	sheet->AddCellType(CT_MONEY)
-	sheet->AddCellType(CT_MONEY)
-	sheet->AddCellType(CT_MONEY)
-	sheet->AddCellType(CT_MONEY)
-	sheet->AddCellType(CT_MONEY)
-	sheet->AddCellType(CT_MONEY)
-	sheet->AddCellType(CT_MONEY)
-	sheet->AddCellType(CT_MONEY)
-	sheet->AddCellType(CT_MONEY)
-	sheet->AddCellType(CT_MONEY)
-	sheet->AddCellType(CT_MONEY)
-	sheet->AddCellType(CT_MONEY)
-	sheet->AddCellType(CT_MONEY)
-	sheet->AddCellType(CT_MONEY)
-	for i as integer = 1 to MAX_AJUSTES
-		sheet->AddCellType(CT_STRING, 80)
-	next
 end sub
 
-private sub criarColunasApuracaoIcmsST(sheet as ExcelWorksheet ptr)
+private sub criarColunasApuracaoIcmsST(sheet as TableTable ptr)
+	sheet->addColumn(CT_DATE)
+	sheet->addColumn(CT_DATE)
+	sheet->addColumn(CT_STRING, 4)
+	sheet->addColumn(CT_STRING)
+	sheet->addColumn(CT_MONEY)
+	sheet->addColumn(CT_MONEY)
+	sheet->addColumn(CT_MONEY)
+	sheet->addColumn(CT_MONEY)
+	sheet->addColumn(CT_MONEY)
+	sheet->addColumn(CT_MONEY)
+	sheet->addColumn(CT_MONEY)
+	sheet->addColumn(CT_MONEY)
+	sheet->addColumn(CT_MONEY)
+	sheet->addColumn(CT_MONEY)
+	sheet->addColumn(CT_MONEY)
+	sheet->addColumn(CT_MONEY)
+	sheet->addColumn(CT_MONEY)
+	for i as integer = 1 to MAX_AJUSTES
+		sheet->addColumn(CT_STRING, 80)
+	next
+
 	var row = sheet->addRow(true)
 	row->addCell("Inicio")
 	row->addCell("Fim")
@@ -239,30 +260,25 @@ private sub criarColunasApuracaoIcmsST(sheet as ExcelWorksheet ptr)
 	for i as integer = 1 to MAX_AJUSTES
 		row->addCell("Detalhe Ajuste " & i)
 	next
-
-	sheet->AddCellType(CT_DATE)
-	sheet->AddCellType(CT_DATE)
-	sheet->AddCellType(CT_STRING, 4)
-	sheet->AddCellType(CT_STRING)
-	sheet->AddCellType(CT_MONEY)
-	sheet->AddCellType(CT_MONEY)
-	sheet->AddCellType(CT_MONEY)
-	sheet->AddCellType(CT_MONEY)
-	sheet->AddCellType(CT_MONEY)
-	sheet->AddCellType(CT_MONEY)
-	sheet->AddCellType(CT_MONEY)
-	sheet->AddCellType(CT_MONEY)
-	sheet->AddCellType(CT_MONEY)
-	sheet->AddCellType(CT_MONEY)
-	sheet->AddCellType(CT_MONEY)
-	sheet->AddCellType(CT_MONEY)
-	sheet->AddCellType(CT_MONEY)
-	for i as integer = 1 to MAX_AJUSTES
-		sheet->AddCellType(CT_STRING, 80)
-	next
 end sub
 
-private sub criarColunasInventario(sheet as ExcelWorksheet ptr)
+private sub criarColunasInventario(sheet as TableTable ptr)
+	sheet->addColumn(CT_DATE)
+	sheet->addColumn(CT_STRING)
+	sheet->addColumn(CT_INTNUMBER)
+	sheet->addColumn(CT_INTNUMBER)
+	sheet->addColumn(CT_STRING)
+	sheet->addColumn(CT_STRING, 30)
+	sheet->addColumn(CT_STRING, 6)
+	sheet->addColumn(CT_NUMBER)
+	sheet->addColumn(CT_MONEY)
+	sheet->addColumn(CT_MONEY)
+	sheet->addColumn(CT_INTNUMBER)
+	sheet->addColumn(CT_STRING)
+	sheet->addColumn(CT_STRING)
+	sheet->addColumn(CT_STRING)
+	sheet->addColumn(CT_MONEY)
+
 	var row = sheet->addRow(true)
 	row->addCell("Data Inventario")
 	row->addCell("Codigo")
@@ -279,25 +295,34 @@ private sub criarColunasInventario(sheet as ExcelWorksheet ptr)
 	row->addCell("Texto Complementar")
 	row->addCell("Codigo Conta Contabil")
 	row->addCell("Valor Item IR")
-
-	sheet->AddCellType(CT_DATE)
-	sheet->AddCellType(CT_STRING)
-	sheet->AddCellType(CT_INTNUMBER)
-	sheet->AddCellType(CT_INTNUMBER)
-	sheet->AddCellType(CT_STRING)
-	sheet->AddCellType(CT_STRING, 30)
-	sheet->AddCellType(CT_STRING, 6)
-	sheet->AddCellType(CT_NUMBER)
-	sheet->AddCellType(CT_MONEY)
-	sheet->AddCellType(CT_MONEY)
-	sheet->AddCellType(CT_INTNUMBER)
-	sheet->AddCellType(CT_STRING)
-	sheet->AddCellType(CT_STRING)
-	sheet->AddCellType(CT_STRING)
-	sheet->AddCellType(CT_MONEY)
 end sub
 
-private sub criarColunasCIAP(sheet as ExcelWorksheet ptr)
+private sub criarColunasCIAP(sheet as TableTable ptr)
+	sheet->addColumn(CT_DATE)
+	sheet->addColumn(CT_DATE)
+	sheet->addColumn(CT_MONEY)
+	sheet->addColumn(CT_MONEY)
+	sheet->addColumn(CT_NUMBER)
+	sheet->addColumn(CT_STRING)
+	sheet->addColumn(CT_STRING)
+	sheet->addColumn(CT_DATE)
+	sheet->addColumn(CT_STRING, 6)
+	sheet->addColumn(CT_MONEY)
+	sheet->addColumn(CT_MONEY)
+	sheet->addColumn(CT_MONEY)
+	sheet->addColumn(CT_MONEY)
+	sheet->addColumn(CT_INTNUMBER)
+	sheet->addColumn(CT_MONEY)
+	sheet->addColumn(CT_STRING, 4)
+	sheet->addColumn(CT_STRING, 6)
+	sheet->addColumn(CT_INTNUMBER)
+	sheet->addColumn(CT_DATE)
+	sheet->addColumn(CT_STRING, 30)
+	sheet->addColumn(CT_STRING)
+	sheet->addColumn(CT_STRING)
+	sheet->addColumn(CT_STRING, 4)
+	sheet->addColumn(CT_STRING, 30)
+
 	var row = sheet->addRow(true)
 	row->addCell("Data Inicial")
 	row->addCell("Data Final")
@@ -323,34 +348,23 @@ private sub criarColunasCIAP(sheet as ExcelWorksheet ptr)
 	row->addCell("IE")
 	row->addCell("UF")
 	row->addCell("Razao Social")
-	
-	sheet->AddCellType(CT_DATE)
-	sheet->AddCellType(CT_DATE)
-	sheet->AddCellType(CT_MONEY)
-	sheet->AddCellType(CT_MONEY)
-	sheet->AddCellType(CT_NUMBER)
-	sheet->AddCellType(CT_STRING)
-	sheet->AddCellType(CT_STRING)
-	sheet->AddCellType(CT_DATE)
-	sheet->AddCellType(CT_STRING, 6)
-	sheet->AddCellType(CT_MONEY)
-	sheet->AddCellType(CT_MONEY)
-	sheet->AddCellType(CT_MONEY)
-	sheet->AddCellType(CT_MONEY)
-	sheet->AddCellType(CT_INTNUMBER)
-	sheet->AddCellType(CT_MONEY)
-	sheet->AddCellType(CT_STRING, 4)
-	sheet->AddCellType(CT_STRING, 6)
-	sheet->AddCellType(CT_INTNUMBER)
-	sheet->AddCellType(CT_DATE)
-	sheet->AddCellType(CT_STRING, 30)
-	sheet->AddCellType(CT_STRING)
-	sheet->AddCellType(CT_STRING)
-	sheet->AddCellType(CT_STRING, 4)
-	sheet->AddCellType(CT_STRING, 30)
-end sub
+	end sub
 
-private sub criarColunasEstoque(sheet as ExcelWorksheet ptr)
+private sub criarColunasEstoque(sheet as TableTable ptr)
+	sheet->addColumn(CT_DATE)
+	sheet->addColumn(CT_DATE)
+	sheet->addColumn(CT_STRING)
+	sheet->addColumn(CT_INTNUMBER)
+	sheet->addColumn(CT_INTNUMBER)
+	sheet->addColumn(CT_STRING)
+	sheet->addColumn(CT_STRING, 30)
+	sheet->addColumn(CT_NUMBER)
+	sheet->addColumn(CT_INTNUMBER)
+	sheet->addColumn(CT_STRING)
+	sheet->addColumn(CT_STRING)
+	sheet->addColumn(CT_STRING, 4)
+	sheet->addColumn(CT_STRING, 30)
+
 	var row = sheet->addRow(true)
 	row->addCell("Data Inicial")
 	row->addCell("Data Final")
@@ -365,23 +379,19 @@ private sub criarColunasEstoque(sheet as ExcelWorksheet ptr)
 	row->addCell("Prop IE")
 	row->addCell("Prop UF")
 	row->addCell("Prop Razao Social")
-	
-	sheet->AddCellType(CT_DATE)
-	sheet->AddCellType(CT_DATE)
-	sheet->AddCellType(CT_STRING)
-	sheet->AddCellType(CT_INTNUMBER)
-	sheet->AddCellType(CT_INTNUMBER)
-	sheet->AddCellType(CT_STRING)
-	sheet->AddCellType(CT_STRING, 30)
-	sheet->AddCellType(CT_NUMBER)
-	sheet->AddCellType(CT_INTNUMBER)
-	sheet->AddCellType(CT_STRING)
-	sheet->AddCellType(CT_STRING)
-	sheet->AddCellType(CT_STRING, 4)
-	sheet->AddCellType(CT_STRING, 30)
 end sub
 
-private sub criarColunasProducao(sheet as ExcelWorksheet ptr)
+private sub criarColunasProducao(sheet as TableTable ptr)
+	sheet->addColumn(CT_DATE)
+	sheet->addColumn(CT_DATE)
+	sheet->addColumn(CT_STRING)
+	sheet->addColumn(CT_INTNUMBER)
+	sheet->addColumn(CT_INTNUMBER)
+	sheet->addColumn(CT_STRING)
+	sheet->addColumn(CT_STRING, 30)
+	sheet->addColumn(CT_NUMBER)
+	sheet->addColumn(CT_STRING)
+
 	var row = sheet->addRow(true)
 	row->addCell("Data Inicial")
 	row->addCell("Data Final")
@@ -392,19 +402,35 @@ private sub criarColunasProducao(sheet as ExcelWorksheet ptr)
 	row->addCell("Descricao Item")
 	row->addCell("Qtd")
 	row->addCell("Codigo Ordem")
-	
-	sheet->AddCellType(CT_DATE)
-	sheet->AddCellType(CT_DATE)
-	sheet->AddCellType(CT_STRING)
-	sheet->AddCellType(CT_INTNUMBER)
-	sheet->AddCellType(CT_INTNUMBER)
-	sheet->AddCellType(CT_STRING)
-	sheet->AddCellType(CT_STRING, 30)
-	sheet->AddCellType(CT_NUMBER)
-	sheet->AddCellType(CT_STRING)
 end sub
 
-private sub criarColunasRessarcST(sheet as ExcelWorksheet ptr)
+private sub criarColunasRessarcST(sheet as TableTable ptr)
+	sheet->addColumn(CT_STRING)
+	sheet->addColumn(CT_STRING)
+	sheet->addColumn(CT_STRING, 4)
+	sheet->addColumn(CT_STRING, 30)
+	sheet->addColumn(CT_STRING, 4)
+	sheet->addColumn(CT_STRING, 6)
+	sheet->addColumn(CT_INTNUMBER)
+	sheet->addColumn(CT_DATE)
+	sheet->addColumn(CT_NUMBER)
+	sheet->addColumn(CT_MONEY)
+	sheet->addColumn(CT_MONEY)
+	sheet->addColumn(CT_STRING, 45)
+	sheet->addColumn(CT_INTNUMBER)
+	sheet->addColumn(CT_MONEY)
+	sheet->addColumn(CT_NUMBER)
+	sheet->addColumn(CT_MONEY)
+	sheet->addColumn(CT_MONEY)
+	sheet->addColumn(CT_NUMBER)
+	sheet->addColumn(CT_MONEY)
+	sheet->addColumn(CT_STRING)
+	sheet->addColumn(CT_STRING)
+	sheet->addColumn(CT_STRING)
+	sheet->addColumn(CT_STRING)
+	sheet->addColumn(CT_STRING, 45)
+	sheet->addColumn(CT_INTNUMBER)
+
 	var row = sheet->addRow(true)
 	row->addCell("CNPJ Emitente Ult NF-e Ent")
 	row->addCell("IE Emitente Ult NF-e Ent")
@@ -431,83 +457,57 @@ private sub criarColunasRessarcST(sheet as ExcelWorksheet ptr)
 	row->addCell("Num Doc Arrecad")
 	row->addCell("Chave NF-e Saida")
 	row->addCell("Num Item NF-e Saida")
-	
-	sheet->AddCellType(CT_STRING)
-	sheet->AddCellType(CT_STRING)
-	sheet->AddCellType(CT_STRING, 4)
-	sheet->AddCellType(CT_STRING, 30)
-	sheet->AddCellType(CT_STRING, 4)
-	sheet->AddCellType(CT_STRING, 6)
-	sheet->AddCellType(CT_INTNUMBER)
-	sheet->AddCellType(CT_DATE)
-	sheet->AddCellType(CT_NUMBER)
-	sheet->AddCellType(CT_MONEY)
-	sheet->AddCellType(CT_MONEY)
-	sheet->AddCellType(CT_STRING, 45)
-	sheet->AddCellType(CT_INTNUMBER)
-	sheet->AddCellType(CT_MONEY)
-	sheet->AddCellType(CT_NUMBER)
-	sheet->AddCellType(CT_MONEY)
-	sheet->AddCellType(CT_MONEY)
-	sheet->AddCellType(CT_NUMBER)
-	sheet->AddCellType(CT_MONEY)
-	sheet->AddCellType(CT_STRING)
-	sheet->AddCellType(CT_STRING)
-	sheet->AddCellType(CT_STRING)
-	sheet->AddCellType(CT_STRING)
-	sheet->AddCellType(CT_STRING, 45)
-	sheet->AddCellType(CT_INTNUMBER)
 end sub
 
 ''''''''
 sub EfdTabelaExport.criarPlanilhas()
 	'' planilha de entradas
-	entradas = ew->AddWorksheet("Entradas")
+	entradas = ew->addTable("Entradas")
 	adicionarColunasComuns(entradas, true)
 
 	'' planilha de saídas
-	saidas = ew->AddWorksheet("Saidas")
+	saidas = ew->addTable("Saidas")
 	adicionarColunasComuns(saidas, false)
 
 	'' apuração do ICMS
-	apuracaoIcms = ew->AddWorksheet("Apuracao ICMS")
+	apuracaoIcms = ew->addTable("Apuracao ICMS")
 	criarColunasApuracaoIcms(apuracaoIcms)
    
 	'' apuração do ICMS ST
-	apuracaoIcmsST = ew->AddWorksheet("Apuracao ICMS ST")
+	apuracaoIcmsST = ew->addTable("Apuracao ICMS ST")
 	criarColunasApuracaoIcmsST(apuracaoIcmsST)
 	
 	'' Inventário
-	inventario = ew->AddWorksheet("Inventario")
+	inventario = ew->addTable("Inventario")
 	criarColunasInventario(inventario)
 
 	'' CIAP
-	ciap = ew->AddWorksheet("CIAP")
+	ciap = ew->addTable("CIAP")
 	criarColunasCIAP(ciap)
 
 	'' Estoque
-	estoque = ew->AddWorksheet("Estoque")
+	estoque = ew->addTable("Estoque")
 	criarColunasEstoque(estoque)
 
 	'' Producao
-	producao = ew->AddWorksheet("Producao")
+	producao = ew->addTable("Producao")
 	criarColunasProducao(producao)
 
 	'' Ressarcimento ST
-	ressarcST = ew->AddWorksheet("Ressarcimento ST")
+	ressarcST = ew->addTable("Ressarcimento ST")
 	criarColunasRessarcST(ressarcST)
 	
 	'' Inconsistencias LRE
-	inconsistenciasLRE = ew->AddWorksheet("Inconsistencias LRE")
+	inconsistenciasLRE = ew->addTable("Inconsistencias LRE")
 
 	'' Inconsistencias LRS
-	inconsistenciasLRS = ew->AddWorksheet("Inconsistencias LRS")
+	inconsistenciasLRS = ew->addTable("Inconsistencias LRS")
 	
 	'' Resumos LRE
-	resumosLRE = ew->AddWorksheet("Resumos LRE")
+	resumosLRE = ew->addTable("Resumos LRE")
 
 	'' Resumos LRS
-	resumosLRS = ew->AddWorksheet("Resumos LRS")
+	resumosLRS = ew->addTable("Resumos LRS")
 	
 	''
 	lua_getglobal(lua, "criarPlanilhas")
@@ -614,7 +614,7 @@ sub EfdTabelaExport.gerar(regListHead as TRegistro ptr, regMestre as TMestre ptr
 				
 				if emitirLinha then
 					'só existe item para entradas (exceto quando há ressarcimento ST)
-					dim as ExcelRow ptr row
+					dim as TableRow ptr row
 					if doc->operacao = ENTRADA then
 						row = entradas->AddRow()
 					else
@@ -698,7 +698,7 @@ sub EfdTabelaExport.gerar(regListHead as TRegistro ptr, regMestre as TMestre ptr
 						
 						if emitirLinhas then
 							do
-								dim as ExcelRow ptr row
+								dim as TableRow ptr row
 								if nf->operacao = SAIDA then
 									row = saidas->AddRow()
 								else
@@ -901,7 +901,7 @@ sub EfdTabelaExport.gerar(regListHead as TRegistro ptr, regMestre as TMestre ptr
 						
 						var itemCnt = 1
 						do
-							dim as ExcelRow ptr row 
+							dim as TableRow ptr row 
 							if ct->operacao = SAIDA then
 								row = saidas->AddRow()
 							else
@@ -1402,7 +1402,7 @@ sub EfdTabelaExport.gerar(regListHead as TRegistro ptr, regMestre as TMestre ptr
 					var item = cast(TDocumentoItemSintegra ptr, reg)
 					var doc = item->doc
 					
-					dim as ExcelRow ptr row 
+					dim as TableRow ptr row 
 					if doc->operacao = SAIDA then
 						row = saidas->AddRow()
 					else

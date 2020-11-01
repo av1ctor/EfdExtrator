@@ -1,6 +1,6 @@
 #include once "Efd.bi"
 #include once "EfdAnalisador.bi"
-#include once "ExcelWriter.bi"
+#include once "TableWriter.bi"
 #include once "vbcompat.bi"
 #include once "DB.bi"
 #include once "Lua/lualib.bi"
@@ -32,7 +32,18 @@ function EfdAnalisador.withLua(lua as lua_State ptr) as EfdAnalisador ptr
 end function
 
 ''''''''
-private sub inconsistenciaAddHeader(ws as ExcelWorksheet ptr)
+private sub inconsistenciaAddHeader(ws as TableTable ptr)
+	ws->addColumn(CT_STRING, 45)
+	ws->addColumn(CT_DATE)
+	ws->addColumn(CT_STRING)
+	ws->addColumn(CT_STRING, 4)
+	ws->addColumn(CT_STRING, 4)
+	ws->addColumn(CT_STRING, 6)
+	ws->addColumn(CT_INTNUMBER)
+	ws->addColumn(CT_MONEY)
+	ws->addColumn(CT_INTNUMBER)
+	ws->addColumn(CT_STRING, 60)
+
 	var row = ws->addRow(true)
 	row->addCell("Chave")
 	row->addCell("Data")
@@ -44,21 +55,10 @@ private sub inconsistenciaAddHeader(ws as ExcelWorksheet ptr)
 	row->addCell("Valor Operacao")
 	row->addCell("Tipo Inconsistencia")
 	row->addCell("Descricao Inconsistencia")
-	
-	ws->AddCellType(CT_STRING, 45)
-	ws->AddCellType(CT_DATE)
-	ws->AddCellType(CT_STRING)
-	ws->AddCellType(CT_STRING, 4)
-	ws->AddCellType(CT_STRING, 4)
-	ws->AddCellType(CT_STRING, 6)
-	ws->AddCellType(CT_INTNUMBER)
-	ws->AddCellType(CT_MONEY)
-	ws->AddCellType(CT_INTNUMBER)
-	ws->AddCellType(CT_STRING, 60)
 end sub
 
 ''''''''
-private sub inconsistenciaAddRow(xrow as ExcelRow ptr, byref drow as TDataSetRow, incons as TipoInconsistencia, descricao as const zstring ptr)
+private sub inconsistenciaAddRow(xrow as TableRow ptr, byref drow as TDataSetRow, incons as TipoInconsistencia, descricao as const zstring ptr)
 	xrow->addCell(drow["chave"])
 	xrow->addCell(yyyyMmDd2Datetime(drow["dataEmit"]))
 	xrow->addCell(drow["cnpj"])
@@ -76,7 +76,7 @@ private function luacb_efd_plan_inconsistencias_AddRow cdecl(byval L as lua_Stat
 	var args = lua_gettop(L)
 	
 	if args = 4 then
-		var ws = cast(ExcelWorksheet ptr, lua_touserdata(L, 1))
+		var ws = cast(TableTable ptr, lua_touserdata(L, 1))
 		var ds = cast(TDataSet ptr, lua_touserdata(L, 2))
 		var tipo = lua_tointeger(L, 3)
 		var descricao = lua_tostring(L, 4)

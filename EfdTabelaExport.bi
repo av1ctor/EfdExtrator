@@ -1,5 +1,5 @@
 #include once "Efd.bi"
-#include once "ExcelWriter.bi"
+#include once "TableWriter.bi"
 
 type EfdTabelaExport
 public:
@@ -10,7 +10,7 @@ public:
 	declare function withDicionarios(participanteDict as TDict ptr, itemIdDict as TDict ptr, chaveDFeDict as TDict ptr, infoComplDict as TDict ptr, obsLancamentoDict as TDict ptr, bemCiapDict as TDict ptr) as EfdTabelaExport ptr
 	declare function withFiltros(filtrarPorCnpj as OnFilterByStrCB, filtrarPorChave as OnFilterByStrCB) as EfdTabelaExport ptr
 	declare destructor()
-	declare function getPlanilha(nome as const zstring ptr) as ExcelWorksheet ptr
+	declare function getPlanilha(nome as const zstring ptr) as TableTable ptr
 	declare sub gerar(regListHead as TRegistro ptr, regMestre as TMestre ptr, nroRegs as integer)
 	declare sub finalizar()
 
@@ -34,20 +34,20 @@ private:
 	lua						as lua_State ptr
 	customLuaCbDict			as TDict ptr		'' de CustomLuaCb
 	
-	ew                  	as ExcelWriter ptr
-	entradas            	as ExcelWorksheet ptr
-	saidas              	as ExcelWorksheet ptr
-	apuracaoIcms			as ExcelWorksheet ptr
-	apuracaoIcmsST			as ExcelWorksheet ptr
-	inventario				as ExcelWorksheet ptr
-	ciap					as ExcelWorksheet ptr
-	estoque					as ExcelWorksheet ptr
-	producao				as ExcelWorksheet ptr
-	ressarcST				as ExcelWorksheet ptr
-	inconsistenciasLRE		as ExcelWorksheet ptr
-	inconsistenciasLRS		as ExcelWorksheet ptr
-	resumosLRE				as ExcelWorksheet ptr
-	resumosLRS				as ExcelWorksheet ptr
+	ew                  	as TableWriter ptr
+	entradas            	as TableTable ptr
+	saidas              	as TableTable ptr
+	apuracaoIcms			as TableTable ptr
+	apuracaoIcmsST			as TableTable ptr
+	inventario				as TableTable ptr
+	ciap					as TableTable ptr
+	estoque					as TableTable ptr
+	producao				as TableTable ptr
+	ressarcST				as TableTable ptr
+	inconsistenciasLRE		as TableTable ptr
+	inconsistenciasLRS		as TableTable ptr
+	resumosLRE				as TableTable ptr
+	resumosLRS				as TableTable ptr
 
 	declare sub criarPlanilhas()
 	declare function getInfoCompl(info as TDocInfoCompl ptr) as string

@@ -2,7 +2,7 @@
 #include once "Dict.bi"
 #include once "bfile.bi"
 #include once "ExcelReader.bi"
-#include once "ExcelWriter.bi"
+#include once "TableWriter.bi"
 #include once "DB.bi"
 #include once "Lua/lualib.bi"
 #include once "PDFer.bi"
