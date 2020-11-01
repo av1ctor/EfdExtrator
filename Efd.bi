@@ -107,6 +107,7 @@ private:
 	configDb				as TDb ptr
 	
 	'' base de dados temporária usadada para análises e cruzamentos
+	dbName					as string
 	db						as TDb ptr
 	db_dfeEntradaInsertStmt	as TDbStmt ptr
 	db_dfeSaidaInsertStmt	as TDbStmt ptr

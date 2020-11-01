@@ -8,7 +8,7 @@ dim shared curFile as TFile ptr
 dim shared statusBar as Ihandle ptr
 
 private function item_about_action_cb(item as Ihandle ptr) as long
-	IupMessage("Sobre", !"Extrator de EFD/Sintegra para Excel, versão 0.9.3 beta\nCopyleft 2017-2020 by André Vicentini (avtvicentini)")
+	IupMessage("Sobre", !"Extrator de EFD/Sintegra para Excel/Csv/SQLite/Pdf, versão 0.9.3 beta\nCopyleft 2017-2020 by André Vicentini (avtvicentini)")
 	return IUP_DEFAULT
 end function
 
@@ -850,6 +850,10 @@ private function format_action_cb(self as Ihandle ptr, text as zstring ptr, item
 			gui->opcoes.formatoDeSaida = FT_CSV
 		case "xlsx"
 			gui->opcoes.formatoDeSaida = FT_XLSX
+		case "sqlite"
+			gui->opcoes.formatoDeSaida = FT_SQLITE
+		case "access"
+			gui->opcoes.formatoDeSaida = FT_ACCESS
 		case "null"
 			gui->opcoes.formatoDeSaida = FT_NULL
 		end select
@@ -871,6 +875,8 @@ function EfdGUI.buildOutFormatBox() as Ihandle ptr
 		"xlsx", _
 		"csv", _
 		"xml", _
+		"sqlite", _
+		"access", _
 		"null" _
 	}
 	
