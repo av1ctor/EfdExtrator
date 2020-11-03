@@ -33,27 +33,27 @@ end function
 
 ''''''''
 private sub inconsistenciaAddHeader(ws as TableTable ptr)
-	ws->addColumn(CT_STRING, 45)
-	ws->addColumn(CT_DATE)
-	ws->addColumn(CT_STRING)
-	ws->addColumn(CT_STRING, 4)
-	ws->addColumn(CT_STRING, 4)
-	ws->addColumn(CT_STRING, 6)
-	ws->addColumn(CT_INTNUMBER)
-	ws->addColumn(CT_MONEY)
-	ws->addColumn(CT_INTNUMBER)
-	ws->addColumn(CT_STRING, 60)
-
 	var row = ws->addRow(true)
+
+	ws->addColumn(CT_STRING, 45, 44)
 	row->addCell("Chave")
+	ws->addColumn(CT_DATE)
 	row->addCell("Data")
+	ws->addColumn(CT_STRING, 0, 14)
 	row->addCell("CNPJ")
+	ws->addColumn(CT_STRING, 4, 2)
 	row->addCell("UF")
+	ws->addColumn(CT_STRING, 4, 2)
 	row->addCell("Modelo")
+	ws->addColumn(CT_STRING, 6, 3)
 	row->addCell("Serie")
+	ws->addColumn(CT_INTNUMBER)
 	row->addCell("Numero")
+	ws->addColumn(CT_MONEY)
 	row->addCell("Valor Operacao")
+	ws->addColumn(CT_INTNUMBER)
 	row->addCell("Tipo Inconsistencia")
+	ws->addColumn(CT_STRING, 60, 254)
 	row->addCell("Descricao Inconsistencia")
 end sub
 

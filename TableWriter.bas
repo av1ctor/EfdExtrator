@@ -711,13 +711,14 @@ function TableWriter.flush() as boolean
 											ct = ct->next_
 										end if
 									loop
+
+									var size = iif(ct <> null, iif(ct->size < 254, ct->size, 254), 254)
 								
 									select case as const iif(ct <> null, ct->type_, CT_STRING)
 									case CT_STRING
 										bindInd(sqlCol) = SQL_NTS
 										var lgt = len(cell->content)
 										if lgt > 0 then
-											var size = iif(ct <> null, ct->size, 254)
 											if not SQL_SUCCEEDED(SQLBindParameter(odbc->hStmt, sqlCol, SQL_PARAM_INPUT, SQL_C_CHAR, SQL_VARCHAR, size, 0, strptr(cell->content), lgt, @bindInd(sqlCol))) then
 												onError(table->name & " ==> " & extractOdbcError(odbc->hStmt, SQL_HANDLE_STMT))
 											end if
@@ -733,7 +734,6 @@ function TableWriter.flush() as boolean
 										bindInd(sqlCol) = SQL_NTS
 										var lgt = len(strParams(sqlCol))
 										if lgt > 0 then
-											var size = iif(ct <> null, ct->size, 254)
 											if not SQL_SUCCEEDED(SQLBindParameter(odbc->hStmt, sqlCol, SQL_PARAM_INPUT, SQL_C_CHAR, SQL_VARCHAR, size, 0, strptr(strParams(sqlCol)), lgt, @bindInd(sqlCol))) then
 												onError(table->name & " ==> " & extractOdbcError(odbc->hStmt, SQL_HANDLE_STMT))
 											end if
