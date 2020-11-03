@@ -7,7 +7,7 @@ Recursos:
 
     - Importa tanto arquivos do Sped EFD, quanto do Sintegra
 	
-	- Exporta para os formatos Excel (.xlsx e .xml), CSV, SQLite 3 (.db) e Access (.accdb)
+    - Exporta para os formatos Excel (.xlsx e .xml), CSV, SQLite 3 (.db) e Access (.accdb)
     
     - Gera, diretamente para PDF, os seguintes relatórios do PVA EFD-ICMS-IPI:
         - LRE

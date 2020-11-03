@@ -130,8 +130,8 @@ private sub initTables(ftype as FileType, arr() as string)
 		arr(CT_MONEY) 		= "decimal(10,2)"
 		arr(CT_PERCENT)		= "decimal(10,2)"
 	case FT_ACCESS
-		arr(CT_STRING) 		= "varchar(254)"
-		arr(CT_STRING_UTF8)	= "varchar(254)"
+		arr(CT_STRING) 		= "VARCHAR(254)"
+		arr(CT_STRING_UTF8)	= "VARCHAR(254)"
 		arr(CT_NUMBER) 		= "REAL"
 		arr(CT_INTNUMBER)   = "INTEGER"
 		arr(CT_DATE) 		= "DATETIME"
@@ -408,9 +408,10 @@ function TableWriter.flush() as boolean
 					loop
 						
 					var tp = iif(ct <> null, ct->type_, CT_STRING)
+					var size = iif(ct <> null, iif(ct->size < 254, ct->size, 0), 0)
 					var colName = nameToSql(cell->content)
 					
-					createTable &= "'" & colName & "' " & colType2Sql(tp) & " null,"
+					createTable &= "'" & colName & "' " & iif(size > 0, "varchar(" & size & ")", colType2Sql(tp)) & " null,"
 					insertInto &= "'" & colName & "',"
 					
 					colNum += 1
@@ -460,9 +461,10 @@ function TableWriter.flush() as boolean
 					loop
 						
 					var tp = iif(ct <> null, ct->type_, CT_STRING)
+					var size = iif(ct <> null, ct->size, 0)
 					var colName = nameToSql(cell->content)
 					
-					createTable &= "[" & colName & "] " & colType2Sql(tp) & ","
+					createTable &= "[" & colName & "] " & iif(size > 0, "varchar(" & size & ")", colType2Sql(tp)) & ","
 					insertInto &= "[" & colName & "],"
 					
 					colNum += 1
@@ -715,7 +717,8 @@ function TableWriter.flush() as boolean
 										bindInd(sqlCol) = SQL_NTS
 										var lgt = len(cell->content)
 										if lgt > 0 then
-											if not SQL_SUCCEEDED(SQLBindParameter(odbc->hStmt, sqlCol, SQL_PARAM_INPUT, SQL_C_CHAR, SQL_VARCHAR, 254, 0, strptr(cell->content), lgt, @bindInd(sqlCol))) then
+											var size = iif(ct <> null, ct->size, 254)
+											if not SQL_SUCCEEDED(SQLBindParameter(odbc->hStmt, sqlCol, SQL_PARAM_INPUT, SQL_C_CHAR, SQL_VARCHAR, size, 0, strptr(cell->content), lgt, @bindInd(sqlCol))) then
 												onError(table->name & " ==> " & extractOdbcError(odbc->hStmt, SQL_HANDLE_STMT))
 											end if
 										else
@@ -730,7 +733,8 @@ function TableWriter.flush() as boolean
 										bindInd(sqlCol) = SQL_NTS
 										var lgt = len(strParams(sqlCol))
 										if lgt > 0 then
-											if not SQL_SUCCEEDED(SQLBindParameter(odbc->hStmt, sqlCol, SQL_PARAM_INPUT, SQL_C_CHAR, SQL_VARCHAR, 254, 0, strptr(strParams(sqlCol)), lgt, @bindInd(sqlCol))) then
+											var size = iif(ct <> null, ct->size, 254)
+											if not SQL_SUCCEEDED(SQLBindParameter(odbc->hStmt, sqlCol, SQL_PARAM_INPUT, SQL_C_CHAR, SQL_VARCHAR, size, 0, strptr(strParams(sqlCol)), lgt, @bindInd(sqlCol))) then
 												onError(table->name & " ==> " & extractOdbcError(odbc->hStmt, SQL_HANDLE_STMT))
 											end if
 										else
@@ -767,6 +771,7 @@ function TableWriter.flush() as boolean
 												.day = 01
 											end with										
 										end if
+										
 										if not SQL_SUCCEEDED(SQLBindParameter(odbc->hStmt, sqlCol, SQL_PARAM_INPUT, SQL_C_TYPE_DATE, SQL_DATE, sizeof(SQL_DATE_STRUCT), 0, @dateParams(sqlCol), 0, @bindInd(sqlCol))) then
 											onError(table->name & " ==> " & extractOdbcError(odbc->hStmt, SQL_HANDLE_STMT))
 										end if
