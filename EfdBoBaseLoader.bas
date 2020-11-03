@@ -89,7 +89,7 @@ function EfdBoBaseLoader.adicionarDFe(dfe as TDFe ptr, isNfe as boolean, fazerIn
 			end if
 			
 			if not db->execNonQuery(db_dfeEntradaInsertStmt) then
-				onError("Erro ao inserir DFe de entrada: " & *db->getErrorMsg())
+				onError("ao inserir DFe de entrada: " & *db->getErrorMsg())
 				return 0
 			end if
 			
@@ -115,7 +115,7 @@ function EfdBoBaseLoader.adicionarDFe(dfe as TDFe ptr, isNfe as boolean, fazerIn
 			end if
 		
 			if not db->execNonQuery(db_dfeSaidaInsertStmt) then
-				onError("Erro ao inserir DFe de saída: " & *db->getErrorMsg())
+				onError("ao inserir DFe de saída: " & *db->getErrorMsg())
 				return 0
 			end if
 
@@ -167,7 +167,7 @@ function EfdBoBaseLoader.adicionarItemDFe(chave as const zstring ptr, item as TD
 	end if
 
 	if not db->execNonQuery(db_itensDfeSaidaInsertStmt) then
-		onError("Erro ao inserir Item DFe de entrada: " & *db->getErrorMsg())
+		onError("ao inserir Item DFe de entrada: " & *db->getErrorMsg())
 		return 0
 	end if
 	

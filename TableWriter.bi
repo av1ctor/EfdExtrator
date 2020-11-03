@@ -88,23 +88,32 @@ enum FileType
 	FT_NULL
 end enum
 
+type TOdbc_ as TOdbc
+
 type TableWriter
-	declare constructor
+	declare constructor()
+	declare function withCallbacks(onProgress as OnProgressCB, onError as OnErrorCB) as TableWriter ptr
 	declare destructor
 	declare function addTable(name as string) as TableTable ptr
 	declare function create(fileName as string, ftype as FileType = FT_XLSX) as boolean
-	declare function flush(onProgress as OnProgressCB, onError as OnErrorCB) as boolean
+	declare function flush() as boolean
 	declare sub close
 	declare static sub exportAPI(L as lua_State ptr)
 	
 private:
+	onProgress as OnProgressCB
+	onError as OnErrorCB
+	
 	ftype as FileType
 	fileName as string
 	fnum as integer = 0
 	xlsxWorkbook as lxw_workbook ptr
 	xlsxFormats(0 to CT__LEN__-1) as lxw_format ptr
 	db as TDb ptr
-	cd as iconv_t
+	odbc as TOdbc_ ptr
+	
+	cdLatinToUtf8 as iconv_t
+	cdUtf8ToLatin as iconv_t
 	
 	tables as TableCollection ptr = null
 	colType2Str(0 to CT__LEN__-1) as string

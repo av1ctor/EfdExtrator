@@ -206,7 +206,7 @@ end function
 function EfdSpedImport.lerTipo(bf as bfile, tipo as zstring ptr) as TipoRegistro
 
 	if bf.peek1 <> asc("|") then
-		onError("Erro: fora de sincronia na linha:" & nroLinha)
+		onError("fora de sincronia na linha:" & nroLinha)
 	else
 		bf.char1 ' pular |
 	end if
@@ -375,7 +375,7 @@ function EfdSpedImport.lerRegMestre(bf as bfile) as TMestre ptr
 		bf.char1
 	end if
 	if bf.peek1 <> 10 then
-		onError("Erro: esperado \n, encontrado " & bf.peek1)
+		onError("esperado \n, encontrado " & bf.peek1)
 	else
 		bf.char1
 	end if
@@ -409,7 +409,7 @@ function EfdSpedImport.lerRegParticipante(bf as bfile) as TParticipante ptr
 		bf.char1
 	end if
 	if bf.peek1 <> 10 then
-		onError("Erro: esperado \n, encontrado " & bf.peek1)
+		onError("esperado \n, encontrado " & bf.peek1)
 	else
 		bf.char1
 	end if
@@ -468,7 +468,7 @@ function EfdSpedImport.lerRegDocNF(bf as bfile) as TDocNF ptr
 		bf.char1
 	end if
 	if bf.peek1 <> 10 then
-		onError("Erro: esperado \n, encontrado " & bf.peek1)
+		onError("esperado \n, encontrado " & bf.peek1)
 	else
 		bf.char1
 	end if
@@ -493,7 +493,7 @@ function EfdSpedImport.lerRegDocNFInfo(bf as bfile, pai as TDocNF ptr) as TDocIn
 		bf.char1
 	end if
 	if bf.peek1 <> 10 then
-		onError("Erro: esperado \n, encontrado " & bf.peek1)
+		onError("esperado \n, encontrado " & bf.peek1)
 	else
 		bf.char1
 	end if
@@ -517,7 +517,7 @@ function EfdSpedImport.lerRegDocObs(bf as bfile) as TDocObs ptr
 		bf.char1
 	end if
 	if bf.peek1 <> 10 then
-		onError("Erro: esperado \n, encontrado " & bf.peek1)
+		onError("esperado \n, encontrado " & bf.peek1)
 	else
 		bf.char1
 	end if
@@ -546,7 +546,7 @@ function EfdSpedImport.lerRegDocObsAjuste(bf as bfile) as TDocObsAjuste ptr
 		bf.char1
 	end if
 	if bf.peek1 <> 10 then
-		onError("Erro: esperado \n, encontrado " & bf.peek1)
+		onError("esperado \n, encontrado " & bf.peek1)
 	else
 		bf.char1
 	end if
@@ -614,7 +614,7 @@ function EfdSpedImport.lerRegDocNFItem(bf as bfile, documentoPai as TDocNF ptr) 
 		bf.char1
 	end if
 	if bf.peek1 <> 10 then
-		onError("Erro: esperado \n, encontrado " & bf.peek1)
+		onError("esperado \n, encontrado " & bf.peek1)
 	else
 		bf.char1
 	end if
@@ -651,7 +651,7 @@ function EfdSpedImport.lerRegDocNFItemAnal(bf as bfile, documentoPai as TDocNF p
 		bf.char1
 	end if
 	if bf.peek1 <> 10 then
-		onError("Erro: esperado \n, encontrado " & bf.peek1)
+		onError("esperado \n, encontrado " & bf.peek1)
 	else
 		bf.char1
 	end if
@@ -707,7 +707,7 @@ function EfdSpedImport.lerRegDocNFItemRessarcSt(bf as bfile, documentoPai as TDo
 		bf.char1
 	end if
 	if bf.peek1 <> 10 then
-		onError("Erro: esperado \n, encontrado " & bf.peek1)
+		onError("esperado \n, encontrado " & bf.peek1)
 	else
 		bf.char1
 	end if
@@ -730,7 +730,7 @@ function EfdSpedImport.lerRegDocNFDifal(bf as bfile, reg as TDocNF ptr) as TDocN
 		bf.char1
 	end if
 	if bf.peek1 <> 10 then
-		onError("Erro: esperado \n, encontrado " & bf.peek1)
+		onError("esperado \n, encontrado " & bf.peek1)
 	else
 		bf.char1
 	end if
@@ -788,7 +788,7 @@ function EfdSpedImport.lerRegDocCT(bf as bfile) as TDocCT ptr
 		bf.char1
 	end if
 	if bf.peek1 <> 10 then
-		onError("Erro: esperado \n, encontrado " & bf.peek1)
+		onError("esperado \n, encontrado " & bf.peek1)
 	else
 		bf.char1
 	end if
@@ -820,7 +820,7 @@ function EfdSpedImport.lerRegDocCTItemAnal(bf as bfile, docPai as TDocCT ptr) as
 		bf.char1
 	end if
 	if bf.peek1 <> 10 then
-		onError("Erro: esperado \n, encontrado " & bf.peek1)
+		onError("esperado \n, encontrado " & bf.peek1)
 	else
 		bf.char1
 	end if
@@ -843,7 +843,7 @@ function EfdSpedImport.lerRegDocCTDifal(bf as bfile, reg as TDocCT ptr) as TDocC
 		bf.char1
 	end if
 	if bf.peek1 <> 10 then
-		onError("Erro: esperado \n, encontrado " & bf.peek1)
+		onError("esperado \n, encontrado " & bf.peek1)
 	else
 		bf.char1
 	end if
@@ -870,7 +870,7 @@ function EfdSpedImport.lerRegEquipECF(bf as bfile) as TEquipECF ptr
 		bf.char1
 	end if
 	if bf.peek1 <> 10 then
-		onError("Erro: esperado \n, encontrado " & bf.peek1)
+		onError("esperado \n, encontrado " & bf.peek1)
 	else
 		bf.char1
 	end if
@@ -907,7 +907,7 @@ function EfdSpedImport.lerRegDocECF(bf as bfile, equipECF as TEquipECF ptr) as T
 		bf.char1
 	end if
 	if bf.peek1 <> 10 then
-		onError("Erro: esperado \n, encontrado " & bf.peek1)
+		onError("esperado \n, encontrado " & bf.peek1)
 	else
 		bf.char1
 	end if
@@ -941,7 +941,7 @@ function EfdSpedImport.lerRegECFReducaoZ(bf as bfile, equipECF as TEquipECF ptr)
 		bf.char1
 	end if
 	if bf.peek1 <> 10 then
-		onError("Erro: esperado \n, encontrado " & bf.peek1)
+		onError("esperado \n, encontrado " & bf.peek1)
 	else
 		bf.char1
 	end if
@@ -978,7 +978,7 @@ function EfdSpedImport.lerRegDocECFItem(bf as bfile, documentoPai as TDocECF ptr
 		bf.char1
 	end if
 	if bf.peek1 <> 10 then
-		onError("Erro: esperado \n, encontrado " & bf.peek1)
+		onError("esperado \n, encontrado " & bf.peek1)
 	else
 		bf.char1
 	end if
@@ -1009,7 +1009,7 @@ function EfdSpedImport.lerRegDocECFItemAnal(bf as bfile, documentoPai as TRegist
 		bf.char1
 	end if
 	if bf.peek1 <> 10 then
-		onError("Erro: esperado \n, encontrado " & bf.peek1)
+		onError("esperado \n, encontrado " & bf.peek1)
 	else
 		bf.char1
 	end if
@@ -1050,7 +1050,7 @@ function EfdSpedImport.lerRegDocSAT(bf as bfile) as TDocSAT ptr
 		bf.char1
 	end if
 	if bf.peek1 <> 10 then
-		onError("Erro: esperado \n, encontrado " & bf.peek1)
+		onError("esperado \n, encontrado " & bf.peek1)
 	else
 		bf.char1
 	end if
@@ -1081,7 +1081,7 @@ function EfdSpedImport.lerRegDocSATItemAnal(bf as bfile, documentoPai as TRegist
 		bf.char1
 	end if
 	if bf.peek1 <> 10 then
-		onError("Erro: esperado \n, encontrado " & bf.peek1)
+		onError("esperado \n, encontrado " & bf.peek1)
 	else
 		bf.char1
 	end if
@@ -1136,7 +1136,7 @@ function EfdSpedImport.lerRegDocNFSCT(bf as bfile) as TDocNF ptr
 		bf.char1
 	end if
 	if bf.peek1 <> 10 then
-		onError("Erro: esperado \n, encontrado " & bf.peek1)
+		onError("esperado \n, encontrado " & bf.peek1)
 	else
 		bf.char1
 	end if
@@ -1170,7 +1170,7 @@ function EfdSpedImport.lerRegDocNFSCTItemAnal(bf as bfile, documentoPai as TRegi
 		bf.char1
 	end if
 	if bf.peek1 <> 10 then
-		onError("Erro: esperado \n, encontrado " & bf.peek1)
+		onError("esperado \n, encontrado " & bf.peek1)
 	else
 		bf.char1
 	end if
@@ -1235,7 +1235,7 @@ function EfdSpedImport.lerRegDocNFElet(bf as bfile) as TDocNF ptr
 		bf.char1
 	end if
 	if bf.peek1 <> 10 then
-		onError("Erro: esperado \n, encontrado " & bf.peek1)
+		onError("esperado \n, encontrado " & bf.peek1)
 	else
 		bf.char1
 	end if
@@ -1269,7 +1269,7 @@ function EfdSpedImport.lerRegDocNFEletItemAnal(bf as bfile, documentoPai as TReg
 		bf.char1
 	end if
 	if bf.peek1 <> 10 then
-		onError("Erro: esperado \n, encontrado " & bf.peek1)
+		onError("esperado \n, encontrado " & bf.peek1)
 	else
 		bf.char1
 	end if
@@ -1306,7 +1306,7 @@ function EfdSpedImport.lerRegItemId(bf as bfile) as TItemId ptr
 		bf.char1
 	end if
 	if bf.peek1 <> 10 then
-		onError("Erro: esperado \n, encontrado " & bf.peek1)
+		onError("esperado \n, encontrado " & bf.peek1)
 	else
 		bf.char1
 	end if
@@ -1334,7 +1334,7 @@ function EfdSpedImport.lerRegBemCiap(bf as bfile) as TBemCiap ptr
 		bf.char1
 	end if
 	if bf.peek1 <> 10 then
-		onError("Erro: esperado \n, encontrado " & bf.peek1)
+		onError("esperado \n, encontrado " & bf.peek1)
 	else
 		bf.char1
 	end if
@@ -1357,7 +1357,7 @@ function EfdSpedImport.lerRegBemCiapInfo(bf as bfile, reg as TBemCiap ptr) as TB
 		bf.char1
 	end if
 	if bf.peek1 <> 10 then
-		onError("Erro: esperado \n, encontrado " & bf.peek1)
+		onError("esperado \n, encontrado " & bf.peek1)
 	else
 		bf.char1
 	end if
@@ -1381,7 +1381,7 @@ function EfdSpedImport.lerRegObsLancamento(bf as bfile) as TObsLancamento ptr
 		bf.char1
 	end if
 	if bf.peek1 <> 10 then
-		onError("Erro: esperado \n, encontrado " & bf.peek1)
+		onError("esperado \n, encontrado " & bf.peek1)
 	else
 		bf.char1
 	end if
@@ -1409,7 +1409,7 @@ function EfdSpedImport.lerRegContaContab(bf as bfile) as TContaContab ptr
 		bf.char1
 	end if
 	if bf.peek1 <> 10 then
-		onError("Erro: esperado \n, encontrado " & bf.peek1)
+		onError("esperado \n, encontrado " & bf.peek1)
 	else
 		bf.char1
 	end if
@@ -1434,7 +1434,7 @@ function EfdSpedImport.lerRegCentroCusto(bf as bfile) as TCentroCusto ptr
 		bf.char1
 	end if
 	if bf.peek1 <> 10 then
-		onError("Erro: esperado \n, encontrado " & bf.peek1)
+		onError("esperado \n, encontrado " & bf.peek1)
 	else
 		bf.char1
 	end if
@@ -1458,7 +1458,7 @@ function EfdSpedImport.lerRegInfoCompl(bf as bfile) as TInfoCompl ptr
 		bf.char1
 	end if
 	if bf.peek1 <> 10 then
-		onError("Erro: esperado \n, encontrado " & bf.peek1)
+		onError("esperado \n, encontrado " & bf.peek1)
 	else
 		bf.char1
 	end if
@@ -1482,7 +1482,7 @@ function EfdSpedImport.lerRegApuIcmsPeriodo(bf as bfile) as TApuracaoIcmsPropPer
 		bf.char1
 	end if
 	if bf.peek1 <> 10 then
-		onError("Erro: esperado \n, encontrado " & bf.peek1)
+		onError("esperado \n, encontrado " & bf.peek1)
 	else
 		bf.char1
 	end if
@@ -1519,7 +1519,7 @@ function EfdSpedImport.lerRegApuIcmsProprio(bf as bfile, reg as TApuracaoIcmsPro
 		bf.char1
 	end if
 	if bf.peek1 <> 10 then
-		onError("Erro: esperado \n, encontrado " & bf.peek1)
+		onError("esperado \n, encontrado " & bf.peek1)
 	else
 		bf.char1
 	end if
@@ -1544,7 +1544,7 @@ function EfdSpedImport.lerRegApuIcmsAjuste(bf as bfile, pai as TApuracaoIcmsPeri
 		bf.char1
 	end if
 	if bf.peek1 <> 10 then
-		onError("Erro: esperado \n, encontrado " & bf.peek1)
+		onError("esperado \n, encontrado " & bf.peek1)
 	else
 		bf.char1
 	end if
@@ -1569,7 +1569,7 @@ function EfdSpedImport.lerRegApuIcmsSTPeriodo(bf as bfile) as TApuracaoIcmsSTPer
 		bf.char1
 	end if
 	if bf.peek1 <> 10 then
-		onError("Erro: esperado \n, encontrado " & bf.peek1)
+		onError("esperado \n, encontrado " & bf.peek1)
 	else
 		bf.char1
 	end if
@@ -1606,7 +1606,7 @@ function EfdSpedImport.lerRegApuIcmsST(bf as bfile, reg as TApuracaoIcmsSTPeriod
 		bf.char1
 	end if
 	if bf.peek1 <> 10 then
-		onError("Erro: esperado \n, encontrado " & bf.peek1)
+		onError("esperado \n, encontrado " & bf.peek1)
 	else
 		bf.char1
 	end if
@@ -1631,7 +1631,7 @@ function EfdSpedImport.lerRegInventarioTotais(bf as bfile) as TInventarioTotais 
 		bf.char1
 	end if
 	if bf.peek1 <> 10 then
-		onError("Erro: esperado \n, encontrado " & bf.peek1)
+		onError("esperado \n, encontrado " & bf.peek1)
 	else
 		bf.char1
 	end if
@@ -1664,7 +1664,7 @@ function EfdSpedImport.lerRegInventarioItem(bf as bfile, inventarioPai as TInven
 		bf.char1
 	end if
 	if bf.peek1 <> 10 then
-		onError("Erro: esperado \n, encontrado " & bf.peek1)
+		onError("esperado \n, encontrado " & bf.peek1)
 	else
 		bf.char1
 	end if
@@ -1695,7 +1695,7 @@ function EfdSpedImport.lerRegCiapTotal(bf as bfile) as TCiapTotal ptr
 		bf.char1
 	end if
 	if bf.peek1 <> 10 then
-		onError("Erro: esperado \n, encontrado " & bf.peek1)
+		onError("esperado \n, encontrado " & bf.peek1)
 	else
 		bf.char1
 	end if
@@ -1728,7 +1728,7 @@ function EfdSpedImport.lerRegCiapItem(bf as bfile, pai as TCiapTotal ptr) as TCi
 		bf.char1
 	end if
 	if bf.peek1 <> 10 then
-		onError("Erro: esperado \n, encontrado " & bf.peek1)
+		onError("esperado \n, encontrado " & bf.peek1)
 	else
 		bf.char1
 	end if
@@ -1762,7 +1762,7 @@ function EfdSpedImport.lerRegCiapItemDoc(bf as bfile, pai as TCiapItem ptr) as T
 		bf.char1
 	end if
 	if bf.peek1 <> 10 then
-		onError("Erro: esperado \n, encontrado " & bf.peek1)
+		onError("esperado \n, encontrado " & bf.peek1)
 	else
 		bf.char1
 	end if
@@ -1795,7 +1795,7 @@ function EfdSpedImport.lerRegCiapItemDocItem(bf as bfile, pai as TCiapItemDoc pt
 		bf.char1
 	end if
 	if bf.peek1 <> 10 then
-		onError("Erro: esperado \n, encontrado " & bf.peek1)
+		onError("esperado \n, encontrado " & bf.peek1)
 	else
 		bf.char1
 	end if
@@ -1819,7 +1819,7 @@ function EfdSpedImport.lerRegEstoquePeriodo(bf as bfile) as TEstoquePeriodo ptr
 		bf.char1
 	end if
 	if bf.peek1 <> 10 then
-		onError("Erro: esperado \n, encontrado " & bf.peek1)
+		onError("esperado \n, encontrado " & bf.peek1)
 	else
 		bf.char1
 	end if
@@ -1847,7 +1847,7 @@ function EfdSpedImport.lerRegEstoqueItem(bf as bfile, pai as TEstoquePeriodo ptr
 		bf.char1
 	end if
 	if bf.peek1 <> 10 then
-		onError("Erro: esperado \n, encontrado " & bf.peek1)
+		onError("esperado \n, encontrado " & bf.peek1)
 	else
 		bf.char1
 	end if
@@ -1876,7 +1876,7 @@ function EfdSpedImport.lerRegEstoqueOrdemProd(bf as bfile, pai as TEstoquePeriod
 		bf.char1
 	end if
 	if bf.peek1 <> 10 then
-		onError("Erro: esperado \n, encontrado " & bf.peek1)
+		onError("esperado \n, encontrado " & bf.peek1)
 	else
 		bf.char1
 	end if
@@ -1891,7 +1891,7 @@ private sub EfdSpedImport.lerAssinatura(bf as bfile)
 	'' verificar header
 	var header = bf.nchar(len(ASSINATURA_P7K_HEADER))
 	if header <> ASSINATURA_P7K_HEADER then
-		onError("Erro: header da assinatura P7K não reconhecido")
+		onError("header da assinatura P7K não reconhecido")
 	end if
 	
 	var lgt = (bf.tamanho - bf.posicao) + 1
@@ -2598,9 +2598,9 @@ function EfdSpedImport.carregar(nomeArquivo as string) as boolean
 				else
 					delete reg
 				end if
-			 
-				nroLinha += 1
 			end if
+			
+			nroLinha += 1
 		loop
 	
 	catch
@@ -2686,7 +2686,7 @@ function EfdSpedImport.lerInfoAssinatura(nomeArquivo as string) as InfoAssinatur
 		
 		function = res
 	catch
-		onError("Erro ao ler assinatura digital. As informações relativas à assinatura estarão em branco nos relatórios gerados")
+		onError("ao ler assinatura digital. As informações relativas à assinatura estarão em branco nos relatórios gerados")
 		function = null
 	endtry
 	
@@ -2707,7 +2707,7 @@ function EfdSpedImport.adicionarMestre(reg as TMestre ptr) as long
 	db_mestreInsertStmt->bind(8, reg->ie)
 	
 	if not db->execNonQuery(db_mestreInsertStmt) then
-		onError("Erro ao inserir registro na EFD_Mestre: " & *db->getErrorMsg())
+		onError("ao inserir registro na EFD_Mestre: " & *db->getErrorMsg())
 		return 0
 	end if
 	
@@ -2747,7 +2747,7 @@ function EfdSpedImport.adicionarDocEscriturado(doc as TDocDF ptr) as long
 			end if
 			
 			if not db->execNonQuery(db_LREInsertStmt) then
-				onError("Erro ao inserir registro na EFD_LRE: " & *db->getErrorMsg())
+				onError("ao inserir registro na EFD_LRE: " & *db->getErrorMsg())
 				return 0
 			end if
 			
@@ -2776,7 +2776,7 @@ function EfdSpedImport.adicionarDocEscriturado(doc as TDocDF ptr) as long
 			end if
 		
 			if not db->execNonQuery(db_LRSInsertStmt) then
-				onError("Erro ao inserir registro na EFD_LRS: " & *db->getErrorMsg())
+				onError("ao inserir registro na EFD_LRS: " & *db->getErrorMsg())
 				return 0
 			end if
 			
@@ -2811,7 +2811,7 @@ function EfdSpedImport.adicionarDocEscriturado(doc as TDocECF ptr) as long
 			db_LRSInsertStmt->bind(9, doc->valorTotal)
 		
 			if not db->execNonQuery(db_LRSInsertStmt) then
-				onError("Erro ao inserir registro na EFD_LRS: " & *db->getErrorMsg())
+				onError("ao inserir registro na EFD_LRS: " & *db->getErrorMsg())
 				return 0
 			end if
 			
@@ -2845,7 +2845,7 @@ function EfdSpedImport.adicionarDocEscriturado(doc as TDocSAT ptr) as long
 			db_LRSInsertStmt->bind(9, doc->valorTotal)
 		
 			if not db->execNonQuery(db_LRSInsertStmt) then
-				onError("Erro ao inserir registro na EFD_LRS: " & *db->getErrorMsg())
+				onError("ao inserir registro na EFD_LRS: " & *db->getErrorMsg())
 				return 0
 			end if
 			
@@ -2897,7 +2897,7 @@ function EfdSpedImport.adicionarItemNFEscriturado(item as TDocNFItem ptr) as lon
 		end if
 		
 		if not db->execNonQuery(db_itensNfLRInsertStmt) then
-			onError("Erro ao inserir registro na EFD_Itens: " & *db->getErrorMsg())
+			onError("ao inserir registro na EFD_Itens: " & *db->getErrorMsg())
 			return 0
 		end if
 		
@@ -2950,7 +2950,7 @@ function EfdSpedImport.adicionarRessarcStEscriturado(doc as TDocNFItemRessarcSt 
 	end if
 
 	if not db->execNonQuery(db_ressarcStItensNfLRSInsertStmt) then
-		onError("Erro ao inserir registro na EFD_Ressarc_Itens: " & *db->getErrorMsg())
+		onError("ao inserir registro na EFD_Ressarc_Itens: " & *db->getErrorMsg())
 		return 0
 	end if
 	
@@ -2970,7 +2970,7 @@ function EfdSpedImport.adicionarItemEscriturado(item as TItemId ptr) as long
 	db_itensIdInsertStmt->bind(5, item->aliqICMSInt)
 	
 	if not db->execNonQuery(db_itensIdInsertStmt) then
-		onError("Erro ao inserir registro na EFD_ItensId: " & *db->getErrorMsg())
+		onError("ao inserir registro na EFD_ItensId: " & *db->getErrorMsg())
 		return 0
 	end if
 	
@@ -3010,7 +3010,7 @@ function EfdSpedImport.adicionarAnalEscriturado(anal as TDocItemAnal ptr) as lon
 	db_analInsertStmt->bind(20, anal->IPI)
 	
 	if not db->execNonQuery(db_analInsertStmt) then
-		onError("Erro ao inserir registro na EDF_Anal: " & *db->getErrorMsg())
+		onError("ao inserir registro na EDF_Anal: " & *db->getErrorMsg())
 		return 0
 	end if
 	

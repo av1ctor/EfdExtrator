@@ -1,22 +1,31 @@
-Extrator de EFD/Sintegra para Excel/Csv/SQLite/Pdf
+Extrator de EFD/Sintegra para Excel/Csv/SQLite/Access/Pdf
 Copyleft 2017-2020 by André Vicentini (avtvicentini)
 
 Quando o aplicativo é executado sem passar nenhum parâmetro, será mostrada a interface gráfica para seleção dos arquivos e marcação de opções.
 
 Recursos:
 
-    - Suporta tanto arquivos do Sped EFD, quanto do Sintegra
+    - Importa tanto arquivos do Sped EFD, quanto do Sintegra
+	
+	- Exporta para os formatos Excel (.xlsx e .xml), CSV, SQLite 3 (.db) e Access (.accdb)
     
-    - Suporta os seguintes arquivos csv gerados pelos relatórios do SAFI no Infoview BO:
+    - Gera, diretamente para PDF, os seguintes relatórios do PVA EFD-ICMS-IPI:
+        - LRE
+        - LRS
+        - LRAICMS
+        - LRAICMS-ST
+        - CIAP
+        
+    - Carrega os seguintes arquivos csv gerados pelos relatórios do SAFI no Infoview BO:
         - SAFI_NFe_Destinatario
         - SAFI_NFe_Emitente_Itens
         - SAFI_NFe_Emitente
         - SAFI_CTe_CNPJ
         
-    - Suporta os seguintes arquivos csv gerados pelos relatórios no Launchpad BO:
+    - Carrega os seguintes arquivos csv gerados pelos relatórios no Launchpad BO:
         - NFE_Emitente_Itens_SP_OSF
     
-    - Suporta os seguintes arquivos xlsx gerados pelos relatórios no Launchpad BO:
+    - Carrega os seguintes arquivos xlsx gerados pelos relatórios no Launchpad BO:
         - NFe_Destinatario_OSF
         - NFe_Emitente_Itens_OSF
         - NFe_Emitente_OSF
@@ -29,13 +38,6 @@ Recursos:
         - GIA's
         - Inidôneos
 
-    - Gera, diretamente para PDF, os seguintes relatórios do PVA EFD-ICMS-IPI:
-        - LRE
-        - LRS
-        - LRAICMS
-        - LRAICMS-ST
-	- CIAP
-        
     - Extrai, formatando as planilhas geradas para facilitar a análise e a compreensão, os seguintes registros da EFD:
         0000 (MESTRE)
         0150 (PARTICIPANTE)
@@ -171,7 +173,7 @@ Modo de usar (linha de comando):
          Deixam de gerar as planilhas de inconsistências e resumos, respectivamente.
          
         -formatoDeSaida xml|csv|xlsx|sqlite|access|null:
-         Altera o formato de saída do padrão xlsx para csv, XML, SQLite (.db) ou Access (.mdb).
+         Altera o formato de saída do padrão xlsx para csv, XML, SQLite (.db) ou Access (.accdb).
          
         -complementarDados:
          Inclui dados complementares na planilha (aba Saídas ou Entradas para docs de emissão própria) que será gerada e que não constam na EFD, caso os arquivos .csv do SAFI ou os .xlsx do Infoview BO sejam fornecidos. AVISO: não utilize as informações relacionadas ao ICMS (alíquota, BC, valor, etc), pois esses dados serão retirados dos DF-e's e não da escrituração.

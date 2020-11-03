@@ -10,6 +10,7 @@ public:
 	declare function withDicionarios(participanteDict as TDict ptr, itemIdDict as TDict ptr, chaveDFeDict as TDict ptr, infoComplDict as TDict ptr, obsLancamentoDict as TDict ptr, bemCiapDict as TDict ptr) as EfdTabelaExport ptr
 	declare function withFiltros(filtrarPorCnpj as OnFilterByStrCB, filtrarPorChave as OnFilterByStrCB) as EfdTabelaExport ptr
 	declare destructor()
+	declare function criar() as boolean
 	declare function getPlanilha(nome as const zstring ptr) as TableTable ptr
 	declare sub gerar(regListHead as TRegistro ptr, regMestre as TMestre ptr, nroRegs as integer)
 	declare sub finalizar()

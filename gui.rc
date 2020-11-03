@@ -10,7 +10,7 @@ BEGIN
         BEGIN
             VALUE "Comments", "EfdExtrator\0"
             VALUE "CompanyName", "André Vicentini (avtvicentini)\0"
-            VALUE "FileDescription", "EfdExtrator - Extrator de EFD/Sintegra para Excel/Csv/SQLite/Pdf\0"
+            VALUE "FileDescription", "EfdExtrator - Extrator de EFD/Sintegra para Excel/Csv/SQLite/Access/Pdf\0"
             VALUE "FileVersion", "0.9.3\0"
             VALUE "LegalCopyright", "Copyleft © 2017-2020 André Vicentini (avtvicentini).\0"
             VALUE "OriginalFilename", "EfdExtrator.exe\0"

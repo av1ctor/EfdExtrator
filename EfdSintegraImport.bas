@@ -255,7 +255,7 @@ function EfdSintegraImport.lerRegistroSintegra(bf as bfile) as TRegistro ptr
 		node->chaveDict = GENSINTEGRAKEY(node)
 		var antReg = cast(TDocumentoSintegra ptr, sintegraDict->lookup(node->chaveDict))
 		if antReg = null then
-			onError("ERRO: Sintegra 53 sem 50: " & node->chaveDict)
+			onError("Sintegra 53 sem 50: " & node->chaveDict)
 		else
 			antReg->valorIPI		= node->valorIPI
 			antReg->valorIsentoIPI	= node->valorIsentoIPI
@@ -274,7 +274,7 @@ function EfdSintegraImport.lerRegistroSintegra(bf as bfile) as TRegistro ptr
 		var chaveDict = GENSINTEGRAKEY(node)
 		var doc = cast(TDocumentoSintegra ptr, sintegraDict->lookup(chaveDict))
 		if doc = null then
-			onError("ERRO: Sintegra 54 sem 50: " & chaveDict)
+			onError("Sintegra 54 sem 50: " & chaveDict)
 		end if
 		
 		node->doc = doc
