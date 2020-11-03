@@ -118,12 +118,12 @@ sub EFd.configurarScripting()
 		customLuaCbDict = new TDict(16, true, true, true)
 		lua_carregarCustoms(customLuaCbDict, lua)
 	catch
-		onError("Erro ao carregar script lua. Verifique erros de sintaxe")
+		onError("ao carregar script lua. Verifique erros de sintaxe")
 	endtry
 end sub
 
 ''''''''
-sub Efd.iniciar(nomeArquivo as String, opcoes as OpcoesExtracao)
+function Efd.iniciar(nomeArquivo as String, opcoes as OpcoesExtracao) as boolean
 	
 	''
 	nomeArquivoSaida = nomeArquivo
@@ -143,7 +143,9 @@ sub Efd.iniciar(nomeArquivo as String, opcoes as OpcoesExtracao)
 		->withCallbacks(onProgress, onError) _
 		->withLua(lua, customLuaCbDict) _
 		->withFiltros(@filtrarPorCnpj, @filtrarPorChave)
-end sub
+		
+	return exp->criar()
+end function
 
 ''''''''
 sub Efd.finalizar()
@@ -303,12 +305,12 @@ private function lua_criarTabela(lua as lua_State ptr, db as TDb ptr, tabela as 
 		lua_call(lua, 1, 1)
 		var res = db->prepare(lua_tostring(lua, -1))
 		if res = null then
-			onError("Erro ao executar script lua de criação de tabela: " + "criarTabela_" + *tabela + ": " + *db->getErrorMsg())
+			onError("ao executar script lua de criação de tabela: " + "criarTabela_" + *tabela + ": " + *db->getErrorMsg())
 		end if
 		function = res
 		lua_pop(lua, 1)
 	catch
-		onError("Erro ao executar script lua de criação de tabela: " + "criarTabela_" + *tabela + ". Verifique erros de sintaxe")
+		onError("ao executar script lua de criação de tabela: " + "criarTabela_" + *tabela + ". Verifique erros de sintaxe")
 	endtry
 
 end function
@@ -374,7 +376,7 @@ sub Efd.configurarDB()
 			
 		end if
 	catch
-		onError("Erro ao executar script lua de criação de DB. Verifique erros de sintaxe")
+		onError("ao executar script lua de criação de DB. Verifique erros de sintaxe")
 	endtry
 
 end sub   

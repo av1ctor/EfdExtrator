@@ -8,7 +8,7 @@ dim shared curFile as TFile ptr
 dim shared statusBar as Ihandle ptr
 
 private function item_about_action_cb(item as Ihandle ptr) as long
-	IupMessage("Sobre", !"Extrator de EFD/Sintegra para Excel/Csv/SQLite/Pdf, versão 0.9.3 beta\nCopyleft 2017-2020 by André Vicentini (avtvicentini)")
+	IupMessage("Sobre", !"Extrator de EFD/Sintegra para Excel/Csv/SQLite/Access/Pdf, versão 0.9.3 beta\nCopyleft 2017-2020 by André Vicentini (avtvicentini)")
 	return IUP_DEFAULT
 end function
 
@@ -338,11 +338,11 @@ private sub onError(msg as const zstring ptr)
 	if len(msg) > 0 then
 		if curFileGrid <> null andalso curFile <> null then
 			var l = (1+curFile->num)
-			IupSetStrAttribute(curFileGrid->mat, ROWCOL(l, 2), msg)
+			IupSetStrAttribute(curFileGrid->mat, ROWCOL(l, 2), "Erro: " & *msg)
 			IupSetAttribute(curFileGrid->mat, "REDRAW", "L" & l)
 			IupSetAttribute(curFileGrid->mat, "SHOW", l & ":*")
 		else
-			IupSetStrAttribute(statusBar, "TITLE", msg)
+			IupSetStrAttribute(statusBar, "TITLE", "Erro: " & *msg)
 		end if
 		IupFlush()
 	end if
@@ -370,118 +370,118 @@ private function item_exec_action_cb(item as Ihandle ptr) as long
 	end if
 	
 	dim arquivoSaida as string =  "__efd__"
-	ext->iniciar(arquivoSaida, gui->opcoes)
+	if ext->iniciar(arquivoSaida, gui->opcoes) then
+		var errCnt = 0
+		
+		onProgress("Processando...")
 
-	var errCnt = 0
-	
-	onProgress("Processando...")
+		for i as integer = 0 to ubound(gui->fileGrids)
+			var fg = @gui->fileGrids(i)
+			if fg->files <> null then
+				var file = cast(TFile ptr, fg->files->head)
+				do while file <> null
+					var at = file->num
+					IupSetAttribute(fg->mat, ROWCOL(1+at, 2), "Selecionado")
+					IupSetInt(fg->mat, ROWCOL(1+at, 3), 0)
+					file = fg->files->next_(file)
+				loop
+				IupSetAttribute(fg->mat, "REDRAW", "ALL")
+			end if
+		next
+		
+		'' DFe's
+		curFileGrid = @gui->fileGrids(FG_DFE)
+		if curFileGrid->files <> null then
+			curFile = cast(TFile ptr, curFileGrid->files->head)
+			do while running andalso curFile <> null
+				
+				var arquivoEntrada = curFile->path + curFile->name
+				if lcase(right(arquivoEntrada,3)) = "csv" then
+					if not gui->opcoes.pularAnalises orelse gui->opcoes.acrescentarDados orelse gui->opcoes.manterDb then
+						onProgress("Carregando")
+						if not ext->carregarCsv( arquivoEntrada ) then
+							onError(!"\r\nErro ao carregar arquivo: " & arquivoEntrada)
+							errCnt += 1
+						end if
+					else
+						onProgress("Ignorado", 1.0)
+					end if
+					
+				elseif lcase(right(arquivoEntrada,4)) = "xlsx" then
+					if not gui->opcoes.pularAnalises orelse gui->opcoes.acrescentarDados orelse gui->opcoes.manterDb then
+						onProgress("Carregando")
+						if not ext->carregarXlsx( arquivoEntrada ) then
+							onError(!"\r\nErro ao carregar arquivo: " & arquivoEntrada)
+							errCnt += 1
+						end if
+					else
+						onProgress("Ignorado", 1.0)
+					end if
+				end if 
+				
+				IupFlush()
 
-	for i as integer = 0 to ubound(gui->fileGrids)
-		var fg = @gui->fileGrids(i)
-		if fg->files <> null then
-			var file = cast(TFile ptr, fg->files->head)
-			do while file <> null
-				var at = file->num
-				IupSetAttribute(fg->mat, ROWCOL(1+at, 2), "Selecionado")
-				IupSetInt(fg->mat, ROWCOL(1+at, 3), 0)
-				file = fg->files->next_(file)
-			loop
-			IupSetAttribute(fg->mat, "REDRAW", "ALL")
+				curFile = curFileGrid->files->next_(curFile)
+			loop	
 		end if
-	next
-	
-	'' DFe's
-	curFileGrid = @gui->fileGrids(FG_DFE)
-	if curFileGrid->files <> null then
-		curFile = cast(TFile ptr, curFileGrid->files->head)
-		do while running andalso curFile <> null
-			
-			var arquivoEntrada = curFile->path + curFile->name
-			if lcase(right(arquivoEntrada,3)) = "csv" then
-				if not gui->opcoes.pularAnalises orelse gui->opcoes.acrescentarDados orelse gui->opcoes.manterDb then
+		
+		if not gui->opcoes.acrescentarDados then
+			ext->descarregarDFe()
+		end if
+		
+		'' EFD's
+		var efdCnt = 0
+		curFileGrid = @gui->fileGrids(FG_EFD)
+		if curFileGrid->files <> null then
+			curFile = cast(TFile ptr, curFileGrid->files->head)
+			do while running andalso curFile <> null
+				var arquivoEntrada = curFile->path + curFile->name
+				if lcase(right(arquivoEntrada,3)) = "txt" then
 					onProgress("Carregando")
-					if not ext->carregarCsv( arquivoEntrada ) then
+					var txt = ext->carregarTxt( arquivoEntrada )
+					if txt = null  then
 						onError(!"\r\nErro ao carregar arquivo: " & arquivoEntrada)
 						errCnt += 1
 					end if
-				else
-					onProgress("Ignorado", 1.0)
-				end if
-				
-			elseif lcase(right(arquivoEntrada,4)) = "xlsx" then
-				if not gui->opcoes.pularAnalises orelse gui->opcoes.acrescentarDados orelse gui->opcoes.manterDb then
-					onProgress("Carregando")
-					if not ext->carregarXlsx( arquivoEntrada ) then
-						onError(!"\r\nErro ao carregar arquivo: " & arquivoEntrada)
-						errCnt += 1
+					
+					efdCnt += 1
+					
+					if errCnt = 0 then
+						onProgress("Processando")
+						if not ext->processar( txt, arquivoEntrada ) then
+							onError(!"\r\nErro ao extrair arquivo: " & arquivoEntrada)
+							errCnt += 1
+						end if
 					end if
-				else
-					onProgress("Ignorado", 1.0)
-				end if
-			end if 
-			
-			IupFlush()
-
-			curFile = curFileGrid->files->next_(curFile)
-		loop	
-	end if
-	
-	if not gui->opcoes.acrescentarDados then
-		ext->descarregarDFe()
-	end if
-	
-	'' EFD's
-	var efdCnt = 0
-	curFileGrid = @gui->fileGrids(FG_EFD)
-	if curFileGrid->files <> null then
-		curFile = cast(TFile ptr, curFileGrid->files->head)
-		do while running andalso curFile <> null
-			var arquivoEntrada = curFile->path + curFile->name
-			if lcase(right(arquivoEntrada,3)) = "txt" then
-				onProgress("Carregando")
-				var txt = ext->carregarTxt( arquivoEntrada )
-				if txt = null  then
-					onError(!"\r\nErro ao carregar arquivo: " & arquivoEntrada)
-					errCnt += 1
-				end if
-				
-				efdCnt += 1
-				
-				if errCnt = 0 then
-					onProgress("Processando")
-					if not ext->processar( txt, arquivoEntrada ) then
-						onError(!"\r\nErro ao extrair arquivo: " & arquivoEntrada)
-						errCnt += 1
+					
+					if txt <> null then
+						delete txt
 					end if
-				end if
+				end if 
 				
-				if txt <> null then
-					delete txt
-				end if
-			end if 
-			
-			IupFlush()
-			 
-			curFile = curFileGrid->files->next_(curFile)
-		loop
-	end if
-	
-	curFileGrid = null
-	curFile = null
-	
-	if running then
-		if errCnt = 0 andalso efdCnt > 0 then
-			if gui->opcoes.formatoDeSaida <> FT_NULL then
-				if not gui->opcoes.pularAnalises then
-					onProgress("Analisando")
-					IupFlush()
-					ext->analisar()
-				end if
+				IupFlush()
+				 
+				curFile = curFileGrid->files->next_(curFile)
+			loop
+		end if
+		
+		curFileGrid = null
+		curFile = null
+		
+		if running then
+			if errCnt = 0 andalso efdCnt > 0 then
+				if gui->opcoes.formatoDeSaida <> FT_NULL then
+					if not gui->opcoes.pularAnalises then
+						onProgress("Analisando")
+						IupFlush()
+						ext->analisar()
+					end if
 
-				if not gui->opcoes.pularResumos then
-					onProgress("Resumindo")
-					IupFlush()
-					ext->resumir()
+					if not gui->opcoes.pularResumos then
+						onProgress("Resumindo")
+						IupFlush()
+						ext->resumir()
+					end if
 				end if
 			end if
 		end if

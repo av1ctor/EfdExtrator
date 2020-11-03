@@ -1,12 +1,26 @@
 
 #include once "TableWriter.bi"
+#include once "crt/stdarg.bi"
+#include once "win/windef.bi"
+#include once "win/winbase.bi"
+#include once "win/sqlext.bi"
+#include once "win/odbcinst.bi"
+#inclib "odbccp32"
+#include "file.bi"
 #include "libiconv.bi"
+
+type TOdbc
+	hEnv as SQLHENV
+    hDbc as SQLHDBC
+    hStmt as SQLHSTMT
+end type
 
 ''
 constructor TableWriter()
 	tables = new TableCollection
 	fnum = 0
 	xlsxWorkbook = null
+	odbc = null
 	
 	colType2Str(CT_STRING) 		= "String"
 	colType2Str(CT_STRING_UTF8)	= "String"
@@ -16,14 +30,6 @@ constructor TableWriter()
 	colType2Str(CT_MONEY) 		= "Number"
 	colType2Str(CT_PERCENT)		= "Number"
 
-	colType2Sql(CT_STRING) 		= "text"
-	colType2Sql(CT_STRING_UTF8)	= "text"
-	colType2Sql(CT_NUMBER) 		= "real"
-	colType2Sql(CT_INTNUMBER)   = "integer"
-	colType2Sql(CT_DATE) 		= "date"
-	colType2Sql(CT_MONEY) 		= "decimal(10,2)"
-	colType2Sql(CT_PERCENT)		= "decimal(10,2)"
-
 	colWidth(CT_STRING) 		= LXW_DEF_COL_WIDTH + 8
 	colWidth(CT_STRING_UTF8)	= LXW_DEF_COL_WIDTH + 8
 	colWidth(CT_NUMBER) 		= LXW_DEF_COL_WIDTH + 0
@@ -32,11 +38,22 @@ constructor TableWriter()
 	colWidth(CT_MONEY) 			= LXW_DEF_COL_WIDTH + 6
 	colWidth(CT_PERCENT)		= LXW_DEF_COL_WIDTH + 0
 
-	cd = iconv_open("UTF-8", "ISO_8859-1")
+	cdLatinToUtf8 = iconv_open("UTF-8", "ISO_8859-1")
+	cdUtf8ToLatin = iconv_open("ISO_8859-1", "UTF-8")
 end constructor
+
+''''''''
+function TableWriter.withCallbacks(onProgress as OnProgressCB, onError as OnErrorCB) as TableWriter ptr
+	this.onProgress = onProgress
+	this.onError = onError
+	return @this
+end function
 
 ''
 destructor TableWriter()
+	iconv_close(cdUtf8ToLatin)
+	iconv_close(cdLatinToUtf8)
+
 	if tables <> null then
 		delete tables
 		tables = null
@@ -56,6 +73,20 @@ destructor TableWriter()
 		delete db
 	end if
 	
+	if odbc <> null then
+		if odbc->hEnv <> null then
+			if odbc->hstmt <> null then
+				SQLFreeHandle(SQL_HANDLE_STMT, odbc->hstmt)
+			end if
+			if odbc->hDbc <> null then
+				SQLDisconnect(odbc->hDbc)
+				SQLFreeHandle(SQL_HANDLE_DBC, odbc->hDbc)
+			end if
+			SQLFreeHandle(SQL_HANDLE_ENV, odbc->hEnv)
+		end if
+		delete odbc
+	end if
+	
 end destructor
 
 ''
@@ -64,6 +95,50 @@ function TableWriter.addTable(name_ as string) as TableTable ptr
 	function = tables->addTable(name_)
 
 end function
+
+private function extractOdbcError(handle as SQLHANDLE, type_ as SQLSMALLINT) as string
+    dim as SQLINTEGER i = 1
+    dim as SQLINTEGER native
+    dim as zstring * 7+1 state
+    dim as zstring * 255+1 text
+    dim as SQLSMALLINT len_
+    dim as SQLRETURN ret
+
+    var res = ""
+	do
+        ret = SQLGetDiagRec(type_, handle, i, @state, @native, @text, sizeof(text)-1, @len_)
+        if not SQL_SUCCEEDED(ret) then
+			exit do
+		end if
+		res += "(state=" + state + ";text=" + text + ")"
+		i += 1
+    loop
+	
+	return res
+	
+end function
+
+''
+private sub initTables(ftype as FileType, arr() as string)
+	select case ftype
+	case FT_SQLITE
+		arr(CT_STRING) 		= "text"
+		arr(CT_STRING_UTF8)	= "text"
+		arr(CT_NUMBER) 		= "real"
+		arr(CT_INTNUMBER)   = "integer"
+		arr(CT_DATE) 		= "date"
+		arr(CT_MONEY) 		= "decimal(10,2)"
+		arr(CT_PERCENT)		= "decimal(10,2)"
+	case FT_ACCESS
+		arr(CT_STRING) 		= "varchar(254)"
+		arr(CT_STRING_UTF8)	= "varchar(254)"
+		arr(CT_NUMBER) 		= "REAL"
+		arr(CT_INTNUMBER)   = "INTEGER"
+		arr(CT_DATE) 		= "DATETIME"
+		arr(CT_MONEY) 		= "REAL"
+		arr(CT_PERCENT)		= "REAL"
+	end select
+end sub
 
 ''
 function TableWriter.create(fileName as string, ftype as FileType) as boolean
@@ -76,23 +151,25 @@ function TableWriter.create(fileName as string, ftype as FileType) as boolean
 		fnum = FreeFile
 
 		var res = open(fileName + ".xml" for output as #fnum) = 0
+		if not res then
+			onError("ao tentar criar o arquivo XML")
+			return false
+		end if
 
 		' header
-		if res then 
-			print #fnum, !"<?xml version=\"1.0\" encoding=\"iso-8859-1\"?>"
-			print #fnum, !"<?mso-application progid=\"Excel.Sheet\"?>"
-			print #fnum, !"<Workbook xmlns=\"urn:schemas-microsoft-com:office:spreadsheet\" xmlns:x=\"urn:schemas-microsoft-com:office:excel\" xmlns:ss=\"urn:schemas-microsoft-com:office:spreadsheet\" xmlns:html=\"http://www.w3.org/TR/REC-html40\">"
-		else
-			fnum = 0
-		end if
-		function = res
+		print #fnum, !"<?xml version=\"1.0\" encoding=\"iso-8859-1\"?>"
+		print #fnum, !"<?mso-application progid=\"Excel.Sheet\"?>"
+		print #fnum, !"<Workbook xmlns=\"urn:schemas-microsoft-com:office:spreadsheet\" xmlns:x=\"urn:schemas-microsoft-com:office:excel\" xmlns:ss=\"urn:schemas-microsoft-com:office:spreadsheet\" xmlns:html=\"http://www.w3.org/TR/REC-html40\">"
 
 	case FT_CSV
 		fnum = 0
-		function = true
 
 	case FT_XLSX
 		xlsxWorkbook = workbook_new(fileName + ".xlsx")
+		if xlsxWorkbook = null then
+			onError("ao tentar criar o arquivo XLSX")
+			return false
+		end if
 		
 		for i as integer = 0 to CT__LEN__-1
 			xlsxFormats(i) = workbook_add_format(xlsxWorkbook)
@@ -103,21 +180,55 @@ function TableWriter.create(fileName as string, ftype as FileType) as boolean
 		format_set_num_format(xlsxFormats(CT_INTNUMBER), "0")
 		format_set_num_format(xlsxFormats(CT_NUMBER), "0.00")
 		format_set_num_format(xlsxFormats(CT_PERCENT), "0.00%")
-		function = true
 		
 	case FT_SQLITE
 		kill fileName + ".db"
 		db = new TDb
-		db->open(fileName + ".db")
+		if not db->open(fileName + ".db") then
+			onError("ao tentar criar o arquivo SQLite")
+			return false
+		end if
 		db->execNonQuery("PRAGMA JOURNAL_MODE=OFF")
 		db->execNonQuery("PRAGMA SYNCHRONOUS=0")
 		db->execNonQuery("PRAGMA LOCKING_MODE=EXCLUSIVE")
 		
+		initTables(FT_SQLITE, colType2Sql())
+		
+	case FT_ACCESS
+		const driverStr = "Microsoft Access Driver (*.mdb, *.accdb)"
+		
+		var path = iif(instr(fileName, "\") > 0, "", curdir & "\")
+		
+		kill path & fileName & ".accdb"
+		if SQLConfigDataSource(null, ODBC_ADD_DSN, driverStr, "CREATE_DBV12=""" & path & fileName & ".accdb""") = 0 then
+			var errorCode = 0ul
+			dim as zstring * 256+1 errorMsg 
+			SQLInstallerError(1, @errorCode, @errorMsg, sizeof(errorMsg), null)
+			onError("ao tentar criar o arquivo do Access (cod: '" & errorCode & "', msg: '" & errorMsg & "')")
+			return false
+		end if
+		
+		odbc = new TOdbc
+		SQLAllocHandle(SQL_HANDLE_ENV, SQL_NULL_HANDLE, @odbc->hEnv)
+		SQLSetEnvAttr(odbc->hEnv, SQL_ATTR_ODBC_VERSION, cast(SQLPOINTER, SQL_OV_ODBC3), 0)
+		SQLAllocHandle(SQL_HANDLE_DBC, odbc->hEnv, @odbc->hDbc)
+		
+		var conStr = "Driver={" & driverStr & "};Dbq=" & path & fileName & ".accdb;Exclusive=1;"
+		if not SQL_SUCCEEDED(SQLDriverConnect(odbc->hDbc, null, conStr, SQL_NTS, NULL, 0, NULL, SQL_DRIVER_NOPROMPT)) then
+			onError(extractOdbcError(odbc->hDbc, SQL_HANDLE_DBC))
+			return false
+		end if
+		
+		SQLAllocHandle(SQL_HANDLE_STMT, odbc->hdbc, @odbc->hStmt)
+		
+		initTables(FT_ACCESS, colType2Sql())
+		
 	case else
 		fnum = 0
-		function = true
 		
 	end select
+
+	function = true
 
 end function
 
@@ -151,13 +262,26 @@ private function latin2UTF8(src as zstring ptr, cd as iconv_t) as string
 	var dstp = dst
 	var dstleft = chars*2
 	iconv(cd, @srcp, @srcleft, @dstp, @dstleft)
-	*cast(byte ptr, dstp) = 0
+	*cast(ubyte ptr, dstp) = 0
+	function = *dst
+	deallocate dst
+end function
+
+private function utf8ToLatin(src as const zstring ptr, cd as iconv_t) as string
+	var bytes = len(*src)
+	var dst = cast(zstring ptr, callocate(bytes+1))
+	var srcp = src
+	var srcleft = bytes
+	var dstp = dst
+	var dstleft = bytes
+	iconv(cd, @srcp, @srcleft, @dstp, @dstleft)
+	*cast(ubyte ptr, dstp) = 0
 	function = *dst
 	deallocate dst
 end function
 
 ''
-function TableWriter.flush(onProgress as OnProgressCB, onError as OnErrorCB) as boolean
+function TableWriter.flush() as boolean
 
 	var p = 1
 
@@ -222,6 +346,7 @@ function TableWriter.flush(onProgress as OnProgressCB, onError as OnErrorCB) as 
 			dim as lxw_worksheet ptr xlsXWorksheet
 			dim as TDbStmt ptr stmt = null
 			dim as integer totCols = 0
+			dim as string insertQuery
 	
 			select case ftype
 			case FT_XML
@@ -244,7 +369,7 @@ function TableWriter.flush(onProgress as OnProgressCB, onError as OnErrorCB) as 
 				var csvName = fileName + "_" + table->name + ".csv"
 				var res = open(csvName for output as #fnum) = 0
 				if not res then
-					onError(wstr("Erro: não foi possível criar arquivo " + csvName))
+					onError(wstr("não foi possível criar arquivo " + csvName))
 					return false
 				end if
 
@@ -273,6 +398,7 @@ function TableWriter.flush(onProgress as OnProgressCB, onError as OnErrorCB) as 
 				var cell = row->cellListHead
 				var ct = table->colListHead
 				var colNum = 0
+				totCols = 0
 				do while cell <> null
 					do while cell->num > colNum
 						colNum += 1
@@ -288,14 +414,13 @@ function TableWriter.flush(onProgress as OnProgressCB, onError as OnErrorCB) as 
 					insertInto &= "'" & colName & "',"
 					
 					colNum += 1
+					totCols += 1
 					if ct <> null then
 						ct = ct->next_
 					end if
 					cell = cell->next_
 				loop
 
-				totCols = colNum
-				
 				if totCols > 0 then
 					createTable = left(createTable, len(createTable)-1) & ")"
 					if db->execNonQuery(createTable) = false then
@@ -315,6 +440,53 @@ function TableWriter.flush(onProgress as OnProgressCB, onError as OnErrorCB) as 
 					end if
 				end if
 				
+			case FT_ACCESS
+				var tblName = "[" & table->name & "]"
+				
+				var createTable = "create table " & tblName & "("
+				var insertInto = "insert into " & tblName & "("
+				
+				var row = table->rowListHead
+				var cell = row->cellListHead
+				var ct = table->colListHead
+				var colNum = 0
+				totCols = 0
+				do while cell <> null
+					do while cell->num > colNum
+						colNum += 1
+						if ct <> null then
+							ct = ct->next_
+						end if
+					loop
+						
+					var tp = iif(ct <> null, ct->type_, CT_STRING)
+					var colName = nameToSql(cell->content)
+					
+					createTable &= "[" & colName & "] " & colType2Sql(tp) & ","
+					insertInto &= "[" & colName & "],"
+					
+					colNum += 1
+					totCols += 1
+					if ct <> null then
+						ct = ct->next_
+					end if
+					cell = cell->next_
+				loop
+
+				if totCols > 0 then
+					createTable = left(createTable, len(createTable)-1) & ")"
+					if not SQL_SUCCEEDED(SQLExecDirect(odbc->hStmt, cast(SQLCHAR ptr, strptr(createTable)), SQL_NTS)) then
+						onError("Ao criar tabela: " & createTable & " ==> " & extractOdbcError(odbc->hStmt, SQL_HANDLE_STMT))
+						return false
+					end if
+				
+					insertInto = left(insertInto, len(insertInto)-1) & ") values ("
+					for i as integer = 1 to totCols-1
+						insertInto &= "?,"
+					next
+					insertInto &= "?)"
+					insertQuery = insertInto
+				end if
 			end select
 
 			'' para cada linha..
@@ -449,7 +621,7 @@ function TableWriter.flush(onProgress as OnProgressCB, onError as OnErrorCB) as 
 								else
 									select case as const iif(ct <> null, ct->type_, CT_STRING)
 									case CT_STRING
-										worksheet_write_string(xlsXWorksheet, rowNum, colNum, latin2UTF8(cell->content, cd), NULL)
+										worksheet_write_string(xlsXWorksheet, rowNum, colNum, latin2UTF8(cell->content, cdLatinToUtf8), NULL)
 									case CT_STRING_UTF8
 										worksheet_write_string(xlsXWorksheet, rowNum, colNum, cell->content, NULL)
 									case CT_NUMBER, CT_MONEY, CT_PERCENT
@@ -478,7 +650,7 @@ function TableWriter.flush(onProgress as OnProgressCB, onError as OnErrorCB) as 
 								var ct = table->colListHead
 								var colNum = 0
 								var sqlCol = 1
-								dim bindContents(1 to totCols) as string
+								dim strParams(1 to totCols) as string
 								stmt->reset()
 								do while cell <> null
 									do while cell->num > colNum
@@ -492,8 +664,8 @@ function TableWriter.flush(onProgress as OnProgressCB, onError as OnErrorCB) as 
 								
 									select case as const iif(ct <> null, ct->type_, CT_STRING)
 									case CT_STRING
-										bindContents(sqlCol) = latin2UTF8(cell->content, cd)
-										stmt->bind(sqlCol, bindContents(sqlCol))
+										strParams(sqlCol) = latin2UTF8(cell->content, cdLatinToUtf8)
+										stmt->bind(sqlCol, strParams(sqlCol))
 									case CT_STRING_UTF8
 										stmt->bind(sqlCol, cell->content)
 									case CT_NUMBER, CT_MONEY, CT_PERCENT
@@ -502,8 +674,8 @@ function TableWriter.flush(onProgress as OnProgressCB, onError as OnErrorCB) as 
 										stmt->bind(sqlCol, clngint(cell->content))
 									case CT_DATE
 										var value = cell->content
-										bindContents(sqlCol) = left(value, 4) & "-" & mid(value, 6, 2) & "-" & mid(value, 9, 2)
-										stmt->bind(sqlCol, bindContents(sqlCol))
+										strParams(sqlCol) = left(value, 4) & "-" & mid(value, 6, 2) & "-" & mid(value, 9, 2)
+										stmt->bind(sqlCol, strParams(sqlCol))
 									end select
 										
 									colNum += 1
@@ -516,6 +688,104 @@ function TableWriter.flush(onProgress as OnProgressCB, onError as OnErrorCB) as 
 								loop
 								
 								db->execNonQuery(stmt)
+							end if
+
+						case FT_ACCESS
+							if rowNum > 0 then
+								'' para cada celula da linha..
+								var cell = row->cellListHead
+								var ct = table->colListHead
+								var colNum = 0
+								var sqlCol = 1
+								dim strParams(1 to totCols) as string
+								dim intParams(1 to totCols) as SQLINTEGER
+								dim fltParams(1 to totCols) as SQLREAL
+								dim dateParams(1 to totCols) as SQL_DATE_STRUCT
+								dim bindInd(1 to totCols) as SQLLEN
+								do while cell <> null
+									do while cell->num > colNum
+										colNum += 1
+										if ct <> null then
+											ct = ct->next_
+										end if
+									loop
+								
+									select case as const iif(ct <> null, ct->type_, CT_STRING)
+									case CT_STRING
+										bindInd(sqlCol) = SQL_NTS
+										var lgt = len(cell->content)
+										if lgt > 0 then
+											if not SQL_SUCCEEDED(SQLBindParameter(odbc->hStmt, sqlCol, SQL_PARAM_INPUT, SQL_C_CHAR, SQL_VARCHAR, 254, 0, strptr(cell->content), lgt, @bindInd(sqlCol))) then
+												onError(table->name & " ==> " & extractOdbcError(odbc->hStmt, SQL_HANDLE_STMT))
+											end if
+										else
+											bindInd(sqlCol) = SQL_NULL_DATA
+											if not SQL_SUCCEEDED(SQLBindParameter(odbc->hStmt, sqlCol, SQL_PARAM_INPUT, SQL_C_CHAR, SQL_CHAR, 1, 0, NULL, 0, @bindInd(sqlCol))) then
+												onError(table->name & " ==> " & extractOdbcError(odbc->hStmt, SQL_HANDLE_STMT))
+											end if
+										end if
+									
+									case CT_STRING_UTF8
+										strParams(sqlCol) = utf8ToLatin(cell->content, cdUtf8ToLatin)
+										bindInd(sqlCol) = SQL_NTS
+										var lgt = len(strParams(sqlCol))
+										if lgt > 0 then
+											if not SQL_SUCCEEDED(SQLBindParameter(odbc->hStmt, sqlCol, SQL_PARAM_INPUT, SQL_C_CHAR, SQL_VARCHAR, 254, 0, strptr(strParams(sqlCol)), lgt, @bindInd(sqlCol))) then
+												onError(table->name & " ==> " & extractOdbcError(odbc->hStmt, SQL_HANDLE_STMT))
+											end if
+										else
+											bindInd(sqlCol) = SQL_NULL_DATA
+											if not SQL_SUCCEEDED(SQLBindParameter(odbc->hStmt, sqlCol, SQL_PARAM_INPUT, SQL_C_CHAR, SQL_CHAR, 1, 0, NULL, 0, @bindInd(sqlCol))) then
+												onError(table->name & " ==> " & extractOdbcError(odbc->hStmt, SQL_HANDLE_STMT))
+											end if
+										end if
+										
+									case CT_NUMBER, CT_MONEY, CT_PERCENT
+										fltParams(sqlCol) = csng(cell->content)
+										if not SQL_SUCCEEDED(SQLBindParameter(odbc->hStmt, sqlCol, SQL_PARAM_INPUT, SQL_C_FLOAT, SQL_REAL, 12, 0, @fltParams(sqlCol), 0, @bindInd(sqlCol))) then
+											onError(table->name & " ==> " & extractOdbcError(odbc->hStmt, SQL_HANDLE_STMT))
+										end if
+									
+									case CT_INTNUMBER
+										intParams(sqlCol) = clngint(cell->content)
+										if not SQL_SUCCEEDED(SQLBindParameter(odbc->hStmt, sqlCol, SQL_PARAM_INPUT, SQL_C_SLONG, SQL_INTEGER, 12, 0, @intParams(sqlCol), 0, @bindInd(sqlCol))) then
+											onError(table->name & " ==> " & extractOdbcError(odbc->hStmt, SQL_HANDLE_STMT))
+										end if
+										
+									case CT_DATE
+										var value = cell->content
+										if len(value) >= 10 then
+											with dateParams(sqlCol)
+												.year = valint(left(value, 4))
+												.month = valint(mid(value, 6, 2))
+												.day = valint(mid(value, 9, 2))
+											end with
+										else
+											with dateParams(sqlCol)
+												.year = 1900
+												.month = 01
+												.day = 01
+											end with										
+										end if
+										if not SQL_SUCCEEDED(SQLBindParameter(odbc->hStmt, sqlCol, SQL_PARAM_INPUT, SQL_C_TYPE_DATE, SQL_DATE, sizeof(SQL_DATE_STRUCT), 0, @dateParams(sqlCol), 0, @bindInd(sqlCol))) then
+											onError(table->name & " ==> " & extractOdbcError(odbc->hStmt, SQL_HANDLE_STMT))
+										end if
+									end select
+										
+									colNum += 1
+									sqlCol += 1
+									
+									cell = cell->next_
+									if ct <> null then
+										ct = ct->next_
+									end if
+								loop
+
+								if not SQL_SUCCEEDED(SQLExecDirect(odbc->hStmt, strptr(insertQuery), SQL_NTS)) then
+									onError(table->name & " ==> " & extractOdbcError(odbc->hStmt, SQL_HANDLE_STMT))
+								end if
+								
+								SQLFreeStmt(odbc->hStmt, SQL_RESET_PARAMS)
 							end if
 						end select
 					end if

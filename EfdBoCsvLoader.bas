@@ -316,7 +316,7 @@ function EfdBoCsvLoader.carregar(nomeArquivo as String) as Boolean
 		ctx->itemNFeSafiFornecido = true
 	
 	else
-		onError("Erro: impossível resolver tipo de arquivo pelo nome")
+		onError("impossível resolver tipo de arquivo pelo nome")
 		return false
 	end if
 

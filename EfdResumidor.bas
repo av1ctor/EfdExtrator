@@ -441,7 +441,7 @@ sub EfdResumidor.criarResumosLRE()
 		lua_pushlightuserdata(lua, opcoes)
 		lua_call(lua, 3, 0)
 	catch
-		onError("Erro no script lua!")
+		onError("no script lua!")
 	endtry
 	
 	if not onProgress(null, 0.33) then
@@ -457,7 +457,7 @@ sub EfdResumidor.criarResumosLRE()
 		lua_pushlightuserdata(lua, opcoes)
 		lua_call(lua, 3, 0)
 	catch
-		onError("Erro no script lua!")
+		onError("no script lua!")
 	endtry
 
 	if not onProgress(null, 0.66) then
@@ -473,7 +473,7 @@ sub EfdResumidor.criarResumosLRE()
 		lua_pushlightuserdata(lua, opcoes)
 		lua_call(lua, 3, 0)
 	catch
-		onError("Erro no script lua!")
+		onError("no script lua!")
 	endtry
 	
 	onProgress(null, 1)
@@ -496,7 +496,7 @@ sub EfdResumidor.criarResumosLRS()
 		lua_pushlightuserdata(lua, opcoes)
 		lua_call(lua, 3, 0)
 	catch
-		onError("Erro no script lua!")
+		onError("no script lua!")
 	endtry
 	
 	if not onProgress(null, 0.33) then
@@ -512,7 +512,7 @@ sub EfdResumidor.criarResumosLRS()
 		lua_pushlightuserdata(lua, opcoes)
 		lua_call(lua, 3, 0)
 	catch
-		onError("Erro no script lua!")
+		onError("no script lua!")
 	endtry
 	
 	if not onProgress(null, 0.66) then
@@ -528,7 +528,7 @@ sub EfdResumidor.criarResumosLRS()
 		lua_pushlightuserdata(lua, opcoes)
 		lua_call(lua, 3, 0)
 	catch
-		onError("Erro no script lua!")
+		onError("no script lua!")
 	endtry
 	
 	onProgress(null, 1)

@@ -7,8 +7,7 @@ constructor EfdTabelaExport(nomeArquivo as String, opcoes as OpcoesExtracao ptr)
 	this.nomeArquivo = nomeArquivo
 	this.opcoes = opcoes
 	
-	ew = new TableWriter
-	ew->create(nomeArquivo, opcoes->formatoDeSaida)
+	ew = new TableWriter()
 
 	entradas = null
 	saidas = null
@@ -23,6 +22,7 @@ end destructor
 
 ''''''''
 function EfdTabelaExport.withCallbacks(onProgress as OnProgressCB, onError as OnErrorCB) as EfdTabelaExport ptr
+	ew->withCallbacks(onProgress, onError)
 	this.onProgress = onProgress
 	this.onError = onError
 	return @this
@@ -67,6 +67,11 @@ function EfdTabelaExport.withDicionarios( _
 	this.obsLancamentoDict = obsLancamentoDict
 	this.bemCiapDict = bemCiapDict
 	return @this
+end function
+
+''''''''
+function EfdTabelaExport.criar() as boolean
+	return ew->create(nomeArquivo, opcoes->formatoDeSaida)
 end function
 
 ''''''''
@@ -753,7 +758,7 @@ sub EfdTabelaExport.gerar(regListHead as TRegistro ptr, regMestre as TMestre ptr
 										row->addCell("")
 										row->addCell(nf->IPI)
 										row->addCell(nf->valorTotal)
-										for cell as integer = 1 to 16-8
+										for i as integer = 1 to 16-8
 											row->addCell("")
 										next
 									else
@@ -770,7 +775,7 @@ sub EfdTabelaExport.gerar(regListHead as TRegistro ptr, regMestre as TMestre ptr
 										row->addCell("")
 										row->addCell(anal->cfop)
 										row->addCell(anal->cst)
-										for cell as integer = 1 to 3
+										for i as integer = 1 to 3
 											row->addCell("")
 										next
 										analCnt += 1
@@ -821,6 +826,10 @@ sub EfdTabelaExport.gerar(regListHead as TRegistro ptr, regMestre as TMestre ptr
 						row->addCell("")
 						row->addCell(nf->chave)
 						row->addCell(codSituacao2Str(nf->situacao))
+						
+						for i as integer = 1 to iif(nf->operacao = SAIDA, 32, 29) - 11
+							row->addCell("")
+						next
 					end if
 				end if
 				
@@ -972,6 +981,8 @@ sub EfdTabelaExport.gerar(regListHead as TRegistro ptr, regMestre as TMestre ptr
 								row->addCell(ct->difal.icmsDest)
 							end if
 							
+							row->addCell("")
+							row->addCell("")
 						loop while item <> null
 					end if
 				
@@ -995,6 +1006,10 @@ sub EfdTabelaExport.gerar(regListHead as TRegistro ptr, regMestre as TMestre ptr
 						row->addCell("")
 						row->addCell(ct->chave)
 						row->addCell(codSituacao2Str(ct->situacao))
+
+						for i as integer = 1 to iif(ct->operacao = SAIDA, 32, 29) - 11
+							row->addCell("")
+						next
 					end if
 				
 				end if
@@ -1048,7 +1063,14 @@ sub EfdTabelaExport.gerar(regListHead as TRegistro ptr, regMestre as TMestre ptr
 									row->addCell(itemId->ncm)
 									row->addCell(itemId->id)
 									row->addCell(itemId->descricao)
+								else
+									row->addCell("")
+									row->addCell("")
+									row->addCell("")
 								end if
+								
+								row->addCell("")
+								row->addCell("")
 							end if
 						end if
 					end if
@@ -1113,6 +1135,11 @@ sub EfdTabelaExport.gerar(regListHead as TRegistro ptr, regMestre as TMestre ptr
 										row->addCell(item->ncm)
 										row->addCell(item->codProduto)
 										row->addCell(item->descricao)
+										row->addCell("")
+										row->addCell("")
+										row->addCell("")
+										row->addCell("")
+										row->addCell("")
 										
 										item = item->next_
 										if item = null then
@@ -1137,6 +1164,11 @@ sub EfdTabelaExport.gerar(regListHead as TRegistro ptr, regMestre as TMestre ptr
 										row->addCell("")
 										row->addCell(anal->cfop)
 										row->addCell(anal->cst)
+										row->addCell("")
+										row->addCell("")
+										row->addCell("")
+										row->addCell("")
+										row->addCell("")
 										row->addCell("")
 										row->addCell("")
 										row->addCell("")
@@ -1184,6 +1216,11 @@ sub EfdTabelaExport.gerar(regListHead as TRegistro ptr, regMestre as TMestre ptr
 						cnt += 1
 					loop
 					
+					do while cnt <= MAX_AJUSTES
+						row->addCell("")
+						cnt += 1
+					loop
+					
 				end if
 				
 			case APURACAO_ICMS_ST_PERIODO
@@ -1208,7 +1245,14 @@ sub EfdTabelaExport.gerar(regListHead as TRegistro ptr, regMestre as TMestre ptr
 					row->addCell(apu->icmsRecolher)
 					row->addCell(apu->saldoCredTransportar)
 					row->addCell(apu->debExtraApuracao)
+					
+					var cnt = 1
+					do while cnt <= MAX_AJUSTES
+						row->addCell("")
+						cnt += 1
+					loop
 				end if
+
 
 			case INVENTARIO_ITEM
 				var row = inventario->AddRow()
@@ -1276,6 +1320,9 @@ sub EfdTabelaExport.gerar(regListHead as TRegistro ptr, regMestre as TMestre ptr
 						row->addCell(item->valorIcmsDifal)
 						row->addCell(item->parcela)
 						row->addCell(item->valorParcela)
+						for i as integer = 1 to 9
+							row->addCell("")
+						next
 					end if
 				end if
 
@@ -1442,7 +1489,20 @@ sub EfdTabelaExport.gerar(regListHead as TRegistro ptr, regMestre as TMestre ptr
 						row->addCell(itemId->ncm)
 						row->addCell(rtrim(itemId->id))
 						row->addCell(rtrim(itemId->descricao))
+					else
+						row->addCell("")
+						row->addCell("")
+						row->addCell("")
 					end if
+
+					if doc->operacao = SAIDA then
+						row->addCell("")
+						row->addCell("")
+						row->addCell("")
+					end if
+
+					row->addCell("")
+					row->addCell("")
 				end if
 
 			case LUA_CUSTOM
@@ -1476,7 +1536,7 @@ end sub
 ''''''''
 sub EfdTabelaExport.finalizar()
 	onProgress("Gravando planilha: " + nomeArquivo, 0)
-	ew->Flush(onProgress, onError)
+	ew->Flush()
 	ew->Close
 end sub
 

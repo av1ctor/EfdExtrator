@@ -16,7 +16,7 @@ on error goto exceptionReport
 
 '''''''''''   
 sub mostrarCopyright()
-	print wstr("Extrator de EFD/Sintegra para Excel/Csv/SQLite/Pdf, versão 0.9.3 beta")
+	print wstr("Extrator de EFD/Sintegra para Excel/Csv/SQLite/Access/Pdf, versão 0.9.3 beta")
 	print wstr("Copyleft 2017-2020 by André Vicentini (avtvicentini)")
 	print
 end sub
@@ -56,7 +56,8 @@ sub mostrarUso()
 	print wstr(!" -naoAnalisar e -naoResumir:")
 	print wstr(!"  Deixam de gerar as planilhas de inconsistências e resumos, respectivamente.")
 	print wstr(!" -formatoDeSaida xml|csv|xlsx|sqlite|access|null:")
-	print wstr(!"  Altera o formato de saída de xlsx para csv, XML, SQLite(.db) ou Access(.mdb).")
+	print wstr(!"  Altera o formato de saída do padrão Excel (.xlsx) para XML, csv,")
+	print wstr(!"  SQLite (.db) ou Access (.accdb). Utilize null para não gerar a planilha.")
 	print wstr(!" -complementarDados:")
 	print wstr(!"  Inclui dados complementares na planilha (aba Saídas ou Entradas para docs")
 	print wstr(!"  de emissão própria) que será gerada e que não constam na EFD, caso os")
@@ -108,7 +109,7 @@ end function
 
 sub onError(msg as const zstring ptr)
 	var s = latinToUtf16le(msg)
-	print *s
+	print "Erro: "; *s
 	deallocate s
 end sub
 
@@ -187,7 +188,7 @@ sub main()
 					if left(listaChaves, 1) = "@" then
 						var lista = mid(listaChaves, 2)
 						if loadstrings(lista, opcoes.listaChaves()) = 0 then
-							onError(wstr("Erro: ao carregar arquivo: " + lista))
+							onError(wstr("ao carregar arquivo: " + lista))
 							exit sub
 						end if
 					else
@@ -219,7 +220,7 @@ sub main()
 					opcoes.pularAnalises = true
 					opcoes.pularResumos = true
 				case else
-					onError(wstr("Erro: formato de saída inválido"))
+					onError(wstr("formato de saída inválido"))
 					exit sub
 				end select
 				nroOpcoes += 2
@@ -246,7 +247,7 @@ sub main()
 				importarCadInidoneo()
 				exit sub
 			case else
-				onError(wstr("Erro: opção inválida: " + arg))
+				onError(wstr("opção inválida: " + arg))
 				exit sub
 			end select
 		end if
@@ -264,101 +265,102 @@ sub main()
 	'' 
 	var arquivoSaida = iif( len(command(nroOpcoes+2)) > 0, "__efd__", command(nroOpcoes+1))
 	
-	ext->iniciar(arquivoSaida, opcoes)
-	
-	'' mais de um arquivo informado?
-	if len(command(nroOpcoes+2)) > 0 then
-		'' carregar arquivos .csv primeiro com dados de NF-e e CT-e 
-		var i = nroOpcoes+1
-		var arquivoEntrada = command(i)
-		do while len(arquivoEntrada) > 0
-			if lcase(right(arquivoEntrada,3)) = "csv" then
-				if not opcoes.pularAnalises orelse opcoes.acrescentarDados orelse opcoes.manterDb then
-					onProgress("Carregando arquivo: " + arquivoEntrada, 0)
-					if not ext->carregarCsv( arquivoEntrada ) then
-						onError(!"\r\nErro ao carregar arquivo: " & arquivoEntrada)
-						end -1
+	if ext->iniciar(arquivoSaida, opcoes) then
+		'' mais de um arquivo informado?
+		if len(command(nroOpcoes+2)) > 0 then
+			'' carregar arquivos .csv primeiro com dados de NF-e e CT-e 
+			var i = nroOpcoes+1
+			var arquivoEntrada = command(i)
+			do while len(arquivoEntrada) > 0
+				if lcase(right(arquivoEntrada,3)) = "csv" then
+					if not opcoes.pularAnalises orelse opcoes.acrescentarDados orelse opcoes.manterDb then
+						onProgress("Carregando arquivo: " + arquivoEntrada, 0)
+						if not ext->carregarCsv( arquivoEntrada ) then
+							onError(!"\r\nErro ao carregar arquivo: " & arquivoEntrada)
+							end -1
+						end if
 					end if
-				end if
-			elseif lcase(right(arquivoEntrada,4)) = "xlsx" then
-				if not opcoes.pularAnalises orelse opcoes.acrescentarDados orelse opcoes.manterDb then
-					onProgress("Carregando arquivo: " + arquivoEntrada, 0)
-					if not ext->carregarXlsx( arquivoEntrada ) then
-						onError(!"\r\nErro ao carregar arquivo: " & arquivoEntrada)
-						end -1
+				elseif lcase(right(arquivoEntrada,4)) = "xlsx" then
+					if not opcoes.pularAnalises orelse opcoes.acrescentarDados orelse opcoes.manterDb then
+						onProgress("Carregando arquivo: " + arquivoEntrada, 0)
+						if not ext->carregarXlsx( arquivoEntrada ) then
+							onError(!"\r\nErro ao carregar arquivo: " & arquivoEntrada)
+							end -1
+						end if
 					end if
-				end if
-			end if 
+				end if 
 
-			i += 1
-			arquivoEntrada = command(i)
-		loop
+				i += 1
+				arquivoEntrada = command(i)
+			loop
+		   
+			if not opcoes.acrescentarDados then
+				ext->descarregarDFe()
+			end if
 	   
-		if not opcoes.acrescentarDados then
-			ext->descarregarDFe()
-		end if
-   
-		'' carregar arquivos .txt com EFD ou Sintegra
-		i = nroOpcoes+1
-		arquivoEntrada = command(i)
-		do while len(arquivoEntrada) > 0
-			if lcase(right(arquivoEntrada,3)) = "txt" then
-				onProgress("Carregando arquivo: " + arquivoEntrada, 0)
-				var txt = ext->carregarTxt( arquivoEntrada )
-				if txt = null  then
-					onError(!"\r\nErro ao carregar arquivo: " & arquivoEntrada)
-					end -1
-				end if
+			'' carregar arquivos .txt com EFD ou Sintegra
+			i = nroOpcoes+1
+			arquivoEntrada = command(i)
+			do while len(arquivoEntrada) > 0
+				if lcase(right(arquivoEntrada,3)) = "txt" then
+					onProgress("Carregando arquivo: " + arquivoEntrada, 0)
+					var txt = ext->carregarTxt( arquivoEntrada )
+					if txt = null  then
+						onError(!"\r\nErro ao carregar arquivo: " & arquivoEntrada)
+						end -1
+					end if
+					
+					print "Processando:"
+					if not ext->processar( txt, arquivoEntrada ) then
+						onError(!"\r\nErro ao extrair arquivo: " & arquivoEntrada)
+						end -1
+					end if
+					
+					if txt <> null then
+						delete txt
+					end if
+				end if 
 				
-				print "Processando:"
-				if not ext->processar( txt, arquivoEntrada ) then
-					onError(!"\r\nErro ao extrair arquivo: " & arquivoEntrada)
-					end -1
-				end if
-				
-				if txt <> null then
-					delete txt
-				end if
-			end if 
+				i += 1
+				arquivoEntrada = command(i)
+			loop
+		   
+		'' só um arquivo .txt informado..
+		else
+			var arquivoEntrada = command(nroOpcoes+1)
+			onProgress("Carregando arquivo: " + arquivoEntrada, 0)
+			var txt = ext->carregarTxt( arquivoEntrada )
+			if txt = null  then
+				onError(!"\r\nErro ao carregar arquivo: " & arquivoEntrada)
+				end -1
+			end if
+		
+			print "Processando:"
+			if not ext->processar( txt, arquivoEntrada ) then
+				onError(!"\r\nErro ao extrair arquivo: " & arquivoEntrada)
+				end -1
+			end if
 			
-			i += 1
-			arquivoEntrada = command(i)
-		loop
-	   
-	'' só um arquivo .txt informado..
-	else
-		var arquivoEntrada = command(nroOpcoes+1)
-		onProgress("Carregando arquivo: " + arquivoEntrada, 0)
-		var txt = ext->carregarTxt( arquivoEntrada )
-		if txt = null  then
-			onError(!"\r\nErro ao carregar arquivo: " & arquivoEntrada)
-			end -1
-		end if
-	
-		print "Processando:"
-		if not ext->processar( txt, arquivoEntrada ) then
-			onError(!"\r\nErro ao extrair arquivo: " & arquivoEntrada)
-			end -1
+			delete txt
 		end if
 		
-		delete txt
-	end if
-	
-	''
-	if opcoes.formatoDeSaida <> FT_NULL then
-		if not opcoes.pularAnalises then
-			print "Analisando:"
-			ext->analisar()
-		end if
+		''
+		if opcoes.formatoDeSaida <> FT_NULL then
+			if not opcoes.pularAnalises then
+				print "Analisando:"
+				ext->analisar()
+			end if
 
-		if not opcoes.pularResumos then
-			print "Resumindo:"
-			ext->resumir()
+			if not opcoes.pularResumos then
+				print "Resumindo:"
+				ext->resumir()
+			end if
 		end if
 	end if
    
 	''
 	ext->finalizar()
+	delete ext
 	
 end sub
 
@@ -387,7 +389,7 @@ sub importarGia()
 		
 		dim as bfile inf
 		if not inf.abrir(arquivo) then
-			onError(wstr("Erro: ao carregar arquivo: " & arquivo))
+			onError(wstr("ao carregar arquivo: " & arquivo))
 			exit do
 		end if
 		
@@ -512,7 +514,7 @@ sub importarCadContribuinte()
 		
 	dim as bfile inf
 	if not inf.abrir(arquivo) then
-		onError(wstr("Erro: ao carregar arquivo: " & arquivo))
+		onError(wstr("ao carregar arquivo: " & arquivo))
 		return
 	end if
 	
@@ -604,7 +606,7 @@ sub importarCadContribuinteRegime()
 		
 	dim as bfile inf
 	if not inf.abrir(arquivo) then
-		onError(wstr("Erro: ao carregar arquivo: " & arquivo))
+		onError(wstr("ao carregar arquivo: " & arquivo))
 		return
 	end if
 	
@@ -680,7 +682,7 @@ sub importarCadInidoneo()
 		
 	dim as bfile inf
 	if not inf.abrir(arquivo) then
-		onError(wstr("Erro: ao carregar arquivo: " & arquivo))
+		onError(wstr("ao carregar arquivo: " & arquivo))
 		return 
 	end if
 	

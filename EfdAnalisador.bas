@@ -119,7 +119,7 @@ sub EfdAnalisador.analisarInconsistenciasLRE()
 		lua_pushlightuserdata(lua, inconsistenciasLRE)
 		lua_call(lua, 2, 0)
 	catch
-		onError("Erro no script lua!")
+		onError("no script lua!")
 	endtry
 	
 	onProgress(null, 1)
@@ -140,7 +140,7 @@ sub EfdAnalisador.analisarInconsistenciasLRS()
 		lua_pushlightuserdata(lua, inconsistenciasLRS)
 		lua_call(lua, 2, 0)
 	catch
-		onError("Erro no script lua!")
+		onError("no script lua!")
 	endtry
 	
 	onProgress(null, 1)

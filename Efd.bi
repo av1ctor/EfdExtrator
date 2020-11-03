@@ -70,7 +70,7 @@ type Efd
 public:
 	declare constructor (onProgress as OnProgressCB, onError as OnErrorCB)
 	declare destructor ()
-	declare sub iniciar(nomeArquivo as String, opcoes as OpcoesExtracao)
+	declare function iniciar(nomeArquivo as String, opcoes as OpcoesExtracao) as boolean
 	declare sub finalizar()
 	declare function carregarTxt(nomeArquivo as String) as EfdBaseImport_ ptr
 	declare function carregarCsv(nomeArquivo as String) as Boolean
