@@ -232,4 +232,10 @@ Bibliotecas utilizadas:
     - libxlsxwriter: https://github.com/jmcnamara/libxlsxwriter
     - XLSX I/O: https://github.com/brechtsanders/xlsxio
     - OpenSSL: https://www.openssl.org/
-    
+
+Ferramentas utilizadas:
+    - FreeBASIC: https://www.freebasic.net/
+    - Mingw-64: http://mingw-w64.org/
+
+Código-fonte:
+    https://github.com/av1ctor/EfdExtrator
