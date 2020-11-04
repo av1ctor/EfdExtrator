@@ -1,6 +1,5 @@
 Extrator de EFD/Sintegra para Excel/Csv/SQLite/Access/Pdf
 Copyright 2017-2020 by André Vicentini (avtvicentini)
-Licenciado sob GNU GPL-2.0-ou-posterior
 
 Quando o aplicativo é executado sem passar nenhum parâmetro, será mostrada a interface gráfica para seleção dos arquivos e marcação de opções.
 
@@ -234,8 +233,12 @@ Bibliotecas utilizadas:
     - OpenSSL: https://www.openssl.org/
 
 Ferramentas utilizadas:
+
     - FreeBASIC: https://www.freebasic.net/
     - Mingw-64: http://mingw-w64.org/
 
-Código-fonte e atualizações:
-    https://github.com/av1ctor/EfdExtrator
+Código-fonte:
+
+    - https://github.com/av1ctor/EfdExtrator/
+
+    Nota: devido às análises realizadas, que seguem o MTF, e que poderíam beneficiar algum contribuinte sob fiscalização, o repositório acima está restrito e o acesso será permitido somente a ARF's da Sefaz de SP que requisitarem.
