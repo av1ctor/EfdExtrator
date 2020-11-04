@@ -3,8 +3,8 @@
 type EfdSpedImport extends EfdBaseImport
 public:
 	declare constructor(opcoes as OpcoesExtracao ptr)
-	declare function withStmts(lreInsertStmt as TDbStmt ptr, itensNfLRInsertStmt as TDbStmt ptr, lrsInsertStmt as TDbStmt ptr, _
-		analInsertStmt as TDbStmt ptr, ressarcStItensNfLRSInsertStmt as TDbStmt ptr, itensIdInsertStmt as TDbStmt ptr, mestreInsertStmt as TDbStmt ptr) as EfdSpedImport ptr
+	declare function withStmts(lreInsertStmt as SQLiteStmt ptr, itensNfLRInsertStmt as SQLiteStmt ptr, lrsInsertStmt as SQLiteStmt ptr, _
+		analInsertStmt as SQLiteStmt ptr, ressarcStItensNfLRSInsertStmt as SQLiteStmt ptr, itensIdInsertStmt as SQLiteStmt ptr, mestreInsertStmt as SQLiteStmt ptr) as EfdSpedImport ptr
 	declare destructor()
 	declare function carregar(nomeArquivo as string) as boolean
 	declare function lerInfoAssinatura(nomeArquivo as string) as InfoAssinatura ptr
@@ -23,13 +23,13 @@ private:
 	ultimoEstoque			as TEstoquePeriodo ptr
 	assinaturaP7K_DER(any) 	as byte
 
-	db_LREInsertStmt		as TDbStmt ptr
-	db_itensNfLRInsertStmt	as TDbStmt ptr
-	db_LRSInsertStmt		as TDbStmt ptr
-	db_analInsertStmt		as TDbStmt ptr
-	db_ressarcStItensNfLRSInsertStmt as TDbStmt ptr
-	db_itensIdInsertStmt 	as TDbStmt ptr
-	db_mestreInsertStmt 	as TDbStmt ptr
+	db_LREInsertStmt		as SQLiteStmt ptr
+	db_itensNfLRInsertStmt	as SQLiteStmt ptr
+	db_LRSInsertStmt		as SQLiteStmt ptr
+	db_analInsertStmt		as SQLiteStmt ptr
+	db_ressarcStItensNfLRSInsertStmt as SQLiteStmt ptr
+	db_itensIdInsertStmt 	as SQLiteStmt ptr
+	db_mestreInsertStmt 	as SQLiteStmt ptr
 
 	declare function lerRegistro(bf as bfile) as TRegistro ptr
 	declare function lerTipo(bf as bfile, tipo as zstring ptr) as TipoRegistro

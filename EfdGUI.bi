@@ -2,7 +2,7 @@
 #include once "IUP/IupMatrix.bi"
 #include once "list.bi"
 #include once "strings.bi"
-#include once "Efd.bi"
+#include once "EfdExt.bi"
 
 enum FILE_GRID
 	FG_EFD

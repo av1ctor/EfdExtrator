@@ -1,8 +1,8 @@
 
-#include once "DB.bi" 
+#include once "SQLite.bi" 
 
 ''''''''
-function TDb.open(fileName as const zstring ptr) as boolean
+function SQLite.open(fileName as const zstring ptr) as boolean
 	
 	if sqlite3_open( fileName, @instance ) then 
   		errMsg = *sqlite3_errmsg( instance )
@@ -16,14 +16,14 @@ function TDb.open(fileName as const zstring ptr) as boolean
 end function
 
 ''''''''
-function TDb.open() as boolean
+function SQLite.open() as boolean
 
 	function = open(":memory:")
 
 end function
 
 ''''''''
-sub TDb.close()
+sub SQLite.close()
 	if instance <> null then
 		sqlite3_close( instance ) 
 		instance = null
@@ -32,7 +32,7 @@ sub TDb.close()
 end sub
 
 ''''''''
-function TDb.getErrorMsg() as const zstring ptr
+function SQLite.getErrorMsg() as const zstring ptr
 	function = strptr(errMsg)
 end function
 
@@ -45,7 +45,7 @@ private function callback cdecl _
 		byval colName as zstring ptr ptr _
 	) as long
 	
-	var ds = cast(TDataSet ptr, dset)
+	var ds = cast(SQLiteDataSet ptr, dset)
 	
 	var row = ds->newRow(argc)
   
@@ -65,9 +65,9 @@ private function callback cdecl _
 end function 
 	
 ''''''''	
-function TDb.exec(query as const zstring ptr) as TDataSet ptr
+function SQLite.exec(query as const zstring ptr) as SQLiteDataSet ptr
 
-	var ds = new TDataSet
+	var ds = new SQLiteDataSet
 	
 	dim as zstring ptr errMsg_ = null
 	if sqlite3_exec( instance, query, @callback, ds, @errMsg_ ) <> SQLITE_OK then 
@@ -84,9 +84,9 @@ function TDb.exec(query as const zstring ptr) as TDataSet ptr
 end function
 
 ''''''''	
-function TDb.exec(stmt as TDbStmt ptr) as TDataSet ptr
+function SQLite.exec(stmt as SQLiteStmt ptr) as SQLiteDataSet ptr
 
-	var ds = new TDataSet
+	var ds = new SQLiteDataSet
 	
 	stmt->reset()
 	
@@ -108,9 +108,9 @@ function TDb.exec(stmt as TDbStmt ptr) as TDataSet ptr
 end function
 
 ''''''''	
-function TDb.execScalar(query as const zstring ptr) as zstring ptr
+function SQLite.execScalar(query as const zstring ptr) as zstring ptr
 
-	dim as TDataSet ds
+	dim as SQLiteDataSet ds
 	
 	dim as zstring ptr errMsg_ = null
 	if sqlite3_exec( instance, query, @callback, @ds, @errMsg_ ) <> SQLITE_OK then 
@@ -137,9 +137,9 @@ function TDb.execScalar(query as const zstring ptr) as zstring ptr
 end function
 
 ''''''''	
-function TDb.execNonQuery(query as const zstring ptr) as boolean
+function SQLite.execNonQuery(query as const zstring ptr) as boolean
 
-	var ds = new TDataSet
+	var ds = new SQLiteDataSet
 	
 	dim as zstring ptr errMsg_ = null
 	if sqlite3_exec( instance, query, null, ds, @errMsg_ ) <> SQLITE_OK then 
@@ -156,7 +156,7 @@ function TDb.execNonQuery(query as const zstring ptr) as boolean
 end function
 
 ''''''''	
-function TDb.execNonQuery(stmt as TDbStmt ptr) as boolean
+function SQLite.execNonQuery(stmt as SQLiteStmt ptr) as boolean
 
 	do
 		if stmt->step_() <> SQLITE_ROW then
@@ -169,9 +169,9 @@ function TDb.execNonQuery(stmt as TDbStmt ptr) as boolean
 end function
 	
 ''''''''	
-function TDb.prepare(query as const zstring ptr) as TDBStmt ptr
+function SQLite.prepare(query as const zstring ptr) as SQLiteStmt ptr
 
-	var res = new TDbStmt(this.instance)
+	var res = new SQLiteStmt(this.instance)
 	if not res->prepare(query) then
 		errMsg = *sqlite3_errmsg(instance)
 		delete res
@@ -185,13 +185,13 @@ function TDb.prepare(query as const zstring ptr) as TDBStmt ptr
 end function
 
 ''''''''
-function TDb.lastId() as long
+function SQLite.lastId() as long
 	function = sqlite3_last_insert_rowid(instance)
 end function
 
 ''''''''
 /'
-function TDb.format cdecl(fmt as string, ...) as string
+function SQLite.format cdecl(fmt as string, ...) as string
 
 	dim as string args_v(0 to 9)
 	dim as VarType args_t(0 to 9)
@@ -238,14 +238,14 @@ end function
 ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
 ''''''''
-constructor TDataSet()
-	rows = new TList(10, len(TDataSetRow))
+constructor SQLiteDataSet()
+	rows = new TList(10, len(SQLiteDataSetRow))
 	currRow = null
 end constructor	
 	
 ''''''''
-destructor TDataSet()
-	var r = cast(TDataSetRow ptr, rows->head)
+destructor SQLiteDataSet()
+	var r = cast(SQLiteDataSetRow ptr, rows->head)
 	do while r <> null
 		r->destructor		'' NOTA: não user delete, porque foi criado com placement new
 		r = rows->next_(r)
@@ -256,26 +256,26 @@ destructor TDataSet()
 end destructor
 
 ''''''''
-function TDataSet.hasNext() as boolean
+function SQLiteDataSet.hasNext() as boolean
 	return currRow <> null
 end function
 
 ''''''''
-sub TDataSet.next_() 
+sub SQLiteDataSet.next_() 
 	if currRow <> null then
 		currRow = rows->next_(currRow)
 	end if
 end sub
 
 ''''''''
-property TDataSet.row() as TDataSetRow ptr
+property SQLiteDataSet.row() as SQLiteDataSetRow ptr
 	return currRow
 end property
 
 ''''''''
-function TDataSet.newRow(cols as integer) as TDataSetRow ptr
+function SQLiteDataSet.newRow(cols as integer) as SQLiteDataSetRow ptr
 	var p = rows->add()
-	var r = new (p) TDataSetRow(cols)
+	var r = new (p) SQLiteDataSetRow(cols)
 	if currRow = null then
 		currRow = r
 	end if
@@ -285,7 +285,7 @@ end function
 ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
 ''''''''
-constructor TDataSetRow(numCols as integer)
+constructor SQLiteDataSetRow(numCols as integer)
 	if numCols = 0 then
 		numCols = 16
 	end if
@@ -295,13 +295,13 @@ constructor TDataSetRow(numCols as integer)
 end constructor	
 	
 ''''''''
-destructor TDataSetRow()
+destructor SQLiteDataSetRow()
 	cnt = 0
 	delete dict
 end destructor
 
 ''''''''
-sub TDataSetRow.newColumn(name_ as const zstring ptr, value as const zstring ptr)
+sub SQLiteDataSetRow.newColumn(name_ as const zstring ptr, value as const zstring ptr)
 	if dict->lookup(name_) = null then
 		dim as zstring ptr value2 = null
 		if value <> null then
@@ -322,12 +322,12 @@ sub TDataSetRow.newColumn(name_ as const zstring ptr, value as const zstring ptr
 end sub
 
 ''''''''
-operator TDataSetRow.[](index as const zstring ptr) as zstring ptr
+operator SQLiteDataSetRow.[](index as const zstring ptr) as zstring ptr
 	return dict->lookup( index )
 end operator
 
 ''''''''
-operator TDataSetRow.[](index as integer) as zstring ptr
+operator SQLiteDataSetRow.[](index as integer) as zstring ptr
 	if index >= 0 and index <= cnt-1 then
 		return cols(index).value
 	else
@@ -338,39 +338,39 @@ end operator
 ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
 ''''''''
-constructor TDbStmt(db as sqlite3 ptr)
+constructor SQLiteStmt(db as sqlite3 ptr)
 	this.db = db
 end constructor
 
 ''''''''
-destructor TDbStmt()
+destructor SQLiteStmt()
 	if stmt <> null then
 		sqlite3_finalize(stmt)
 	end if
 end destructor
 
 ''''''''
-function TDbStmt.prepare(query as const zstring ptr) as boolean
+function SQLiteStmt.prepare(query as const zstring ptr) as boolean
 	function = sqlite3_prepare_v2(db, query, -1, @stmt, null) = SQLITE_OK
 end function
 	
 ''''''''	
-sub TDbStmt.bind(index as integer, value as integer)
+sub SQLiteStmt.bind(index as integer, value as integer)
 	sqlite3_bind_int(stmt, index, value)
 end sub
 	
 ''''''''	
-sub TDbStmt.bind(index as integer, value as longint)
+sub SQLiteStmt.bind(index as integer, value as longint)
 	sqlite3_bind_int64(stmt, index, value)
 end sub
 	
 ''''''''	
-sub TDbStmt.bind(index as integer, value as double)
+sub SQLiteStmt.bind(index as integer, value as double)
 	sqlite3_bind_double(stmt, index, value)
 end sub
 	
 ''''''''	
-sub TDbStmt.bind(index as integer, value as const zstring ptr)
+sub SQLiteStmt.bind(index as integer, value as const zstring ptr)
 	
 	'' NOTE: the value string can't be freed or modified until exec() is called!
 	
@@ -382,7 +382,7 @@ sub TDbStmt.bind(index as integer, value as const zstring ptr)
 end sub
 
 ''''''''	
-sub TDbStmt.bind(index as integer, value as const wstring ptr)
+sub SQLiteStmt.bind(index as integer, value as const wstring ptr)
 
 	'' NOTE: the value string can't be freed or modified until exec() is called!
 	
@@ -394,37 +394,37 @@ sub TDbStmt.bind(index as integer, value as const wstring ptr)
 end sub
 
 ''''''''	
-sub TDbStmt.bindNull(index as integer)
+sub SQLiteStmt.bindNull(index as integer)
 	sqlite3_bind_null(stmt, index)
 end sub
 
 ''''''''	
-function TDbStmt.step_() as long
+function SQLiteStmt.step_() as long
 	function = sqlite3_step(stmt)
 end function
 
 ''''''''
-sub TDbStmt.reset()
+sub SQLiteStmt.reset()
 	sqlite3_reset(stmt)
 end sub
 
 ''''''''
-sub TDbStmt.clear_()
+sub SQLiteStmt.clear_()
 	sqlite3_clear_bindings(stmt)
 end sub
 
 ''''''''
-function TDbStmt.colCount() as integer
+function SQLiteStmt.colCount() as integer
 	function = sqlite3_column_count(stmt)
 end function
 
 ''''''''
-function TDbStmt.colName(index as integer) as const zstring ptr
+function SQLiteStmt.colName(index as integer) as const zstring ptr
 	function = sqlite3_column_name(stmt, index)
 end function
 
 ''''''''
-function TDbStmt.colValue(index as integer) as const zstring ptr
+function SQLiteStmt.colValue(index as integer) as const zstring ptr
 	function = sqlite3_column_text(stmt, index)
 end function
 
@@ -434,7 +434,7 @@ end function
 private function luacb_db_new cdecl(byval L as lua_State ptr) as long
 	var args = lua_gettop(L)
 	
-	var db = new TDb()
+	var db = new SQLite()
 	lua_pushlightuserdata(L, db)
 	
 	function = 1
@@ -446,7 +446,7 @@ private function luacb_db_del cdecl(byval L as lua_State ptr) as long
 	var args = lua_gettop(L)
 	
 	if args = 1 then
-		var db = cast(TDb ptr, lua_touserdata(L, 1))
+		var db = cast(SQLite ptr, lua_touserdata(L, 1))
 		delete db
 	end if
 	
@@ -461,7 +461,7 @@ private function luacb_db_open cdecl(byval L as lua_State ptr) as long
 	if args < 1 or args > 2 then
 		lua_pushboolean(L, false)
 	else
-		var db = cast(TDb ptr, lua_touserdata(L, 1))
+		var db = cast(SQLite ptr, lua_touserdata(L, 1))
 		if args > 1 then
 			var fname = lua_tostring(L, 2)
 			lua_pushboolean(L, db->open(fname))
@@ -479,7 +479,7 @@ private function luacb_db_close cdecl(byval L as lua_State ptr) as long
 	var args = lua_gettop(L)
 	
 	if args = 1 then
-		var db = cast(TDb ptr, lua_touserdata(L, 1))
+		var db = cast(SQLite ptr, lua_touserdata(L, 1))
 		db->close()
 	end if
 	
@@ -492,14 +492,14 @@ private function luacb_db_execNonQuery cdecl(byval L as lua_State ptr) as long
 	var args = lua_gettop(L)
 	
 	if args = 2 then
-		var db = cast(TDb ptr, lua_touserdata(L, 1))
+		var db = cast(SQLite ptr, lua_touserdata(L, 1))
 		if lua_isstring(L, 2) then
 			var query = lua_tostring(L, 2)
 			if not db->execNonQuery(query) then
 				print "SQL error: "; *db->getErrorMsg(); " at query: "; *query
 			end if
 		else
-			var query = cast(TDbStmt ptr, lua_touserdata(L, 2))
+			var query = cast(SQLiteStmt ptr, lua_touserdata(L, 2))
 			if not db->execNonQuery(query) then
 				print "SQL error: "; *db->getErrorMsg()
 			end if
@@ -515,9 +515,9 @@ private function luacb_db_exec cdecl(byval L as lua_State ptr) as long
 	var args = lua_gettop(L)
 	
 	if args = 2 then
-		var db = cast(TDb ptr, lua_touserdata(L, 1))
+		var db = cast(SQLite ptr, lua_touserdata(L, 1))
 		
-		dim as TDataSet ptr ds = null
+		dim as SQLiteDataSet ptr ds = null
 		if lua_isstring(L, 2) then
 			var query = lua_tostring(L, 2)
 			ds = db->exec(query)
@@ -525,7 +525,7 @@ private function luacb_db_exec cdecl(byval L as lua_State ptr) as long
 				print "SQL error: "; *db->getErrorMsg(); " at query: "; *query
 			end if
 		else
-			var query = cast(TDbStmt ptr, lua_touserdata(L, 2))
+			var query = cast(SQLiteStmt ptr, lua_touserdata(L, 2))
 			ds = db->exec(query)
 		end if
 		
@@ -547,7 +547,7 @@ private function luacb_db_execScalarInt cdecl(byval L as lua_State ptr) as long
 	var args = lua_gettop(L)
 	
 	if args = 2 then
-		var db = cast(TDb ptr, lua_touserdata(L, 1))
+		var db = cast(SQLite ptr, lua_touserdata(L, 1))
 		
 		dim as zstring ptr res = null
 		if lua_isstring(L, 2) then
@@ -577,7 +577,7 @@ private function luacb_db_execScalarDbl cdecl(byval L as lua_State ptr) as long
 	var args = lua_gettop(L)
 	
 	if args = 2 then
-		var db = cast(TDb ptr, lua_touserdata(L, 1))
+		var db = cast(SQLite ptr, lua_touserdata(L, 1))
 		
 		dim as zstring ptr res = null
 		if lua_isstring(L, 2) then
@@ -607,7 +607,7 @@ private function luacb_db_prepare cdecl(byval L as lua_State ptr) as long
 	var args = lua_gettop(L)
 	
 	if args = 2 then
-		var db = cast(TDb ptr, lua_touserdata(L, 1))
+		var db = cast(SQLite ptr, lua_touserdata(L, 1))
 		var query = lua_tostring(L, 2)
 		var stmt = db->prepare(query)
 		if stmt <> null then
@@ -629,7 +629,7 @@ private function luacb_ds_hasNext cdecl(byval L as lua_State ptr) as long
 	var args = lua_gettop(L)
 	
 	if args = 1 then
-		var ds = cast(TDataSet ptr, lua_touserdata(L, 1))
+		var ds = cast(SQLiteDataSet ptr, lua_touserdata(L, 1))
 		
 		lua_pushboolean(L, ds->hasNext())
 	else
@@ -645,7 +645,7 @@ private function luacb_ds_next cdecl(byval L as lua_State ptr) as long
 	var args = lua_gettop(L)
 	
 	if args = 1 then
-		var ds = cast(TDataSet ptr, lua_touserdata(L, 1))
+		var ds = cast(SQLiteDataSet ptr, lua_touserdata(L, 1))
 		
 		ds->next_()
 	end if
@@ -659,7 +659,7 @@ private function luacb_ds_del cdecl(byval L as lua_State ptr) as long
 	var args = lua_gettop(L)
 	
 	if args = 1 then
-		var ds = cast(TDataSet ptr, lua_touserdata(L, 1))
+		var ds = cast(SQLiteDataSet ptr, lua_touserdata(L, 1))
 		
 		delete ds
 	end if
@@ -673,7 +673,7 @@ private function luacb_ds_row_getColValue cdecl(byval L as lua_State ptr) as lon
 	var args = lua_gettop(L)
 	
 	if args = 2 then
-		var ds = cast(TDataSet ptr, lua_touserdata(L, 1))
+		var ds = cast(SQLiteDataSet ptr, lua_touserdata(L, 1))
 		var colName = lua_tostring(L, 2)
 
 		lua_pushstring(L, (*ds->row)[colName])
@@ -690,7 +690,7 @@ private function luacb_ds_row cdecl(byval L as lua_State ptr) as long
 	var args = lua_gettop(L)
 	
 	if args = 1 then
-		var ds = cast(TDataSet ptr, lua_touserdata(L, 1))
+		var ds = cast(SQLiteDataSet ptr, lua_touserdata(L, 1))
 
 		var row = ds->currRow
 		lua_createtable(L, row->cnt, 0)
@@ -708,7 +708,7 @@ private function luacb_ds_row cdecl(byval L as lua_State ptr) as long
 end function
 
 ''''''''
-static sub TDb.exportAPI(L as lua_State ptr)
+static sub SQLite.exportAPI(L as lua_State ptr)
 	
 	lua_register(L, "db_new", @luacb_db_new)
 	lua_register(L, "db_del", @luacb_db_del)

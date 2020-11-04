@@ -1,4 +1,4 @@
-#include once "Efd.bi"
+#include once "EfdExt.bi"
 
 enum TipoRelatorio
 	REL_LRE				= 1
@@ -86,7 +86,7 @@ end type
 type EfdPdfExport
 public:
 	declare constructor(baseTemplatesDir as string, infAssinatura as InfoAssinatura ptr, opcoes as OpcoesExtracao ptr)
-	declare function withDBs(configDb as TDb ptr) as EfdPdfExport ptr
+	declare function withDBs(configDb as SQLite ptr) as EfdPdfExport ptr
 	declare function withCallbacks(onProgress as OnProgressCB, onError as OnErrorCB) as EfdPdfExport ptr
 	declare function withLua(lua as lua_State ptr, customLuaCbDict as TDict ptr) as EfdPdfExport ptr
 	declare function withDicionarios(participanteDict as TDict ptr, itemIdDict as TDict ptr, chaveDFeDict as TDict ptr, infoComplDict as TDict ptr, _
@@ -100,7 +100,7 @@ private:
 	opcoes					as OpcoesExtracao ptr
 	baseTemplatesDir		as string
 	
-	configDb				as TDb ptr
+	configDb				as SQLite ptr
 
 	regMestre 				as TMestre ptr	
 	

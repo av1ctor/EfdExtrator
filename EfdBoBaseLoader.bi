@@ -116,22 +116,22 @@ public:
 	declare constructor(ctx as EfdBoLoaderContext ptr, opcoes as OpcoesExtracao ptr)
 	declare destructor()
 	declare function withCallbacks(onProgress as OnProgressCB, onError as OnErrorCB) as EfdBoBaseLoader ptr
-	declare function withDBs(db as TDb ptr) as EfdBoBaseLoader ptr
-	declare function withStmts(dfeEntradaInsertStmt as TDbStmt ptr, dfeSaidaInsertStmt as TDbStmt ptr, itensDfeSaidaInsertStmt as TDbStmt ptr) as EfdBoBaseLoader ptr
+	declare function withDBs(db as SQLite ptr) as EfdBoBaseLoader ptr
+	declare function withStmts(dfeEntradaInsertStmt as SQLiteStmt ptr, dfeSaidaInsertStmt as SQLiteStmt ptr, itensDfeSaidaInsertStmt as SQLiteStmt ptr) as EfdBoBaseLoader ptr
 	declare abstract function carregar(nomeArquivo as string) as boolean
 
 protected:
 	ctx 					as EfdBoLoaderContext ptr
 
 	opcoes					as OpcoesExtracao ptr
-	db						as TDb ptr
+	db						as SQLite ptr
 
 	onProgress 				as OnProgressCB
 	onError 				as OnErrorCB
 	
-	db_dfeEntradaInsertStmt	as TDbStmt ptr
-	db_dfeSaidaInsertStmt	as TDbStmt ptr
-	db_itensDfeSaidaInsertStmt as TDbStmt ptr
+	db_dfeEntradaInsertStmt	as SQLiteStmt ptr
+	db_dfeSaidaInsertStmt	as SQLiteStmt ptr
+	db_itensDfeSaidaInsertStmt as SQLiteStmt ptr
 	
 	declare function adicionarDFe(dfe as TDFe_NFe ptr, fazerInsert as boolean = true) as long
 	declare function adicionarDFe(dfe as TDFe_CTe ptr, fazerInsert as boolean = true) as long

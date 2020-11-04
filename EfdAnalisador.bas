@@ -1,8 +1,8 @@
-#include once "Efd.bi"
+#include once "EfdExt.bi"
 #include once "EfdAnalisador.bi"
 #include once "TableWriter.bi"
 #include once "vbcompat.bi"
-#include once "DB.bi"
+#include once "SQLite.bi"
 #include once "Lua/lualib.bi"
 #include once "Lua/lauxlib.bi"
 #include once "trycatch.bi"
@@ -13,7 +13,7 @@ constructor EfdAnalisador(tableExp as EfdTabelaExport ptr)
 end constructor
 
 ''''''''
-function EfdAnalisador.withDBs(db as TDb ptr) as EfdAnalisador ptr
+function EfdAnalisador.withDBs(db as SQLite ptr) as EfdAnalisador ptr
 	this.db = db
 	return @this
 end function
@@ -58,7 +58,7 @@ private sub inconsistenciaAddHeader(ws as TableTable ptr)
 end sub
 
 ''''''''
-private sub inconsistenciaAddRow(xrow as TableRow ptr, byref drow as TDataSetRow, incons as TipoInconsistencia, descricao as const zstring ptr)
+private sub inconsistenciaAddRow(xrow as TableRow ptr, byref drow as SQLiteDataSetRow, incons as TipoInconsistencia, descricao as const zstring ptr)
 	xrow->addCell(drow["chave"])
 	xrow->addCell(yyyyMmDd2Datetime(drow["dataEmit"]))
 	xrow->addCell(drow["cnpj"])
@@ -77,7 +77,7 @@ private function luacb_efd_plan_inconsistencias_AddRow cdecl(byval L as lua_Stat
 	
 	if args = 4 then
 		var ws = cast(TableTable ptr, lua_touserdata(L, 1))
-		var ds = cast(TDataSet ptr, lua_touserdata(L, 2))
+		var ds = cast(SQLiteDataSet ptr, lua_touserdata(L, 2))
 		var tipo = lua_tointeger(L, 3)
 		var descricao = lua_tostring(L, 4)
 

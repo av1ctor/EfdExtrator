@@ -1,6 +1,6 @@
 #include once "Dict.bi"
 #include once "bfile.bi"
-#include once "Db.bi"
+#include once "SQLite.bi"
 
 enum TTipoArquivo
 	TIPO_ARQUIVO_EFD
@@ -334,13 +334,13 @@ type TDocNFItem extends TRegistro
 	cstPIS         			as integer
 	bcPIS          			as Double
 	aliqPISPerc    			as Double
-	qtdBcPIS       			as double
+	qSQLitecPIS       			as double
 	aliqPISMoed    			as Double
 	PIS            			as Double
 	cstCOFINS      			as Integer
 	bcCOFINS       			as Double
 	aliqCOFINSPerc 			as Double
-	qtdBcCOFINS    			as double
+	qSQLitecCOFINS    			as double
 	aliqCOFINSMoed 			as Double
 	COFINS         			as Double
 	itemRessarcStListHead 	as TDocNFItemRessarcSt ptr
@@ -722,7 +722,7 @@ public:
 	declare destructor()
 	declare function withCallbacks(onProgress as OnProgressCB, onError as OnErrorCB) as EfdBaseImport ptr
 	declare function withLua(lua as lua_State ptr, customLuaCbDict as TDict ptr) as EfdBaseImport ptr
-	declare function withDBs(db as TDb ptr) as EfdBaseImport ptr
+	declare function withDBs(db as SQLite ptr) as EfdBaseImport ptr
 	declare abstract function carregar(nomeArquivo as string) as boolean
 	declare function getFirstReg() as TRegistro ptr
 	declare function getMestreReg() as TMestre ptr
@@ -738,7 +738,7 @@ public:
 
 protected:
 	opcoes					as OpcoesExtracao ptr
-	db						as TDb ptr
+	db						as SQLite ptr
 
 	onProgress 				as OnProgressCB
 	onError 				as OnErrorCB

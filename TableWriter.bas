@@ -183,7 +183,7 @@ function TableWriter.create(fileName as string, ftype as FileType) as boolean
 		
 	case FT_SQLITE
 		kill fileName + ".db"
-		db = new TDb
+		db = new SQLite
 		if not db->open(fileName + ".db") then
 			onError("ao tentar criar o arquivo SQLite")
 			return false
@@ -344,7 +344,7 @@ function TableWriter.flush() as boolean
 		
 		if table->nRows > 1 then
 			dim as lxw_worksheet ptr xlsXWorksheet
-			dim as TDbStmt ptr stmt = null
+			dim as SQLiteStmt ptr stmt = null
 			dim as integer totCols = 0
 			dim as string insertQuery
 	
