@@ -1,4 +1,4 @@
-#include once "Efd.bi"
+#include once "EfdExt.bi"
 #include once "EfdSpedImport.bi"
 #include once "ssl_helper.bi"
 #include once "trycatch.bi"
@@ -16,13 +16,13 @@ end destructor
 
 ''''''''
 function EfdSpedImport.withStmts( _
-	lreInsertStmt as TDbStmt ptr, _
-	itensNfLRInsertStmt as TDbStmt ptr, _
-	lrsInsertStmt as TDbStmt ptr, _
-	analInsertStmt as TDbStmt ptr, _
-	ressarcStItensNfLRSInsertStmt as TDbStmt ptr, _
-	itensIdInsertStmt as TDbStmt ptr, _
-	mestreInsertStmt as TDbStmt ptr _
+	lreInsertStmt as SQLiteStmt ptr, _
+	itensNfLRInsertStmt as SQLiteStmt ptr, _
+	lrsInsertStmt as SQLiteStmt ptr, _
+	analInsertStmt as SQLiteStmt ptr, _
+	ressarcStItensNfLRSInsertStmt as SQLiteStmt ptr, _
+	itensIdInsertStmt as SQLiteStmt ptr, _
+	mestreInsertStmt as SQLiteStmt ptr _
 	) as EfdSpedImport ptr
 	
 	this.db_LREInsertStmt = lreInsertStmt
@@ -590,13 +590,13 @@ function EfdSpedImport.lerRegDocNFItem(bf as bfile, documentoPai as TDocNF ptr) 
 	reg->cstPIS			= bf.varint
 	reg->bcPIS			= bf.vardbl
 	reg->aliqPISPerc	= bf.vardbl
-	reg->qtdBcPIS		= bf.vardbl
+	reg->qSQLitecPIS		= bf.vardbl
 	reg->aliqPISMoed	= bf.vardbl
 	reg->PIS			= bf.vardbl
 	reg->cstCOFINS		= bf.varint
 	reg->bcCOFINS		= bf.vardbl
 	reg->aliqCOFINSPerc = bf.vardbl
-	reg->qtdBcCOFINS	= bf.vardbl
+	reg->qSQLitecCOFINS	= bf.vardbl
 	reg->aliqCOFINSMoed = bf.vardbl
 	reg->COFINS			= bf.vardbl
 	bf.varchar					'' pular código da conta

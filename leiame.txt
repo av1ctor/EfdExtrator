@@ -1,5 +1,5 @@
 Extrator de EFD/Sintegra para Excel/Csv/SQLite/Access/Pdf
-Copyleft 2017-2020 by André Vicentini (avtvicentini)
+Copyright 2017-2020 by André Vicentini (avtvicentini)
 
 Quando o aplicativo é executado sem passar nenhum parâmetro, será mostrada a interface gráfica para seleção dos arquivos e marcação de opções.
 

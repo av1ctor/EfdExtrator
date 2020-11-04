@@ -1,7 +1,7 @@
 #include once "EfdPdfExport.bi"
 #include once "Dict.bi"
 #include once "vbcompat.bi"
-#include once "DB.bi"
+#include once "SQLite.bi"
 #include once "trycatch.bi"
 
 const PAGE_LEFT = 30
@@ -96,7 +96,7 @@ destructor EfdPdfExport()
 end destructor
 
 ''''''''
-function EfdPdfExport.withDBs(configDb as TDb ptr) as EfdPdfExport ptr
+function EfdPdfExport.withDBs(configDb as SQLite ptr) as EfdPdfExport ptr
 	this.configDb = configDb
 	return @this
 end function
@@ -1531,7 +1531,7 @@ static function EfdPdfExport.luacb_efd_rel_addItemAnalitico cdecl(L as lua_State
 	var args = lua_gettop(L)
 	
 	lua_getglobal(L, "efd")
-	var g_efd = cast(Efd ptr, lua_touserdata(L, -1))
+	var g_efd = cast(EfdExt ptr, lua_touserdata(L, -1))
 	lua_pop(L, 1)
 	
 	if args = 2 then

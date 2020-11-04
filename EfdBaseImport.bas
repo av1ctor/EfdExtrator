@@ -1,4 +1,4 @@
-#include once "Efd.bi"
+#include once "EfdExt.bi"
 #include once "EfdBaseImport.bi"
 
 ''''''''
@@ -29,7 +29,7 @@ function EfdBaseImport.withLua(lua as lua_State ptr, customLuaCbDict as TDict pt
 end function
 
 ''''''''
-function EfdBaseImport.withDBs(db as TDb ptr) as EfdBaseImport ptr
+function EfdBaseImport.withDBs(db as SQLite ptr) as EfdBaseImport ptr
 	this.db = db
 	return @this
 end function

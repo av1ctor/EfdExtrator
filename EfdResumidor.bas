@@ -1,8 +1,8 @@
-#include once "Efd.bi"
+#include once "EfdExt.bi"
 #include once "EfdResumidor.bi"
 #include once "TableWriter.bi"
 #include once "vbcompat.bi"
-#include once "DB.bi"
+#include once "SQLite.bi"
 #include once "Lua/lualib.bi"
 #include once "Lua/lauxlib.bi"
 #include once "trycatch.bi"
@@ -14,7 +14,7 @@ constructor EfdResumidor(opcoes as OpcoesExtracao ptr, tableExp as EfdTabelaExpo
 end constructor
 
 ''''''''
-function EfdResumidor.withDBs(db as TDb ptr) as EfdResumidor ptr
+function EfdResumidor.withDBs(db as SQLite ptr) as EfdResumidor ptr
 	this.db = db
 	return @this
 end function
@@ -270,7 +270,7 @@ sub EfdResumidor.resumoAddHeaderCstCfopLRS(ws as TableTable ptr)
 end sub
 
 ''''''''
-private sub resumoAddRowLRE(xrow as TableRow ptr, byref drow as TDataSetRow, opcoes as OpcoesExtracao ptr, tipo as TipoResumo)
+private sub resumoAddRowLRE(xrow as TableRow ptr, byref drow as SQLiteDataSetRow, opcoes as OpcoesExtracao ptr, tipo as TipoResumo)
 	select case tipo
 	case TR_CFOP
 		if opcoes->formatoDeSaida = FT_XLSX then
@@ -317,7 +317,7 @@ private sub resumoAddRowLRE(xrow as TableRow ptr, byref drow as TDataSetRow, opc
 end sub
 
 ''''''''
-private sub resumoAddRowLRS(xrow as TableRow ptr, byref drow as TDataSetRow, opcoes as OpcoesExtracao ptr, tipo as TipoResumo)
+private sub resumoAddRowLRS(xrow as TableRow ptr, byref drow as SQLiteDataSetRow, opcoes as OpcoesExtracao ptr, tipo as TipoResumo)
 	select case tipo
 	case TR_CFOP
 		if opcoes->formatoDeSaida = FT_XLSX then
@@ -378,7 +378,7 @@ private function luacb_efd_plan_resumos_AddRow cdecl(byval L as lua_State ptr) a
 	
 	if args = 5 then
 		var ws = cast(TableTable ptr, lua_touserdata(L, 1))
-		var ds = cast(TDataSet ptr, lua_touserdata(L, 2))
+		var ds = cast(SQLiteDataSet ptr, lua_touserdata(L, 2))
 		var opcoes = cast(OpcoesExtracao ptr, lua_touserdata(L, 3))
 		var tipo = lua_tointeger(L, 4)
 		var livro = lua_tointeger(L, 5)

@@ -1,4 +1,4 @@
-#include once "Efd.bi"
+#include once "EfdExt.bi"
 #include once "EfdBoBaseLoader.bi"
 
 ''''''''
@@ -15,16 +15,16 @@ function EfdBoBaseLoader.withCallbacks(onProgress as OnProgressCB, onError as On
 end function
 
 ''''''''
-function EfdBoBaseLoader.withDBs(db as TDb ptr) as EfdBoBaseLoader ptr
+function EfdBoBaseLoader.withDBs(db as SQLite ptr) as EfdBoBaseLoader ptr
 	this.db = db
 	return @this
 end function
 
 ''''''''
 function EfdBoBaseLoader.withStmts( _
-	dfeEntradaInsertStmt as TDbStmt ptr, _
-	dfeSaidaInsertStmt as TDbStmt ptr, _
-	itensDfeSaidaInsertStmt as TDbStmt ptr _
+	dfeEntradaInsertStmt as SQLiteStmt ptr, _
+	dfeSaidaInsertStmt as SQLiteStmt ptr, _
+	itensDfeSaidaInsertStmt as SQLiteStmt ptr _
 	) as EfdBoBaseLoader ptr
 	
 	this.db_dfeEntradaInsertStmt = dfeEntradaInsertStmt

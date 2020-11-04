@@ -3,7 +3,7 @@
 #include once "Lua/lauxlib.bi"
 #include once "libiconv.bi"
 #include once "xlsxwriter.bi"
-#include once "DB.bi"
+#include once "SQLite.bi"
 #define NULL 0
 
 enum ColumnType
@@ -109,7 +109,7 @@ private:
 	fnum as integer = 0
 	xlsxWorkbook as lxw_workbook ptr
 	xlsxFormats(0 to CT__LEN__-1) as lxw_format ptr
-	db as TDb ptr
+	db as SQLite ptr
 	odbc as TOdbc_ ptr
 	
 	cdLatinToUtf8 as iconv_t
