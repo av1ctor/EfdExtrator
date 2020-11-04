@@ -1,5 +1,6 @@
 '' Extrator de EFD/Sintegra para Excel/Csv/SQLite/Access/Pdf
 '' Copyright 2017-2020 André Vicentini (avtvicentini)
+'' Licenciado sob GNU GPL-2.0-ou-posterior
 
 #include once "EfdExt.bi"
 #include once "EfdGUI.bi"
