@@ -335,6 +335,12 @@ function TableWriter.flush() as boolean
 	case FT_XML
 		print #fnum, !"</Styles>"
 	end select
+
+	dim strParams(1 to MAX_COLUMNS) as string
+	dim intParams(1 to MAX_COLUMNS) as SQLINTEGER
+	dim fltParams(1 to MAX_COLUMNS) as SQLREAL
+	dim dateParams(1 to MAX_COLUMNS) as SQL_DATE_STRUCT
+	dim bindInd(1 to MAX_COLUMNS) as SQLLEN
       
 	' para cada tabela..
 	p = 1
@@ -652,7 +658,6 @@ function TableWriter.flush() as boolean
 								var ct = table->colListHead
 								var colNum = 0
 								var sqlCol = 1
-								dim strParams(1 to totCols) as string
 								stmt->reset()
 								do while cell <> null
 									do while cell->num > colNum
@@ -699,11 +704,6 @@ function TableWriter.flush() as boolean
 								var ct = table->colListHead
 								var colNum = 0
 								var sqlCol = 1
-								dim strParams(1 to totCols) as string
-								dim intParams(1 to totCols) as SQLINTEGER
-								dim fltParams(1 to totCols) as SQLREAL
-								dim dateParams(1 to totCols) as SQL_DATE_STRUCT
-								dim bindInd(1 to totCols) as SQLLEN
 								do while cell <> null
 									do while cell->num > colNum
 										colNum += 1

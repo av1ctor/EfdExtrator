@@ -6,6 +6,8 @@
 #include once "SQLite.bi"
 #define NULL 0
 
+const MAX_COLUMNS = 128
+
 enum ColumnType
 	CT_STRING
 	CT_STRING_UTF8
