@@ -237,5 +237,5 @@ Ferramentas utilizadas:
     - FreeBASIC: https://www.freebasic.net/
     - Mingw-64: http://mingw-w64.org/
 
-Código-fonte:
+Código-fonte e atualizações:
     https://github.com/av1ctor/EfdExtrator
