@@ -1,7 +1,7 @@
 #include once "EfdExt.bi"
 #include once "EfdBoCsvLoader.bi"
-#include once "bfile.bi"
-#include once "trycatch.bi"
+#include once "libs/BFile.bi"
+#include once "libs/trycatch.bi"
 
 const BO_CSV_SEP = asc(!"\t")
 const BO_CSV_DIG = asc(".")

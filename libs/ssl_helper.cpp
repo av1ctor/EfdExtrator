@@ -1,3 +1,7 @@
+// SSL Helper Library for FreeBASIC
+// Copyright 2017 by Andre Victor (av1ctortv[@]gmail.com)
+// Licensed under GNU GPL-2.0-or-above
+
 // g++ ssl_helper.cpp -c 
 // ar rcs libssl_helper.a ssl_helper.o
 // ld myapp.o -lssl_helper -lcrypto -lssl -static -lkernel32 -luser32 -lgdi32 -ladvapi32

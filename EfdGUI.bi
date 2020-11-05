@@ -1,6 +1,6 @@
 #include once "IUP/iup.bi"
 #include once "IUP/IupMatrix.bi"
-#include once "list.bi"
+#include once "libs/List.bi"
 #include once "strings.bi"
 #include once "EfdExt.bi"
 

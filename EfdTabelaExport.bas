@@ -1,6 +1,6 @@
 #include once "EfdTabelaExport.bi"
 #include once "vbcompat.bi"
-#include once "trycatch.bi"
+#include once "libs/trycatch.bi"
 
 ''''''''
 constructor EfdTabelaExport(nomeArquivo as String, opcoes as OpcoesExtracao ptr)

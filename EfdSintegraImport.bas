@@ -1,6 +1,6 @@
 #include once "EfdExt.bi"
 #include once "EfdSintegraImport.bi"
-#include once "trycatch.bi"
+#include once "libs/trycatch.bi"
 
 ''''''''
 constructor EfdSintegraImport(opcoes as OpcoesExtracao ptr)
