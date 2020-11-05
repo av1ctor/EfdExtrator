@@ -1,8 +1,8 @@
 #include once "EfdPdfExport.bi"
-#include once "Dict.bi"
+#include once "libs/Dict.bi"
 #include once "vbcompat.bi"
-#include once "SQLite.bi"
-#include once "trycatch.bi"
+#include once "libs/SQLite.bi"
+#include once "libs/trycatch.bi"
 
 const PAGE_LEFT = 30
 const PAGE_RIGHT = 813

@@ -1,11 +1,11 @@
 
-#include once "Dict.bi"
-#include once "bfile.bi"
-#include once "ExcelReader.bi"
+#include once "libs/Dict.bi"
+#include once "libs/BFile.bi"
+#include once "libs/ExcelReader.bi"
 #include once "TableWriter.bi"
-#include once "SQLite.bi"
+#include once "libs/SQLite.bi"
 #include once "Lua/lualib.bi"
-#include once "PDFer.bi"
+#include once "libs/PDFer.bi"
 
 type OnProgressCB as function(estagio as const zstring ptr, porCompleto as double) as boolean
 type OnErrorCB as sub(msg as const zstring ptr)

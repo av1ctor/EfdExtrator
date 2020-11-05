@@ -2,10 +2,10 @@
 #include once "EfdResumidor.bi"
 #include once "TableWriter.bi"
 #include once "vbcompat.bi"
-#include once "SQLite.bi"
+#include once "libs/SQLite.bi"
 #include once "Lua/lualib.bi"
 #include once "Lua/lauxlib.bi"
-#include once "trycatch.bi"
+#include once "libs/trycatch.bi"
 
 ''''''''
 constructor EfdResumidor(opcoes as OpcoesExtracao ptr, tableExp as EfdTabelaExport ptr)

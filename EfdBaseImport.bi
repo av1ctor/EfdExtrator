@@ -1,6 +1,6 @@
-#include once "Dict.bi"
-#include once "bfile.bi"
-#include once "SQLite.bi"
+#include once "libs/Dict.bi"
+#include once "libs/BFile.bi"
+#include once "libs/SQLite.bi"
 
 enum TTipoArquivo
 	TIPO_ARQUIVO_EFD

@@ -7,13 +7,13 @@
 #include once "EfdAnalisador.bi"
 #include once "EfdResumidor.bi"
 #include once "EfdPdfExport.bi"
-#include once "bfile.bi"
-#include once "Dict.bi"
+#include once "libs/BFile.bi"
+#include once "libs/Dict.bi"
 #include once "TableWriter.bi"
-#include once "SQLite.bi"
+#include once "libs/SQLite.bi"
 #include once "Lua/lualib.bi"
 #include once "Lua/lauxlib.bi"
-#include once "trycatch.bi"
+#include once "libs/trycatch.bi"
 #undef imp
 
 private function my_lua_Alloc cdecl _

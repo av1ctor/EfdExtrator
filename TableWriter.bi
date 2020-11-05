@@ -2,8 +2,8 @@
 #include once "Lua/lualib.bi"
 #include once "Lua/lauxlib.bi"
 #include once "libiconv.bi"
-#include once "xlsxwriter.bi"
-#include once "SQLite.bi"
+#include once "libs/xlsxwriter.bi"
+#include once "libs/SQLite.bi"
 #define NULL 0
 
 const MAX_COLUMNS = 128

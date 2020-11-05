@@ -1,7 +1,7 @@
 #include once "EfdExt.bi"
 #include once "EfdSpedImport.bi"
-#include once "ssl_helper.bi"
-#include once "trycatch.bi"
+#include once "libs/ssl_helper.bi"
+#include once "libs/trycatch.bi"
 
 const ASSINATURA_P7K_HEADER = "SBRCAAEPDR"
 

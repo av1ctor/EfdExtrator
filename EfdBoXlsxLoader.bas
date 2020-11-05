@@ -1,6 +1,6 @@
 #include once "EfdExt.bi"
 #include once "EfdBoXlsxLoader.bi"
-#include once "trycatch.bi"
+#include once "libs/trycatch.bi"
 
 private function dbl2Cnpj(valor as double) as string
 	return iif(valor <> 0, right("00000000000000" + str(valor), 14), "")

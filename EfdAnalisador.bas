@@ -2,10 +2,10 @@
 #include once "EfdAnalisador.bi"
 #include once "TableWriter.bi"
 #include once "vbcompat.bi"
-#include once "SQLite.bi"
+#include once "libs/SQLite.bi"
 #include once "Lua/lualib.bi"
 #include once "Lua/lauxlib.bi"
-#include once "trycatch.bi"
+#include once "libs/trycatch.bi"
 
 ''''''''
 constructor EfdAnalisador(tableExp as EfdTabelaExport ptr)

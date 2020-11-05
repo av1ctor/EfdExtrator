@@ -1,4 +1,6 @@
-'' generic Dict tables
+'' Generic Dictionary for FreeBASIC
+'' Copyright 2017 by Andre Victor (av1ctortv[@]gmail.com)
+'' Licensed under GNU GPL-2.0-or-above
 
 #include once "Dict.bi"
 
