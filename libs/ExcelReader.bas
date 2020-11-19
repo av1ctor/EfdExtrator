@@ -128,7 +128,7 @@ function ExcelReader.readDate(fmt as zstring ptr) as string
 	deallocate value
 
 	dim as zstring * 64 buff
-	strftime(@buff, 64, fmt, localtime(@date))
+	strftime(@buff, 64, fmt, gmtime(@date))
 	
 	function = buff
 	
