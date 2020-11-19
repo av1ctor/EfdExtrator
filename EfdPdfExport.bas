@@ -36,6 +36,7 @@ const CIAP_DOC_ITEM_HEIGHT = 57
 const CIAP_PAGE_BOTTOM = 480
 const LRAICMS_FORM_HEIGHT = 240
 const LRAICMS_PAGE_BOTTOM = 620
+const LRAICMSST_FORM_HEIGHT = LRAICMS_FORM_HEIGHT + 10
 const LRAICMS_AJ_DECOD_HEIGHT = 42
 const LRAICMS_AJ_TITLE_HEIGHT = 18
 const LRAICMS_AJ_HEADER_HEIGHT = 14
@@ -1043,7 +1044,7 @@ sub EfdPdfExport.gerarRelatorioCiap(reg as TCiapTotal ptr, isPre as boolean)
 end sub
 
 ''''''''
-sub EfdPdfExport.gerarAjusteTotalRelatorioApuracaoICMS(tipo as integer, total as double, isPre as boolean)
+sub EfdPdfExport.gerarAjusteTotalRelatorioApuracaoICMS(tipo as integer, total as double, isPre as boolean, op as integer)
 	if relYpos + LRAICMS_AJ_TOTAL_HEIGHT > LRAICMS_PAGE_BOTTOM then
 		criarPaginaRelatorio(true, isPre)
 	end if
@@ -1053,7 +1054,7 @@ sub EfdPdfExport.gerarAjusteTotalRelatorioApuracaoICMS(tipo as integer, total as
 		var clone = node->clone(relPage, relPage)
 		clone->setAttrib("hidden", false)
 		clone->translateY(-relYPos)
-		setChildText(clone, "AJ-TOTAL-DESC", "VALOR TOTAL DOS " & ajusteTipoToTitle(tipo), true)
+		setChildText(clone, "AJ-TOTAL-DESC", "VALOR TOTAL DOS " & ajusteTipoToTitle(tipo) & iif(op = 1, " ST", ""), true)
 		setChildText(clone, "AJ-TOTAL-VAL", DBL2MONEYBR(total))
 	end if
 	
@@ -1084,49 +1085,14 @@ private function ajusteApuracaoCmpCb(key as zstring ptr, node as any ptr) as boo
 end function
 
 ''''''''
-sub EfdPdfExport.gerarRelatorioApuracaoICMS(reg as TApuracaoIcmsPropPeriodo ptr, isPre as boolean)
-
-	iniciarRelatorio(REL_RAICMS, "apuracao_icms", "RAICMS", isPre)
-	if isPre then
-		relNroTotalPaginas = 0
-	end if
-	
-	criarPaginaRelatorio(true, isPre)
-	
-	if not isPre then
-		setNodeText(relPage, "ESCRIT", YyyyMmDd2DatetimeBR(regMestre->dataIni) + " a " + YyyyMmDd2DatetimeBR(regMestre->dataFim))
-		
-		var node = relPage->getNode("form")
-		var clone = node->clone(relPage, relPage)
-		clone->setAttrib("hidden", false)
-	
-		setChildText(clone, "APU", YyyyMmDd2DatetimeBR(reg->dataIni) + " a " + YyyyMmDd2DatetimeBR(reg->dataFim))
-		setChildText(clone, "SAIDAS", DBL2MONEYBR(reg->totalDebitos))
-		setChildText(clone, "AJUSTE_DEB", DBL2MONEYBR(reg->ajustesDebitos))
-		setChildText(clone, "AJUSTE_DEB_IMP", DBL2MONEYBR(reg->totalAjusteDeb))
-		setChildText(clone, "ESTORNO_CRED", DBL2MONEYBR(reg->estornosCredito))
-		setChildText(clone, "CREDITO", DBL2MONEYBR(reg->totalCreditos))
-		setChildText(clone, "AJUSTE_CRED", DBL2MONEYBR(reg->ajustesCreditos))
-		setChildText(clone, "AJUSTE_CRED_IMP", DBL2MONEYBR(reg->totalAjusteCred))
-		setChildText(clone, "ESTORNO_DEB", DBL2MONEYBR(reg->estornoDebitos))
-		setChildText(clone, "CRED_ANTERIOR", DBL2MONEYBR(reg->saldoCredAnterior))
-		setChildText(clone, "SALDO_DEV", DBL2MONEYBR(reg->saldoDevedorApurado))
-		setChildText(clone, "DEDUCOES", DBL2MONEYBR(reg->totalDeducoes))
-		setChildText(clone, "A_RECOLHER", DBL2MONEYBR(reg->icmsRecolher))
-		setChildText(clone, "A_TRANSPORTAR", DBL2MONEYBR(reg->saldoCredTransportar))
-		setChildText(clone, "EXTRA_APU", DBL2MONEYBR(reg->debExtraApuracao))
-	end if
-	relYPos += LRAICMS_FORM_HEIGHT
-	
-	var ajuste = reg->ajustesListHead
+sub EfdPdfExport.gerarAjustesRelatorioApuracaoICMS(ajuste as TApuracaoIcmsAjuste ptr, isPre as boolean, opType as integer)
 	if ajuste <> null then
 	
 		var ordered = new TList(10, len(AjusteApuracao))
 		
 		do while ajuste <> null
-			'' só operações próprias
 			var op = cint(mid(ajuste->codigo, 3, 1))
-			if op = 0 then
+			if op = opType then
 				var aj = cast(AjusteApuracao ptr, ordered->addOrdAsc(ajuste->codigo, @ajusteApuracaoCmpCb))
 				aj->codigo = ajuste->codigo
 				aj->ajuste = ajuste
@@ -1160,7 +1126,7 @@ sub EfdPdfExport.gerarRelatorioApuracaoICMS(reg as TApuracaoIcmsPropPeriodo ptr,
 			if tipo <> ultimoTipo then
 				'' total
 				if ultimoTipo <> -1 then
-					gerarAjusteTotalRelatorioApuracaoICMS(ultimoTipo, total, isPre)
+					gerarAjusteTotalRelatorioApuracaoICMS(ultimoTipo, total, isPre, opType)
 				end if
 				
 				'' decod
@@ -1185,7 +1151,7 @@ sub EfdPdfExport.gerarRelatorioApuracaoICMS(reg as TApuracaoIcmsPropPeriodo ptr,
 					var clone = node->clone(relPage, relPage)
 					clone->setAttrib("hidden", false)
 					clone->translateY(-relYPos)
-					setChildText(clone, "AJ-TITLE", "DEMONSTRATIVO DO VALOR TOTAL DOS " & ajusteTipoToTitle(tipo), true)
+					setChildText(clone, "AJ-TITLE", "DEMONSTRATIVO DO VALOR TOTAL DOS " & ajusteTipoToTitle(tipo) & iif(opType = 1, " ST", ""), true)
 				end if
 				relYPos += LRAICMS_AJ_TITLE_HEIGHT
 
@@ -1256,10 +1222,48 @@ sub EfdPdfExport.gerarRelatorioApuracaoICMS(reg as TApuracaoIcmsPropPeriodo ptr,
 			gerarAjusteSubTotalRelatorioApuracaoICMS(ultimoTipo, ultimoCodigo, subtotal, isPre)
 		end if
 		
-		gerarAjusteTotalRelatorioApuracaoICMS(ultimoTipo, total, isPre)
+		gerarAjusteTotalRelatorioApuracaoICMS(ultimoTipo, total, isPre, opType)
 
 		delete ordered
 	end if
+end sub
+
+''''''''
+sub EfdPdfExport.gerarRelatorioApuracaoICMS(reg as TApuracaoIcmsPropPeriodo ptr, isPre as boolean)
+
+	iniciarRelatorio(REL_RAICMS, "apuracao_icms", "RAICMS", isPre)
+	if isPre then
+		relNroTotalPaginas = 0
+	end if
+	
+	criarPaginaRelatorio(true, isPre)
+	
+	if not isPre then
+		setNodeText(relPage, "ESCRIT", YyyyMmDd2DatetimeBR(regMestre->dataIni) + " a " + YyyyMmDd2DatetimeBR(regMestre->dataFim))
+		
+		var node = relPage->getNode("form")
+		var clone = node->clone(relPage, relPage)
+		clone->setAttrib("hidden", false)
+	
+		setChildText(clone, "APU", YyyyMmDd2DatetimeBR(reg->dataIni) + " a " + YyyyMmDd2DatetimeBR(reg->dataFim))
+		setChildText(clone, "SAIDAS", DBL2MONEYBR(reg->totalDebitos))
+		setChildText(clone, "AJUSTE_DEB", DBL2MONEYBR(reg->ajustesDebitos))
+		setChildText(clone, "AJUSTE_DEB_IMP", DBL2MONEYBR(reg->totalAjusteDeb))
+		setChildText(clone, "ESTORNO_CRED", DBL2MONEYBR(reg->estornosCredito))
+		setChildText(clone, "CREDITO", DBL2MONEYBR(reg->totalCreditos))
+		setChildText(clone, "AJUSTE_CRED", DBL2MONEYBR(reg->ajustesCreditos))
+		setChildText(clone, "AJUSTE_CRED_IMP", DBL2MONEYBR(reg->totalAjusteCred))
+		setChildText(clone, "ESTORNO_DEB", DBL2MONEYBR(reg->estornoDebitos))
+		setChildText(clone, "CRED_ANTERIOR", DBL2MONEYBR(reg->saldoCredAnterior))
+		setChildText(clone, "SALDO_DEV", DBL2MONEYBR(reg->saldoDevedorApurado))
+		setChildText(clone, "DEDUCOES", DBL2MONEYBR(reg->totalDeducoes))
+		setChildText(clone, "A_RECOLHER", DBL2MONEYBR(reg->icmsRecolher))
+		setChildText(clone, "A_TRANSPORTAR", DBL2MONEYBR(reg->saldoCredTransportar))
+		setChildText(clone, "EXTRA_APU", DBL2MONEYBR(reg->debExtraApuracao))
+	end if
+	relYPos += LRAICMS_FORM_HEIGHT
+	
+	gerarAjustesRelatorioApuracaoICMS(reg->ajustesListHead, isPre, 0)
 
 	finalizarRelatorio(isPre)
 	
@@ -1277,24 +1281,32 @@ sub EfdPdfExport.gerarRelatorioApuracaoICMSST(reg as TApuracaoIcmsSTPeriodo ptr,
 	
 	if not isPre then
 		setNodeText(relPage, "ESCRIT", YyyyMmDd2DatetimeBR(regMestre->dataIni) + " a " + YyyyMmDd2DatetimeBR(regMestre->dataFim))
-		setNodeText(relPage, "APU", YyyyMmDd2DatetimeBR(reg->dataIni) + " a " + YyyyMmDd2DatetimeBR(reg->dataFim))
-		setNodeText(relPage, "UF", reg->UF)
-		setNodeText(relPage, "MOV", iif(reg->mov, "1 - COM", "0 - SEM"))
+
+		var node = relPage->getNode("form")
+		var clone = node->clone(relPage, relPage)
+		clone->setAttrib("hidden", false)
+	
+		setChildText(clone, "APU", YyyyMmDd2DatetimeBR(reg->dataIni) + " a " + YyyyMmDd2DatetimeBR(reg->dataFim))
+		setChildText(clone, "UF", reg->UF)
+		setChildText(clone, "MOV", iif(reg->mov, "1 - COM", "0 - SEM"))
 		
-		setNodeText(relPage, "SALDO_CRED", DBL2MONEYBR(reg->saldoCredAnterior))
-		setNodeText(relPage, "DEVOLUCOES", DBL2MONEYBR(reg->devolMercadorias))
-		setNodeText(relPage, "RESSARCIMENTOS", DBL2MONEYBR(reg->totalRessarciment))
-		setNodeText(relPage, "OUTROS_CRED", DBL2MONEYBR(reg->totalOutrosCred))
-		setNodeText(relPage, "AJUSTE_CRED", DBL2MONEYBR(reg->ajustesCreditos))
-		setNodeText(relPage, "ICMS_ST", DBL2MONEYBR(reg->totalRetencao))
-		setNodeText(relPage, "OUTROS_DEB", DBL2MONEYBR(reg->totalOutrosDeb))
-		setNodeText(relPage, "AJUSTE_DEB", DBL2MONEYBR(reg->ajustesDebitos))
-		setNodeText(relPage, "SALDO_DEV", DBL2MONEYBR(reg->saldoAntesDed))
-		setNodeText(relPage, "DEDUCOES", DBL2MONEYBR(reg->totalDeducoes))
-		setNodeText(relPage, "A_RECOLHER", DBL2MONEYBR(reg->icmsRecolher))
-		setNodeText(relPage, "A_TRANSPORTAR", DBL2MONEYBR(reg->saldoCredTransportar))
-		setNodeText(relPage, "EXTRA_APU", DBL2MONEYBR(reg->debExtraApuracao))
+		setChildText(clone, "SALDO_CRED", DBL2MONEYBR(reg->saldoCredAnterior))
+		setChildText(clone, "DEVOLUCOES", DBL2MONEYBR(reg->devolMercadorias))
+		setChildText(clone, "RESSARCIMENTOS", DBL2MONEYBR(reg->totalRessarciment))
+		setChildText(clone, "OUTROS_CRED", DBL2MONEYBR(reg->totalOutrosCred))
+		setChildText(clone, "AJUSTE_CRED", DBL2MONEYBR(reg->ajustesCreditos))
+		setChildText(clone, "ICMS_ST", DBL2MONEYBR(reg->totalRetencao))
+		setChildText(clone, "OUTROS_DEB", DBL2MONEYBR(reg->totalOutrosDeb))
+		setChildText(clone, "AJUSTE_DEB", DBL2MONEYBR(reg->ajustesDebitos))
+		setChildText(clone, "SALDO_DEV", DBL2MONEYBR(reg->saldoAntesDed))
+		setChildText(clone, "DEDUCOES", DBL2MONEYBR(reg->totalDeducoes))
+		setChildText(clone, "A_RECOLHER", DBL2MONEYBR(reg->icmsRecolher))
+		setChildText(clone, "A_TRANSPORTAR", DBL2MONEYBR(reg->saldoCredTransportar))
+		setChildText(clone, "EXTRA_APU", DBL2MONEYBR(reg->debExtraApuracao))
 	end if
+	relYPos += LRAICMSST_FORM_HEIGHT
+	
+	gerarAjustesRelatorioApuracaoICMS(reg->ajustesListHead, isPre, 1)
 
 	finalizarRelatorio(isPre)
 	

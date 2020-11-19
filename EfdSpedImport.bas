@@ -300,6 +300,8 @@ function EfdSpedImport.lerTipo(bf as bfile, tipo as zstring ptr) as TipoRegistro
 			tp = APURACAO_ICMS_ST_PERIODO
 		case 210
 			tp = APURACAO_ICMS_ST
+		case 220
+			tp = APURACAO_ICMS_ST_AJUSTE
 		end select
 	case asc("G")
 		select case subtipo
@@ -2334,14 +2336,14 @@ function EfdSpedImport.lerRegistro(bf as bfile) as TRegistro ptr
 		lerRegApuIcmsProprio(bf, cast(TApuracaoIcmsPropPeriodo ptr, ultimoReg))
 		return null
 
-	case APURACAO_ICMS_AJUSTE
-		var node = lerRegApuIcmsAjuste(bf, cast(TApuracaoIcmsPropPeriodo ptr, ultimoReg))
+	case APURACAO_ICMS_AJUSTE, APURACAO_ICMS_ST_AJUSTE
+		var node = lerRegApuIcmsAjuste(bf, cast(TApuracaoIcmsPeriodo ptr, ultimoReg))
 		if node = null then
 			return null
 		end if
 		reg = node
 		
-		var parent = cast(TApuracaoIcmsPropPeriodo ptr, ultimoReg)
+		var parent = cast(TApuracaoIcmsPeriodo ptr, ultimoReg)
 
 		if parent->ajustesListHead = null then
 			parent->ajustesListHead = node
