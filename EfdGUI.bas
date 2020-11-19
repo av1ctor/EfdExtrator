@@ -221,8 +221,8 @@ function EfdGUI.buildFileGrid(grid as FILE_GRID, title as string, filter as stri
 	IupSetAttribute(mat, "TYPE*:3", "FILL")
 	IupSetAttribute(mat, "FGCOLOR*:3", "#008080")
 	
-	IupSetInt(mat, "WIDTH1", 400)
-	IupSetInt(mat, "WIDTH2", 150)
+	IupSetInt(mat, "WIDTH1", 350)
+	IupSetInt(mat, "WIDTH2", 200)
 	IupSetInt(mat, "WIDTH3", 100)
 	
 	IupSetAttribute(mat, "ALIGNMENT1", "ALEFT")
