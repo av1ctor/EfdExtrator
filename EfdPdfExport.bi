@@ -140,7 +140,8 @@ private:
 
 	declare sub gerarRelatorioCiap(reg as TCiapTotal ptr, isPre as boolean)
 	declare sub gerarRelatorioApuracaoICMS(reg as TApuracaoIcmsPropPeriodo ptr, isPre as boolean)
-	declare sub gerarAjusteTotalRelatorioApuracaoICMS(tipo as integer, total as double, isPre as boolean)
+	declare sub gerarAjustesRelatorioApuracaoICMS(ajuste as TApuracaoIcmsAjuste ptr, isPre as boolean, op as integer)
+	declare sub gerarAjusteTotalRelatorioApuracaoICMS(tipo as integer, total as double, isPre as boolean, op as integer)
 	declare sub gerarAjusteSubTotalRelatorioApuracaoICMS(tipo as integer, codigo as string, subtotal as double, isPre as boolean)
 	declare sub gerarRelatorioApuracaoICMSST(reg as TApuracaoIcmsSTPeriodo ptr, isPre as boolean)
 	declare sub iniciarRelatorio(relatorio as TipoRelatorio, nomeRelatorio as string, sufixo as string, isPre as boolean)

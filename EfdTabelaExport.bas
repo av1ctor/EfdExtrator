@@ -1244,8 +1244,16 @@ sub EfdTabelaExport.gerar(regListHead as TRegistro ptr, regMestre as TMestre ptr
 					row->addCell(apu->icmsRecolher)
 					row->addCell(apu->saldoCredTransportar)
 					row->addCell(apu->debExtraApuracao)
-					
+
+					var detalhe = ""
+					var ajuste = apu->ajustesListHead
 					var cnt = 1
+					do while ajuste <> null andalso cnt <= MAX_AJUSTES
+						row->addCell("{'codigo':'" & ajuste->codigo & "', 'valor':'" & DBL2MONEYBR(ajuste->valor) & "', 'descricao':'" & ajuste->descricao) & "'}"
+						ajuste = ajuste->next_
+						cnt += 1
+					loop
+					
 					do while cnt <= MAX_AJUSTES
 						row->addCell("")
 						cnt += 1

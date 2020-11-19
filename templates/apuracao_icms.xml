@@ -799,10 +799,10 @@
 					<lineto x="564" y="46.75"/>
 				</stroke_path>
 				<fill_text color="0 0 0">
-					<span font="Helvetica" trm="8 0 0 8" x="475.3" y="22.56">Página 1 de</span>
+					<span font="Helvetica" trm="8 0 0 8" x="475.3" y="22.56">Página</span>
 				</fill_text>
 				<fill_text color="0 0 0">
-					<span font="Helvetica" trm="8 0 0 8" x="518" y="22.56">1</span>
+					<span font="Helvetica" trm="8 0 0 8" x="503" y="22.56" id="PAGINA"></span>
 				</fill_text>
 				<fill_text color="0 0 0">
 					<span font="Helvetica" trm="7 0 0 7" x="34" y="36.34">Este relatório foi gerado pelo Sistema Público de Escrituração Digital – Sped</span>
