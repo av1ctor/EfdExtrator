@@ -238,8 +238,8 @@ Ferramentas utilizadas:
     - FreeBASIC: https://www.freebasic.net/
     - Mingw-64: http://mingw-w64.org/
 
-Código-fonte:
+Acesso ao código-fonte e download da versão mais recente:
 
     - https://github.com/av1ctor/EfdExtrator/
 
-    Nota: devido às análises realizadas, que seguem o MTF, alguns arquivos não foram incluídos.
+    Nota: devido às análises realizadas, que seguem o MTF, alguns arquivos não foram incluídos no repositório, podendo ser requisitados apenas por AFR's da Sefaz SP.
