@@ -242,4 +242,4 @@ Código-fonte:
 
     - https://github.com/av1ctor/EfdExtrator/
 
-    Nota: devido às análises realizadas, que seguem o MTF, e que poderíam beneficiar algum contribuinte sob fiscalização, o repositório acima está restrito e o acesso será permitido somente a ARF's da Sefaz de SP que requisitarem.
+    Nota: devido às análises realizadas, que seguem o MTF, alguns arquivos não foram incluídos.
