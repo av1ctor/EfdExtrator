@@ -42,4 +42,4 @@ BEGIN
   CONTROL  "", IUP_PREVIEWCANVAS, "STATIC", SS_OWNERDRAW, 70, 0, 120, 90, WS_EX_STATICEDGE
 END
 
-1 24 "gui.manifest"
+1 24 "src/gui.manifest"
