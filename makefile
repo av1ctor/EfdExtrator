@@ -1,7 +1,7 @@
 FBC := fbc
 
 rootdir := $(dir $(MAKEFILE_LIST))
-srcdir := $(rootdir)
+srcdir := $(rootdir)src
 objdir := $(rootdir)obj
 
 APP_EXE := EfdExtrator.exe
@@ -13,7 +13,7 @@ LIBS_BI  := $(wildcard $(srcdir)/libs/*.bi)
 LIBS_BAS := $(sort $(wildcard $(srcdir)/libs/*.bas))
 LIBS_OBJ := $(patsubst $(srcdir)/libs/%.bas,$(objdir)/%.o,$(LIBS_BAS))
 
-APP_FLAGS := gui.rc -x $(APP_EXE)
+APP_FLAGS := $(srcdir)/gui.rc -x $(APP_EXE)
 OBJ_FLAGS := -d WITH_PARSER -O 3
 
 .PHONY: app
