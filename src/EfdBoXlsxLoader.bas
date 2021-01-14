@@ -269,7 +269,7 @@ function EfdBoXlsxLoader.carregarXlsxNFeEmitItens(rd as ExcelReader ptr, chave a
 	rd->skip '' drt emi
 	rd->skip	'' uf emi
 	rd->skip	'' razão social dest
-	extra->cnpjDest			= limparCNPJ(rd->read)
+	extra->cnpjDest			= dbl2Cnpj(rd->readDbl)
 	rd->skip '' cpf dest
 	rd->skip '' ie dest
 	rd->skip '' drt dest
@@ -311,7 +311,7 @@ end function
 ''''''''
 function EfdBoXlsxLoader.carregarXlsxCTe(rd as ExcelReader ptr, op as TipoOperacao) as TDFe_CTe ptr
 	
-	'' ---em branco---,	Chave Acesso CT-e (char),	Série,	Num CTe,	Data Emissão	
+	'' ---em branco---,	Chave Acesso CT-e (char),	Série,	Num CTe,	Data Emissão	, Ind. Situação CT-e
 	'' CNPJ Emitente,	Num. Inscr. Est. Emitente,	Razão Social Emitente,	UF Emitente,	CNPJ Tomador,	
 	'' Num Inscr. Est. Tomador,	Razão Social Tomador,	Indicador Tomador Serviço,	UF Tomador,	CNPJ Remetente,	
 	'' Razão Social Remetente,	UF Remetente,	CNPJ Destinatário,	Razão Social Destinatário,	UF Destinatário,	
@@ -335,6 +335,7 @@ function EfdBoXlsxLoader.carregarXlsxCTe(rd as ExcelReader ptr, op as TipoOperac
 	dfe->serie			= rd->readInt
 	dfe->numero			= rd->readInt
 	dfe->dataEmi		= rd->readDate
+	rd->skip '' ind situação
 	dfe->cnpjEmit		= dbl2Cnpj(rd->readDbl)
 	rd->skip '' ie emit
 	dfe->nomeEmit		= rd->read(true)
@@ -523,11 +524,12 @@ function EfdBoXlsxLoader.carregar(nomeArquivo as String) as Boolean
 
 	dim as integer tipoArquivo
 	dim as string nomePlanilhas(0 to 1)
+	var linhaInicial = 2
 	
 	if instr( nomeArquivo, "NFe_Destinatario_OSF" ) > 0 then
 		tipoArquivo = BO_NFe_Dest
 		ctx->nfeDestSafiFornecido = true
-		nomePlanilhas(0) = "Planilha NF-e por DestinatÃ¡rio"
+		nomePlanilhas(0) = "Planilha NF-e por Destinatário"
 
 	elseif instr( nomeArquivo, "NFe_Emitente_Itens_OSF" ) > 0 then
 		tipoArquivo = BO_NFe_Emit_Itens
@@ -538,12 +540,14 @@ function EfdBoXlsxLoader.carregar(nomeArquivo as String) as Boolean
 		tipoArquivo = BO_NFe_Emit
 		ctx->nfeEmitSafiFornecido = true
 		nomePlanilhas(0) = "Planilha NF-e por Emitente"
+		linhaInicial = 3
 	
 	elseif instr( nomeArquivo, "CTe_CNPJ_Emitente_Tomador_Remetente_Destinatario_OSF" ) > 0 then
 		tipoArquivo = BO_CTe
 		nomePlanilhas(0) = "CT-e por Emitente"
 		nomePlanilhas(1) = "CT-e por Tomador"
 		ctx->cteSafiFornecido = true
+		linhaInicial = 3
 	
 	elseif instr( nomeArquivo, "SAT_-_CuponsEmitidosPorContribuinteCNPJ_OSF" ) > 0 then
 		tipoArquivo = BO_SAT
@@ -607,7 +611,7 @@ function EfdBoXlsxLoader.carregar(nomeArquivo as String) as Boolean
 
 		try
 			do while (reader->nextRow()) 
-				if nroLinha > 1 then
+				if nroLinha >= linhaInicial then
 					select case as const tipoArquivo  
 					case BO_NFe_Dest
 						var dfe = carregarXlsxNFeDest(reader)

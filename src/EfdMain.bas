@@ -16,7 +16,7 @@ on error goto exceptionReport
 
 '''''''''''   
 sub mostrarCopyright()
-	print wstr("Extrator de EFD/Sintegra para Excel/Csv/SQLite/Access/Pdf, versão 0.9.3 beta")
+	print wstr("Extrator de EFD/Sintegra para Excel/Csv/SQLite/Access/Pdf, versão 0.9.4 beta")
 	print wstr("Copyright 2017-2020 by André Vicentini (avtvicentini)")
 	print
 end sub

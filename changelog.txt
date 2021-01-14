@@ -1,3 +1,6 @@
+versão 0.9.4 beta:
+- corrigido: carregamento de xlsx (NFe_Destinatario_OSF, NFe_Emitente_OSF e CTe_CNPJ_Emitente_Tomador_Remetente_Destinatario_OSF)
+
 versão 0.9.3 beta:
 - adicionado: opção -formatoDeSaida access, para extração no formato MS Access 2007+ (.accdb)
 - adicionado: opção -formatoDeSaida sqlite, para extração no formato SQLite3 (abrir o .db gerado com https://sqlitestudio.pl/)
