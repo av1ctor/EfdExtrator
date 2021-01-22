@@ -177,7 +177,7 @@ function EfdBoXlsxLoader.carregarXlsxNFeEmit(rd as ExcelReader ptr) as TDFe_NFe 
 	'' CNPJ Emitente,	Inscrição Estadual Emitente,	CRT, DRT Emit,	UF Emit
 	'' Razão Social Destinatário,	CNPJ ou CPF do Destinatário,	Inscrição Estadual Destinatário,	CNAE Destinatário,	Cod Cnae Destinatário (Cadesp)	
 	'' DRT Dest,	UF Dest,	Tipo Doc Fiscal,	Descrição Natureza Operação,	Peso Liquido(NFe SP Volume)
-	'' Peso Bruto(NFe SP Volume),	Informações Interesse Fisco,	EMPTY, Informações Complementares Interesse Contribuinte,	Indicador Modalidade Frete,	Situação Documento
+	'' Peso Bruto(NFe SP Volume),	Informações Interesse Fisco,	Informações Complementares Interesse Contribuinte,	Indicador Modalidade Frete,	Situação Documento
 	'' Dt. Cancelamento,	Mercadoria - Valor,	Razão Social Transportador,	CNPJ do Transportador,	Inscrição Estadual Transportador
 	'' Placa Veículo Transportador,	UF Veículo Transportador,	Total BC  ICMS,	Total ICMSv,	Total BC ICMS-ST
 	'' Total ICMS-ST,	Total NFe,	Valor Total Frete,	Valor Total Seguro,	Valor ICMS Inter. UF Destino	
@@ -208,7 +208,6 @@ function EfdBoXlsxLoader.carregarXlsxNFeEmit(rd as ExcelReader ptr) as TDFe_NFe 
 	rd->skip '' peso liq
 	rd->skip '' peso bruto
 	rd->skip '' info fisco
-	rd->skip '' EMPTY
 	rd->skip '' info contrib
 	rd->skip '' frete
 	rd->skip '' situação doc
