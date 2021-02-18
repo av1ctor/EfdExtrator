@@ -222,9 +222,9 @@ function EfdGUI.buildFileGrid(grid as FILE_GRID, title as string, filter as stri
 	IupSetAttribute(mat, "TYPE*:3", "FILL")
 	IupSetAttribute(mat, "FGCOLOR*:3", "#008080")
 	
-	IupSetInt(mat, "WIDTH1", 350)
-	IupSetInt(mat, "WIDTH2", 200)
-	IupSetInt(mat, "WIDTH3", 100)
+	IupSetInt(mat, "WIDTH1", 310)
+	IupSetInt(mat, "WIDTH2", 180)
+	IupSetInt(mat, "WIDTH3",  80)
 	
 	IupSetAttribute(mat, "ALIGNMENT1", "ALEFT")
 	IupSetAttribute(mat, "ALIGNMENT2", "ALEFT")
@@ -1058,8 +1058,7 @@ function EfdGUI.buildDlg(efdFrm as IHandle ptr, dfeFrm as IHandle ptr) as IHandl
 	IupSetAttribute(dlg, "TITLE", "EfdExtrator")
 	IupSetAttribute(dlg, "MARGIN", "2x2")
 	var h = getWorkareaHeight()
-	IupSetAttribute(dlg, "MINSIZE", "1080x900")
-	IupSetAttribute(dlg, "MAXSIZE", "1080x" & h)
+	IupSetAttribute(dlg, "RASTERSIZE", "1000x" & h)
 	IupSetAttribute(efdFrm, "MARGIN", "0x5")
 	IupSetAttribute(dfeFrm, "MARGIN", "0x5")
 	
