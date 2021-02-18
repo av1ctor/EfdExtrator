@@ -1,5 +1,6 @@
 ﻿#include once "EfdGUI.bi"
 
+#include "winmin.bi"
 #include "icons.bas"
 
 dim shared running as boolean
@@ -205,7 +206,7 @@ function EfdGUI.buildFileGrid(grid as FILE_GRID, title as string, filter as stri
 	IupSetInt(mat, "NUMLIN", 0)
 	IupSetInt(mat, "NUMCOL", 3)
 	IupSetInt(mat, "NUMCOL_VISIBLE", 3)
-	IupSetInt(mat, "NUMLIN_VISIBLE", 5)
+	IupSetInt(mat, "NUMLIN_VISIBLE", 3)
 	
 	IupSetAttribute(mat, "SHOWFILLVALUE", "YES")
 	'IupSetAttribute(mat, "TOGGLECENTERED", "YES")
@@ -1025,21 +1026,30 @@ function EfdGUI.buildActionsFrame() as IHandle ptr
 	
 end function
 
+private function getWorkareaHeight() as long
+	dim rect as RECT
+	SystemParametersInfo(SPI_GETWORKAREA, 0, @rect, 0)
+	return abs(rect.top - rect.bottom)
+end function
+
 function EfdGUI.buildDlg(efdFrm as IHandle ptr, dfeFrm as IHandle ptr) as IHandle ptr
 	
 	statusBar = buildStatusBar()
 	
 	var dlg = IupDialog _
 	( _
-		IupVbox _
+		IupScrollBox _
 		( _
-			buildToolBar(), _
-			efdFrm, _
-			dfeFrm, _
-			buildOptionsFrame(), _
-			buildActionsFrame(), _
-			statusBar, _
-			NULL _
+			IupVbox _
+			( _
+				buildToolBar(), _
+				efdFrm, _
+				dfeFrm, _
+				buildOptionsFrame(), _
+				buildActionsFrame(), _
+				statusBar, _
+				NULL _
+			) _
 		) _
 	)
 	
@@ -1047,8 +1057,9 @@ function EfdGUI.buildDlg(efdFrm as IHandle ptr, dfeFrm as IHandle ptr) as IHandl
 	
 	IupSetAttribute(dlg, "TITLE", "EfdExtrator")
 	IupSetAttribute(dlg, "MARGIN", "2x2")
-	IupSetAttribute(dlg, "MINSIZE", "1080x600")
-	IupSetAttribute(dlg, "MAXSIZE", "1080x65535")
+	var h = getWorkareaHeight()
+	IupSetAttribute(dlg, "MINSIZE", "1080x900")
+	IupSetAttribute(dlg, "MAXSIZE", "1080x" & h)
 	IupSetAttribute(efdFrm, "MARGIN", "0x5")
 	IupSetAttribute(dfeFrm, "MARGIN", "0x5")
 	

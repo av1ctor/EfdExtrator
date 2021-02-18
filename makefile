@@ -16,7 +16,7 @@ LIBS_OBJ := $(patsubst $(srcdir)/libs/%.bas,$(objdir)/%.o,$(LIBS_BAS))
 APP_FLAGS := $(srcdir)/gui.rc -x $(APP_EXE)
 OBJ_FLAGS := -d WITH_PARSER -O 3
 
-.PHONY: app
+.PHONY: app clena
 app: $(APP_EXE)
 
 $(APP_EXE): $(LIBS_OBJ) $(APP_OBJ)
@@ -28,3 +28,6 @@ $(APP_OBJ): $(objdir)/%.o: $(srcdir)/%.bas $(APP_BI) $(LIBS_BI) | $(objdir)
 $(LIBS_OBJ): $(objdir)/%.o: $(srcdir)/libs/%.bas $(LIBS_BI) | $(objdir)
 	$(FBC) $(OBJ_FLAGS) -c $< -o $@
 
+clean:
+	del $(subst /,\,$(objdir)/*.o)
+	del $(APP_EXE)
